@@ -2,20 +2,95 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { BriefcaseBusiness, ChevronDown, Plus, Search } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getApplications } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
-import type { Application, ApplicationCategory, ApplicationStatus } from "@/types";
+import type { Application, ApplicationStatus } from "@/types";
 
-const categoryLabels: Record<ApplicationCategory, string> = { software: "Software", sales: "Vertrieb", business: "Business", finance: "Finanzen", banking: "Banking", consulting: "Beratung", other: "Sonstiges" };
-const categories: { value: ApplicationCategory | "all"; label: string }[] = [{ value: "all", label: "Alle Kategorien" }, ...Object.entries(categoryLabels).map(([value, label]) => ({ value: value as ApplicationCategory, label }))];
-const statuses: { value: ApplicationStatus | "all"; label: string }[] = [{ value: "all", label: "Alle Status" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))];
+const statusStyle: Record<ApplicationStatus, string> = {
+  saved: "bg-[#f2f2f4] text-[#5e5e63]",
+  preparing: "bg-[#fff4df] text-[#855600]",
+  applied: "bg-[#eaf3ff] text-[#075dbd]",
+  interview: "bg-[#eaf5ed] text-[#267447]",
+  final_interview: "bg-[#eaf5ed] text-[#267447]",
+  offer: "bg-[#eaf5ed] text-[#267447]",
+  rejected: "bg-[#fff0f0] text-[#a32828]",
+  withdrawn: "bg-[#f2f2f4] text-[#5e5e63]",
+};
 
 export default function ApplicationsPage() {
-  const [applications, setApplications] = useState<Application[]>([]); const [query, setQuery] = useState(""); const [status, setStatus] = useState<ApplicationStatus | "all">("all"); const [category, setCategory] = useState<ApplicationCategory | "all">("all"); const [sort, setSort] = useState("updated");
-  useEffect(() => { let active = true; getApplications().then((data) => { if (active) setApplications(data); }).catch(() => undefined); return () => { active = false; }; }, []);
-  const filtered = useMemo(() => [...applications].filter((application) => `${application.company} ${application.position}`.toLowerCase().includes(query.toLowerCase())).filter((application) => status === "all" || application.status === status).filter((application) => category === "all" || application.category === category).sort((a, b) => sort === "match" ? (b.matchScore ?? 0) - (a.matchScore ?? 0) : b.updatedAt.localeCompare(a.updatedAt)), [applications, category, query, sort, status]);
-  return <WorkspaceShell active="Applications" title="ApplyOS / Applications"><div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[#56c8ff]">Opportunity tracker</p><h1 className="mt-3 text-3xl font-semibold tracking-[-.04em] text-white">Applications</h1><p className="mt-2 text-sm text-[#8292ae]">Keep every opportunity moving forward.</p></div><Link href="/applications/new" className="flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-[#328dff] to-[#55c9ff] px-4 py-3 text-sm font-semibold text-[#061022]"><Plus size={16} />New application</Link></div><div className="panel mt-8 flex flex-col gap-3 rounded-2xl p-4 md:flex-row"><label className="relative flex-1"><Search size={16} className="absolute left-3 top-3 text-[#7185a6]" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search company or position" className="w-full rounded-xl border border-white/10 bg-[#08172f] py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-[#526b8c] focus:border-[#4ca6ff]" /></label><FilterSelect value={status} onChange={(value) => setStatus(value as ApplicationStatus | "all")} options={statuses} /><FilterSelect value={category} onChange={(value) => setCategory(value as ApplicationCategory | "all")} options={categories} /><FilterSelect value={sort} onChange={setSort} options={[{ value: "updated", label: "Recently updated" }, { value: "match", label: "Highest match" }]} /></div><div className="panel mt-5 overflow-hidden rounded-2xl"><div className="border-b border-white/10 px-5 py-4 text-xs text-[#7185a6]">{filtered.length} application{filtered.length === 1 ? "" : "s"}</div>{filtered.length ? <div className="overflow-x-auto"><table className="w-full min-w-[800px] text-left"><thead><tr className="text-[10px] uppercase tracking-[.14em] text-[#7185a6]"><th className="px-6 py-4 font-semibold">Company</th><th className="py-4 font-semibold">Position</th><th className="py-4 font-semibold">Category</th><th className="py-4 font-semibold">Status</th><th className="py-4 font-semibold">Match</th><th className="py-4 font-semibold">Updated</th></tr></thead><tbody>{filtered.map((application) => <tr key={application.id} className="border-t border-white/5 text-sm hover:bg-white/[.035]"><td className="px-6 py-4"><Link href={`/applications/${application.id}`} className="font-semibold text-white hover:text-[#56c8ff]">{application.company}</Link></td><td className="py-4 text-[#8292ae]">{application.position}</td><td className="py-4 text-[#8292ae]">{application.category[0].toUpperCase() + application.category.slice(1)}</td><td className="py-4"><span className="rounded-full bg-[#102c50] px-2.5 py-1 text-[11px] font-medium text-[#6fc9ff]">{statusLabels[application.status]}</span></td><td className="py-4 font-semibold text-[#55d6a0]">{application.matchScore ? `${application.matchScore}%` : "-"}</td><td className="py-4 text-[#7185a6]">{new Date(application.updatedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</td></tr>)}</tbody></table></div> : <div className="px-6 py-16 text-center"><BriefcaseBusiness className="mx-auto text-[#3d5b80]" size={28} /><p className="mt-3 text-sm font-semibold text-white">No applications found</p><p className="mt-1 text-xs text-[#7185a6]">Try adjusting your filters or create a new application.</p></div>}</div></WorkspaceShell>;
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<ApplicationStatus | "all">("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getApplications()
+      .then((data) => { if (active) setApplications(data); })
+      .catch(() => { if (active) setError("Die Bewerbungen konnten gerade nicht geladen werden."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const filtered = useMemo(() => applications
+    .filter((item) => `${item.company} ${item.position}`.toLowerCase().includes(query.toLowerCase()))
+    .filter((item) => status === "all" || item.status === status)
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)), [applications, query, status]);
+
+  return (
+    <WorkspaceShell active="Bewerbungen">
+      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Bewerbungen</h1>
+          <p className="mt-2 text-base text-muted">Alles, was du dir merken oder schon abgeschickt hast.</p>
+        </div>
+        <Link href="/applications/new" className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-full bg-[#0866d6] px-5 text-sm font-semibold text-white hover:bg-[#075bbb]">
+          <Plus size={17} /> Bewerbung hinzufügen
+        </Link>
+      </div>
+
+      {error && <p role="alert" className="mt-6 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
+
+      <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+        <label className="relative min-w-0 flex-1">
+          <Search size={17} className="absolute left-3.5 top-3.5 text-[#737378]" />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma oder Stelle suchen" aria-label="Firma oder Stelle suchen" className="min-h-11 w-full rounded-full border border-[#d2d2d7] bg-white py-2.5 pl-10 pr-4 text-sm placeholder:text-[#737378] focus:border-[#0866d6]" />
+        </label>
+        <label className="sr-only" htmlFor="status-filter">Nach Status filtern</label>
+        <select id="status-filter" value={status} onChange={(event) => setStatus(event.target.value as ApplicationStatus | "all")} className="min-h-11 rounded-full border border-[#d2d2d7] bg-white px-4 text-sm text-[#1d1d1f]">
+          <option value="all">Alle Bewerbungen</option>
+          {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+      </div>
+
+      <p className="mt-6 text-sm text-muted">{loading ? "Lädt …" : `${filtered.length} ${filtered.length === 1 ? "Bewerbung" : "Bewerbungen"}`}</p>
+
+      {loading ? (
+        <div className="mt-3 space-y-3" aria-label="Bewerbungen werden geladen">
+          {[0, 1, 2].map((item) => <div key={item} className="h-24 animate-pulse rounded-[14px] bg-[#e9e9ed]" />)}
+        </div>
+      ) : filtered.length ? (
+        <div className="mt-2 divide-y divide-[#e5e5ea] border-y border-[#e5e5ea]">
+          {filtered.map((application) => (
+            <Link key={application.id} href={`/applications/${application.id}`} className="flex min-h-[82px] items-center justify-between gap-4 py-4 transition-colors hover:bg-white sm:px-3">
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold">{application.company}</span>
+                <span className="mt-1 block truncate text-sm text-muted">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
+              </span>
+              <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${statusStyle[application.status]}`}>{statusLabels[application.status]}</span>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="glass-surface mt-3 rounded-[14px] border border-dashed border-white/80 px-6 py-10 text-center">
+          <h2 className="text-base font-semibold">{applications.length ? "Nichts gefunden." : "Noch keine Bewerbungen"}</h2>
+          <p className="mt-2 text-sm text-muted">{applications.length ? "Probier einen anderen Suchbegriff oder Status." : "Füge deine erste Stelle hinzu, damit du sie nicht aus dem Blick verlierst."}</p>
+          {!applications.length && <Link href="/applications/new" className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#0866d6] px-4 text-sm font-semibold text-white hover:bg-[#075bbb]"><Plus size={16} /> Bewerbung hinzufügen</Link>}
+        </div>
+      )}
+    </WorkspaceShell>
+  );
 }
-function FilterSelect({ value, onChange, options }: { value: string; onChange: (value: string) => void; options: { value: string; label: string }[] }) { return <label className="relative"><select value={value} onChange={(event) => onChange(event.target.value)} className="w-full appearance-none rounded-xl border border-white/10 bg-[#08172f] py-2.5 pl-3 pr-9 text-sm text-[#b9cbea] outline-none focus:border-[#4ca6ff] md:w-auto">{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><ChevronDown size={14} className="pointer-events-none absolute right-3 top-3.5 text-[#7185a6]" /></label>; }

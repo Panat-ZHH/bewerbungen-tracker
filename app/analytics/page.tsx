@@ -1,13 +1,65 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Activity, BarChart3, Clock3, Target, Trophy } from "lucide-react";
+
+import { useEffect, useState } from "react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getApplications } from "@/lib/storage";
-import type { Application } from "@/types";
+import { statusLabels } from "@/lib/utils";
+import type { Application, ApplicationStatus } from "@/types";
 
-const categories = { software: "Software", sales: "Vertrieb", business: "Business", finance: "Finanzen", banking: "Banking", consulting: "Beratung", other: "Sonstiges" };
-export default function AnalyticsPage() { const [applications, setApplications] = useState<Application[]>([]); useEffect(() => { let active = true; getApplications().then((data) => { if (active) setApplications(data); }).catch(() => undefined); return () => { active = false; }; }, []); const stats = useMemo(() => { const responses = applications.filter((a) => !["saved", "preparing"].includes(a.status)).length; const interviews = applications.filter((a) => ["interview", "final_interview", "offer"].includes(a.status)).length; const offers = applications.filter((a) => a.status === "offer").length; return { responses, interviews, offers, avgMatch: applications.length ? Math.round(applications.reduce((sum, a) => sum + (a.matchScore ?? 0), 0) / applications.length) : 0 }; }, [applications]); const categoryData = Object.entries(categories).map(([key, name]) => ({ name, applications: applications.filter((a) => a.category === key).length })).filter((item) => item.applications); const monthly = ["Mai", "Jun", "Jul", "Aug", "Sep"].map((month, index) => ({ month, count: applications.filter((a) => new Date(a.createdAt).getMonth() === index + 4).length })); return <WorkspaceShell active="Analytics" title="WendApply / Analysen"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[#56c8ff]">Leistungsübersicht</p><h1 className="mt-3 text-3xl font-semibold tracking-[-.04em] text-white">Bewerbungsanalyse</h1><p className="mt-2 text-sm text-[#8292ae]">Muster und Konversionsdaten aus deinen Bewerbungen.</p></div><section className="mt-8 grid grid-cols-2 gap-3 xl:grid-cols-4"><Metric label="Bewerbungen gesamt" value={applications.length} icon={BarChart3} /><Metric label="Rückmeldequote" value={`${applications.length ? Math.round(stats.responses / applications.length * 100) : 0}%`} icon={Activity} /><Metric label="Gesprächsquote" value={`${applications.length ? Math.round(stats.interviews / applications.length * 100) : 0}%`} icon={Target} /><Metric label="Durchschnittlicher Match" value={`${stats.avgMatch}%`} icon={Trophy} /></section><div className="mt-5 grid gap-5 xl:grid-cols-2"><Chart title="Bewerbungsvolumen"><ResponsiveContainer width="100%" height="100%"><LineChart data={monthly}><CartesianGrid vertical={false} stroke="rgba(120,161,218,.12)" /><XAxis dataKey="month" axisLine={false} tickLine={false} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} /><Tooltip /><Line type="monotone" dataKey="count" stroke="#55d6ff" strokeWidth={3} /></LineChart></ResponsiveContainer></Chart><Chart title="Bewerbungen nach Kategorie"><ResponsiveContainer width="100%" height="100%"><BarChart data={categoryData}><CartesianGrid vertical={false} stroke="rgba(120,161,218,.12)" /><XAxis dataKey="name" axisLine={false} tickLine={false} /><YAxis allowDecimals={false} axisLine={false} tickLine={false} /><Tooltip /><Bar dataKey="applications" fill="#4ca6ff" radius={[5, 5, 0, 0]} /></BarChart></ResponsiveContainer></Chart></div><section className="panel mt-5 rounded-2xl p-5 md:p-6"><div className="flex items-center gap-3"><Clock3 size={18} className="text-[#f79b62]" /><h2 className="text-sm font-semibold text-white">Konversionsübersicht</h2></div><div className="mt-7 space-y-5"><Conversion label="Rückmeldungen" value={stats.responses} total={applications.length} color="#4ca6ff" /><Conversion label="Gespräche" value={stats.interviews} total={applications.length} color="#55d6a0" /><Conversion label="Angebote" value={stats.offers} total={applications.length} color="#f79b62" /></div></section></WorkspaceShell>; }
-function Metric({ label, value, icon: Icon }: { label: string; value: string | number; icon: typeof Activity }) { return <div className="panel rounded-2xl p-5"><div className="flex justify-between text-xs text-[#8292ae]"><span>{label}</span><Icon size={17} className="text-[#4ca6ff]" /></div><p className="mt-5 text-3xl font-semibold text-white">{value}</p></div>; }
-function Chart({ title, children }: { title: string; children: React.ReactNode }) { return <section className="panel rounded-2xl p-5 md:p-6"><h2 className="text-sm font-semibold text-white">{title}</h2><div className="mt-6 h-[250px]">{children}</div></section>; }
-function Conversion({ label, value, total, color }: { label: string; value: number; total: number; color: string }) { const percentage = total ? Math.round(value / total * 100) : 0; return <div><div className="flex justify-between text-xs"><span className="text-[#8292ae]">{label}</span><span className="font-semibold text-white">{percentage}%</span></div><div className="mt-2 h-2 rounded-full bg-[#132b50]"><div className="h-2 rounded-full" style={{ width: `${percentage}%`, background: color }} /></div></div>; }
+export default function AnalyticsPage() {
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    getApplications().then((data) => { if (active) setApplications(data); }).catch(() => undefined).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const total = applications.length;
+  const replied = applications.filter(({ status }) => ["interview", "final_interview", "offer", "rejected"].includes(status)).length;
+  const interviews = applications.filter(({ status }) => ["interview", "final_interview", "offer"].includes(status)).length;
+  const orderedStatuses = Object.entries(statusLabels) as [ApplicationStatus, string][];
+
+  return (
+    <WorkspaceShell active="Auswertung">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Dein Fortschritt</h1>
+        <p className="mt-2 text-base text-muted">Ein einfacher Überblick darüber, wie es läuft.</p>
+      </div>
+
+      <section className="mt-8 grid gap-3 sm:grid-cols-3">
+        <Stat label="Bewerbungen" value={loading ? "–" : total} />
+        <Stat label="Rückmeldungen" value={loading ? "–" : replied} detail={total ? `${Math.round((replied / total) * 100)} % deiner Bewerbungen` : "Noch keine Daten"} />
+        <Stat label="Gespräche" value={loading ? "–" : interviews} detail="Gespräch oder Angebot" />
+      </section>
+
+      <section className="mt-10 max-w-2xl">
+        <h2 className="text-xl font-semibold tracking-[-.4px]">Wo stehen deine Bewerbungen?</h2>
+        <p className="mt-1 text-sm text-muted">So verteilen sie sich auf die einzelnen Schritte.</p>
+        <div className="mt-5 space-y-5">
+          {orderedStatuses.map(([status, label]) => {
+            const count = applications.filter((application) => application.status === status).length;
+            const width = total ? (count / total) * 100 : 0;
+            return (
+              <div key={status}>
+                <div className="mb-2 flex items-center justify-between gap-4 text-sm">
+                  <span>{label}</span>
+                  <span className="tabular-nums text-muted">{loading ? "–" : count}</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[#e5e5ea]" role="progressbar" aria-label={label} aria-valuenow={count} aria-valuemin={0} aria-valuemax={total}>
+                  <div className="h-full rounded-full bg-[#0866d6] transition-[width] duration-500" style={{ width: `${width}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {!loading && !total && <p className="glass-surface mt-6 rounded-xl px-4 py-3 text-sm text-muted">Sobald du Bewerbungen einträgst, erscheint hier dein Fortschritt.</p>}
+      </section>
+    </WorkspaceShell>
+  );
+}
+
+function Stat({ label, value, detail }: { label: string; value: number | string; detail?: string }) {
+  return <div className="glass-surface rounded-[14px] p-5"><p className="text-sm text-muted">{label}</p><p className="mt-3 text-3xl font-semibold tabular-nums tracking-[-1px]">{value}</p>{detail && <p className="mt-1 text-xs text-muted">{detail}</p>}</div>;
+}

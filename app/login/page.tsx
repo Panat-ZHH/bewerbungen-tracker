@@ -3,17 +3,101 @@
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, ArrowRight, CheckCircle2, LockKeyhole, Mail } from "lucide-react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 type AuthMode = "login" | "signup";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login"); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [confirmPassword, setConfirmPassword] = useState(""); const [loading, setLoading] = useState(false); const [error, setError] = useState(""); const [success, setSuccess] = useState("");
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace("/dashboard"); }); }, [router]);
-  function switchMode(nextMode: AuthMode) { setMode(nextMode); setError(""); setSuccess(""); }
-  async function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); setLoading(true); setError(""); setSuccess(""); if (mode === "signup" && password !== confirmPassword) { setError("Die Passwörter stimmen nicht überein."); setLoading(false); return; } const result = mode === "login" ? await supabase.auth.signInWithPassword({ email, password }) : await supabase.auth.signUp({ email, password }); if (result.error) { setError(result.error.message); setLoading(false); return; } if (mode === "signup" && !result.data.session) { setSuccess("Konto erstellt. Prüfe deine E-Mails, bestätige dein Konto und melde dich anschließend an."); setLoading(false); return; } router.replace("/dashboard"); }
+  const [mode, setMode] = useState<AuthMode>("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace("/dashboard"); });
+  }, [router]);
+
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setError("");
+    setSuccess("");
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    if (mode === "signup" && password !== confirmPassword) {
+      setError("Die Passwörter stimmen nicht überein.");
+      setLoading(false);
+      return;
+    }
+    const result = mode === "login"
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({ email, password });
+    if (result.error) {
+      setError(authError(result.error.message));
+      setLoading(false);
+      return;
+    }
+    if (mode === "signup" && !result.data.session) {
+      setSuccess("Fast geschafft! Öffne die E-Mail von uns und bestätige dein Konto. Danach kannst du dich anmelden.");
+      setLoading(false);
+      return;
+    }
+    router.replace("/dashboard");
+  }
+
   const isSignup = mode === "signup";
-  return <main className="workspace-bg flex min-h-screen items-center justify-center px-5 py-10"><div className="w-full max-w-[420px]"><div className="mb-8 text-center"><div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-[#edf4ff] shadow-[0_0_35px_rgba(76,166,255,.3)]"><Image src="/logo.png" alt="WendApply" width={88} height={88} className="h-[88px] w-[88px] object-contain" priority /></div><h1 className="mt-6 text-2xl font-semibold tracking-[-.03em] text-white">{isSignup ? "WendApply-Konto erstellen" : "Willkommen bei WendApply"}</h1><p className="mt-2 text-sm text-[#8292ae]">{isSignup ? "Organisiere jetzt deine Jobsuche." : "Verwalte deine Jobsuche an einem Ort."}</p></div><form onSubmit={submit} className="panel rounded-2xl p-6 md:p-8"><label className="mb-2 block text-xs font-semibold text-[#8292ae]" htmlFor="email">E-Mail</label><div className="relative"><Mail size={16} className="absolute left-3 top-3 text-[#7185a6]" /><input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.de" className="w-full rounded-xl border border-white/10 bg-[#08172f] py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-[#526b8c] focus:border-[#4ca6ff]" /></div><label className="mb-2 mt-5 block text-xs font-semibold text-[#8292ae]" htmlFor="password">Passwort</label><div className="relative"><LockKeyhole size={16} className="absolute left-3 top-3 text-[#7185a6]" /><input id="password" type="password" required minLength={6} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 6 Zeichen" : "Dein Passwort"} className="w-full rounded-xl border border-white/10 bg-[#08172f] py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-[#526b8c] focus:border-[#4ca6ff]" /></div>{isSignup && <><label className="mb-2 mt-5 block text-xs font-semibold text-[#8292ae]" htmlFor="confirm-password">Passwort bestätigen</label><input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Passwort wiederholen" className="w-full rounded-xl border border-white/10 bg-[#08172f] px-3 py-2.5 text-sm text-white outline-none placeholder:text-[#526b8c] focus:border-[#4ca6ff]" /></>}{error && <div role="alert" className="mt-5 flex items-start gap-2 rounded-xl border border-[#6e3340] bg-[#24131e] px-3 py-3 text-xs leading-5 text-[#ffaaa0]"><AlertCircle size={15} />{error}</div>}{success && <div role="status" className="mt-5 flex items-start gap-2 rounded-xl border border-[#245d58] bg-[#0d2c32] px-3 py-3 text-xs leading-5 text-[#8de1c2]"><CheckCircle2 size={15} />{success}</div>}<button disabled={loading} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#328dff] to-[#55c9ff] px-4 py-3 text-sm font-semibold text-[#061022] disabled:opacity-60">{loading ? (isSignup ? "Konto wird erstellt..." : "Anmeldung läuft...") : isSignup ? "Konto erstellen" : "Anmelden"}<ArrowRight size={16} /></button><div className="mt-6 border-t border-white/10 pt-5 text-center text-xs text-[#7185a6]">{isSignup ? "Du hast bereits ein Konto?" : "Noch kein Konto?"} <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="font-semibold text-[#56c8ff] hover:text-white">{isSignup ? "Anmelden" : "Konto erstellen"}</button></div></form><p className="mt-5 text-center text-xs text-[#526b8c]">Die Authentifizierung wird sicher über Supabase verwaltet.</p></div></main>;
+
+  return (
+    <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5 py-10">
+      <div className="w-full max-w-[410px]">
+        <div className="mb-7 text-center">
+          <Image src="/logo.png" alt="WendApply" width={56} height={56} className="mx-auto rounded-[16px] bg-white p-1" priority />
+          <h1 className="mt-5 text-2xl font-semibold tracking-[-.5px]">{isSignup ? "Konto erstellen" : "Schön, dass du da bist."}</h1>
+          <p className="mt-2 text-sm text-muted">{isSignup ? "Behalte deine Bewerbungen an einem Ort." : "Melde dich an und behalte deine Suche im Blick."}</p>
+        </div>
+
+        <form onSubmit={submit} className="glass-surface rounded-[16px] p-5 sm:p-7">
+          {error && <p role="alert" className="mb-5 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
+          {success && <p role="status" className="mb-5 flex gap-2 rounded-xl border border-[#c5dfcf] bg-[#f1faf4] px-4 py-3 text-sm leading-5 text-[#246c40]"><CheckCircle2 size={17} className="mt-0.5 shrink-0" />{success}</p>}
+
+          <label className="mb-2 block text-sm font-medium" htmlFor="email">E-Mail-Adresse</label>
+          <input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+
+          <label className="mb-2 mt-5 block text-sm font-medium" htmlFor="password">Passwort</label>
+          <input id="password" type="password" required minLength={6} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 6 Zeichen" : "Dein Passwort"} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+
+          {isSignup && <>
+            <label className="mb-2 mt-5 block text-sm font-medium" htmlFor="confirm-password">Passwort wiederholen</label>
+            <input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+          </>}
+
+          <button disabled={loading} className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#0866d6] px-5 text-sm font-semibold text-white hover:bg-[#075bbb] disabled:opacity-60">
+            {loading ? "Einen Moment …" : isSignup ? "Konto erstellen" : "Anmelden"}<ArrowRight size={16} />
+          </button>
+
+          <p className="mt-6 border-t border-[#e5e5ea] pt-5 text-center text-sm text-muted">
+            {isSignup ? "Du hast schon ein Konto?" : "Noch kein Konto?"}{" "}
+            <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="font-semibold text-[#0866d6] hover:underline">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
+          </p>
+        </form>
+        <p className="mt-5 text-center text-xs text-muted">Deine Daten bleiben in deinem persönlichen Konto.</p>
+      </div>
+    </main>
+  );
+}
+
+function authError(message: string) {
+  if (message.includes("Invalid login credentials")) return "E-Mail oder Passwort stimmt nicht. Versuch es noch einmal.";
+  if (message.includes("User already registered")) return "Für diese E-Mail gibt es schon ein Konto. Melde dich an.";
+  if (message.includes("Password should be at least")) return "Dein Passwort muss mindestens sechs Zeichen haben.";
+  return "Das hat nicht geklappt. Bitte prüfe deine Angaben und versuch es noch einmal.";
 }

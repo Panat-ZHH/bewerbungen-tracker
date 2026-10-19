@@ -1,10 +1,92 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import { Database, Download, Moon, Palette, ShieldCheck, Sun, Trash2, Upload } from "lucide-react";
+
+import { useRef, useState } from "react";
+import { Download, Trash2, Upload } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import type { Application } from "@/types";
 
-export default function SettingsPage() { const importRef = useRef<HTMLInputElement>(null); const [notice, setNotice] = useState(""); const [lightMode, setLightMode] = useState(false); useEffect(() => { const update = () => setLightMode(document.documentElement.classList.contains("light")); update(); window.addEventListener("wendapply-theme", update); return () => window.removeEventListener("wendapply-theme", update); }, []); async function exportData() { const payload = { applications: await getApplications(), profile: await getProfile(), cvs: await getCVs(), exportedAt: new Date().toISOString() }; const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = "wendapply-export.json"; anchor.click(); URL.revokeObjectURL(url); setNotice("Daten erfolgreich exportiert."); } function importData(event: React.ChangeEvent<HTMLInputElement>) { const file = event.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = async () => { try { const data = JSON.parse(String(reader.result)) as { applications?: unknown; profile?: unknown }; if (Array.isArray(data.applications)) await importApplications(data.applications as never[]); if (data.profile && typeof data.profile === "object") await saveProfile(data.profile as never); setNotice("Daten erfolgreich importiert."); } catch { setNotice("Diese Datei konnte nicht importiert werden."); } }; reader.readAsText(file); } async function clearData() { if (window.confirm("Alle WendApply-Daten aus der Datenbank löschen? Dieser Vorgang kann nicht rückgängig gemacht werden.")) { await clearLocalData(); setNotice("Datenbankdaten gelöscht."); } } function toggleTheme() { const next = lightMode ? "dark" : "light"; document.documentElement.classList.toggle("light", next === "light"); window.localStorage.setItem("wendapply.theme", next); window.dispatchEvent(new CustomEvent("wendapply-theme", { detail: next })); } return <WorkspaceShell active="Settings" title="WendApply / Einstellungen"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[#56c8ff]">Arbeitsbereich</p><h1 className="mt-3 text-3xl font-semibold tracking-[-.04em] text-white">Einstellungen</h1><p className="mt-2 text-sm text-[#8292ae]">Verwalte Darstellung und Daten deines Arbeitsbereichs.</p></div>{notice && <div role="status" className="mt-6 rounded-xl border border-[#2d79b7] bg-[#0b2948] px-4 py-3 text-sm text-[#8edaff]">{notice}</div>}<div className="mt-8 max-w-[850px] space-y-5"><Section icon={Palette} title="Darstellung" description="Wähle zwischen dem dunklen WendApply-Stil und einem hellen Arbeitsmodus."><div className="flex items-center justify-between rounded-xl border border-white/10 bg-[#08172f] p-4"><div className="flex items-center gap-3">{lightMode ? <Sun size={17} className="text-[#f79b62]" /> : <Moon size={17} className="text-[#56c8ff]" />}<div><p className="text-sm font-medium text-white">{lightMode ? "Heller Modus" : "Dunkler Modus"}</p><p className="mt-1 text-xs text-[#7185a6]">Deine Auswahl wird automatisch gespeichert.</p></div></div><Button variant="secondary" onClick={toggleTheme}>{lightMode ? "Dunkel verwenden" : "Hell verwenden"}</Button></div></Section><Section icon={Database} title="Datenverwaltung" description="Alle Daten werden sicher in deiner Supabase-Datenbank gespeichert."><div className="flex flex-wrap gap-3"><Button onClick={exportData}><Download size={16} />Daten exportieren</Button><Button variant="secondary" onClick={() => importRef.current?.click()}><Upload size={16} />Daten importieren</Button><input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" /></div></Section><Section icon={ShieldCheck} title="Bewerbungseinstellungen" description="Datumsformat: Deutsch (Schweiz). Standardwährung: CHF."><div className="rounded-xl border border-white/10 bg-[#08172f] px-4 py-3 text-sm text-[#8292ae]">Benachrichtigungen und Integrationen folgen in einer späteren Version.</div></Section><Card className="border-[#6e3340]/60 bg-[#24131e] p-5"><div className="flex items-start gap-3"><Trash2 size={18} className="mt-0.5 text-[#ff8f85]" /><div><h2 className="text-sm font-semibold text-white">Datenbankdaten löschen</h2><p className="mt-1 text-xs leading-5 text-[#c18c95]">Löscht Bewerbungen, Profiländerungen und Lebenslaufdaten dieses Kontos.</p><Button variant="danger" onClick={clearData} className="mt-4">Alle Daten löschen</Button></div></div></Card></div></WorkspaceShell>; }
-function Section({ icon: Icon, title, description, children }: { icon: typeof Database; title: string; description: string; children: React.ReactNode }) { return <Card className="p-5 md:p-6"><div className="flex items-start gap-3"><Icon size={18} className="mt-0.5 text-[#56c8ff]" /><div className="flex-1"><h2 className="text-sm font-semibold text-white">{title}</h2><p className="mt-1 text-xs text-[#7185a6]">{description}</p><div className="mt-5">{children}</div></div></div></Card>; }
+export default function SettingsPage() {
+  const importRef = useRef<HTMLInputElement>(null);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function exportData() {
+    setBusy(true);
+    setNotice("");
+    try {
+      const payload = { applications: await getApplications(), profile: await getProfile(), cvs: await getCVs(), exportedAt: new Date().toISOString() };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "wendapply-daten.json";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setNotice("Deine Daten wurden heruntergeladen.");
+    } catch {
+      setNotice("Der Download konnte nicht erstellt werden.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function importData(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      const data = JSON.parse(await file.text()) as { applications?: Application[]; profile?: Parameters<typeof saveProfile>[0] };
+      if (Array.isArray(data.applications)) await importApplications(data.applications);
+      if (data.profile && typeof data.profile === "object") await saveProfile(data.profile);
+      setNotice("Deine Daten wurden eingelesen.");
+    } catch {
+      setNotice("Diese Datei kann nicht gelesen werden. Nutze eine WendApply-Sicherungsdatei.");
+    } finally {
+      setBusy(false);
+      event.target.value = "";
+    }
+  }
+
+  async function clearData() {
+    if (!window.confirm("Alle Bewerbungen und Profildaten wirklich löschen? Deine Lebenslauf-Vorlagen bleiben erhalten.")) return;
+    setBusy(true);
+    setNotice("");
+    try {
+      await clearLocalData();
+      setNotice("Deine Bewerbungen und Profildaten wurden gelöscht.");
+    } catch {
+      setNotice("Die Daten konnten nicht vollständig gelöscht werden.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <WorkspaceShell active="Settings">
+      <div className="max-w-2xl">
+        <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Einstellungen</h1>
+        <p className="mt-2 text-base text-muted">Du hast die Kontrolle über deine Daten.</p>
+
+        {notice && <p role="status" className="glass-surface mt-5 rounded-xl px-4 py-3 text-sm text-muted">{notice}</p>}
+
+        <section className="mt-7 border-y border-[#e5e5ea] py-5">
+          <h2 className="text-base font-semibold">Daten sichern</h2>
+          <p className="mt-1 text-sm text-muted">Lade eine Kopie deiner Bewerbungen herunter oder lies eine Sicherung ein.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button onClick={exportData} disabled={busy} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#0866d6] px-4 text-sm font-semibold text-white hover:bg-[#075bbb] disabled:opacity-60"><Download size={16} /> Herunterladen</button>
+            <button onClick={() => importRef.current?.click()} disabled={busy} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-[#d2d2d7] bg-white px-4 text-sm font-semibold hover:bg-[#f5f5f7] disabled:opacity-60"><Upload size={16} /> Sicherung einlesen</button>
+            <input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" />
+          </div>
+        </section>
+
+        <section className="mt-7 border-b border-[#e5e5ea] pb-6">
+          <h2 className="text-base font-semibold">Daten löschen</h2>
+          <p className="mt-1 text-sm text-muted">Entfernt deine Bewerbungen, Notizen und Profilangaben. Deine Lebenslauf-Vorlagen bleiben bestehen.</p>
+          <button onClick={clearData} disabled={busy} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border border-[#e8c7c7] bg-white px-4 text-sm font-semibold text-[#b42323] hover:bg-[#fff0f0] disabled:opacity-60"><Trash2 size={16} /> Meine Daten löschen</button>
+        </section>
+      </div>
+    </WorkspaceShell>
+  );
+}

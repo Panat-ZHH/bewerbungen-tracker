@@ -56,9 +56,53 @@ alter table public.applications add column if not exists user_id uuid references
 alter table public.profiles add column if not exists user_id uuid references auth.users(id) on delete cascade;
 alter table public.cvs add column if not exists user_id uuid references auth.users(id) on delete cascade;
 
+create or replace function public.create_default_cvs_for_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.cvs (id, user_id, name, type, description, updated_at, status)
+  values
+    ('cv-' || new.id::text || '-developer', new.id, 'Entwickler-Lebenslauf', 'developer', 'Softwareentwicklung', current_date, 'Draft'),
+    ('cv-' || new.id::text || '-sales', new.id, 'Vertrieb-Lebenslauf', 'sales', 'Business Development / Vertrieb', current_date, 'Draft'),
+    ('cv-' || new.id::text || '-finance', new.id, 'Finanz-Lebenslauf', 'finance', 'Finanzen / Banking', current_date, 'Draft')
+  on conflict (id) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists create_default_cvs_after_signup on auth.users;
+create trigger create_default_cvs_after_signup
+  after insert on auth.users
+  for each row execute function public.create_default_cvs_for_user();
+
+insert into public.cvs (id, user_id, name, type, description, updated_at, status)
+select 'cv-' || users.id::text || '-' || templates.type,
+       users.id,
+       templates.name,
+       templates.type,
+       templates.description,
+       current_date,
+       'Draft'
+from auth.users as users
+cross join (values
+  ('developer', 'Entwickler-Lebenslauf', 'Softwareentwicklung'),
+  ('sales', 'Vertrieb-Lebenslauf', 'Business Development / Vertrieb'),
+  ('finance', 'Finanz-Lebenslauf', 'Finanzen / Banking')
+) as templates(type, name, description)
+on conflict (id) do nothing;
+
 alter table public.applications enable row level security;
 alter table public.profiles enable row level security;
 alter table public.cvs enable row level security;
+
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on public.applications to authenticated;
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.cvs to authenticated;
 
 drop policy if exists "local prototype applications access" on public.applications;
 drop policy if exists "local prototype profiles access" on public.profiles;

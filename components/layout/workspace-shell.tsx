@@ -4,20 +4,96 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, FileText, LayoutDashboard, LogOut, Menu, Settings, Sun, UserRound } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, FileText, LogOut, Settings, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
-const navigation = [{ label: "Übersicht", href: "/dashboard", icon: LayoutDashboard }, { label: "Bewerbungen", href: "/applications", icon: BriefcaseBusiness }, { label: "Analysen", href: "/analytics", icon: BarChart3 }, { label: "Lebensläufe", href: "/cvs", icon: FileText }, { label: "Profil", href: "/profile", icon: UserRound }, { label: "Einstellungen", href: "/settings", icon: Settings }];
-const activeLabels: Record<string, string> = { Dashboard: "Übersicht", Applications: "Bewerbungen", Analytics: "Analysen", CVs: "Lebensläufe", Profile: "Profil", Settings: "Einstellungen", Übersicht: "Übersicht", Bewerbungen: "Bewerbungen", Analysen: "Analysen", Lebensläufe: "Lebensläufe", Profil: "Profil", Einstellungen: "Einstellungen" };
+const navigation = [
+  { label: "Start", href: "/dashboard", icon: BriefcaseBusiness, keys: ["Dashboard", "Übersicht", "Start"] },
+  { label: "Bewerbungen", href: "/applications", icon: BriefcaseBusiness, keys: ["Applications", "Bewerbungen"] },
+  { label: "Lebensläufe", href: "/cvs", icon: FileText, keys: ["CVs", "Lebensläufe"] },
+  { label: "Auswertung", href: "/analytics", icon: BarChart3, keys: ["Analytics", "Analysen", "Auswertung"] },
+];
 
-export function WorkspaceShell({ children, active, title = "WendApply" }: { children: React.ReactNode; active: string; title?: string }) {
-  const router = useRouter(); const [mobileOpen, setMobileOpen] = useState(false); const [user, setUser] = useState<User | null>(null); const [checkingSession, setCheckingSession] = useState(true); const [theme, setTheme] = useState<"dark" | "light">(() => typeof window !== "undefined" && window.localStorage.getItem("wendapply.theme") === "light" ? "light" : "dark"); const selectedLabel = activeLabels[active] ?? active; const displayTitle = title.replace("ApplyOS", "WendApply").replace("Overview", "Übersicht").replace("Applications", "Bewerbungen").replace("Application", "Bewerbung").replace("Analytics", "Analysen").replace("CV Library", "Lebenslauf-Bibliothek").replace("Profile", "Profil").replace("Settings", "Einstellungen").replace("New application", "Neue Bewerbung");
-  useEffect(() => { document.documentElement.classList.toggle("light", theme === "light"); window.localStorage.setItem("wendapply.theme", theme); window.dispatchEvent(new CustomEvent("wendapply-theme", { detail: theme })); }, [theme]);
-  useEffect(() => { let mounted = true; supabase.auth.getUser().then(({ data }) => { if (mounted) { setUser(data.user); setCheckingSession(false); } }); const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null)); return () => { mounted = false; listener.subscription.unsubscribe(); }; }, []);
-  useEffect(() => { if (!checkingSession && !user) router.replace("/login"); }, [checkingSession, router, user]);
-  async function logout() { await supabase.auth.signOut(); router.replace("/login"); }
-  if (checkingSession || !user) return <main className="workspace-bg flex min-h-screen items-center justify-center"><div className="panel rounded-2xl px-8 py-7 text-center"><div className="mx-auto h-10 w-10 animate-pulse rounded-xl bg-gradient-to-br from-[#287bff] to-[#55d4ff]" /><p className="mt-4 text-sm text-white">WendApply wird geladen...</p></div></main>;
-  const initials = (user.email?.slice(0, 2) ?? "WA").toUpperCase();
-  return <div className={`workspace-bg min-h-screen ${theme === "light" ? "light" : ""}`}><aside className="fixed inset-y-0 left-0 z-30 hidden w-[84px] flex-col items-center border-r border-white/10 bg-[#061022]/85 py-6 backdrop-blur-xl md:flex"><Link href="/dashboard" aria-label="WendApply Übersicht" className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#edf4ff] shadow-[0_0_25px_rgba(76,166,255,.28)]"><Image src="/logo.png" alt="WendApply" width={64} height={64} className="h-16 w-16 object-contain" priority /></Link><nav className="mt-12 flex flex-col gap-5">{navigation.map(({ label, href, icon: Icon }) => <Link key={label} href={href} title={label} className={`flex h-10 w-10 items-center justify-center rounded-xl transition ${selectedLabel === label ? "bg-[#153a71] text-[#65c6ff] blue-glow" : "text-[#7185a6] hover:bg-white/5 hover:text-white"}`}><Icon size={18} strokeWidth={1.8} /></Link>)}</nav><button onClick={logout} aria-label="Abmelden" title="Abmelden" className="mt-auto flex h-10 w-10 items-center justify-center rounded-xl bg-[#13274a] text-[#87b9ff] hover:bg-[#3b202b] hover:text-[#ff9b91]"><LogOut size={17} /></button></aside>{mobileOpen && <div className="fixed inset-0 z-40 bg-[#020713]/75 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)}><nav className="h-full w-[270px] border-r border-white/10 bg-[#071326] p-6" onClick={(event) => event.stopPropagation()}><div className="flex items-center gap-3"><Image src="/logo.png" alt="WendApply" width={72} height={72} className="h-16 w-16 rounded-2xl bg-[#edf4ff] object-contain" /><span className="text-lg font-semibold text-white">WendApply</span></div><div className="mt-10 space-y-2">{navigation.map(({ label, href, icon: Icon }) => <Link key={label} href={href} onClick={() => setMobileOpen(false)} className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm ${selectedLabel === label ? "bg-[#153a71] text-[#65c6ff]" : "text-[#8292ae]"}`}><Icon size={18} />{label}</Link>)}</div><button onClick={logout} className="mt-8 flex items-center gap-3 px-3 py-3 text-sm text-[#ff9b91]"><LogOut size={18} />Abmelden</button></nav></div>}<div className="md:pl-[84px]"><header className="flex h-[74px] items-center justify-between border-b border-white/10 bg-[#061022]/55 px-5 backdrop-blur-xl md:px-9"><div className="flex items-center gap-3"><button className="md:hidden" aria-label="Menü öffnen" onClick={() => setMobileOpen(true)}><Menu size={20} /></button><span className="text-xs font-medium uppercase tracking-[.18em] text-[#7185a6]">{displayTitle}</span></div><div className="flex items-center gap-3"><button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label={theme === "dark" ? "Lightmode aktivieren" : "Darkmode aktivieren"} className="rounded-lg p-2 text-[#8292ae] hover:bg-white/10 hover:text-white"><Sun size={17} /></button><span className="hidden max-w-[220px] truncate text-xs text-[#7185a6] sm:block">{user.email}</span><div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#132f5c] text-[10px] font-bold text-[#8bc7ff]">{initials}</div></div></header><main className="mx-auto max-w-[1400px] px-5 py-7 md:px-9 md:py-9">{children}</main></div></div>;
+export function WorkspaceShell({ children, active }: { children: React.ReactNode; active: string; title?: string }) {
+  const router = useRouter();
+  const [user, setUser] = useState<User | null>(null);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (mounted) {
+        setUser(data.user);
+        setCheckingSession(false);
+      }
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!checkingSession && !user) router.replace("/login");
+  }, [checkingSession, router, user]);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    router.replace("/login");
+  }
+
+  if (checkingSession || !user) {
+    return (
+      <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5">
+        <p className="text-sm text-muted">Dein Bereich wird geladen …</p>
+      </main>
+    );
+  }
+
+  return (
+    <div className="workspace-bg min-h-[100dvh]">
+      <header className="glass-bar sticky top-0 z-20 border-b">
+        <div className="page-wrap flex h-[68px] items-center gap-5">
+          <Link href="/dashboard" className="flex shrink-0 items-center gap-2.5" aria-label="WendApply Start">
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px] bg-[#f2f7ff]">
+              <Image src="/logo.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" priority />
+            </span>
+            <span className="hidden text-[15px] font-semibold tracking-[-.2px] sm:inline">WendApply</span>
+          </Link>
+
+          <nav aria-label="Hauptmenü" className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
+            {navigation.map(({ label, href, icon: Icon, keys }) => {
+              const selected = keys.includes(active);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  aria-current={selected ? "page" : undefined}
+                  className={`flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-[13px] font-medium transition-colors ${selected ? "bg-[#eaf3ff] text-[#075dbd]" : "text-[#5e5e63] hover:bg-[#f2f2f4] hover:text-[#1d1d1f]"}`}
+                >
+                  <Icon size={15} strokeWidth={1.8} />
+                  {label}
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" className="flex h-9 w-9 items-center justify-center rounded-full text-[#5e5e63] hover:bg-[#f2f2f4]">
+              <UserRound size={17} strokeWidth={1.8} />
+            </Link>
+            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="flex h-9 w-9 items-center justify-center rounded-full text-[#5e5e63] hover:bg-[#f2f2f4]">
+              <Settings size={17} strokeWidth={1.8} />
+            </Link>
+            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="flex h-9 w-9 items-center justify-center rounded-full text-[#5e5e63] hover:bg-[#f2f2f4]">
+              <LogOut size={17} strokeWidth={1.8} />
+            </button>
+          </div>
+        </div>
+      </header>
+      <main className="page-wrap py-8 md:py-11">{children}</main>
+    </div>
+  );
 }

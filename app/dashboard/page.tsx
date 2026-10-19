@@ -1,22 +1,117 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowUpRight, BriefcaseBusiness, CalendarDays, CircleCheck, Clock3, Sparkles, Target } from "lucide-react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ArrowRight, Plus } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getApplications } from "@/lib/storage";
-import type { Application } from "@/types";
+import { statusLabels } from "@/lib/utils";
+import type { Application, ApplicationStatus } from "@/types";
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  useEffect(() => { let active = true; getApplications().then((data) => { if (active) setApplications(data); }).catch(() => { if (active) setError("Bewerbungen konnten nicht geladen werden. Prüfe das Supabase-Schema und die Berechtigungen."); }); return () => { active = false; }; }, []);
-  const metrics = useMemo(() => { const interviews = applications.filter((a) => ["interview", "final_interview", "offer"].includes(a.status)).length; return { active: applications.filter((a) => !["rejected", "withdrawn"].includes(a.status)).length, interviews, offers: applications.filter((a) => a.status === "offer").length, responses: applications.filter((a) => !["saved", "preparing"].includes(a.status)).length }; }, [applications]);
-  const monthly = ["Mai", "Jun", "Jul", "Aug", "Sep"].map((month, index) => ({ month, bewerbungen: applications.filter((a) => new Date(a.createdAt).getMonth() === index + 4).length }));
-  const recent = [...applications].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 4);
-  return <WorkspaceShell active="Übersicht" title="WendApply / Übersicht">{error && <div role="alert" className="mb-6 rounded-xl border border-[#6e3340] bg-[#24131e] px-4 py-3 text-sm text-[#ffaaa0]">{error}</div>}<div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[#56c8ff]">Montag, 14. September 2026</p><h1 className="mt-3 text-3xl font-semibold tracking-[-.04em] text-white md:text-4xl">Guten Morgen, Panat</h1><p className="mt-2 text-sm text-[#8292ae]">Der aktuelle Überblick über deine Jobsuche.</p></div><Link href="/applications/new" className="flex w-fit items-center gap-2 rounded-xl bg-gradient-to-r from-[#328dff] to-[#55c9ff] px-4 py-3 text-sm font-semibold text-[#061022] shadow-[0_0_25px_rgba(76,166,255,.22)]">+ Bewerbung hinzufügen</Link></div><section className="mt-8 grid grid-cols-2 gap-3 xl:grid-cols-4"><Metric label="Bewerbungen gesamt" value={applications.length} note="alle Chancen" icon={BriefcaseBusiness} /><Metric label="Aktive Pipeline" value={metrics.active} note="in Bearbeitung" icon={Target} /><Metric label="Gespräche" value={metrics.interviews} note={`${applications.length ? Math.round(metrics.interviews / applications.length * 100) : 0}% Konversion`} icon={CalendarDays} /><Metric label="Angebote" value={metrics.offers} note="bleib dran" icon={Sparkles} /></section><section className="mt-4 grid grid-cols-3 gap-3"><MiniMetric label="Rückmeldequote" value={`${applications.length ? Math.round(metrics.responses / applications.length * 100) : 0}%`} /><MiniMetric label="Gesprächsquote" value={`${applications.length ? Math.round(metrics.interviews / applications.length * 100) : 0}%`} /><MiniMetric label="Durchschnittlicher Match" value={`${applications.length ? Math.round(applications.reduce((sum, app) => sum + (app.matchScore ?? 0), 0) / applications.length) : 0}%`} /></section><div className="mt-5 grid gap-5 xl:grid-cols-[1.55fr_1fr]"><section className="panel rounded-2xl p-5 md:p-6"><div className="flex items-start justify-between"><div><h2 className="text-sm font-semibold text-white">Bewerbungsaktivität</h2><p className="mt-1 text-xs text-[#7185a6]">Deine Aktivität der letzten fünf Monate</p></div><Clock3 size={18} className="text-[#56c8ff]" /></div><div className="mt-7 h-[235px]"><ResponsiveContainer width="100%" height="100%"><AreaChart data={monthly}><defs><linearGradient id="blueArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3ca8ff" stopOpacity={.35} /><stop offset="100%" stopColor="#3ca8ff" stopOpacity={0} /></linearGradient></defs><CartesianGrid vertical={false} stroke="rgba(120,161,218,.12)" /><XAxis dataKey="month" axisLine={false} tickLine={false} /><YAxis axisLine={false} tickLine={false} allowDecimals={false} /><Tooltip contentStyle={{ background: "#0d203e", border: "1px solid #244979", borderRadius: 10, color: "#fff" }} /><Area type="monotone" dataKey="bewerbungen" name="Bewerbungen" stroke="#4ca6ff" strokeWidth={2.5} fill="url(#blueArea)" /></AreaChart></ResponsiveContainer></div></section><section className="panel rounded-2xl p-5 md:p-6"><div className="flex items-start justify-between"><div><h2 className="text-sm font-semibold text-white">Pipeline-Gesundheit</h2><p className="mt-1 text-xs text-[#7185a6]">Ein schneller Blick auf deinen Fortschritt</p></div><CircleCheck size={18} className="text-[#55d6a0]" /></div><div className="mt-8 flex items-center gap-7"><div className="relative flex h-36 w-36 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(#4ca6ff ${metrics.responses ? Math.min(100, Math.round(metrics.responses / Math.max(applications.length, 1) * 100)) * 3.6 : 0}deg, #132b50 0deg)` }}><div className="flex h-28 w-28 items-center justify-center rounded-full bg-[#0a1830] text-center"><span className="text-3xl font-semibold text-white">{applications.length ? Math.round(metrics.responses / applications.length * 100) : 0}<small className="text-base">%</small></span></div></div><div className="space-y-4 text-xs"><Legend color="#4ca6ff" label="Rückmeldungen" value={metrics.responses} /><Legend color="#55d6a0" label="Gespräche" value={metrics.interviews} /><Legend color="#f79b62" label="Angebote" value={metrics.offers} /></div></div></section></div><section className="panel mt-5 overflow-hidden rounded-2xl"><div className="flex items-center justify-between border-b border-white/10 px-5 py-5 md:px-6"><div><h2 className="text-sm font-semibold text-white">Neueste Bewerbungen</h2><p className="mt-1 text-xs text-[#7185a6]">Kürzlich aktualisierte Bewerbungen</p></div><Link href="/applications" className="text-xs font-semibold text-[#56c8ff]">Alle anzeigen <ArrowUpRight className="ml-1 inline" size={13} /></Link></div><div className="divide-y divide-white/5">{recent.map((application) => <Link href={`/applications/${application.id}`} key={application.id} className="flex items-center gap-4 px-5 py-4 transition hover:bg-white/[.035] md:px-6"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#102b56] text-xs font-bold text-[#7ccaff]">{application.company.slice(0, 2).toUpperCase()}</div><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white">{application.position}</p><p className="mt-1 text-xs text-[#7185a6]">{application.company} · {application.location}</p></div><span className="hidden rounded-full bg-[#102c50] px-2.5 py-1 text-[11px] font-medium text-[#6fc9ff] sm:block">{application.status.replace("_", " ")}</span><span className="text-sm font-semibold text-[#55d6a0]">{application.matchScore ?? 0}%</span></Link>)}</div></section></WorkspaceShell>;
+
+  useEffect(() => {
+    let active = true;
+    getApplications()
+      .then((data) => { if (active) setApplications(data); })
+      .catch(() => { if (active) setError("Deine Bewerbungen konnten gerade nicht geladen werden."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const activeCount = applications.filter(({ status }) => !["rejected", "withdrawn"].includes(status)).length;
+  const conversations = applications.filter(({ status }) => ["interview", "final_interview"].includes(status)).length;
+  const offers = applications.filter(({ status }) => status === "offer").length;
+  const recent = [...applications].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
+
+  return (
+    <WorkspaceShell active="Start">
+      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <div>
+          <p className="text-sm font-medium text-[#6e6e73]">Dein Überblick</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-1px] md:text-[38px]">Deine Suche. Ganz einfach im Blick.</h1>
+          <p className="mt-2 text-base text-muted">Ein guter nächster Schritt reicht für heute.</p>
+        </div>
+        <Link href="/applications/new" className="inline-flex min-h-11 w-fit items-center justify-center gap-2 rounded-full bg-[#0866d6] px-5 text-sm font-semibold text-white hover:bg-[#075bbb]">
+          <Plus size={17} /> Bewerbung hinzufügen
+        </Link>
+      </div>
+
+      {error && <p role="alert" className="mt-6 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
+
+      <section aria-label="Deine Zahlen" className="mt-8 grid gap-3 sm:grid-cols-3">
+        <Summary label="Bewerbungen" value={loading ? "–" : applications.length} detail="In deiner Liste" />
+        <Summary label="In Bearbeitung" value={loading ? "–" : activeCount} detail="Warten auf den nächsten Schritt" />
+        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={offers ? `${offers} ${offers === 1 ? "Angebot" : "Angebote"}` : "Das kommt mit der Zeit"} />
+      </section>
+
+      <section className="mt-10">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold tracking-[-.4px]">Zuletzt geändert</h2>
+            <p className="mt-1 text-sm text-muted">Deine drei letzten Bewerbungen.</p>
+          </div>
+          <Link href="/applications" className="inline-flex items-center gap-1 text-sm font-semibold text-[#0866d6] hover:underline">
+            Alle ansehen <ArrowRight size={15} />
+          </Link>
+        </div>
+
+        {loading ? (
+          <div className="mt-4 space-y-3" aria-label="Bewerbungen werden geladen">
+            {[0, 1].map((item) => <div key={item} className="h-[82px] animate-pulse rounded-[14px] bg-[#e9e9ed]" />)}
+          </div>
+        ) : recent.length ? (
+          <div className="mt-4 divide-y divide-[#e5e5ea] border-y border-[#e5e5ea]">
+            {recent.map((application) => <ApplicationRow key={application.id} application={application} />)}
+          </div>
+        ) : (
+          <div className="glass-surface mt-4 rounded-[14px] border border-dashed border-white/80 px-6 py-10 text-center">
+            <h3 className="text-base font-semibold">Hier ist Platz für deine erste Bewerbung.</h3>
+            <p className="mt-2 text-sm text-muted">Trag ein, wo du dich bewirbst. Den Rest kannst du später ergänzen.</p>
+            <Link href="/applications/new" className="mt-5 inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-[#0866d6] px-4 text-sm font-semibold text-white hover:bg-[#075bbb]">
+              <Plus size={16} /> Erste Bewerbung eintragen
+            </Link>
+          </div>
+        )}
+      </section>
+    </WorkspaceShell>
+  );
 }
-function Metric({ label, value, note, icon: Icon }: { label: string; value: number; note: string; icon: typeof BriefcaseBusiness }) { return <div className="panel rounded-2xl p-4 md:p-5"><div className="flex items-start justify-between"><p className="text-xs text-[#8292ae]">{label}</p><Icon size={17} className="text-[#4ca6ff]" /></div><p className="mt-4 text-3xl font-semibold tracking-[-.05em] text-white">{value}</p><p className="mt-1 text-xs text-[#7185a6]">{note}</p></div>; }
-function MiniMetric({ label, value }: { label: string; value: string }) { return <div className="rounded-xl border border-white/10 bg-[#09162b]/75 px-4 py-3"><p className="text-[11px] text-[#7185a6]">{label}</p><p className="mt-1 text-lg font-semibold text-[#dcecff]">{value}</p></div>; }
-function Legend({ color, label, value }: { color: string; label: string; value: number }) { return <div className="flex items-center gap-2 text-[#8292ae]"><span className="h-2 w-2 rounded-full" style={{ background: color }} />{label}<strong className="ml-2 text-white">{value}</strong></div>; }
+
+function Summary({ label, value, detail }: { label: string; value: number | string; detail: string }) {
+  return (
+    <div className="glass-surface rounded-[14px] p-5">
+      <p className="text-sm text-muted">{label}</p>
+      <p className="mt-3 text-3xl font-semibold tabular-nums tracking-[-1px]">{value}</p>
+      <p className="mt-1 text-xs text-muted">{detail}</p>
+    </div>
+  );
+}
+
+function ApplicationRow({ application }: { application: Application }) {
+  return (
+    <Link href={`/applications/${application.id}`} className="flex flex-col gap-2 py-4 transition-colors hover:bg-white sm:flex-row sm:items-center sm:justify-between sm:px-3">
+      <span className="min-w-0">
+        <span className="block truncate text-sm font-semibold">{application.company}</span>
+        <span className="mt-1 block truncate text-sm text-muted">{application.position}</span>
+      </span>
+      <span className={`w-fit rounded-full px-3 py-1 text-xs font-medium ${statusStyle[application.status]}`}>
+        {statusLabels[application.status]}
+      </span>
+    </Link>
+  );
+}
+
+const statusStyle: Record<ApplicationStatus, string> = {
+  saved: "bg-[#f2f2f4] text-[#5e5e63]",
+  preparing: "bg-[#fff4df] text-[#855600]",
+  applied: "bg-[#eaf3ff] text-[#075dbd]",
+  interview: "bg-[#eaf5ed] text-[#267447]",
+  final_interview: "bg-[#eaf5ed] text-[#267447]",
+  offer: "bg-[#eaf5ed] text-[#267447]",
+  rejected: "bg-[#fff0f0] text-[#a32828]",
+  withdrawn: "bg-[#f2f2f4] text-[#5e5e63]",
+};

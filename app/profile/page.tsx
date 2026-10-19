@@ -1,9 +1,70 @@
 "use client";
+
 import { useEffect, useState } from "react";
-import { Check, MapPin, UserRound } from "lucide-react";
+import { Check } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getProfile, saveProfile } from "@/lib/storage";
 import type { Profile as ProfileType } from "@/types";
 
-const fieldLabels = { firstName: "Vorname", lastName: "Nachname", email: "E-Mail", phone: "Telefon", location: "Ort", website: "Webseite", linkedIn: "LinkedIn" } as const;
-export default function ProfilePage() { const [profile, setProfile] = useState<ProfileType>(); const [saved, setSaved] = useState(false); useEffect(() => { let active = true; getProfile().then((data) => { if (active) setProfile(data); }).catch(() => undefined); return () => { active = false; }; }, []); if (!profile) return <WorkspaceShell active="Profile" title="WendApply / Profil"><p className="text-sm text-[#8292ae]">Profil wird geladen...</p></WorkspaceShell>; const update = (key: keyof ProfileType, value: string) => setProfile((current) => current ? { ...current, [key]: value } : current); async function submit(event: React.FormEvent) { event.preventDefault(); if (!profile) return; await saveProfile(profile); setSaved(true); window.setTimeout(() => setSaved(false), 2200); } return <WorkspaceShell active="Profile" title="WendApply / Profil"><div><p className="text-xs font-semibold uppercase tracking-[.18em] text-[#56c8ff]">Persönlicher Arbeitsbereich</p><h1 className="mt-3 text-3xl font-semibold tracking-[-.04em] text-white">Dein Profil</h1><p className="mt-2 text-sm text-[#8292ae]">Halte deine Angaben für künftige Bewerbungen bereit.</p></div><div className="mt-8 grid gap-5 lg:grid-cols-[.7fr_1.3fr]"><section className="panel rounded-2xl p-6"><div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#14315d] text-xl font-bold text-[#7bcaff]">PR</div><h2 className="mt-5 text-xl font-semibold text-white">{profile.firstName} {profile.lastName}</h2><p className="mt-2 text-sm text-[#8292ae]">{profile.email}</p><p className="mt-5 flex items-center gap-2 text-xs text-[#7185a6]"><MapPin size={14} />{profile.location}</p></section><form onSubmit={submit} className="panel rounded-2xl p-5 md:p-7"><div className="mb-6 flex items-center gap-3"><UserRound size={18} className="text-[#56c8ff]" /><h2 className="text-sm font-semibold text-white">Kontaktinformationen</h2></div><div className="grid gap-4 sm:grid-cols-2">{(Object.keys(fieldLabels) as (keyof ProfileType)[]).map((key) => <label key={key} className={key === "email" || key === "location" ? "sm:col-span-2" : ""}><span className="mb-2 block text-xs font-medium text-[#8292ae]">{fieldLabels[key]}</span><input type={key === "email" ? "email" : "text"} value={profile[key] ?? ""} onChange={(event) => update(key, event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#08172f] px-3.5 py-2.5 text-sm text-white outline-none focus:border-[#4ca6ff]" /></label>)}</div><button className="mt-7 flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#328dff] to-[#55c9ff] px-4 py-2.5 text-sm font-semibold text-[#061022]">{saved ? <Check size={16} /> : null}{saved ? "Gespeichert" : "Profil speichern"}</button></form></div></WorkspaceShell>; }
+const fields: { key: keyof ProfileType; label: string; type?: string }[] = [
+  { key: "firstName", label: "Vorname" },
+  { key: "lastName", label: "Nachname" },
+  { key: "email", label: "E-Mail", type: "email" },
+  { key: "phone", label: "Telefon" },
+  { key: "location", label: "Wohnort" },
+  { key: "website", label: "Webseite" },
+  { key: "linkedIn", label: "LinkedIn" },
+];
+
+export default function ProfilePage() {
+  const [profile, setProfile] = useState<ProfileType>();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getProfile().then((data) => { if (active) setProfile(data); }).catch(() => { if (active) setNotice("Dein Profil konnte nicht geladen werden."); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!profile) return;
+    setSaving(true);
+    setNotice("");
+    try {
+      await saveProfile(profile);
+      setNotice("Gespeichert.");
+    } catch {
+      setNotice("Deine Angaben konnten nicht gespeichert werden.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <WorkspaceShell active="Profile">
+      <div className="max-w-2xl">
+        <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Dein Profil</h1>
+        <p className="mt-2 text-base text-muted">Deine Kontaktdaten an einem Ort.</p>
+        {notice && <p role="status" className="mt-5 rounded-xl bg-white px-4 py-3 text-sm text-muted">{notice}</p>}
+        {loading ? <p className="mt-7 text-sm text-muted">Dein Profil wird geladen …</p> : profile && (
+          <form onSubmit={submit} className="glass-surface mt-7 rounded-[14px] p-5 sm:p-7">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {fields.map(({ key, label, type }) => (
+                <label key={key} className={key === "email" || key === "location" ? "sm:col-span-2" : ""}>
+                  <span className="mb-2 block text-sm font-medium">{label}</span>
+                  <input type={type ?? "text"} value={profile[key] ?? ""} onChange={(event) => setProfile({ ...profile, [key]: event.target.value })} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+                </label>
+              ))}
+            </div>
+            <button disabled={saving} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0866d6] px-5 text-sm font-semibold text-white hover:bg-[#075bbb] disabled:opacity-60">
+              {notice === "Gespeichert." ? <Check size={16} /> : null}{saving ? "Speichert …" : "Änderungen speichern"}
+            </button>
+          </form>
+        )}
+      </div>
+    </WorkspaceShell>
+  );
+}

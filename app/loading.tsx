@@ -1,3 +1,7 @@
 export default function Loading() {
-  return <main className="workspace-bg flex min-h-screen items-center justify-center px-6"><div className="panel w-full max-w-sm rounded-2xl p-6 text-center"><div className="mx-auto h-10 w-10 animate-pulse rounded-xl bg-gradient-to-br from-[#287bff] to-[#55d4ff]" /><p className="mt-4 text-sm font-medium text-white">Loading WendApply</p><p className="mt-2 text-xs text-[#7185a6]">Preparing your workspace...</p></div></main>;
+  return (
+    <main className="flex min-h-[100dvh] items-center justify-center bg-[#f5f5f7] px-5">
+      <p className="text-sm text-[#6e6e73]">Einen Moment bitte …</p>
+    </main>
+  );
 }

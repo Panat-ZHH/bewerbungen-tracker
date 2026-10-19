@@ -1,35 +1,74 @@
 @import "tailwindcss";
 
-:root { --ink: #f4f8ff; --muted: #8094b3; --line: rgba(105, 157, 224, .2); --paper: #030817; --blue: #4ca6ff; --cyan: #54d6ff; --orange: #f79b62; --navy: #071326; }
+:root {
+  color-scheme: light;
+  --paper: #edf1f6;
+  --surface: #ffffff;
+  --ink: #1d1d1f;
+  --muted: #6e6e73;
+  --line: #e5e5ea;
+  --blue: #0866d6;
+  --blue-soft: #eaf3ff;
+  --green: #248a57;
+  --red: #c43d3d;
+}
 
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--paper); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+html { min-height: 100%; background: var(--paper); }
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
+  -webkit-font-smoothing: antialiased;
+}
 a { color: inherit; text-decoration: none; }
-.font-display { font-family: Georgia, "Times New Roman", serif; }
-.recharts-cartesian-axis-tick-value { fill: #8292ae; font-size: 11px; }
-.recharts-cartesian-grid-horizontal line { stroke: rgba(120, 161, 218, .12); }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+:focus-visible { outline: 3px solid rgba(8, 102, 214, .35); outline-offset: 2px; }
+.workspace-bg {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 78% 54% at 3% 0%, rgba(123, 171, 229, .29), transparent 72%),
+    radial-gradient(ellipse 70% 60% at 100% 22%, rgba(181, 174, 225, .25), transparent 73%),
+    radial-gradient(ellipse 68% 54% at 78% 100%, rgba(116, 193, 207, .24), transparent 72%),
+    linear-gradient(145deg, #e5ebf3 0%, #edf1f6 48%, #e9edf4 100%);
+  background-attachment: fixed;
+}
+.glass-surface,
+.panel {
+  border: 1px solid rgba(255, 255, 255, .82);
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, .68), rgba(255, 255, 255, .38));
+  -webkit-backdrop-filter: blur(24px) saturate(1.55);
+  backdrop-filter: blur(24px) saturate(1.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .98), inset 0 -1px 0 rgba(255, 255, 255, .42), 0 16px 42px rgba(46, 66, 92, .1);
+}
+.glass-bar {
+  border-color: rgba(255, 255, 255, .76);
+  background: rgba(248, 250, 253, .62);
+  -webkit-backdrop-filter: blur(28px) saturate(1.65);
+  backdrop-filter: blur(28px) saturate(1.65);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, .7), 0 8px 30px rgba(46, 66, 92, .05);
+}
+.page-wrap { width: min(100% - 40px, 1080px); margin-inline: auto; }
+.text-muted { color: var(--muted); }
+.recharts-cartesian-axis-tick-value { fill: var(--muted); font-size: 12px; }
+.recharts-cartesian-grid-horizontal line { stroke: var(--line); }
 .recharts-tooltip-wrapper { outline: none; }
-.workspace-bg { background: radial-gradient(ellipse 70% 46% at 85% 4%, rgba(25, 91, 180, .32), transparent 68%), radial-gradient(ellipse 52% 42% at 100% 78%, rgba(218, 79, 35, .2), transparent 68%), #030817; }
-.panel { border: 1px solid var(--line); background: linear-gradient(145deg, rgba(11, 29, 58, .95), rgba(5, 14, 31, .97)); box-shadow: inset 0 1px rgba(255,255,255,.055), inset 0 0 28px rgba(38,104,182,.035), 0 18px 50px rgba(0,0,0,.2); }
-.blue-glow { box-shadow: 0 0 0 1px rgba(76,166,255,.16), 0 0 25px rgba(76,166,255,.28); }
-.reference-border { border: 1px solid rgba(84, 167, 255, .25); box-shadow: inset 0 1px rgba(255,255,255,.05), 0 0 24px rgba(39,119,214,.09); }
-.reference-label { color: #91a9ca; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; }
-.light { --ink: #14243a; --muted: #667892; --line: rgba(74, 112, 157, .18); --paper: #eef4fb; color: var(--ink); }
-.workspace-bg.light { background: radial-gradient(circle at 82% 8%, rgba(109, 185, 255, .22), transparent 30%), #eef4fb; }
-.light .panel { border-color: rgba(73, 116, 163, .2); background: rgba(255,255,255,.9); box-shadow: 0 14px 35px rgba(41,78,119,.1); }
-.light aside, .light header { background: rgba(255,255,255,.88); border-color: rgba(73,116,163,.16); }
-.light aside .bg-\[\#153a71\] { background: #dceeff; color: #1764a5; }
-.light input, .light select, .light textarea { color: #14243a; background: #f8fbff; border-color: rgba(73,116,163,.24); }
-.light input::placeholder, .light textarea::placeholder { color: #71839d; }
-.light .bg-white\/5 { background: rgba(33,82,133,.06); }
-.light .text-\[\#b9cbea\] { color: #38516d; }
-.light .text-\[\#8bd5ff\], .light .text-\[\#56c8ff\] { color: #176da9; }
-.light .bg-\[\#08172f\] { background: #f8fbff; }
-.light .text-white { color: #14243a; }
-.light .text-\[\#8292ae\], .light .text-\[\#7185a6\] { color: #667892; }
-.light .border-white\/10 { border-color: rgba(74,112,157,.18); }
-.light .text-\[\#dcecff\] { color: #203650; }
 
-@media (max-width: 767px) {
-  .desktop-sidebar { display: none; }
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass-surface, .panel { background: rgba(255, 255, 255, .94); }
+  .glass-bar { background: rgba(248, 250, 253, .96); }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface, .panel { background: rgba(255, 255, 255, .96); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .glass-bar { background: rgba(248, 250, 253, .97); -webkit-backdrop-filter: none; backdrop-filter: none; }
+}
+
+@media (max-width: 640px) {
+  .page-wrap { width: min(100% - 28px, 1080px); }
 }
