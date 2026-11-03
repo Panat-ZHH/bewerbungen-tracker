@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { createApplication, getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
-import type { JobSearchResult, SearchKind } from "@/lib/job-search";
+import type { MultiSourceSearchBatch, MultiSourceSearchInput, JobSearchResult, SearchKind } from "@/lib/job-search";
+import { listingSources, mergeJobResults } from "@/lib/job-results";
 
 export default function JobSearchPage() {
   const [query, setQuery] = useState("");
@@ -16,6 +17,10 @@ export default function JobSearchPage() {
   const [results, setResults] = useState<JobSearchResult[]>([]);
   const [searched, setSearched] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [activeSearch, setActiveSearch] = useState<MultiSourceSearchInput | null>(null);
+  const [nextCursor, setNextCursor] = useState<MultiSourceSearchBatch["nextCursor"]>(null);
+  const [sourceStatuses, setSourceStatuses] = useState<MultiSourceSearchBatch["sources"]>([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState("");
@@ -30,6 +35,10 @@ export default function JobSearchPage() {
     const controller = new AbortController();
     requestRef.current = controller;
     setLoading(true);
+    setLoadingMore(false);
+    setActiveSearch(null);
+    setNextCursor(null);
+    setSourceStatuses([]);
     setError("");
     setNotice("");
     setResults([]);
@@ -47,6 +56,10 @@ export default function JobSearchPage() {
       if (!response.ok) throw new Error(payload.error || "Die Suche hat nicht geklappt.");
       if (controller.signal.aborted) return;
       setResults(payload.results);
+      setNextCursor(payload.nextCursor);
+      setSourceStatuses(payload.sources ?? []);
+      setActiveSearch({ query: query.trim(), location: location.trim(), kind });
+      if (payload.warning) setNotice(payload.warning);
       setSearched(`${kind === "apprenticeship" ? "Lehrstellen" : "Jobs"}: ${query.trim()}${location.trim() ? ` · ${location.trim()}` : " · ganze Schweiz"}`);
       try {
         const applications = await getApplications();
@@ -61,13 +74,45 @@ export default function JobSearchPage() {
     }
   }
 
+  async function loadMore() {
+    if (!activeSearch || !nextCursor || loading || loadingMore) return;
+    const controller = new AbortController();
+    requestRef.current?.abort();
+    requestRef.current = controller;
+    setLoadingMore(true);
+    setError("");
+    setNotice("");
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) throw new Error("Bitte melde dich erneut an.");
+      const response = await fetch("/api/job-search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` },
+        body: JSON.stringify({ ...activeSearch, cursor: nextCursor, knownResults: results }),
+        signal: controller.signal,
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Weitere Stellen konnten nicht geladen werden.");
+      if (controller.signal.aborted) return;
+      setResults((current) => mergeJobResults(current, [...(payload.updates ?? []), ...payload.results]));
+      setNextCursor(payload.nextCursor);
+      setSourceStatuses(payload.sources ?? []);
+      if (payload.warning) setNotice(payload.warning);
+    } catch (cause) {
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Weitere Stellen konnten nicht geladen werden.");
+    } finally {
+      if (!controller.signal.aborted) setLoadingMore(false);
+    }
+  }
+
   async function save(result: JobSearchResult) {
-    if (saved.has(result.url) || saving) return;
+    const sources = listingSources(result);
+    if (sources.some((source) => saved.has(source.url)) || saving) return;
     setSaving(result.url);
     setNotice("");
     try {
-      await createApplication({ company: result.company || "Firma noch ergänzen", position: result.title, location: result.location, jobUrl: result.url, source: result.source, category: "other", status: "saved" });
-      setSaved((current) => new Set(current).add(result.url));
+      await createApplication({ company: result.company || "Firma noch ergänzen", position: result.title, location: result.location, jobUrl: result.url, source: [...new Set(sources.map((source) => source.name))].join(", "), notes: sources.length > 1 ? sources.map((source) => `${source.name}: ${source.url}`).join("\n") : undefined, category: "other", status: "saved" });
+      setSaved((current) => new Set([...current, ...sources.map((source) => source.url)]));
       setNotice("Die Stelle ist jetzt bei deinen Bewerbungen.");
     } catch {
       setNotice("Die Stelle konnte nicht gemerkt werden. Versuch es noch einmal.");
@@ -103,20 +148,32 @@ export default function JobSearchPage() {
       {loading && <div role="status" className="mt-8 space-y-3"><p className="text-sm text-muted">Passende Anzeigen werden gesucht …</p>{[0, 1, 2].map((item) => <div key={item} className="h-28 animate-pulse rounded-lg bg-white/60" />)}</div>}
       {searched && <section className="mt-9">
         <h2 className="text-lg font-semibold break-words">{searched}</h2>
-        <p className="mt-1 text-sm text-muted">{results.length} Treffer{results.length === 20 ? " · erste Ergebnisseite" : ""}</p>
+        <p className="mt-1 text-sm text-muted" aria-live="polite">{results.length} Treffer</p>
+        {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted">
+          {sourceStatuses.map((source) => <li key={source.name}>{source.name}{source.status === "unavailable" ? " · gerade nicht erreichbar" : " · durchsucht"}</li>)}
+        </ul>}
         {!results.length ? <p className="glass-surface mt-5 px-5 py-7 text-sm">Keine passenden Anzeigen gefunden. Probiere einen anderen Beruf oder Ort.</p> : <div className="mt-4 divide-y divide-[#d6dce5] border-y border-[#d6dce5]">
-          {results.map((result) => <article key={result.url} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+          {results.map((result) => {
+            const sources = listingSources(result);
+            const isSaved = sources.some((source) => saved.has(source.url));
+            return <article key={result.url} className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <h3 className="break-words text-base font-semibold">{result.title}</h3>
               {result.company && <p className="mt-1 break-words text-sm">{result.company}</p>}
-              <p className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">{result.location && <span className="inline-flex items-center gap-1"><MapPin size={13} />{result.location}</span>}<span>{result.source}</span></p>
+              <p className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">{result.location && <span className="inline-flex items-center gap-1"><MapPin size={13} />{result.location}</span>}<span>{sources.length > 1 ? `${sources.length} Quellen` : result.source}</span></p>
+              <ul aria-label="Originalanzeigen" className="mt-2 flex flex-wrap gap-3 text-xs text-[#075dbd]">
+                {sources.map((source) => <li key={source.url}><a href={source.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center gap-1 hover:underline">{source.name}<ExternalLink size={12} /></a></li>)}
+              </ul>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
               <a href={result.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[#0866d6] px-4 text-sm font-semibold text-white hover:bg-[#075bbb]"><ExternalLink size={15} />Originalanzeige öffnen</a>
-              <Button type="button" variant="secondary" disabled={Boolean(saving) || saved.has(result.url)} onClick={() => save(result)}>{saved.has(result.url) ? <Check size={15} /> : <Plus size={15} />}{saved.has(result.url) ? "Gemerkt" : saving === result.url ? "Speichert …" : "Merken"}</Button>
+              <Button type="button" variant="secondary" disabled={Boolean(saving) || isSaved} onClick={() => save(result)}>{isSaved ? <Check size={15} /> : <Plus size={15} />}{isSaved ? "Gemerkt" : saving === result.url ? "Speichert …" : "Merken"}</Button>
             </div>
-          </article>)}
+          </article>; })}
         </div>}
+        <div className="mt-6">
+          {nextCursor ? <Button type="button" variant="secondary" disabled={loadingMore || loading} onClick={loadMore}><Plus size={16} />{loadingMore ? "Lädt weitere Stellen …" : "Mehr laden"}</Button> : results.length > 0 && <p className="text-sm text-muted">Alle passenden Stellen der durchsuchten Quellen sind angezeigt.</p>}
+        </div>
       </section>}
     </WorkspaceShell>
   );
