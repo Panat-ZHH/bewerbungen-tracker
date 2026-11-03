@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, FileText, LogOut, Search, Settings, UserRound } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, FileText, LogOut, Map, Search, Settings, UserRound } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 
@@ -12,6 +12,7 @@ const navigation = [
   { label: "Start", href: "/dashboard", icon: BriefcaseBusiness, keys: ["Dashboard", "Übersicht", "Start"] },
   { label: "Suchen", href: "/search", icon: Search, keys: ["Suchen"] },
   { label: "Bewerbungen", href: "/applications", icon: BriefcaseBusiness, keys: ["Applications", "Bewerbungen"] },
+  { label: "Map", href: "/map", icon: Map, keys: ["Map"] },
   { label: "Lebensläufe", href: "/cvs", icon: FileText, keys: ["CVs", "Lebensläufe"] },
   { label: "Auswertung", href: "/analytics", icon: BarChart3, keys: ["Analytics", "Analysen", "Auswertung"] },
 ];
