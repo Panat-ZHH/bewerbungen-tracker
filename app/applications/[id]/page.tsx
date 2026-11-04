@@ -99,7 +99,7 @@ export default function ApplicationDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="application-status">Stand der Bewerbung</label>
-              <select id="application-status" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[#d2d2d7] bg-white px-4 text-sm font-medium outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15 sm:flex-none">
+              <select id="application-status" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[#d2d2d7] bg-white px-4 text-base pointer-fine:text-sm font-medium outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15 sm:flex-none">
                 {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <Button variant="secondary" onClick={() => setEditing(true)} className="min-h-11 sm:min-h-11"><Pencil size={15} /> Ändern</Button>
