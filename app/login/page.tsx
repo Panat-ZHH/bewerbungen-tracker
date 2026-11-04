@@ -35,7 +35,7 @@ export default function LoginPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace("/dashboard"); });
+    supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace(nextPath()); });
   }, [router]);
 
   function switchMode(nextMode: AuthMode) {
@@ -67,7 +67,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.replace("/dashboard");
+    router.replace(nextPath());
   }
 
   const isSignup = mode === "signup";
@@ -143,7 +143,7 @@ export default function LoginPage() {
 
             <p className="border-t border-[var(--line)] pt-5 text-center text-sm text-muted">
               {isSignup ? "Du hast schon ein Konto?" : "Noch kein Konto?"}{" "}
-              <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="inline-flex min-h-8 items-center font-semibold text-[var(--brand)] hover:underline">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
+              <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="inline-flex min-h-11 items-center px-1 font-semibold text-[var(--brand)] hover:underline">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
             </p>
           </form>
           <p className="mt-5 text-center text-xs text-muted lg:hidden">Deine Daten bleiben in deinem persönlichen Konto.</p>
@@ -151,6 +151,12 @@ export default function LoginPage() {
       </section>
     </main>
   );
+}
+
+/** Where to go after login: a safe same-site path from ?next=, else the dashboard. */
+function nextPath() {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login") ? next : "/dashboard";
 }
 
 function authError(message: string) {

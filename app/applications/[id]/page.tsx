@@ -8,6 +8,7 @@ import { ApplicationForm } from "@/components/applications/application-form";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Modal } from "@/components/ui/modal";
 import { deleteApplication, getApplication, updateApplication } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
 import type { Application, ApplicationStatus } from "@/types";
@@ -21,6 +22,8 @@ export default function ApplicationDetailPage() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -43,11 +46,14 @@ export default function ApplicationDetailPage() {
   }
 
   async function remove() {
-    if (!application || !window.confirm("Diese Bewerbung wirklich löschen?")) return;
+    if (!application) return;
+    setDeleting(true);
     try {
       await deleteApplication(application.id);
       router.push("/applications");
     } catch {
+      setConfirmDelete(false);
+      setDeleting(false);
       setError("Die Bewerbung konnte nicht gelöscht werden.");
     }
   }
@@ -74,7 +80,7 @@ export default function ApplicationDetailPage() {
         <div className="mt-4 max-w-3xl">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0"><h1 className="text-[28px] font-semibold tracking-[-1px]">Bewerbung ändern</h1><p className="mt-2 text-sm text-muted">{application.position} bei {application.company}</p></div>
-            <Button variant="ghost" onClick={() => setEditing(false)} className="min-h-11 shrink-0">Abbrechen</Button>
+            <Button variant="ghost" onClick={() => setEditing(false)} className="min-h-11 sm:min-h-11 shrink-0">Abbrechen</Button>
           </div>
           <Card className="mt-6 p-4 sm:p-7"><ApplicationForm application={application} /></Card>
         </div>
@@ -88,16 +94,16 @@ export default function ApplicationDetailPage() {
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
                 {application.location && <span><MapPin size={15} className="mr-1 inline" />{application.location}</span>}
                 {application.appliedAt && <span><CalendarDays size={15} className="mr-1 inline" />Abgeschickt am {new Date(application.appliedAt).toLocaleDateString("de-CH")}</span>}
-                {application.jobUrl && <a href={application.jobUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-8 items-center text-[#0866d6] hover:underline"><ExternalLink size={14} className="mr-1 inline" />Stellenanzeige öffnen</a>}
+                {application.jobUrl && <a href={application.jobUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-[#0866d6] hover:underline"><ExternalLink size={14} className="mr-1 inline" />Stellenanzeige öffnen</a>}
               </div>
             </div>
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="application-status">Stand der Bewerbung</label>
-              <select id="application-status" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 min-w-0 flex-1 rounded-full border border-[#d2d2d7] bg-white px-4 text-sm font-medium outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15 sm:flex-none">
+              <select id="application-status" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[#d2d2d7] bg-white px-4 text-sm font-medium outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15 sm:flex-none">
                 {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
-              <Button variant="secondary" onClick={() => setEditing(true)} className="min-h-11"><Pencil size={15} /> Ändern</Button>
-              <Button variant="danger" onClick={remove} aria-label="Bewerbung löschen" title="Bewerbung löschen" className="h-11 w-11 shrink-0 px-0"><Trash2 size={16} /></Button>
+              <Button variant="secondary" onClick={() => setEditing(true)} className="min-h-11 sm:min-h-11"><Pencil size={15} /> Ändern</Button>
+              <Button variant="danger" onClick={() => setConfirmDelete(true)} aria-label="Bewerbung löschen" title="Bewerbung löschen" className="h-11 w-11 shrink-0 px-0"><Trash2 size={16} /></Button>
             </div>
           </div>
 
@@ -111,6 +117,21 @@ export default function ApplicationDetailPage() {
           </Card>
         </>
       )}
+
+      <Modal
+        open={confirmDelete}
+        onClose={() => !deleting && setConfirmDelete(false)}
+        title="Bewerbung löschen?"
+        description={application ? `${application.position} bei ${application.company} wird endgültig gelöscht.` : undefined}
+        footer={
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={deleting} className="min-h-11 sm:min-h-11">Abbrechen</Button>
+            <Button variant="danger" onClick={remove} loading={deleting} className="min-h-11 sm:min-h-11">Endgültig löschen</Button>
+          </div>
+        }
+      >
+        <p className="text-sm text-muted">Das lässt sich nicht rückgängig machen.</p>
+      </Modal>
     </WorkspaceShell>
   );
 }
