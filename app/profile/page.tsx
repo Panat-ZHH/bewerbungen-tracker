@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getProfile, saveProfile } from "@/lib/storage";
 import type { Profile as ProfileType } from "@/types";
@@ -48,20 +50,20 @@ export default function ProfilePage() {
       <div className="max-w-2xl">
         <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Dein Profil</h1>
         <p className="mt-2 text-base text-muted">Deine Kontaktdaten an einem Ort.</p>
-        {notice && <p role="status" className="mt-5 rounded-xl bg-white px-4 py-3 text-sm text-muted">{notice}</p>}
-        {loading ? <p className="mt-7 text-sm text-muted">Dein Profil wird geladen …</p> : profile && (
+        {notice && <p role="status" className="glass-surface mt-5 px-4 py-3 text-sm text-muted">{notice}</p>}
+        {loading ? <div role="status" aria-label="Dein Profil wird geladen" className="glass-surface mt-7 space-y-5 p-5 sm:p-7">{[0, 1, 2, 3].map((item) => <div key={item} className="h-11 animate-pulse rounded-xl bg-white/70" />)}</div> : profile && (
           <form onSubmit={submit} className="glass-surface mt-7 rounded-[14px] p-5 sm:p-7">
             <div className="grid gap-5 sm:grid-cols-2">
               {fields.map(({ key, label, type }) => (
                 <label key={key} className={key === "email" || key === "location" ? "sm:col-span-2" : ""}>
                   <span className="mb-2 block text-sm font-medium">{label}</span>
-                  <input type={type ?? "text"} value={profile[key] ?? ""} onChange={(event) => setProfile({ ...profile, [key]: event.target.value })} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+                  <Input type={type ?? "text"} value={profile[key] ?? ""} onChange={(event) => setProfile({ ...profile, [key]: event.target.value })} />
                 </label>
               ))}
             </div>
-            <button disabled={saving} className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[#0866d6] px-5 text-sm font-semibold text-white hover:bg-[#075bbb] disabled:opacity-60">
+            <Button disabled={saving} className="mt-6 min-h-11 w-full px-5 sm:w-auto">
               {notice === "Gespeichert." ? <Check size={16} /> : null}{saving ? "Speichert …" : "Änderungen speichern"}
-            </button>
+            </Button>
           </form>
         )}
       </div>
