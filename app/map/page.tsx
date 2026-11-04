@@ -8,6 +8,8 @@ import { ButtonLink, Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { MapPlacementTools, MapShop, useMapShop } from "@/components/applications/map-shop";
+import { IslandPanel } from "@/components/applications/island-panel";
+import { useIslands } from "@/components/applications/use-islands";
 import { buildingStages } from "@/lib/application-map";
 import { getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
@@ -44,7 +46,9 @@ function ApplicationMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const revision = useRef(0);
   const [shopRefresh, setShopRefresh] = useState(0);
-  const shop = useMapShop(refresh + shopRefresh, applications);
+  const islands = useIslands(refresh, () => setShopRefresh((current) => current + 1));
+  const shop = useMapShop(refresh + shopRefresh, applications, islands.unlocked);
+  const balance = shop.state?.balance ?? null;
 
   useEffect(() => {
     let active = true;
@@ -101,6 +105,7 @@ function ApplicationMap() {
             <button title="Aktualisieren" aria-label="Aktualisieren" disabled={loading} onClick={() => setRefresh(refresh + 1)}><RefreshCw size={16} /></button>
           </div>
         </div>
+        <IslandPanel islands={islands} balance={balance} />
         {error && <div className={styles.error} role="alert">Deine Bewerbungen konnten nicht geladen werden. <button onClick={() => setRefresh(refresh + 1)}>Erneut versuchen</button></div>}
         <div className={styles.summary} aria-live="polite">
           <span><strong>{applications.length}</strong> Gebäude</span>
@@ -113,7 +118,7 @@ function ApplicationMap() {
             {applications.length > 0 && visible.length === 0 && <p className={styles.empty} role="status">Keine Bewerbungen für diese Auswahl.</p>}
             <MapPlacementTools shop={shop} />
             <Suspense fallback={<div className={styles.loading} role="status">Dein Dorf wird aufgebaut ...</div>}>
-              <ApplicationMapWorld applications={applications} visibleIds={visible.map(({ id }) => id)} selectedId={selectedId} night={night} zoom={zoom} center={center} onSelect={setSelectedId} shopItems={shop.state?.items ?? []} layouts={shop.state?.layouts ?? []} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} />
+              <ApplicationMapWorld applications={applications} visibleIds={visible.map(({ id }) => id)} selectedId={selectedId} night={night} zoom={zoom} center={center} onSelect={setSelectedId} shopItems={shop.state?.items ?? []} layouts={shop.state?.layouts ?? []} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} islandCount={islands.unlocked} islandFocus={islands.focus} />
             </Suspense>
           </>
         )}

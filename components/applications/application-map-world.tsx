@@ -8,6 +8,8 @@ import { statusLabels } from "@/lib/utils";
 import { canPlaceMapItem, itemFootprint, villageDepth, villageObjects, type MapLayout, type MapPosition, type OwnedMapItem, type Placement } from "@/lib/map-shop";
 import { createShopModel } from "@/lib/map-shop-models";
 import { createMapRenderer, mapRenderLayers, setMapRenderLayer } from "@/lib/map-renderer";
+import { buildIslands, revealProgress, type IslandParts } from "@/lib/island-scenery";
+import { islandConfig } from "@/lib/islands";
 import { createMapVillager, villageWalkingRoutes } from "@/lib/map-villager";
 import type { Application } from "@/types";
 import styles from "@/app/map/map.module.css";
@@ -26,9 +28,11 @@ type WorldProps = {
   placement: Placement | null;
   onSelectShopItem: (id: string) => void;
   onPlacePosition: (position: MapPosition) => void;
+  islandCount?: number;
+  islandFocus?: { no: number; reveal: boolean; key: number } | null;
 };
 
-export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition }: WorldProps) {
+export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, islandCount = 1, islandFocus = null }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
@@ -49,18 +53,19 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
     }
     return () => { world.current?.dispose(); world.current = null; };
   }, []);
-  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts); }, [applications, visibleIds, selectedId, layouts, placement]);
+  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts, islandCount); }, [applications, visibleIds, selectedId, layouts, placement, islandCount]);
+  useEffect(() => { if (islandFocus) world.current?.focusIsland(islandFocus.no, islandFocus.reveal); }, [islandFocus]);
   useEffect(() => { world.current?.lighting(night); }, [night]);
   useEffect(() => { world.current?.zoom(zoom); }, [zoom]);
   useEffect(() => { world.current?.center(); }, [center]);
   useEffect(() => {
-    world.current?.setShop(shopItems, selectedShopItemId, placement, applications, layouts);
+    world.current?.setShop(shopItems, selectedShopItemId, placement, applications, layouts, islandCount);
     if (placement && previousPlacementId.current !== placement.item.id) {
       world.current?.focusConstruction(placement.position);
       host.current?.scrollIntoView({ block: "center", behavior: "instant" });
     }
     previousPlacementId.current = placement?.item.id ?? null;
-  }, [shopItems, selectedShopItemId, placement, applications, layouts]);
+  }, [shopItems, selectedShopItemId, placement, applications, layouts, islandCount]);
 
   return (
     <>
@@ -139,6 +144,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   let activePlacement: Placement | null = null;
   const windowMaterial = new THREE.MeshStandardMaterial({ color: "#acd7d2", roughness: 0.4, emissive: "#f6bd51", emissiveIntensity: 0.1 });
   let boardDepth = 23;
+  let islandParts = new Map<number, IslandParts>();
+  let revealing: { no: number; start: number } | null = null;
+  let flight: { from: THREE.Vector3; to: THREE.Vector3; start: number } | null = null;
   let motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function material(color: string) {
@@ -287,7 +295,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     anchors.set(application.id, new THREE.Vector3(x, 0.25, z + 2.6));
   }
 
-  function populate(applications: Application[], visibleIds: string[], selectedId: string | null, layouts: MapLayout[]) {
+  function populate(applications: Application[], visibleIds: string[], selectedId: string | null, layouts: MapLayout[], islandCount = 1) {
     for (const villager of villagers) villager.dispose();
     villagers.length = 0;
     root.clear();
@@ -392,6 +400,8 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
         cylinder(root, positionX - 2.1 + flower * 0.2, 0.49, positionZ - 1.8, 0.12, 0.1, 0.08, flower % 2 ? "#e9bb70" : "#c97e89", 6);
       }
     }
+    islandParts = buildIslands({ box, cylinder, tree }, root, islandCount);
+    if (revealing) { const parts = islandParts.get(revealing.no); if (!parts) revealing = null; }
     const routes = villageWalkingRoutes(villageObjects(applications, layouts).filter((item) => item.itemType === "street"), renderer.isWebGL ? 5 : 3);
     routes.forEach((route, index) => {
       const villager = createMapVillager({ route, phase: index * 1.3, color: ["#618da0", "#b27b79", "#8d9366", "#a98c5d"][index % 4] });
@@ -399,7 +409,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     });
   }
 
-  function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[]) {
+  function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[], islandCount = 1) {
     for (const model of shopModels) model.dispose();
     shopModels.length = 0; shopRoot.clear(); previewRoot.clear(); shopObjects.length = 0; shopAnimations.length = 0;
     activePlacement = placement;
@@ -411,7 +421,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     }
     const objects = villageObjects(applications, layouts);
     const allItems = [...items, ...objects];
-    const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, villageDepth(applications));
+    const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, villageDepth(applications), islandCount);
     previewMaterial.color.set(valid ? "#90c978" : "#d5827d");
     for (const item of allItems) {
       const moving = item.id === placement?.item.id;
@@ -490,6 +500,22 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   preference.addEventListener("change", preferenceChanged);
   const projection = new THREE.Vector3();
   renderer.setAnimationLoop((milliseconds) => {
+    const now = performance.now();
+    if (flight) {
+      const t = Math.min(1, (now - flight.start) / (motion ? 1500 : 1));
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const offset = camera.position.clone().sub(controls.target);
+      controls.target.lerpVectors(flight.from, flight.to, ease);
+      camera.position.copy(controls.target).add(offset);
+      if (t >= 1) flight = null;
+    }
+    if (revealing) {
+      const parts = islandParts.get(revealing.no);
+      if (!parts || !revealProgress(parts, motion ? now - revealing.start : 1e6)) revealing = null;
+    }
+    sunlight.target.position.set(controls.target.x, 0, controls.target.z);
+    sunlight.position.set(controls.target.x - 12, 24, controls.target.z + 8);
+    sunlight.target.updateMatrixWorld();
     controls.update();
     if (motion) for (const animate of [...animations, ...shopAnimations]) animate(milliseconds / 1000);
     renderer.render(scene, camera);
@@ -511,6 +537,12 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       controls.target.set(position.x + 1, 0, position.z + 1);
       camera.position.copy(controls.target).add(new THREE.Vector3(24, 30, 34));
       controls.update();
+    },
+    focusIsland(no: number, reveal: boolean) {
+      const focus = islandConfig(no)?.focus;
+      if (!focus) return;
+      if (reveal) revealing = { no, start: performance.now() };
+      flight = { from: controls.target.clone(), to: new THREE.Vector3(focus.x, 0, focus.z), start: performance.now() };
     },
     zoom(value: number) { camera.zoom = value; camera.updateProjectionMatrix(); },
     lighting(night: boolean) {
