@@ -5,6 +5,10 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildingStages, createApplicationMap } from "@/lib/application-map";
 import { statusLabels } from "@/lib/utils";
+import { canPlaceMapItem, itemFootprint, villageDepth, villageObjects, type MapLayout, type MapPosition, type OwnedMapItem, type Placement } from "@/lib/map-shop";
+import { createShopModel } from "@/lib/map-shop-models";
+import { createMapRenderer, mapRenderLayers, setMapRenderLayer } from "@/lib/map-renderer";
+import { createMapVillager, villageWalkingRoutes } from "@/lib/map-villager";
 import type { Application } from "@/types";
 import styles from "@/app/map/map.module.css";
 
@@ -16,29 +20,47 @@ type WorldProps = {
   zoom: number;
   center: number;
   onSelect: (id: string) => void;
+  shopItems: OwnedMapItem[];
+  layouts: MapLayout[];
+  selectedShopItemId: string | null;
+  placement: Placement | null;
+  onSelectShopItem: (id: string) => void;
+  onPlacePosition: (position: MapPosition) => void;
 };
 
-export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onSelect }: WorldProps) {
+export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
   const select = useRef(onSelect);
+  const selectShopItem = useRef(onSelectShopItem);
+  const placePosition = useRef(onPlacePosition);
+  const previousPlacementId = useRef<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => { select.current = onSelect; }, [onSelect]);
+  useEffect(() => { selectShopItem.current = onSelectShopItem; placePosition.current = onPlacePosition; }, [onSelectShopItem, onPlacePosition]);
   useEffect(() => {
     if (!host.current || !labels.current) return;
     try {
-      world.current = createWorld(host.current, labels.current, (id) => select.current(id));
+      world.current = createWorld(host.current, labels.current, (id) => select.current(id), (id) => selectShopItem.current(id), (position) => placePosition.current(position));
     } catch {
       queueMicrotask(() => setUnavailable(true));
     }
     return () => { world.current?.dispose(); world.current = null; };
   }, []);
-  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId); }, [applications, visibleIds, selectedId]);
+  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts); }, [applications, visibleIds, selectedId, layouts, placement]);
   useEffect(() => { world.current?.lighting(night); }, [night]);
   useEffect(() => { world.current?.zoom(zoom); }, [zoom]);
   useEffect(() => { world.current?.center(); }, [center]);
+  useEffect(() => {
+    world.current?.setShop(shopItems, selectedShopItemId, placement, applications, layouts);
+    if (placement && previousPlacementId.current !== placement.item.id) {
+      world.current?.focusConstruction(placement.position);
+      host.current?.scrollIntoView({ block: "center", behavior: "instant" });
+    }
+    previousPlacementId.current = placement?.item.id ?? null;
+  }, [shopItems, selectedShopItemId, placement, applications, layouts]);
 
   return (
     <>
@@ -56,23 +78,18 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
         <summary>Bewerbungen ({visibleIds.length})</summary>
         <div>{applications.filter(({ id }) => visibleIds.includes(id)).map((application) => <button key={application.id} type="button" onClick={() => onSelect(application.id)}><strong>{application.company}</strong><span>{statusLabels[application.status]}</span></button>)}</div>
       </details>
+      <details className={styles.accessibleBuildings}><summary>Straßen verschieben</summary><div>{villageObjects(applications, layouts).filter((item) => item.itemType === "street").map((item) => <button key={item.id} type="button" onClick={() => onSelectShopItem(item.id)}>Straße {item.x}, {item.z}</button>)}</div></details>
     </>
   );
 }
 
-function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id: string) => void) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id: string) => void, onSelectShopItem: (id: string) => void, onPlacePosition: (position: MapPosition) => void) {
+  const renderer = createMapRenderer();
   renderer.domElement.setAttribute("aria-hidden", "true");
   host.prepend(renderer.domElement);
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color("#9fba8b");
+  scene.background = new THREE.Color("#b9c9ae");
   const camera = new THREE.OrthographicCamera(-16, 16, 12, -12, 0.1, 200);
   camera.position.set(24, 30, 34);
   const controls = new OrbitControls(camera, renderer.domElement);
@@ -89,7 +106,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
 
   const ambient = new THREE.HemisphereLight("#fff5dc", "#658754", 2.6);
   scene.add(ambient);
-  const sunlight = new THREE.DirectionalLight("#fff0ce", 3.2);
+  const fallbackFill = new THREE.AmbientLight("#fff5dc", renderer.isWebGL ? 0 : 0.45);
+  scene.add(fallbackFill);
+  const sunlight = new THREE.DirectionalLight("#fff0ce", renderer.isWebGL ? 3.2 : 0.65);
   sunlight.position.set(-12, 24, 8);
   sunlight.castShadow = true;
   sunlight.shadow.mapSize.set(2048, 2048);
@@ -101,11 +120,24 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   scene.add(sunlight, sunlight.target);
   const root = new THREE.Group();
   scene.add(root);
+  const shopRoot = new THREE.Group();
+  const previewRoot = new THREE.Group();
+  scene.add(shopRoot, previewRoot);
+  const constructionGrid = new THREE.GridHelper(8, 8, "#98a782", "#a9b895");
+  setMapRenderLayer(constructionGrid, mapRenderLayers.grid);
+  constructionGrid.visible = false;
+  scene.add(constructionGrid);
   const materials = new Map<string, THREE.MeshStandardMaterial>();
   const geometries = new Map<string, THREE.BufferGeometry>();
   const animations: ((time: number) => void)[] = [];
+  const villagers: ReturnType<typeof createMapVillager>[] = [];
   const anchors = new Map<string, THREE.Vector3>();
   const buildings: THREE.Object3D[] = [];
+  const shopObjects: THREE.Object3D[] = [];
+  const shopAnimations: ((time: number) => void)[] = [];
+  const shopModels: ReturnType<typeof createShopModel>[] = [];
+  const previewMaterial = new THREE.MeshStandardMaterial({ color: "#87bd6d", transparent: true, opacity: 0.65, roughness: 0.8 });
+  let activePlacement: Placement | null = null;
   const windowMaterial = new THREE.MeshStandardMaterial({ color: "#acd7d2", roughness: 0.4, emissive: "#f6bd51", emissiveIntensity: 0.1 });
   let boardDepth = 23;
   let motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -126,7 +158,8 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   }
 
   function box(parent: THREE.Object3D, x: number, y: number, z: number, width: number, height: number, depth: number, color: string | THREE.Material) {
-    return mesh(parent, `box-${width}-${height}-${depth}`, () => new THREE.BoxGeometry(width, height, depth), color, x, y, z);
+    const subdivide = !renderer.isWebGL && width > 1 && height > 1 && depth > 1;
+    return mesh(parent, `box-${width}-${height}-${depth}`, () => new THREE.BoxGeometry(width, height, depth, subdivide ? Math.ceil(width * 2) : 1, subdivide ? Math.ceil(height * 2) : 1, subdivide ? Math.ceil(depth * 2) : 1), color, x, y, z);
   }
 
   function cylinder(parent: THREE.Object3D, x: number, y: number, z: number, top: number, bottom: number, height: number, color: string, sides = 8) {
@@ -138,6 +171,8 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     group.position.set(x, 0.05, z);
     group.scale.setScalar(size);
     root.add(group);
+    const shadow = cylinder(root, x + 0.18, 0.155, z + 0.2, size * 0.8, size * 0.8, 0.008, "#6e8d55", 12);
+    shadow.scale.z = 0.65; setMapRenderLayer(shadow, mapRenderLayers.shadow);
     cylinder(group, 0, 0.55, 0, 0.12, 0.2, 1.1, "#715342");
     if (pine) {
       for (let layer = 0; layer < 3; layer++) cylinder(group, 0, 1 + layer * 0.5, 0, 0, 0.8 - layer * 0.15, 1.25, ["#2f694c", "#3e8152", "#5c985b"][layer], 7);
@@ -145,26 +180,14 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       mesh(group, "crown", () => new THREE.IcosahedronGeometry(0.9, 1), "#589345", 0, 1.6, 0);
       mesh(group, "crown", () => new THREE.IcosahedronGeometry(0.9, 1), "#75ac4d", -0.3, 1.85, 0.1).scale.setScalar(0.7);
     }
+    animations.push((time) => { group.rotation.z = Math.sin(time * 0.65 + x + z) * 0.012; });
   }
 
   function worker(parent: THREE.Object3D, x: number, z: number, working = false) {
-    const person = new THREE.Group();
-    parent.add(person);
-    person.position.set(x, 0.16, z);
-    box(person, -0.09, 0.12, 0, 0.11, 0.25, 0.13, "#3e5265");
-    box(person, 0.09, 0.12, 0, 0.11, 0.25, 0.13, "#3e5265");
-    box(person, 0, 0.37, 0, 0.31, 0.3, 0.21, working ? "#e2a04b" : "#b36e76");
-    box(person, 0, 0.64, 0, 0.22, 0.22, 0.22, "#e7b891");
-    cylinder(person, 0, 0.77, 0, 0.15, 0.18, 0.08, working ? "#f5cb59" : "#6e523b");
-    const arm = box(person, 0.24, 0.4, 0, 0.13, 0.32, 0.13, "#e7b891");
-    if (working) {
-      box(arm, 0, -0.25, 0, 0.07, 0.24, 0.07, "#6a5949");
-      box(arm, 0, -0.36, 0, 0.28, 0.12, 0.15, "#65777e");
-    }
-    animations.push((time) => {
-      arm.rotation.x = working ? Math.sin(time * 4 + x) * 0.8 : Math.sin(time * 3) * 0.2;
-      if (!working) person.position.z = z + Math.sin(time * 0.3 + x) * 0.75;
-    });
+    const villager = createMapVillager({ working, phase: Math.abs(x * 0.7 + z * 0.3), color: "#a47b82", route: working ? [] : [new THREE.Vector3(x, 0.3, z), new THREE.Vector3(x, 0.3, z + 0.8)] });
+    if (working) villager.group.position.set(x, 0.28, z);
+    villager.group.scale.setScalar(1.05);
+    villagers.push(villager); parent.add(villager.group); animations.push(villager.animate);
   }
 
   function roof(parent: THREE.Object3D, height: number, color: string) {
@@ -173,9 +196,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     shape.lineTo(0, 1.05);
     shape.lineTo(1.35, 0);
     shape.closePath();
-    const object = mesh(parent, "pitched-roof", () => new THREE.ExtrudeGeometry(shape, { depth: 2.75, bevelEnabled: false }), color, 0, height, -1.375);
+    const object = mesh(parent, "pitched-roof", () => new THREE.ExtrudeGeometry(shape, { depth: 2.75, steps: renderer.isWebGL ? 1 : 8, bevelEnabled: false }), color, 0, height, -1.375);
     box(parent, 0, height + 1.03, 0, 0.15, 0.14, 2.85, "#e7be80");
-    for (let row = 1; row < 5; row++) {
+    for (let row = 1; renderer.isWebGL && row < 5; row++) {
       for (const side of [-1, 1]) {
         const tile = box(parent, side * (1.35 - row * 0.25), height + row * 0.195, 0, 0.045, 0.055, 2.78, color);
         tile.rotation.z = side * -0.66;
@@ -193,7 +216,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     buildings.push(group);
     const closed = application.status === "rejected" || application.status === "withdrawn";
     const variant = application.id.split("").reduce((total, character) => total + character.charCodeAt(0), 0) % 3;
-    const roofColor = closed ? "#777e78" : ["#c47452", "#5682a3", "#6c9b82"][variant];
+    const roofColor = closed ? "#777e78" : ["#b86e54", "#597d9a", "#667d87"][variant];
     const floors = stage.floors;
     const height = 0.95 + floors * 0.7;
     box(group, 0, 0.12, 0, 4.3, 0.24, 4.2, selected ? "#e8c878" : "#91a36b");
@@ -221,6 +244,19 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       box(group, 0, 0.87, 1.22, 0.48, 0.9, 0.12, "#6a5142");
       cylinder(group, 0.13, 0.9, 1.3, 0.035, 0.035, 0.06, "#e6bb57").rotation.x = Math.PI / 2;
       box(group, 0, 0.35, 1.5, 0.9, 0.2, 0.55, "#e4d6b3");
+      for (const cornerX of [-1.17, 1.17]) for (const cornerZ of [-1.13, 1.13]) {
+        box(group, cornerX, 0.64, cornerZ, 0.22, 0.18, 0.22, "#d8d0b6");
+        box(group, cornerX, 0.85, cornerZ, 0.19, 0.18, 0.19, "#c9c4ad");
+      }
+      if (!stage.workers) {
+        box(group, 0, 1.48, 1.45, 0.94, 0.12, 0.7, roofColor);
+        for (const side of [-1, 1]) box(group, side * 0.4, 0.95, 1.66, 0.07, 0.95, 0.07, "#987f60");
+        for (const side of [-1, 1]) {
+          box(group, side * 0.66, 0.84, 1.35, 0.53, 0.16, 0.26, "#9e7b5c");
+          box(group, side * 0.66, 0.97, 1.35, 0.48, 0.13, 0.23, closed ? "#7d8a65" : "#86a061");
+          if (!closed) for (let flower = 0; flower < 3; flower++) cylinder(group, side * 0.66 - 0.15 + flower * 0.15, 1.06, 1.36, 0.06, 0.06, 0.07, flower % 2 ? "#d69292" : "#ebcd84", 6);
+        }
+      }
     }
     if (stage.workers) {
       for (const frameX of [-1.4, 1.4]) for (const frameZ of [-1.4, 1.4]) box(group, frameX, 1.2, frameZ, 0.12, 2.1, 0.12, "#a17a4d");
@@ -252,7 +288,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     anchors.set(application.id, new THREE.Vector3(x, 0.25, z + 2.6));
   }
 
-  function populate(applications: Application[], visibleIds: string[], selectedId: string | null) {
+  function populate(applications: Application[], visibleIds: string[], selectedId: string | null, layouts: MapLayout[]) {
+    for (const villager of villagers) villager.dispose();
+    villagers.length = 0;
     root.clear();
     animations.length = 0;
     buildings.length = 0;
@@ -260,17 +298,51 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     const map = createApplicationMap(applications);
     boardDepth = Math.max(23, map.height / 48);
     const centerZ = boardDepth / 2 - 7;
-    box(root, 0, -0.65, centerZ, 34, 1.3, boardDepth + 5, "#777958");
-    box(root, 0, -0.08, centerZ, 34, 0.45, boardDepth + 5, "#7da85b");
-    box(root, -12, 0.13, centerZ, 3.7, 0.12, boardDepth + 5, "#b7b17d");
-    box(root, -12, 0.21, centerZ, 2.8, 0.12, boardDepth + 5, "#51a5af");
+    setMapRenderLayer(box(root, 0, -0.65, centerZ, 34, 1.3, boardDepth + 8, "#8d8a6e"), mapRenderLayers.terrain);
+    setMapRenderLayer(box(root, 0, -0.08, centerZ, 34, 0.45, boardDepth + 8, "#84a66b"), mapRenderLayers.terrain + 1);
+    setMapRenderLayer(box(root, 25, -0.65, 7, 16, 1.3, 26, "#8d8a6e"), mapRenderLayers.terrain);
+    setMapRenderLayer(box(root, 25, -0.08, 7, 16, 0.45, 26, "#84a66b"), mapRenderLayers.terrain + 1);
+    for (let patch = 0; patch < 24; patch++) {
+      const patchX = -8.5 + (patch * 7.7) % 40;
+      const patchZ = -5 + (patch * 5.3) % Math.max(12, Math.min(23, boardDepth - 3));
+      const meadow = mesh(root, `meadow-${patch % 3}`, () => new THREE.CircleGeometry(1.7 + (patch % 3) * 0.5, 9), ["#7fa166", "#8aab71", "#90ae75"][patch % 3], patchX, 0.151, patchZ);
+      meadow.rotation.x = -Math.PI / 2; meadow.scale.y = 0.65;
+      setMapRenderLayer(meadow, mapRenderLayers.terrain + 2);
+    }
+    for (let tuft = 0; tuft < (renderer.isWebGL ? 100 : 38); tuft++) {
+      const tuftX = -9 + (tuft * 5.71) % 41;
+      const tuftZ = -6 + (tuft * 3.37) % Math.max(12, Math.min(24, boardDepth - 2));
+      for (const side of [-1, 1]) {
+        const blade = mesh(root, "grass-blade", () => new THREE.PlaneGeometry(0.09, 0.2), "#6e9559", tuftX + side * 0.06, 0.23, tuftZ);
+        blade.rotation.y = side * 0.6; blade.rotation.z = side * 0.25;
+        setMapRenderLayer(blade, mapRenderLayers.terrain + 3);
+      }
+    }
+    setMapRenderLayer(box(root, 17.4, 0.18, 3.5, 1.8, 0.16, 0.85, "#c9b995"), mapRenderLayers.road);
+    setMapRenderLayer(box(root, -12, 0.13, centerZ, 3.7, 0.12, boardDepth + 5, "#b7b17d"), mapRenderLayers.bank);
+    setMapRenderLayer(box(root, -12, 0.21, centerZ, 2.8, 0.12, boardDepth + 5, "#51a5af"), mapRenderLayers.water);
     const water = box(root, -12, 0.29, centerZ, 1.8, 0.015, boardDepth + 4, "#72bfc2");
+    setMapRenderLayer(water, mapRenderLayers.water + 1);
     animations.push((time) => { water.position.x = -12 + Math.sin(time * 0.8) * 0.08; });
-    box(root, -3.2, 0.17, centerZ, 0.85, 0.16, boardDepth + 1.5, "#c9b995");
+    for (let shore = 0; shore < Math.ceil(boardDepth / 2.4); shore++) {
+      const shoreZ = -6.5 + shore * 2.4;
+      for (const side of [-1, 1]) {
+        const stone = mesh(root, "shore-stone", () => new THREE.DodecahedronGeometry(0.28, 0), shore % 2 ? "#a5ad91" : "#b8b99a", -12 + side * 1.65, 0.26, shoreZ + side * 0.2);
+        stone.scale.set(1.1, 0.55, 0.8);
+        if (shore % 2 === 0) {
+          for (let reed = 0; reed < 3; reed++) {
+            const stem = cylinder(root, -12 + side * 1.5 + reed * 0.07, 0.4 + reed * 0.04, shoreZ + 0.45, 0.018, 0.018, 0.45 + reed * 0.08, "#78915a", 4);
+            stem.rotation.z = side * (0.1 + reed * 0.04);
+          }
+        }
+      }
+      const ripple = box(root, -12 + (shore % 2 ? -0.5 : 0.3), 0.305, shoreZ, 0.55, 0.012, 0.055, "#b2d8ca");
+      setMapRenderLayer(ripple, mapRenderLayers.water + 2);
+      animations.push((time) => { ripple.position.z = shoreZ + Math.sin(time * 0.6 + shore) * 0.18; });
+    }
     const rows = Math.max(1, Math.ceil(applications.length / 3));
     for (let row = 0; row < rows; row++) {
       const street = 3.5 + row * 7.5;
-      box(root, 0, 0.18, street, 29, 0.16, 0.85, "#c9b995");
       box(root, -12, 0.42, street, 4, 0.2, 1.2, "#a98356");
       for (let plank = 0; plank < 13; plank++) box(root, -13.8 + plank * 0.3, 0.54, street, 0.22, 0.06, 1.15, "#d1b27b");
       for (const side of [-1, 1]) {
@@ -282,7 +354,6 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
         box(root, side * 5, 1.52, street - 0.7, 0.28, 0.35, 0.28, windowMaterial);
         cylinder(root, side * 5, 1.77, street - 0.7, 0, 0.25, 0.22, "#53664e", 4);
       }
-      worker(root, 1.2, street + 0.7);
     }
     for (let row = 0; row < Math.ceil((boardDepth + 3) / 2); row++) {
       const forestZ = -7.5 + row * 2;
@@ -295,15 +366,23 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       const rock = mesh(root, "rock", () => new THREE.DodecahedronGeometry(1, 0), hill % 2 ? "#8c9a7c" : "#a5ad8f", -15 + hill * 1.8, 0.55, -8.7);
       rock.scale.set(1.2, 0.7 + (hill % 3) * 0.3, 1.1);
     }
+    setMapRenderLayer(cylinder(root, -3.2, 0.18, -4.7, 1.7, 1.75, 0.08, "#d0c6a9", 16), mapRenderLayers.road);
     cylinder(root, -3.2, 0.3, -4.7, 1.4, 1.5, 0.3, "#b7b69a");
     cylinder(root, -3.2, 0.56, -4.7, 0.95, 1.0, 0.3, "#6aaeb2");
     cylinder(root, -3.2, 0.9, -4.7, 0.15, 0.2, 0.8, "#d5d4b8");
     cylinder(root, -3.2, 1.3, -4.7, 0.6, 0.5, 0.16, "#d5d4b8");
-    for (const { application, x, y } of map.plots) {
-      const positionX = (x - 700) / 48;
-      const positionZ = (y - 270) / 48;
-      box(root, positionX, 0.17, positionZ + 2.6, 0.5, 0.12, 2.5, "#c9b995");
-      if (visibleIds.includes(application.id)) building(application, positionX, positionZ, application.id === selectedId);
+    cylinder(root, -3.2, 1.41, -4.7, 0.47, 0.47, 0.05, "#8fc5c3", 12);
+    const jet = cylinder(root, -3.2, 1.65, -4.7, 0.035, 0.07, 0.45, "#c1dfd5", 6);
+    animations.push((time) => { jet.scale.y = 1 + Math.sin(time * 2.8) * 0.15; });
+    for (const house of villageObjects(applications, layouts).filter((item) => item.itemType === "house")) {
+      const application = applications.find(({ id }) => id === house.applicationId)!;
+      if (visibleIds.includes(application.id)) {
+        const shadow = cylinder(root, house.x! + 2.65, 0.155, house.z! + 2.8, 2.45, 2.45, 0.01, "#647c4d", 16);
+        shadow.scale.z = 0.85;
+        setMapRenderLayer(shadow, mapRenderLayers.shadow);
+        building(application, house.x! + 2.5, house.z! + 2.5, application.id === selectedId);
+        buildings[buildings.length - 1].rotation.y = -house.rotation * Math.PI / 2;
+      }
     }
     for (const plot of map.plots) {
       const positionX = (plot.x - 700) / 48;
@@ -314,10 +393,58 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
         cylinder(root, positionX - 2.1 + flower * 0.2, 0.49, positionZ - 1.8, 0.12, 0.1, 0.08, flower % 2 ? "#e9bb70" : "#c97e89", 6);
       }
     }
+    const routes = villageWalkingRoutes(villageObjects(applications, layouts).filter((item) => item.itemType === "street"), renderer.isWebGL ? 5 : 3);
+    routes.forEach((route, index) => {
+      const villager = createMapVillager({ route, phase: index * 1.3, color: ["#618da0", "#b27b79", "#8d9366", "#a98c5d"][index % 4] });
+      villager.group.scale.setScalar(1.1); villagers.push(villager); root.add(villager.group); animations.push(villager.animate);
+    });
+  }
+
+  function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[]) {
+    for (const model of shopModels) model.dispose();
+    shopModels.length = 0; shopRoot.clear(); previewRoot.clear(); shopObjects.length = 0; shopAnimations.length = 0;
+    activePlacement = placement;
+    constructionGrid.visible = placement !== null;
+    if (placement) {
+      const size = itemFootprint(placement.item.itemType, placement.position.rotation);
+      constructionGrid.scale.set((size.width + 2) / 8, 1, (size.depth + 2) / 8);
+      constructionGrid.position.set(placement.position.x + size.width / 2, 0.2, placement.position.z + size.depth / 2);
+    }
+    const objects = villageObjects(applications, layouts);
+    const allItems = [...items, ...objects];
+    const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, villageDepth(applications));
+    previewMaterial.color.set(valid ? "#90c978" : "#d5827d");
+    for (const item of allItems) {
+      const moving = item.id === placement?.item.id;
+      const position = moving ? placement.position : item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : null;
+      if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.z)) continue;
+      if (item.itemType === "house") {
+        if (moving) {
+          const house = buildings.find((object) => object.userData.applicationId === item.applicationId);
+          if (house) {
+            house.position.set(position.x + 2.5, 0, position.z + 2.5); house.rotation.y = -position.rotation * Math.PI / 2;
+            house.traverse((object) => { if (object instanceof THREE.Mesh) object.material = previewMaterial; });
+            anchors.set(item.applicationId!, new THREE.Vector3(position.x + 2.5, 0.25, position.z + 5.1));
+          }
+        }
+        continue;
+      }
+      const model = createShopModel(item.itemType === "street" ? "road" : item.itemType, item.id === selectedId);
+      shopModels.push(model);
+      if (!moving) shopAnimations.push(model.animate);
+      const footprint = itemFootprint(item.itemType, position.rotation);
+      model.group.position.set(position.x + footprint.width / 2, 0.19, position.z + footprint.depth / 2);
+      model.group.rotation.y = -position.rotation * Math.PI / 2; model.group.userData.shopItemId = item.id;
+      (moving ? previewRoot : shopRoot).add(model.group);
+      setMapRenderLayer(model.group, item.itemType === "road" || item.itemType === "street" ? mapRenderLayers.road : mapRenderLayers.object);
+      if (moving) model.group.traverse((object) => { if (object instanceof THREE.Mesh) { object.material = previewMaterial; object.castShadow = false; } });
+      else shopObjects.push(model.group);
+    }
   }
 
   function center() {
-    controls.target.set(0, 0, Math.min(3, boardDepth / 4));
+    const focus = buildings.slice(0, 3);
+    controls.target.set(focus.length ? focus.reduce((sum, object) => sum + object.position.x, 0) / focus.length : -3.2, 0, focus.length ? focus.reduce((sum, object) => sum + object.position.z, 0) / focus.length + 1 : 0);
     camera.position.copy(controls.target).add(new THREE.Vector3(24, 30, 34));
     controls.update();
   }
@@ -326,7 +453,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     const width = host.clientWidth;
     const height = host.clientHeight;
     if (!width || !height) return;
-    const vertical = width < 640 ? 13 : 11;
+    const vertical = width < 640 ? 10.5 : 9.5;
     camera.left = -vertical * width / height;
     camera.right = vertical * width / height;
     camera.top = vertical;
@@ -344,11 +471,17 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     const bounds = host.getBoundingClientRect();
     pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
-    const hit = raycaster.intersectObjects(buildings, true)[0];
+    if (activePlacement) {
+      const point = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2), new THREE.Vector3());
+      if (point) onPlacePosition({ x: Math.floor(point.x), z: Math.floor(point.z), rotation: activePlacement.position.rotation });
+      return;
+    }
+    const hit = raycaster.intersectObjects([...buildings, ...shopObjects], true)[0];
     if (hit) {
       let object: THREE.Object3D | null = hit.object;
-      while (object && !object.userData.applicationId) object = object.parent;
+      while (object && !object.userData.applicationId && !object.userData.shopItemId) object = object.parent;
       if (object?.userData.applicationId) onSelect(object.userData.applicationId as string);
+      if (object?.userData.shopItemId) onSelectShopItem(object.userData.shopItemId as string);
     }
   }
   host.addEventListener("pointerdown", pointerDown);
@@ -359,7 +492,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   const projection = new THREE.Vector3();
   renderer.setAnimationLoop((milliseconds) => {
     controls.update();
-    if (motion) for (const animate of animations) animate(milliseconds / 1000);
+    if (motion) for (const animate of [...animations, ...shopAnimations]) animate(milliseconds / 1000);
     renderer.render(scene, camera);
     for (const element of labels.querySelectorAll<HTMLButtonElement>("[data-building]")) {
       const anchor = anchors.get(element.dataset.building!);
@@ -373,13 +506,20 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
 
   return {
     populate,
+    setShop,
     center,
+    focusConstruction(position: MapPosition) {
+      controls.target.set(position.x + 1, 0, position.z + 1);
+      camera.position.copy(controls.target).add(new THREE.Vector3(24, 30, 34));
+      controls.update();
+    },
     zoom(value: number) { camera.zoom = value; camera.updateProjectionMatrix(); },
     lighting(night: boolean) {
-      scene.background = new THREE.Color(night ? "#314957" : "#9fba8b");
+      scene.background = new THREE.Color(night ? "#314957" : "#b9c9ae");
       ambient.intensity = night ? 1.1 : 2.6;
       ambient.color.set(night ? "#a3bbdf" : "#fff5dc");
-      sunlight.intensity = night ? 0.7 : 3.2;
+      sunlight.intensity = renderer.isWebGL ? night ? 0.7 : 3.2 : night ? 0.35 : 0.65;
+      fallbackFill.intensity = renderer.isWebGL ? 0 : night ? 0.3 : 0.45;
       windowMaterial.emissiveIntensity = night ? 1.5 : 0.1;
     },
     dispose() {
@@ -392,6 +532,11 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       for (const geometry of geometries.values()) geometry.dispose();
       for (const item of materials.values()) item.dispose();
       windowMaterial.dispose();
+      for (const model of shopModels) model.dispose();
+      for (const villager of villagers) villager.dispose();
+      previewMaterial.dispose();
+      constructionGrid.geometry.dispose();
+      for (const item of Array.isArray(constructionGrid.material) ? constructionGrid.material : [constructionGrid.material]) item.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },

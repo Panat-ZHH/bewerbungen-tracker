@@ -18,10 +18,11 @@
 .summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; min-height: 49px; padding: 10px 16px; border-bottom: 1px solid var(--map-border); color: #53624f; font-size: 12px; }
 .summary > span { display: inline-flex; align-items: center; gap: 6px; }
 .summary strong { color: #2f4538; font-size: 15px; font-variant-numeric: tabular-nums; }
-.canvasHost { position: relative; width: 100%; height: 650px; overflow: hidden; background: #9fba8b; cursor: grab; }
+.canvasHost { position: relative; width: 100%; height: 650px; overflow: clip; background: #b9c9ae; cursor: grab; }
 .canvasHost:active { cursor: grabbing; }
 .canvasHost canvas { display: block; width: 100%; height: 100%; touch-action: none; }
-.worldLabels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.canvasHost > svg[data-map-renderer] { display: block; width: 100%; height: 100%; touch-action: none; }
+.worldLabels { position: absolute; inset: 0; pointer-events: none; overflow: clip; }
 .worldLabel { position: absolute; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 136px; min-height: 40px; padding: 5px 8px; border: 1px solid #6b7960; border-radius: 5px; background: #fbf8e9f2; color: #34432f; box-shadow: 0 3px 0 #465f4580, 0 5px 12px #29442f26; pointer-events: auto; cursor: pointer; }
 .worldLabel strong { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 700; }
 .worldLabel span { font-size: 10px; color: #58674d; }
@@ -64,6 +65,48 @@
 .saveButton:disabled { background: #dce4d5; color: #64715e; cursor: default; }
 .dialogFooter { padding: 16px 24px; border-top: 1px solid #dce4d5; }
 .dialogFooter a { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #32664a; }
+.shop { margin-top: 32px; border-top: 1px solid #ced8c7; padding-top: 24px; }
+.shopHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.shopHeading h2 { margin: 0; font-size: 24px; font-weight: 650; }
+.shopHeading p { margin: 5px 0 0; color: #62705c; font-size: 12px; }
+.points { display: flex; align-items: center; gap: 8px; color: #71612e; font-size: 13px; }
+.points strong { font-size: 25px; color: #3c4933; font-variant-numeric: tabular-nums; }
+.shopGrid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; }
+.shopItem { min-width: 0; border: 1px solid #d5dece; border-radius: 6px; overflow: hidden; background: #fafcf7; }
+.shopArt { display: grid; place-items: center; height: 140px; border-bottom: 1px solid #d5dece; background: #e2ebd8; color: #547343; overflow: hidden; }
+.shopArt img { width: 100%; height: 100%; object-fit: contain; }
+.dialogFooter { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+.dialogFooter button { display: inline-flex; align-items: center; gap: 6px; padding: 8px; border: 1px solid #c5d2bb; border-radius: 5px; background: #edf3e6; color: #3c623e; font-size: 13px; cursor: pointer; }
+.dialogFooter button:disabled { opacity: .5; cursor: default; }
+.art_road { background: #e5e3d8; color: #8c8065; }
+.art_flowers { background: #f0e2e4; color: #9c6171; }
+.art_fountain { background: #dcecef; color: #528b99; }
+.art_amusement_park { background: #e6e3ef; color: #7d7197; }
+.shopItem h3 { margin: 12px 12px 8px; font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.price { display: flex; align-items: center; gap: 5px; margin: 0 12px 12px; color: #776630; font-size: 12px; font-weight: 600; }
+.shopItem button { display: flex; align-items: center; justify-content: center; gap: 6px; width: calc(100% - 24px); min-height: 34px; margin: 0 12px 12px; border: 1px solid #bdccaf; border-radius: 5px; background: #e7eedf; color: #385331; font-size: 12px; font-weight: 600; cursor: pointer; }
+.shopItem button:disabled { opacity: .5; cursor: default; }
+.shopNotice { min-height: 20px; margin: 10px 0; font-size: 13px; color: #3e6e47; }
+.shopError { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 16px; padding: 12px; border: 1px solid #e8c7c0; border-radius: 5px; background: #fff3ef; color: #934533; font-size: 13px; }
+.shopError button { border: 0; background: transparent; color: inherit; text-decoration: underline; cursor: pointer; }
+.inventoryHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 28px; }
+.inventoryHeading h3 { display: inline-flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; }
+.inventoryHeading > span, .inventoryEmpty { color: #64705d; font-size: 12px; }
+.inventory { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-top: 14px; }
+.inventory > button { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 12px; border: 1px solid #ced8c7; border-radius: 5px; background: #f8faf5; color: #4a6042; text-align: left; cursor: pointer; }
+.inventory button span { display: flex; flex-direction: column; gap: 4px; overflow-wrap: anywhere; }
+.inventory strong { font-size: 12px; }
+.inventory small { font-size: 11px; color: #687560; }
+.inventory > .inventorySelected { border-color: #b6a36c; background: #f9f0d7; }
+.inventoryActions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 16px; font-size: 12px; }
+.inventoryActions button, .placementTools button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 36px; padding: 6px 10px; border: 1px solid #b9c9ad; border-radius: 5px; background: #f9fbf5; color: #3f5738; font-size: 12px; cursor: pointer; }
+.inventoryActions button:disabled, .placementTools button:disabled { opacity: .5; cursor: default; }
+.placementTools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid #d4dfcb; background: #f2f6e8; color: #425237; font-size: 12px; }
+.placementTools strong { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+.placementTools label { display: flex; align-items: center; gap: 5px; }
+.placementTools input { width: 58px; height: 34px; padding: 4px; border: 1px solid #bdcbb0; border-radius: 4px; background: white; font-size: 12px; }
+.placementTools .placeConfirm { background: #3f714c; border-color: #3f714c; color: white; }
+.placementTools p { flex-basis: 100%; margin: 0; color: #a45039; }
 @media (max-width: 640px) {
   .heading h1 { font-size: 30px; }
   .heading p { font-size: 13px; }
@@ -81,4 +124,11 @@
   .worldLabel strong { font-size: 10px; }
   .worldLabel span { font-size: 9px; }
   .dialogHeader, .dialogBody { padding: 20px; }
+  .shopGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .shopArt { height: 125px; }
+  .points { gap: 6px; font-size: 11px; }
+  .points strong { font-size: 22px; }
+  .placementTools { gap: 8px; }
+  .placementTools strong { flex-basis: 100%; }
 }
+@media (min-width: 641px) and (max-width: 1000px) { .shopGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

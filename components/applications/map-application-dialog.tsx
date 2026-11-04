@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, CalendarDays, Check, MapPin, Save, X } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Check, LocateFixed, MapPin, Save, X } from "lucide-react";
 import { updateApplication } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
 import type { Application, ApplicationStatus } from "@/types";
 import styles from "@/app/map/map.module.css";
 
-export function MapApplicationDialog({ application, onClose, onUpdated }: { application: Application; onClose: () => void; onUpdated: (application: Application) => void }) {
+export function MapApplicationDialog({ application, onClose, onUpdated, onMove, canMove }: { application: Application; onClose: () => void; onUpdated: (application: Application) => void; onMove: () => void; canMove: boolean }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const saving = useRef(false);
   const [draft, setDraft] = useState(application.status);
@@ -70,7 +70,7 @@ export function MapApplicationDialog({ application, onClose, onUpdated }: { appl
           <button type="submit" className={styles.saveButton} disabled={busy || draft === application.status}><Save size={16} />{busy ? "Speichern ..." : "Status speichern"}</button>
         </form>
       </div>
-      <footer className={styles.dialogFooter}><Link href={`/applications/${encodeURIComponent(application.id)}`}><ArrowUpRight size={16} /> Bewerbung öffnen</Link></footer>
+      <footer className={styles.dialogFooter}><button type="button" disabled={busy || !canMove} onClick={onMove}><LocateFixed size={16} />Haus verschieben</button><Link href={`/applications/${encodeURIComponent(application.id)}`}><ArrowUpRight size={16} /> Bewerbung öffnen</Link></footer>
     </dialog>
   );
 }

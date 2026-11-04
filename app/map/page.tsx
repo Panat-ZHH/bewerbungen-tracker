@@ -5,6 +5,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Hammer, LocateFixed, Minus, Moon, Plus, RefreshCw, Search, Sun, Trophy, ZoomIn } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { MapApplicationDialog } from "@/components/applications/map-application-dialog";
+import { MapPlacementTools, MapShop, useMapShop } from "@/components/applications/map-shop";
 import { buildingStages } from "@/lib/application-map";
 import { getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
@@ -30,6 +31,8 @@ function ApplicationMap() {
   const [center, setCenter] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const revision = useRef(0);
+  const [shopRefresh, setShopRefresh] = useState(0);
+  const shop = useMapShop(refresh + shopRefresh, applications);
 
   useEffect(() => {
     let active = true;
@@ -99,8 +102,9 @@ function ApplicationMap() {
           <>
             {!applications.length && !error && <div className={styles.empty}><h2>Noch keine Gebäude</h2><p>Du hast noch keine Bewerbungen.</p></div>}
             {applications.length > 0 && visible.length === 0 && <p className={styles.empty} role="status">Keine Bewerbungen für diese Auswahl.</p>}
+            <MapPlacementTools shop={shop} />
             <Suspense fallback={<div className={styles.loading} role="status">Dein Dorf wird aufgebaut ...</div>}>
-              <ApplicationMapWorld applications={applications} visibleIds={visible.map(({ id }) => id)} selectedId={selectedId} night={night} zoom={zoom} center={center} onSelect={setSelectedId} />
+              <ApplicationMapWorld applications={applications} visibleIds={visible.map(({ id }) => id)} selectedId={selectedId} night={night} zoom={zoom} center={center} onSelect={setSelectedId} shopItems={shop.state?.items ?? []} layouts={shop.state?.layouts ?? []} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} />
             </Suspense>
           </>
         )}
@@ -108,7 +112,8 @@ function ApplicationMap() {
           {(Object.keys(buildingStages) as ApplicationStatus[]).map((value) => <span key={value}><i style={{ background: buildingStages[value].color }} />{statusLabels[value]}</span>)}
         </footer>
       </section>
-      {selected && <MapApplicationDialog key={selected.id} application={selected} onClose={() => setSelectedId(null)} onUpdated={(updated) => { revision.current++; setApplications((current) => current.map((application) => application.id === updated.id ? updated : application)); }} />}
+      <MapShop shop={shop} />
+      {selected && <MapApplicationDialog key={selected.id} application={selected} onClose={() => setSelectedId(null)} onMove={() => { const house = shop.objects.find((item) => item.applicationId === selected.id); if (house) { shop.start(house); setSelectedId(null); } }} canMove={shop.state !== null && !shop.busy} onUpdated={(updated) => { revision.current++; setApplications((current) => current.map((application) => application.id === updated.id ? updated : application)); setShopRefresh((current) => current + 1); }} />}
     </div>
   );
 }
