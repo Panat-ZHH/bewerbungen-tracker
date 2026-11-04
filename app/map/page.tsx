@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { Hammer, LocateFixed, Minus, Moon, Plus, RefreshCw, Search, Sun, Trophy, ZoomIn } from "lucide-react";
+import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Hammer, LocateFixed, Minus, Moon, Plus, RefreshCw, Search, ShoppingBag, Sun, Trophy, ZoomIn } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { MapApplicationDialog } from "@/components/applications/map-application-dialog";
+import { ButtonLink, Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { PageHeader } from "@/components/ui/page-header";
 import { MapPlacementTools, MapShop, useMapShop } from "@/components/applications/map-shop";
 import { buildingStages } from "@/lib/application-map";
 import { getApplications } from "@/lib/storage";
@@ -19,7 +21,17 @@ export default function MapPage() {
   return <WorkspaceShell active="Map"><ApplicationMap /></WorkspaceShell>;
 }
 
+function useIsPhone() {
+  return useSyncExternalStore(
+    (notify) => { const query = window.matchMedia("(max-width: 767px)"); query.addEventListener("change", notify); return () => query.removeEventListener("change", notify); },
+    () => window.matchMedia("(max-width: 767px)").matches,
+    () => false,
+  );
+}
+
 function ApplicationMap() {
+  const phone = useIsPhone();
+  const [shopOpen, setShopOpen] = useState(false);
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -74,12 +86,9 @@ function ApplicationMap() {
   const selected = applications.find(({ id }) => id === selectedId);
 
   return (
-    <div className={styles.page}>
-      <header className={styles.heading}>
-        <div><h1>Map</h1><p>Dein Bewerbungsdorf</p></div>
-        <Link href="/applications/new" className={styles.primary}><Plus size={16} /> Bewerbung</Link>
-      </header>
-      <section className={styles.map} aria-label="Bewerbungsmap" aria-busy={loading}>
+    <div className={`${styles.page} pb-safe`}>
+      <PageHeader title="Map" description="Dein Bewerbungsdorf" actions={<>{phone && <Button variant="secondary" icon={<ShoppingBag size={16} />} onClick={() => setShopOpen(true)}>Shop{shop.state ? ` · ${shop.state.balance}` : ""}</Button>}<ButtonLink href="/applications/new" icon={<Plus size={16} />}>Bewerbung</ButtonLink></>} />
+      <section className={`${styles.map}`} aria-label="Bewerbungsmap" aria-busy={loading}>
         <div className={styles.toolbar}>
           <label className={styles.search}><Search size={16} /><span className="sr-only">Bewerbungen suchen</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma, Stelle oder Ort" type="search" /></label>
           <label className={styles.filter}><span className="sr-only">Status filtern</span><select value={status} onChange={(event) => setStatus(event.target.value as ApplicationStatus | "all")}><option value="all">Alle Status</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
@@ -112,7 +121,7 @@ function ApplicationMap() {
           {(Object.keys(buildingStages) as ApplicationStatus[]).map((value) => <span key={value}><i style={{ background: buildingStages[value].color }} />{statusLabels[value]}</span>)}
         </footer>
       </section>
-      <MapShop shop={shop} />
+      {phone ? <Modal open={shopOpen && !shop.placement} onClose={() => setShopOpen(false)} title="Shop"><MapShop shop={shop} compact /></Modal> : <MapShop shop={shop} />}
       {selected && <MapApplicationDialog key={selected.id} application={selected} onClose={() => setSelectedId(null)} onMove={() => { const house = shop.objects.find((item) => item.applicationId === selected.id); if (house) { shop.start(house); setSelectedId(null); } }} canMove={shop.state !== null && !shop.busy} onUpdated={(updated) => { revision.current++; setApplications((current) => current.map((application) => application.id === updated.id ? updated : application)); setShopRefresh((current) => current + 1); }} />}
     </div>
   );
