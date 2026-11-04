@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { createApplication, updateApplication } from "@/lib/storage";
-import { statusLabels } from "@/lib/utils";
+import { cn, statusLabels } from "@/lib/utils";
 import type { Application, ApplicationCategory, ApplicationStatus } from "@/types";
 
 const categories: { value: ApplicationCategory; label: string }[] = [
@@ -57,19 +59,49 @@ function toForm(application?: Application): FormValue {
   };
 }
 
+type Errors = Partial<Record<keyof FormValue, string>>;
+
+function validate(form: FormValue): Errors {
+  const errors: Errors = {};
+  if (!form.company.trim()) errors.company = "Bitte gib die Firma an.";
+  if (!form.position.trim()) errors.position = "Bitte gib die Stelle an.";
+  if (form.jobUrl.trim() && !/^https?:\/\/\S+\.\S+/i.test(form.jobUrl.trim())) errors.jobUrl = "Der Link sollte mit https:// beginnen.";
+  if (form.salaryMin && Number(form.salaryMin) < 0) errors.salaryMin = "Der Lohn kann nicht negativ sein.";
+  if (form.salaryMax && Number(form.salaryMax) < 0) errors.salaryMax = "Der Lohn kann nicht negativ sein.";
+  if (form.salaryMin && form.salaryMax && Number(form.salaryMin) > Number(form.salaryMax)) errors.salaryMax = "Der Höchstlohn liegt unter dem Mindestlohn.";
+  return errors;
+}
+
 export function ApplicationForm({ application }: { application?: Application }) {
   const router = useRouter();
   const [form, setForm] = useState<FormValue>(() => toForm(application));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [touched, setTouched] = useState<Partial<Record<keyof FormValue, boolean>>>({});
+  const [submitted, setSubmitted] = useState(false);
   const isEditing = Boolean(application);
+  const errors = validate(form);
+  const shown = (key: keyof FormValue) => (submitted || touched[key] ? errors[key] : undefined);
+  const optionalHasError = submitted && (["jobUrl", "salaryMin", "salaryMax"] as const).some((key) => errors[key]);
 
   function update<K extends keyof FormValue>(key: K, value: FormValue[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  const bind = (key: keyof FormValue) => ({
+    value: form[key] as string,
+    onChange: (value: string) => update(key, value as never),
+    onBlur: () => setTouched((current) => ({ ...current, [key]: true })),
+    error: shown(key),
+  });
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setSubmitted(true);
+    if (Object.keys(errors).length) {
+      setError("Bitte prüfe die markierten Felder.");
+      return;
+    }
     setSaving(true);
     setError("");
     const payload = {
@@ -93,60 +125,82 @@ export function ApplicationForm({ application }: { application?: Application }) 
   }
 
   return (
-    <form onSubmit={submit} className="max-w-2xl">
+    <form onSubmit={submit} noValidate className="max-w-2xl">
       {error && <p role="alert" className="mb-5 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
 
-      <div className="space-y-5">
-        <Field label="Firma" required value={form.company} onChange={(value) => update("company", value)} placeholder="Zum Beispiel: Migros" autoFocus />
-        <Field label="Welche Stelle?" required value={form.position} onChange={(value) => update("position", value)} placeholder="Zum Beispiel: Mediamatiker:in" />
+      <fieldset className="min-w-0 space-y-5 border-0 p-0">
+        <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Das Wichtigste</legend>
+        <Field label="Firma" required {...bind("company")} placeholder="Zum Beispiel: Migros" autoFocus={!isEditing} autoComplete="organization" />
+        <Field label="Welche Stelle?" required {...bind("position")} placeholder="Zum Beispiel: Mediamatiker:in" />
         <SelectField label="Was ist der Stand?" value={form.status} onChange={(value) => update("status", value)} options={Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))} />
-      </div>
+      </fieldset>
 
-      <details open={isEditing} className="mt-7 border-t border-[#e5e5ea] pt-5">
-        <summary className="cursor-pointer list-none text-sm font-semibold text-[#0866d6] marker:hidden">
-          <span className="flex items-center gap-2"><Plus size={16} /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
+      <details open={isEditing || optionalHasError || undefined} className="group mt-7 border-t border-[#e5e5ea] pt-2">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-[#0866d6] marker:hidden [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-2"><Plus size={16} className="transition-transform group-open:rotate-45" /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
         </summary>
-        <div className="mt-5 grid gap-5 sm:grid-cols-2">
-          <Field label="Ort" value={form.location} onChange={(value) => update("location", value)} placeholder="Zürich oder von zu Hause" />
-          <SelectField label="Berufsfeld" value={form.category} onChange={(value) => update("category", value)} options={categories} />
-          <Field label="Link zur Stelle" value={form.jobUrl} onChange={(value) => update("jobUrl", value)} placeholder="https://…" type="url" />
-          <Field label="Wo hast du die Stelle gefunden?" value={form.source} onChange={(value) => update("source", value)} placeholder="Zum Beispiel: jobs.ch" />
-          <Field label="Bewerben bis" value={form.deadline} onChange={(value) => update("deadline", value)} type="date" />
-          <Field label="Mindestlohn pro Jahr" value={form.salaryMin} onChange={(value) => update("salaryMin", value)} type="number" placeholder="Zum Beispiel: 65000" />
-          <Field label="Höchstlohn pro Jahr" value={form.salaryMax} onChange={(value) => update("salaryMax", value)} type="number" placeholder="Zum Beispiel: 80000" />
-          <Field label="Währung" value={form.currency} onChange={(value) => update("currency", value)} placeholder="CHF" />
-          <TextArea label="Was ist in der Stellenanzeige wichtig?" value={form.jobDescription} onChange={(value) => update("jobDescription", value)} />
-          <TextArea label="Deine Notizen" value={form.notes} onChange={(value) => update("notes", value)} placeholder="Fragen, Ideen oder was du als Nächstes tun möchtest …" />
+        <div className="mt-4 space-y-7">
+          <fieldset className="min-w-0 border-0 p-0">
+            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Die Stelle</legend>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Ort" {...bind("location")} placeholder="Zürich oder von zu Hause" />
+              <SelectField label="Berufsfeld" value={form.category} onChange={(value) => update("category", value)} options={categories} />
+              <Field label="Link zur Stelle" {...bind("jobUrl")} placeholder="https://…" type="url" inputMode="url" />
+              <Field label="Wo hast du die Stelle gefunden?" {...bind("source")} placeholder="Zum Beispiel: jobs.ch" />
+              <Field label="Bewerben bis" {...bind("deadline")} type="date" />
+            </div>
+          </fieldset>
+          <fieldset className="min-w-0 border-0 p-0">
+            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Lohn</legend>
+            <div className="grid gap-5 sm:grid-cols-3">
+              <Field label="Mindestlohn pro Jahr" {...bind("salaryMin")} type="number" inputMode="numeric" placeholder="65000" />
+              <Field label="Höchstlohn pro Jahr" {...bind("salaryMax")} type="number" inputMode="numeric" placeholder="80000" />
+              <Field label="Währung" {...bind("currency")} placeholder="CHF" />
+            </div>
+          </fieldset>
+          <fieldset className="min-w-0 border-0 p-0">
+            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Notizen</legend>
+            <div className="space-y-5">
+              <TextArea label="Was ist in der Stellenanzeige wichtig?" value={form.jobDescription} onChange={(value) => update("jobDescription", value)} />
+              <TextArea label="Deine Notizen" value={form.notes} onChange={(value) => update("notes", value)} placeholder="Fragen, Ideen oder was du als Nächstes tun möchtest …" />
+            </div>
+          </fieldset>
         </div>
       </details>
 
-      <div className="mt-7 flex flex-col-reverse gap-3 border-t border-[#e5e5ea] pt-5 sm:flex-row sm:items-center">
-        <button type="button" onClick={() => router.back()} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-medium text-[#5e5e63] hover:bg-[#f2f2f4]">
+      <div className="sticky bottom-0 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[#e5e5ea] bg-white/70 px-4 py-4 backdrop-blur-xl sm:static sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
+        <Button type="button" variant="ghost" onClick={() => router.back()} className="min-h-11">
           <ArrowLeft size={16} /> Zurück
-        </button>
-        <button disabled={saving} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#0866d6] px-5 text-sm font-semibold text-white hover:bg-[#075bbb] disabled:opacity-60">
+        </Button>
+        <Button type="submit" disabled={saving} className="min-h-11 px-6 sm:ml-auto">
           {isEditing ? <Check size={16} /> : <Plus size={16} />}
           {saving ? "Speichert …" : isEditing ? "Änderungen speichern" : "Bewerbung speichern"}
-        </button>
+        </Button>
       </div>
     </form>
   );
 }
 
-function Field({ label, value, onChange, placeholder, type = "text", required = false, autoFocus = false }: {
+function Field({ label, value, onChange, onBlur, error, placeholder, type = "text", required = false, autoFocus = false, inputMode, autoComplete }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
+  error?: string;
   placeholder?: string;
   type?: string;
   required?: boolean;
   autoFocus?: boolean;
+  inputMode?: "url" | "numeric";
+  autoComplete?: string;
 }) {
+  const id = useId();
   return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium">{label}{required && <span aria-hidden="true"> *</span>}</span>
-      <input required={required} autoFocus={autoFocus} type={type} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
-    </label>
+    <div>
+      <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}{required && <span aria-hidden="true" className="text-muted"> *</span>}</label>
+      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[#c43d3d] focus:border-[#c43d3d] focus:ring-[#c43d3d]/15")} />
+      {error && <p id={`${id}-error`} className="mt-1.5 text-xs font-medium text-[#a32828]">{error}</p>}
+    </div>
   );
 }
 
@@ -156,13 +210,14 @@ function SelectField({ label, value, onChange, options }: {
   onChange: (value: never) => void;
   options: { value: string; label: string }[];
 }) {
+  const id = useId();
   return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value as never)} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15">
+    <div>
+      <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value as never)} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
-    </label>
+    </div>
   );
 }
 
@@ -172,10 +227,11 @@ function TextArea({ label, value, onChange, placeholder }: {
   onChange: (value: string) => void;
   placeholder?: string;
 }) {
+  const id = useId();
   return (
-    <label className="block sm:col-span-2">
-      <span className="mb-2 block text-sm font-medium">{label}</span>
-      <textarea rows={4} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="w-full resize-y rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
-    </label>
+    <div>
+      <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
+      <textarea id={id} rows={4} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="w-full resize-y rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none transition placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+    </div>
   );
 }
