@@ -114,7 +114,7 @@ function ApplicationMap() {
         <div className={styles.summary} aria-live="polite">
           <span><strong>{applications.length}</strong> Gebäude</span>
           <span><Hammer size={15} /><strong>{construction}</strong> im Bau</span>
-          <span><Trophy size={15} /><strong>{offers}</strong> {offers === 1 ? "Angebot" : "Angebote"}</span>
+          <span><Trophy size={15} /><strong>{offers}</strong> {offers === 1 ? "Zusage" : "Zusagen"}</span>
         </div>
         {loading && !applications.length ? <div className={styles.loading} role="status">Dein Dorf wird geladen ...</div> : (
           <>

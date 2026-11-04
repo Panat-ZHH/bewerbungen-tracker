@@ -11,7 +11,7 @@ export const statusLabels = {
   applied: "Abgeschickt",
   interview: "Gespräch",
   final_interview: "Weiteres Gespräch",
-  offer: "Angebot",
+  offer: "Zusage",
   rejected: "Abgelehnt",
   withdrawn: "Zurückgezogen",
 } as const;

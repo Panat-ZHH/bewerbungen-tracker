@@ -66,7 +66,7 @@ export default function DashboardPage() {
       <section aria-label="Deine Zahlen" className="mt-8 grid grid-cols-3 gap-2.5 sm:gap-3">
         <Summary label="Bewerbungen" value={loading ? "–" : applications.length} detail="Insgesamt" />
         <Summary label="Offen" value={loading ? "–" : activeCount} detail="Noch in Arbeit" />
-        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={offers ? `${offers} ${offers === 1 ? "Angebot" : "Angebote"}` : "Noch keine"} />
+        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={offers ? `${offers} ${offers === 1 ? "Zusage" : "Zusagen"}` : "Noch keine"} />
       </section>
 
       <section className="mt-10">
