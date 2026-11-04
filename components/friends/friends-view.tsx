@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { getFriendsActivity, getMySocialProfile, listConnections, updateMySocialProfile } from "@/lib/social";
 import type { FriendActivity, SocialConnection, SocialProfile } from "@/types";
+import { PrivacyPanel } from "@/components/classes/privacy-panel";
 import { AddFriend } from "./add-friend";
 import { FriendList } from "./friend-list";
 import { InviteCard } from "./invite-card";
@@ -80,6 +81,7 @@ export function FriendsView() {
               </div>
               {sharingError && <StatusMessage tone="danger" className="mt-3">{sharingError}</StatusMessage>}
             </Card>
+            <PrivacyPanel variant="friends" />
           </div>
           <div className="space-y-5">
             <PendingInvite onChanged={load} />

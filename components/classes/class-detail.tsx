@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BriefcaseBusiness, CalendarClock, EyeOff, Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowLeft, BriefcaseBusiness, CalendarClock, EyeOff, Search, Settings2, Sparkles, Trophy, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,21 +11,34 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Segmented } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { StatTile } from "@/components/ui/stat-tile";
 import { getClassOverview, listMyClasses } from "@/lib/classes";
+import { ClassSettings } from "./class-settings";
 import { statusLabels } from "@/lib/utils";
 import type { ClassStudentOverview, SchoolClass } from "@/types";
 import { CodeActions, StatusBar, errorMessage, formatDate } from "./shared";
 import { StudentDrilldown } from "./student-drilldown";
 
 type SortKey = "activity" | "name" | "total";
+type FilterKey = "all" | "inactive" | "active" | "offer" | "hidden";
+const FILTERS: { value: FilterKey; label: string }[] = [{ value: "all", label: "Alle" }, { value: "inactive", label: "Inaktiv (30 T)" }, { value: "active", label: "Aktiv (7 T)" }, { value: "offer", label: "Mit Zusage" }, { value: "hidden", label: "Teilt nicht" }];
+const matches: Record<FilterKey, (s: ClassStudentOverview) => boolean> = {
+  all: () => true,
+  inactive: (s) => !s.hidden && s.last30Days === 0,
+  active: (s) => !s.hidden && s.last7Days > 0,
+  offer: (s) => !s.hidden && (s.statusCounts.offer ?? 0) > 0,
+  hidden: (s) => s.hidden,
+};
 
 export function ClassDetail({ classId }: { classId: string }) {
   const [cls, setCls] = useState<SchoolClass | null>(null);
   const [students, setStudents] = useState<ClassStudentOverview[] | null>(null);
   const [error, setError] = useState("");
   const [sort, setSort] = useState<SortKey>("activity");
-  const [inactiveOnly, setInactiveOnly] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("all");
+  const [query, setQuery] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [selected, setSelected] = useState<ClassStudentOverview | null>(null);
 
   const load = useCallback(() => {
@@ -48,19 +61,21 @@ export function ClassDetail({ classId }: { classId: string }) {
 
   const rows = useMemo(() => {
     let list = [...(students ?? [])];
-    if (inactiveOnly) list = list.filter((s) => !s.hidden && s.last30Days === 0);
+    const q = query.trim().toLowerCase();
+    list = list.filter((s) => matches[filter](s) && (!q || s.displayName.toLowerCase().includes(q) || (!s.hidden && (s.latest?.company.toLowerCase().includes(q) ?? false))));
     const cmp: Record<SortKey, (a: ClassStudentOverview, b: ClassStudentOverview) => number> = {
       activity: (a, b) => a.last30Days - b.last30Days || a.last7Days - b.last7Days || a.total - b.total,
       name: (a, b) => a.displayName.localeCompare(b.displayName, "de"),
       total: (a, b) => b.total - a.total,
     };
     return list.sort((a, b) => Number(a.hidden) - Number(b.hidden) || cmp[sort](a, b) || a.displayName.localeCompare(b.displayName, "de"));
-  }, [students, sort, inactiveOnly]);
+  }, [students, sort, filter, query]);
+  const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.value, (students ?? []).filter(matches[f.value]).length])) as Record<FilterKey, number>, [students]);
 
   return (
     <div className="space-y-6 pb-safe">
       <Link href="/classes" className="text-small inline-flex items-center gap-1.5 text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} /> Alle Klassen</Link>
-      <PageHeader eyebrow={cls?.schoolYear ? `Schuljahr ${cls.schoolYear}` : "Klasse"} title={cls?.name ?? "Klassenübersicht"} description="Bewerbungsaktivität deiner Schülerinnen und Schüler. Nur Daten von Personen, die ihre Freigabe aktiviert haben." />
+      <PageHeader eyebrow={cls?.schoolYear ? `Schuljahr ${cls.schoolYear}` : "Klasse"} title={cls?.name ?? "Klassenübersicht"} description="Bewerbungsaktivität deiner Schülerinnen und Schüler. Nur Daten von Personen, die ihre Freigabe aktiviert haben." actions={cls && <Button variant="secondary" icon={<Settings2 size={16} />} onClick={() => setSettingsOpen(true)}>Verwalten</Button>} />
 
       {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
 
@@ -88,15 +103,18 @@ export function ClassDetail({ classId }: { classId: string }) {
             <EmptyState icon={<Users size={26} />} title="Noch keine Schüler" description="Sobald Schüler mit dem Code beitreten, erscheinen sie hier." />
           ) : (
             <section className="space-y-4" aria-label="Schülerübersicht">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <Segmented label="Sortierung" value={sort} onChange={setSort} options={[{ value: "activity", label: "Wenigste Aktivität" }, { value: "total", label: "Meiste Bewerbungen" }, { value: "name", label: "Name" }]} />
-                <label className="text-small inline-flex min-h-9 cursor-pointer items-center gap-2">
-                  <input type="checkbox" checked={inactiveOnly} onChange={(e) => setInactiveOnly(e.target.checked)} className="h-4 w-4 accent-[var(--brand)]" />
-                  Keine Bewerbung seit 30 Tagen
-                </label>
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="relative sm:max-w-xs sm:flex-1">
+                    <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
+                    <Input type="search" aria-label="Schüler oder Firma suchen" placeholder="Name oder Firma suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9" />
+                  </div>
+                  <Segmented label="Sortierung" value={sort} onChange={setSort} options={[{ value: "activity", label: "Wenigste Aktivität" }, { value: "total", label: "Meiste Bewerbungen" }, { value: "name", label: "Name" }]} />
+                </div>
+                <Segmented label="Filter" value={filter} onChange={setFilter} options={FILTERS.map((f) => ({ value: f.value, label: f.label, count: counts[f.value] }))} />
               </div>
 
-              {rows.length === 0 && <EmptyState title="Niemand passt zum Filter" description="Alle Schüler haben in den letzten 30 Tagen Bewerbungen angelegt." action={<Button variant="secondary" onClick={() => setInactiveOnly(false)}>Filter zurücksetzen</Button>} />}
+              {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler zu sehen." action={<Button variant="secondary" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
 
               {/* Mobile: cards */}
               <ul className="space-y-3 md:hidden">
@@ -161,7 +179,8 @@ export function ClassDetail({ classId }: { classId: string }) {
         </>
       )}
 
-      <StudentDrilldown classId={classId} student={selected} onClose={() => setSelected(null)} />
+      <StudentDrilldown classId={classId} student={selected} onClose={() => setSelected(null)} onRemoved={() => { setSelected(null); load(); }} />
+      {cls && <ClassSettings cls={cls} open={settingsOpen} onClose={() => setSettingsOpen(false)} onChanged={load} />}
     </div>
   );
 }

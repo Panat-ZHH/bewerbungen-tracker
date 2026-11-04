@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Check, Copy, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { classErrorCode } from "@/lib/classes";
+import { classErrorCode, classInviteLink } from "@/lib/classes";
 import { statusLabels } from "@/lib/utils";
 import type { ApplicationStatus, StatusCounts } from "@/types";
 
@@ -47,7 +47,8 @@ export function CodeActions({ code, name }: { code: string; name: string }) {
   }
   async function share() {
     const text = `Tritt meiner Klasse "${name}" in WendApply bei. Code: ${code}`;
-    if (typeof navigator !== "undefined" && "share" in navigator) { try { await navigator.share({ title: "WendApply Klassencode", text }); } catch { /* cancelled */ } return; }
+    const url = classInviteLink(code);
+    if (typeof navigator !== "undefined" && "share" in navigator) { try { await navigator.share({ title: "WendApply Klassencode", text, url }); } catch { /* cancelled */ } return; }
     await copy();
   }
   return (

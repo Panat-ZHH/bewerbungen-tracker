@@ -140,3 +140,64 @@ test("joining twice is idempotent and keeps the consent choice; students cannot 
   await assert.rejects(database.query("insert into public.class_members (class_id, student_id) values ($1, $2)", [classA.id, ids.s3]), /permission denied/);
   await assert.rejects(database.query("update public.class_members set share_applications = true"), /permission denied/);
 });
+
+async function migrate(database) { await database.exec(await readFile(new URL("../supabase/migrations/20261104000000_class_management.sql", import.meta.url), "utf8")); }
+
+test("migrations/ copies of schema.sql and social.sql stay identical to the originals", async () => {
+  for (const [a, b] of [["schema.sql", "migrations/20260101000000_schema.sql"], ["social.sql", "migrations/20260101000001_social.sql"]]) {
+    assert.equal(await readFile(new URL(`../supabase/${a}`, import.meta.url), "utf8"), await readFile(new URL(`../supabase/${b}`, import.meta.url), "utf8"));
+  }
+});
+
+test("class_preview shows only class name, year and teacher before joining", async () => {
+  const { database, as, rpc } = await setup(); await migrate(database);
+  await as(ids.t1);
+  const [cls] = await rpc("select * from public.class_create('10a', '2026/27')");
+  await as(ids.s3);
+  const [p] = await rpc("select * from public.class_preview($1)", [cls.join_code.toLowerCase()]);
+  assert.deepEqual([p.name, p.school_year, p.teacher_name, p.member_count, p.already_member], ["10a", "2026/27", "Lehrer Eins", 0, false]);
+  assert.deepEqual(Object.keys(p).sort(), ["already_member", "class_id", "member_count", "name", "school_year", "teacher_name"]);
+  await rpc("select * from public.class_join($1)", [cls.join_code]);
+  assert.equal((await rpc("select * from public.class_preview($1)", [cls.join_code]))[0].already_member, true);
+  await assert.rejects(database.query("select * from public.class_preview('ZZZZZZZZ')"), /CLASS_NOT_FOUND/);
+  await as(null);
+  await assert.rejects(database.query("select * from public.class_preview($1)", [cls.join_code]), /AUTH_REQUIRED/);
+});
+
+test("teachers manage only their own classes: rename, remove student, regenerate code, delete", async () => {
+  const { database, as, rpc } = await setup(); await migrate(database);
+  const { classA, classB } = await twoClasses({ as, rpc });
+  await as(ids.t1);
+  await rpc("select public.class_rename($1, '  11a  ', '2027/28')", [classA.id]);
+  assert.deepEqual((await rpc("select name, school_year from public.class_list_mine()")).map((r) => [r.name, r.school_year]), [["11a", "2027/28"]]);
+  await rpc("select public.class_rename($1, '11b', null)", [classA.id]);
+  assert.equal((await rpc("select school_year from public.class_list_mine()"))[0].school_year, "2027/28");
+  await assert.rejects(database.query("select public.class_rename($1, '   ')", [classA.id]), /INVALID_NAME/);
+  // foreign class and students are untouchable
+  await assert.rejects(database.query("select public.class_rename($1, 'x')", [classB.id]), /FORBIDDEN/);
+  await assert.rejects(database.query("select public.class_delete($1)", [classB.id]), /FORBIDDEN/);
+  await assert.rejects(database.query("select public.class_regenerate_code($1)", [classB.id]), /FORBIDDEN/);
+  await assert.rejects(database.query("select public.class_remove_student($1,$2)", [classB.id, ids.s2]), /FORBIDDEN/);
+  await assert.rejects(database.query("select public.class_remove_student($1,$2)", [classA.id, ids.s2]), /NOT_FOUND/);
+  // students cannot use teacher management
+  await as(ids.s1);
+  for (const sql of ["select public.class_delete($1)", "select public.class_regenerate_code($1)", "select public.class_rename($1,'x')"]) await assert.rejects(database.query(sql, [classA.id]), /FORBIDDEN/);
+  // regenerate: old code dead, new works, members stay
+  await as(ids.t1);
+  const [{ class_regenerate_code: fresh }] = await rpc("select public.class_regenerate_code($1)", [classA.id]);
+  assert.notEqual(fresh, classA.join_code); assert.equal(fresh.length, 8);
+  await as(ids.s3);
+  await assert.rejects(database.query("select * from public.class_join($1)", [classA.join_code]), /CLASS_NOT_FOUND/);
+  await rpc("select * from public.class_join($1)", [fresh]);
+  await as(ids.t1);
+  assert.equal((await rpc("select * from public.class_members($1)", [classA.id])).length, 2);
+  // remove a student: data access ends immediately
+  await rpc("select public.class_remove_student($1,$2)", [classA.id, ids.s1]);
+  await assert.rejects(database.query("select * from public.class_student_applications($1,$2)", [classA.id, ids.s1]), /NOT_FOUND/);
+  assert.equal((await rpc("select * from public.class_members($1)", [classA.id])).length, 1);
+  // delete
+  await rpc("select public.class_delete($1)", [classA.id]);
+  assert.equal((await rpc("select * from public.class_list_mine()")).length, 0);
+  await as(ids.s3);
+  assert.equal((await rpc("select * from public.class_my_classes()")).length, 0);
+});
