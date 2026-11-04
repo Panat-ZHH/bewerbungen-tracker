@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Armchair, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Package, RotateCw, Route, ShoppingCart, TreePine, Waves, X } from "lucide-react";
 import { buyMapItem, getMapShop, moveMapObject, placeMapItem } from "@/lib/storage";
-import { canPlaceMapItem, findFreeMapPosition, isMapShopSetupError, placeableCatalog, shopCatalog, villageDepth, villageObjects, type MapPosition, type MapShopState, type PlaceableItem, type Placement, type ShopItemType } from "@/lib/map-shop";
+import { canPlaceMapItem, findFreeMapPosition, isLockedMapObject, isMapShopSetupError, placeableCatalog, shopCatalog, villageDepth, villageObjects, type MapPosition, type MapShopState, type PlaceableItem, type Placement, type ShopItemType } from "@/lib/map-shop";
 import type { Application } from "@/types";
 import { supabase } from "@/lib/supabase";
 import styles from "@/app/map/map.module.css";
@@ -62,7 +62,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
   }, [refresh, retry]);
 
   function start(item: PlaceableItem) {
-    if (locked.current || !state) return;
+    if (locked.current || !state || isLockedMapObject(item)) return;
     const position = item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : findFreeMapPosition(item as Parameters<typeof findFreeMapPosition>[0], allItems, maxZ);
     setSelectedId(item.id);
     if (!position) { setError("Auf der Baufläche ist kein freier Platz mehr."); return; }
@@ -94,7 +94,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
   }
 
   async function save(item: PlaceableItem, position: MapPosition | null) {
-    if (locked.current || !state || (position && !canPlaceMapItem(item, position, allItems, maxZ))) return;
+    if (locked.current || !state || isLockedMapObject(item) || (position && !canPlaceMapItem(item, position, allItems, maxZ))) return;
     locked.current = true; setBusy(true); setError(""); setNotice(""); setLoading(false);
     const request = ++operation.current;
     try {
@@ -112,7 +112,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
   return {
     state, loading, busy, error, notice, placement, selectedId, objects, allItems, maxZ,
     buy, start, save,
-    select(id: string) { if (!locked.current) { setSelectedId(id); setPlacement(null); } },
+    select(id: string) { if (!locked.current && !id.startsWith("street:")) { setSelectedId(id); setPlacement(null); } },
     position(position: MapPosition) { if (!locked.current) setPlacement((current) => current ? { ...current, position } : null); },
     cancel() { if (!locked.current) setPlacement(null); },
     clearSelection() { if (!locked.current) { setSelectedId(null); setPlacement(null); } },
@@ -125,7 +125,7 @@ type ShopController = ReturnType<typeof useMapShop>;
 export function MapPlacementTools({ shop }: { shop: ShopController }) {
   if (!shop.placement) {
     const item = shop.allItems.find(({ id }) => id === shop.selectedId);
-    if (!item || item.x === null) return null;
+    if (!item || item.x === null || isLockedMapObject(item)) return null;
     return <div className={styles.placementTools} aria-label="Ausgewählter Gegenstand"><strong>{placeableCatalog[item.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(item)}><LocateFixed size={15} />Verschieben</button>{item.itemType !== "house" && item.itemType !== "street" && <button type="button" disabled={shop.busy} onClick={() => void shop.save(item, null)}><Package size={15} />Einlagern</button>}<button type="button" title="Auswahl schließen" aria-label="Auswahl schließen" disabled={shop.busy} onClick={shop.clearSelection}><X size={17} /></button></div>;
   }
   const { item, position } = shop.placement;

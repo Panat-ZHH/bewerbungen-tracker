@@ -49,7 +49,7 @@ test("decorations fit between houses and layouts move houses and default streets
   const moved = villageObjects(applications, [{ id: house.id, x: 20, z: 0, rotation: 1 }]);
   assert.equal(canPlaceMapItem(fountain, { x: house.x, z: house.z, rotation: 0 }, moved), true);
   assert.equal(canPlaceMapItem(street, { x: 20, z: 0, rotation: 0 }, moved), false);
-  assert.equal(canPlaceMapItem(street, { x: 18, z: 0, rotation: 0 }, moved), true);
+  assert.equal(canPlaceMapItem(street, { x: 18, z: 0, rotation: 0 }, moved), false);
 });
 
 test("PostgreSQL rewards once, debits safely and enforces placement and ownership", async () => {
@@ -67,7 +67,7 @@ test("PostgreSQL rewards once, debits safely and enforces placement and ownershi
       create function storage.foldername(text) returns text[] language sql as $storage$ select string_to_array($1, '/') $storage$;
       grant usage on schema auth to authenticated;
     `);
-    const schema = await readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8");
+    const schema = (await readFile(new URL("../supabase/schema.sql", import.meta.url), "utf8")) + "\n" + (await readFile(new URL("../supabase/migrations/20261104000001_lock_streets.sql", import.meta.url), "utf8"));
     await database.exec(schema);
     const user = "00000000-0000-4000-8000-000000000001";
     const other = "00000000-0000-4000-8000-000000000002";
@@ -116,8 +116,10 @@ test("PostgreSQL rewards once, debits safely and enforces placement and ownershi
     await database.query("select public.map_move_object('house:draft',20,8,1)");
     assert.equal((await state()).layouts.find(({ id }) => id === "house:draft").x, 20);
     const streetId = clientObjects.find(({ itemType }) => itemType === "street").id;
-    await database.query("select public.map_move_object($1,18,0,0)", [streetId]);
-    assert.equal((await state()).layouts.find(({ id }) => id === streetId).x, 18);
+    await assert.rejects(database.query("select public.map_move_object($1,18,0,0)", [streetId]), /STREET_LOCKED/);
+    assert.equal((await state()).layouts.find(({ id }) => id === streetId), undefined);
+    await assert.rejects(database.query("insert into public.map_layouts(user_id, object_id, x, z) values ($1, $2, 18, 0)", [user, streetId]), /STREET_LOCKED/);
+    await assert.rejects(database.query("update public.map_layouts set object_id = $1 where object_id = 'house:draft'", [streetId]), /STREET_LOCKED/);
     await assert.rejects(database.query("select public.map_move_object('house:unknown',20,8,0)"), /ITEM_NOT_OWNED/);
     await database.query("delete from public.applications where id = 'draft'");
     await insert("draft", "applied");
@@ -142,4 +144,12 @@ test("PostgreSQL rewards once, debits safely and enforces placement and ownershi
   } finally {
     await database.close();
   }
+});
+test("streets are fixed: layouts never move them and they cannot be placed", () => {
+  const base = villageObjects([]);
+  const street = base.find(({ itemType }) => itemType === "street");
+  const moved = villageObjects([], [{ id: street.id, x: 18, z: 0, rotation: 1 }]);
+  const same = moved.find(({ id }) => id === street.id);
+  assert.deepEqual([same.x, same.z, same.rotation], [street.x, street.z, street.rotation]);
+  assert.equal(canPlaceMapItem(street, { x: 25, z: 25, rotation: 0 }, base, 40), false);
 });

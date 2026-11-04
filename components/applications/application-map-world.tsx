@@ -78,7 +78,6 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
         <summary>Bewerbungen ({visibleIds.length})</summary>
         <div>{applications.filter(({ id }) => visibleIds.includes(id)).map((application) => <button key={application.id} type="button" onClick={() => onSelect(application.id)}><strong>{application.company}</strong><span>{statusLabels[application.status]}</span></button>)}</div>
       </details>
-      <details className={styles.accessibleBuildings}><summary>Straßen verschieben</summary><div>{villageObjects(applications, layouts).filter((item) => item.itemType === "street").map((item) => <button key={item.id} type="button" onClick={() => onSelectShopItem(item.id)}>Straße {item.x}, {item.z}</button>)}</div></details>
     </>
   );
 }
@@ -438,7 +437,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       (moving ? previewRoot : shopRoot).add(model.group);
       setMapRenderLayer(model.group, item.itemType === "road" || item.itemType === "street" ? mapRenderLayers.road : mapRenderLayers.object);
       if (moving) model.group.traverse((object) => { if (object instanceof THREE.Mesh) { object.material = previewMaterial; object.castShadow = false; } });
-      else shopObjects.push(model.group);
+      else if (item.itemType !== "street") shopObjects.push(model.group);
     }
   }
 
