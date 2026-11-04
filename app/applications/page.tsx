@@ -79,7 +79,7 @@ export default function ApplicationsPage() {
             <button type="button" onClick={() => setQuery("")} aria-label="Suche löschen" className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#737378] hover:text-[#1d1d1f]"><X size={16} /></button>
           )}
         </label>
-        <div role="group" aria-label="Nach Status filtern" className="-mx-[14px] flex gap-2 overflow-x-auto px-[14px] pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+        <div role="group" aria-label="Nach Status filtern" className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 min-[381px]:-mx-3.5 min-[381px]:px-3.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
           {chips.map((chip) => {
             const selected = status === chip.value;
             return (

@@ -168,11 +168,11 @@ export function ApplicationForm({ application }: { application?: Application }) 
         </div>
       </details>
 
-      <div className="sticky bottom-0 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[#e5e5ea] bg-white/70 px-4 py-4 backdrop-blur-xl sm:static sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
-        <Button type="button" variant="ghost" onClick={() => router.back()} className="min-h-11">
+      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[#e5e5ea] bg-white/70 px-4 py-4 backdrop-blur-xl sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
+        <Button type="button" variant="ghost" onClick={() => router.back()} className="min-h-11 sm:min-h-11">
           <ArrowLeft size={16} /> Zurück
         </Button>
-        <Button type="submit" disabled={saving} className="min-h-11 px-6 sm:ml-auto">
+        <Button type="submit" disabled={saving} className="min-h-11 sm:min-h-11 px-6 sm:ml-auto">
           {isEditing ? <Check size={16} /> : <Plus size={16} />}
           {saving ? "Speichert …" : isEditing ? "Änderungen speichern" : "Bewerbung speichern"}
         </Button>
@@ -214,7 +214,7 @@ function SelectField({ label, value, onChange, options }: {
   return (
     <div>
       <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
-      <select id={id} value={value} onChange={(event) => onChange(event.target.value as never)} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15">
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value as never)} className="min-h-11 sm:min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </div>

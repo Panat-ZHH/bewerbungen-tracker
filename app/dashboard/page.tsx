@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, ChevronRight, Plus } from "lucide-react";
+import { ArrowRight, CalendarClock, ChevronRight, Plus, Search, Users } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -64,9 +64,9 @@ export default function DashboardPage() {
       {error && <p role="alert" className="mt-6 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
 
       <section aria-label="Deine Zahlen" className="mt-8 grid grid-cols-3 gap-2.5 sm:gap-3">
-        <Summary label="Bewerbungen" value={loading ? "–" : applications.length} detail="In deiner Liste" />
-        <Summary label="In Bearbeitung" value={loading ? "–" : activeCount} detail="Noch offen" />
-        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={offers ? `${offers} ${offers === 1 ? "Angebot" : "Angebote"}` : "Kommt mit der Zeit"} />
+        <Summary label="Bewerbungen" value={loading ? "–" : applications.length} detail="Insgesamt" />
+        <Summary label="Offen" value={loading ? "–" : activeCount} detail="Noch in Arbeit" />
+        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={offers ? `${offers} ${offers === 1 ? "Angebot" : "Angebote"}` : "Noch keine"} />
       </section>
 
       <section className="mt-10">
@@ -95,6 +95,10 @@ export default function DashboardPage() {
             <Link href="/applications/new" className={cn(addLink, "mx-auto mt-5 sm:w-fit")}>
               <Plus size={16} /> Erste Bewerbung eintragen
             </Link>
+            <div className="mx-auto mt-6 grid max-w-md gap-2 border-t border-[var(--line)] pt-5 text-left sm:grid-cols-2">
+              <Link href="/search" className="flex min-h-12 items-center gap-2.5 rounded-xl px-3 text-sm font-medium transition hover:bg-[var(--hover)]"><Search size={16} className="shrink-0 text-[var(--brand)]" />Stellen suchen</Link>
+              <Link href="/friends" className="flex min-h-12 items-center gap-2.5 rounded-xl px-3 text-sm font-medium transition hover:bg-[var(--hover)]"><Users size={16} className="shrink-0 text-[var(--brand)]" />Freunde einladen</Link>
+            </div>
           </Card>
         )}
       </section>

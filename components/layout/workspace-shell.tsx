@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { BarChart3, BriefcaseBusiness, FileText, GraduationCap, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
@@ -33,6 +33,7 @@ const accountLinks = [
 
 export function WorkspaceShell({ children, active }: { children: React.ReactNode; active: string; title?: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -53,8 +54,8 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
   }, []);
 
   useEffect(() => {
-    if (!checkingSession && !user) router.replace("/login");
-  }, [checkingSession, router, user]);
+    if (!checkingSession && !user) router.replace(pathname && pathname !== "/dashboard" ? `/login?next=${encodeURIComponent(pathname)}` : "/login");
+  }, [checkingSession, pathname, router, user]);
 
   async function logout() {
     setMoreOpen(false);
@@ -86,7 +87,7 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
 
       <header className="glass-bar sticky top-0 z-30 border-b">
         <div className="page-wrap flex h-[var(--nav-h)] items-center gap-3 md:gap-5">
-          <Link href="/dashboard" className="flex shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
+          <Link href="/dashboard" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
             <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px] bg-[#f2f7ff] shadow-[var(--shadow-xs)]">
               <Image src="/logo.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" priority />
             </span>
@@ -103,7 +104,7 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
                   title={label}
                   aria-label={label}
                   aria-current={selected ? "page" : undefined}
-                  className={`flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-[13px] font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
+                  className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
                 >
                   <Icon size={16} strokeWidth={1.9} />
                   <span className="hidden xl:inline">{label}</span>
@@ -114,13 +115,13 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
           <div className="flex-1 md:hidden" />
 
           <div className="flex shrink-0 items-center gap-1">
-            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
+            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex pointer-coarse:h-11 pointer-coarse:w-11">
               <Settings size={17} strokeWidth={1.8} />
             </Link>
-            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
+            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex pointer-coarse:h-11 pointer-coarse:w-11">
               <LogOut size={17} strokeWidth={1.8} />
             </button>
-            <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="ml-1 rounded-full transition active:scale-95">
+            <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition active:scale-95">
               <Avatar name={displayName} size="sm" />
             </Link>
           </div>
@@ -135,17 +136,17 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
             const selected = keys.includes(active);
             return (
               <li key={href} className="min-w-0 flex-1">
-                <Link href={href} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
+                <Link href={href} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
                   <span className={`flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${selected ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.2 : 1.8} /></span>
-                  <span className="max-w-full truncate px-1">{label}</span>
+                  <span className="max-w-full truncate">{label}</span>
                 </Link>
               </li>
             );
           })}
           <li className="min-w-0 flex-1">
-            <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition active:scale-95 ${moreActive ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
+            <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${moreActive ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
               <span className={`flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${moreActive ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /></span>
-              Mehr
+              <span className="text-[10.5px] font-medium">Mehr</span>
             </button>
           </li>
         </ul>
