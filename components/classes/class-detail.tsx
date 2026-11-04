@@ -74,10 +74,10 @@ export function ClassDetail({ classId }: { classId: string }) {
 
   return (
     <div className="space-y-6 pb-safe">
-      <Link href="/classes" className="text-small inline-flex items-center gap-1.5 text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} /> Alle Klassen</Link>
-      <PageHeader eyebrow={cls?.schoolYear ? `Schuljahr ${cls.schoolYear}` : "Klasse"} title={cls?.name ?? "Klassenübersicht"} description="Bewerbungsaktivität deiner Schülerinnen und Schüler. Nur Daten von Personen, die ihre Freigabe aktiviert haben." actions={cls && <Button variant="secondary" icon={<Settings2 size={16} />} onClick={() => setSettingsOpen(true)}>Verwalten</Button>} />
+      <Link href="/classes" className="text-small inline-flex min-h-11 items-center gap-1.5 text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} /> Alle Klassen</Link>
+      <PageHeader eyebrow={cls?.schoolYear ? `Schuljahr ${cls.schoolYear}` : "Klasse"} title={cls?.name ?? "Klassenübersicht"} description="Bewerbungsaktivität deiner Schülerinnen und Schüler. Nur Daten von Personen, die ihre Freigabe aktiviert haben." actions={cls && <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Settings2 size={16} />} onClick={() => setSettingsOpen(true)}>Verwalten</Button>} />
 
-      {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
+      {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
 
       {!students && !error && (
         <div className="space-y-4"><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-[var(--radius-lg)]" />)}</div>{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 rounded-[var(--radius-lg)]" />)}</div>
@@ -107,14 +107,14 @@ export function ClassDetail({ classId }: { classId: string }) {
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="relative sm:max-w-xs sm:flex-1">
                     <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
-                    <Input type="search" aria-label="Schüler oder Firma suchen" placeholder="Name oder Firma suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9" />
+                    <Input type="search" aria-label="Schüler oder Firma suchen" placeholder="Name oder Firma suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
                   </div>
-                  <Segmented label="Sortierung" value={sort} onChange={setSort} options={[{ value: "activity", label: "Wenigste Aktivität" }, { value: "total", label: "Meiste Bewerbungen" }, { value: "name", label: "Name" }]} />
+                  <Segmented className="[&_button]:min-h-11" label="Sortierung" value={sort} onChange={setSort} options={[{ value: "activity", label: "Wenigste Aktivität" }, { value: "total", label: "Meiste Bewerbungen" }, { value: "name", label: "Name" }]} />
                 </div>
-                <Segmented label="Filter" value={filter} onChange={setFilter} options={FILTERS.map((f) => ({ value: f.value, label: f.label, count: counts[f.value] }))} />
+                <Segmented className="[&_button]:min-h-11" label="Filter" value={filter} onChange={setFilter} options={FILTERS.map((f) => ({ value: f.value, label: f.label, count: counts[f.value] }))} />
               </div>
 
-              {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler zu sehen." action={<Button variant="secondary" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
+              {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler zu sehen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
 
               {/* Mobile: cards */}
               <ul className="space-y-3 md:hidden">
@@ -156,7 +156,7 @@ export function ClassDetail({ classId }: { classId: string }) {
                     {rows.map((s) => (
                       <tr key={s.studentId} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                         <th scope="row" className="px-4 py-3 font-medium">
-                          <button type="button" onClick={() => setSelected(s)} className="inline-flex items-center gap-2.5 text-left hover:text-[var(--brand-strong)]"><Avatar name={s.displayName} size="xs" />{s.displayName}</button>
+                          <button type="button" onClick={() => setSelected(s)} className="inline-flex min-h-11 items-center gap-2.5 text-left hover:text-[var(--brand-strong)]"><Avatar name={s.displayName} size="xs" />{s.displayName}</button>
                         </th>
                         {s.hidden ? (
                           <td colSpan={5} className="px-3 py-3 text-muted"><span className="inline-flex items-center gap-1.5"><EyeOff size={14} /> Teilt keine Daten</span></td>

@@ -57,7 +57,7 @@ function JoinContent({ code }: { code: string }) {
           <PrivacyPanel variant="class" teacherName={preview.teacherName} />
           <Button full size="lg" loading={busy} onClick={join} icon={<ShieldCheck size={17} />}>Beitreten und Freigabe erlauben</Button>
           {error && <StatusMessage tone="danger">{error}</StatusMessage>}
-          <ButtonLink href="/classes" full variant="ghost">Nicht jetzt</ButtonLink>
+          <ButtonLink href="/classes" full variant="ghost" className="min-h-11 sm:min-h-11">Nicht jetzt</ButtonLink>
         </div>
       )}
     </Card>

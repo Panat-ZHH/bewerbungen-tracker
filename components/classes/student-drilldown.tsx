@@ -60,9 +60,9 @@ export function StudentDrilldown({ classId, student, onClose, onRemoved }: { cla
           <div className="space-y-2">
             <p className="text-small">Aus der Klasse entfernen? Du siehst die Bewerbungen danach nicht mehr. Die Person kann mit dem Code wieder beitreten.</p>
             {removeError && <p role="alert" className="text-small text-[var(--danger-fg)]">{removeError}</p>}
-            <div className="flex gap-2"><Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>Abbrechen</Button><Button size="sm" variant="danger" loading={removing} onClick={remove}>Entfernen</Button></div>
+            <div className="flex flex-wrap gap-2"><Button size="sm" className="min-h-11 sm:min-h-11" variant="ghost" onClick={() => setConfirming(false)}>Abbrechen</Button><Button size="sm" className="min-h-11 sm:min-h-11" variant="danger" loading={removing} onClick={remove}>Entfernen</Button></div>
           </div>
-        ) : <Button size="sm" variant="ghost" icon={<UserMinus size={14} />} onClick={() => setConfirming(true)}>Aus Klasse entfernen</Button>}
+        ) : <Button size="sm" className="min-h-11 sm:min-h-11" variant="ghost" icon={<UserMinus size={14} />} onClick={() => setConfirming(true)}>Aus Klasse entfernen</Button>}
       </div>
     </Modal>
   );

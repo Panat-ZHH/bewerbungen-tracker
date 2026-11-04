@@ -31,8 +31,8 @@ export function Requests({ incoming, outgoing, onChanged }: { incoming: SocialCo
             <Avatar name={c.displayName} />
             <div className="min-w-0 flex-1"><p className="truncate font-semibold">{c.displayName}</p><p className="text-small text-muted">möchte mit dir befreundet sein</p></div>
             <div className="flex gap-2">
-              <Button size="sm" loading={busyId === c.id} onClick={() => run(c.id, () => respondToFriendRequest(c.id, true))} icon={<Check size={15} />}>Annehmen</Button>
-              <Button size="sm" variant="secondary" disabled={busyId === c.id} onClick={() => run(c.id, () => respondToFriendRequest(c.id, false))} icon={<X size={15} />}>Ablehnen</Button>
+              <Button size="sm" className="min-h-11 sm:min-h-11" loading={busyId === c.id} onClick={() => run(c.id, () => respondToFriendRequest(c.id, true))} icon={<Check size={15} />}>Annehmen</Button>
+              <Button size="sm" className="min-h-11 sm:min-h-11" variant="secondary" disabled={busyId === c.id} onClick={() => run(c.id, () => respondToFriendRequest(c.id, false))} icon={<X size={15} />}>Ablehnen</Button>
             </div>
           </div>
         ))}
@@ -40,7 +40,7 @@ export function Requests({ incoming, outgoing, onChanged }: { incoming: SocialCo
           <div key={c.id} className="flex flex-wrap items-center gap-3 p-4">
             <Avatar name={c.displayName} />
             <div className="min-w-0 flex-1"><p className="truncate font-semibold">{c.displayName}</p><p className="text-small text-muted">Anfrage gesendet, wartet auf Antwort</p></div>
-            <Button size="sm" variant="ghost" loading={busyId === c.id} onClick={() => run(c.id, () => removeFriend(c.id))}>Zurückziehen</Button>
+            <Button size="sm" className="min-h-11 sm:min-h-11" variant="ghost" loading={busyId === c.id} onClick={() => run(c.id, () => removeFriend(c.id))}>Zurückziehen</Button>
           </div>
         ))}
       </Card>
