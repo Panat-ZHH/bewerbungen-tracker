@@ -31,6 +31,8 @@ export function villageDepth(applications: Application[]) {
   return Math.max(20, Math.ceil(createApplicationMap(applications).height / 48) - 5);
 }
 
+export const isLockedMapObject = (item: { id: string; itemType: string }) => item.itemType === "street" || item.id.startsWith("street:");
+
 export function villageObjects(applications: Application[], layouts: MapLayout[] = []): LayoutItem[] {
   const plots = createApplicationMap(applications).plots;
   const houses: LayoutItem[] = plots.map(({ application, x, y }) => ({ id: `house:${application.id}`, itemType: "house", applicationId: application.id, x: Math.floor((x - 700) / 48) - 2, z: Math.floor((y - 270) / 48) - 2, rotation: 0, createdAt: application.createdAt }));
@@ -47,7 +49,8 @@ export function villageObjects(applications: Application[], layouts: MapLayout[]
   houses.forEach((house, index) => {
     for (let z = house.z! + 5; z < Math.floor(3.5 + Math.floor(index / 3) * 7.5); z++) road(house.x! + 2, z);
   });
-  return [...houses, ...streets.values()].map((object) => ({ ...object, ...layouts.find(({ id }) => id === object.id) }));
+  const fixedStreets = [...streets.values()];
+  return [...houses.map((object) => ({ ...object, ...layouts.find(({ id }) => id === object.id) })), ...fixedStreets];
 }
 
 function overlaps(x: number, z: number, width: number, depth: number, otherX: number, otherZ: number, otherWidth: number, otherDepth: number) {
@@ -60,6 +63,7 @@ export function itemFootprint(itemType: PlaceableItem["itemType"], rotation: num
 }
 
 export function canPlaceMapItem(item: Pick<PlaceableItem, "id" | "itemType">, position: MapPosition, items: PlaceableItem[], maxZ = 20) {
+  if (isLockedMapObject(item)) return false;
   if (![position.x, position.z, position.rotation].every(Number.isInteger) || position.rotation < 0 || position.rotation > 3) return false;
   const size = itemFootprint(item.itemType, position.rotation);
   if (position.x < -10 || position.z < -7 || position.x + size.width > 33 || position.z + size.depth > maxZ) return false;
