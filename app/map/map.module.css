@@ -131,3 +131,17 @@
   .inventoryActions { gap: 8px; }
 }
 @media (min-width: 768px) and (max-width: 1000px) { .shopGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Dark mode: chrome around the 3D canvas only */
+:global([data-theme="dark"]) .toolbar { background: var(--raised); }
+:global([data-theme="dark"]) .tools,
+:global([data-theme="dark"]) .shopItem,
+:global([data-theme="dark"]) .inventory > button { background: var(--raised); }
+:global([data-theme="dark"]) .inventoryActions button,
+:global([data-theme="dark"]) .placementTools button { background: var(--raised-hover); }
+:global([data-theme="dark"]) .worldLabel { background: var(--sheet-bg); border-color: var(--glass-border); }
+:global([data-theme="dark"]) .empty,
+:global([data-theme="dark"]) .accessibleBuildings summary { color: var(--muted); }
+:global([data-theme="dark"]) .empty h2 { color: var(--ink); }
+:global([data-theme="dark"]) .accessibleBuildings button { background: var(--solid); color: var(--ink); }
+:global([data-theme="dark"]) .accessibleBuildings button span { color: var(--muted); }

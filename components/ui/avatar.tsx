@@ -17,7 +17,7 @@ export function Avatar({ name, src, size = "md", className }: { name?: string | 
     <span
       role="img"
       aria-label={name ?? "Profil"}
-      className={cn("inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full font-semibold text-white shadow-[var(--shadow-xs)] ring-2 ring-white/80", sizes[size], className)}
+      className={cn("inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-full font-semibold text-white shadow-[var(--shadow-xs)] ring-2 ring-[var(--solid)]", sizes[size], className)}
       style={{ background: `linear-gradient(135deg, ${color}, ${color}cc)` }}
     >
       {src ? (

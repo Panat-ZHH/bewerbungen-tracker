@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import { Check, Eye, FileText, Pencil, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/input";
+import { Modal } from "@/components/ui/modal";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getCVPreviewUrl, getCVs, updateCV, uploadCV } from "@/lib/storage";
 import type { CV, CVType } from "@/types";
@@ -71,50 +77,48 @@ export default function CVsPage() {
 
   return (
     <WorkspaceShell active="Lebensläufe">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Deine Lebensläufe</h1>
-        <p className="mt-2 text-base text-muted">Lade hier die Version hoch, die du für deine Bewerbungen nutzt.</p>
-      </div>
+      <PageHeader title="Deine Lebensläufe" description="Lade hier die Version hoch, die du für deine Bewerbungen nutzt." />
 
-      {notice && <p role="status" className="mt-5 rounded-xl border border-[#c5dfcf] bg-[#f1faf4] px-4 py-3 text-sm text-[#246c40]">{notice}</p>}
+      {notice && <StatusMessage tone={/nicht/.test(notice) ? "danger" : "success"} icon={<Check />} className="mb-5">{notice}</StatusMessage>}
 
       {loading ? (
-        <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((item) => <div key={item} className="h-56 animate-pulse rounded-[14px] bg-[#e9e9ed]" />)}</div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((item) => <Card key={item} className="space-y-4 p-5" aria-hidden><Skeleton className="h-10 w-10 !rounded-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4" /><Skeleton className="h-11 w-1/2" /></Card>)}</div>
       ) : (
-        <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="pb-safe grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {cvs.map((cv) => (
-            <article key={cv.id} className="glass-surface flex transition duration-200 hover:-translate-y-0.5 min-h-[250px] flex-col rounded-[14px] p-5">
+            <Card key={cv.id} interactive className="animate-rise flex min-h-[250px] flex-col p-5">
               <div className="flex items-center justify-between">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#f2f2f4] text-[#5e5e63]"><FileText size={19} /></span>
-                <Badge className={cv.fileName ? "bg-[#eaf6ef] text-[#246c40]" : ""}>{cv.fileName ? "Datei da" : "Noch leer"}</Badge>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--neutral-bg)] text-[var(--neutral-fg)]"><FileText size={19} /></span>
+                <Badge tone={cv.fileName ? "success" : "neutral"}>{cv.fileName ? "Datei da" : "Noch leer"}</Badge>
               </div>
-              <h2 className="mt-5 text-base font-semibold">{titles[cv.type]}</h2>
-              <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted">{cv.description || "Hier kannst du eine passende Version speichern."}</p>
-              <p className="mt-3 truncate text-xs text-muted">{cv.fileName ?? "PDF oder Word-Datei"}</p>
+              <h2 className="text-heading mt-5">{titles[cv.type]}</h2>
+              <p className="text-body mt-2 line-clamp-2 text-muted">{cv.description || "Hier kannst du eine passende Version speichern."}</p>
+              <p className="text-small mt-3 mb-4 truncate text-muted">{cv.fileName ?? "PDF oder Word-Datei"}</p>
               <input ref={(element) => { fileRefs.current[cv.id] = element; }} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(event) => replaceCV(cv, event.target.files?.[0])} />
-              <div className="mt-auto flex flex-wrap gap-2 border-t border-[#e5e5ea] pt-4">
-                <Button onClick={() => fileRefs.current[cv.id]?.click()} disabled={busy === cv.id} className="min-h-11 flex-1 sm:flex-none">
-                  <Upload size={15} /> {busy === cv.id ? "Lädt …" : cv.fileName ? "Ersetzen" : "Datei auswählen"}
+              <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-4">
+                <Button onClick={() => fileRefs.current[cv.id]?.click()} loading={busy === cv.id} icon={<Upload size={15} />} className="flex-1 sm:flex-none">
+                  {busy === cv.id ? "Lädt …" : cv.fileName ? "Ersetzen" : "Datei auswählen"}
                 </Button>
-                <button onClick={() => preview(cv)} disabled={!cv.storagePath} aria-label="Lebenslauf ansehen" title="Lebenslauf ansehen" className="flex h-11 w-11 items-center justify-center rounded-full text-[#5e5e63] transition hover:bg-[#f2f2f4] disabled:opacity-40"><Eye size={16} /></button>
-                <button onClick={() => setEditing(cv)} aria-label="Beschreibung ändern" title="Beschreibung ändern" className="flex h-11 w-11 items-center justify-center rounded-full text-[#5e5e63] transition hover:bg-[#f2f2f4]"><Pencil size={15} /></button>
+                <button onClick={() => preview(cv)} disabled={!cv.storagePath} aria-label="Lebenslauf ansehen" title="Lebenslauf ansehen" className="flex h-11 w-11 items-center justify-center rounded-full text-muted transition hover:bg-[var(--hover)] hover:text-[var(--ink)] disabled:opacity-40"><Eye size={16} /></button>
+                <button onClick={() => setEditing(cv)} aria-label="Beschreibung ändern" title="Beschreibung ändern" className="flex h-11 w-11 items-center justify-center rounded-full text-muted transition hover:bg-[var(--hover)] hover:text-[var(--ink)]"><Pencil size={15} /></button>
               </div>
-            </article>
+            </Card>
           ))}
         </div>
       )}
 
-      {editing && <div className="fixed inset-0 z-30 flex items-end justify-center bg-black/30 p-3 backdrop-blur-sm sm:items-center sm:p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditing(undefined); }}>
-        <form onSubmit={saveEdit} role="dialog" aria-modal="true" aria-labelledby="edit-cv-title" className="glass-surface w-full max-w-md rounded-[16px] p-6 shadow-xl">
-          <h2 id="edit-cv-title" className="text-lg font-semibold">Lebenslauf beschreiben</h2>
-          <label className="mt-5 block text-sm font-medium" htmlFor="cv-description">Wofür ist dieser Lebenslauf?</label>
-          <textarea id="cv-description" rows={4} value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} className="mt-2 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0866d6]" />
-          <div className="mt-5 flex justify-end gap-2">
-            <Button type="button" variant="ghost" className="min-h-11" onClick={() => setEditing(undefined)}>Abbrechen</Button>
-            <Button disabled={busy === editing.id} className="min-h-11"><Check size={15} />Speichern</Button>
-          </div>
-        </form>
-      </div>}
+      <Modal
+        open={Boolean(editing)}
+        onClose={() => setEditing(undefined)}
+        title="Lebenslauf beschreiben"
+        footer={editing ? <><Button type="button" variant="ghost" onClick={() => setEditing(undefined)}>Abbrechen</Button><Button type="submit" form="cv-edit-form" loading={busy === editing.id} icon={<Check size={15} />}>Speichern</Button></> : undefined}
+      >
+        {editing && <form id="cv-edit-form" onSubmit={saveEdit}>
+          <Field label="Wofür ist dieser Lebenslauf?" htmlFor="cv-description">
+            <Textarea id="cv-description" data-autofocus rows={4} value={editing.description} onChange={(event) => setEditing({ ...editing, description: event.target.value })} />
+          </Field>
+        </form>}
+      </Modal>
     </WorkspaceShell>
   );
 }

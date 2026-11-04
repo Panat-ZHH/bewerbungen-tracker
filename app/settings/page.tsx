@@ -1,9 +1,12 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Download, Trash2, Upload } from "lucide-react";
+import { CheckCircle2, Download, Palette, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusMessage } from "@/components/ui/skeleton";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
 import type { Application } from "@/types";
@@ -67,26 +70,36 @@ export default function SettingsPage() {
 
   return (
     <WorkspaceShell active="Settings">
-      <div className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Einstellungen</h1>
-        <p className="mt-2 text-base text-muted">Du hast die Kontrolle über deine Daten.</p>
+      <div className="max-w-2xl pb-safe">
+        <PageHeader title="Einstellungen" description="Du hast die Kontrolle über deine Daten und das Aussehen." />
 
-        {notice && <p role="status" className="glass-surface mt-5 rounded-xl px-4 py-3 text-sm text-muted">{notice}</p>}
+        {notice && <StatusMessage tone={/nicht|kann/.test(notice) ? "danger" : "success"} icon={<CheckCircle2 />} className="mb-5">{notice}</StatusMessage>}
 
-        <Card className="mt-7"><CardContent>
-          <h2 className="text-base font-semibold">Daten sichern</h2>
-          <p className="mt-1 text-sm text-muted">Lade eine Kopie deiner Bewerbungen herunter oder lies eine Sicherung ein.</p>
+        <Card className="animate-rise"><CardContent>
+          <div className="flex items-start gap-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]"><Palette size={18} /></span>
+            <div className="min-w-0">
+              <h2 className="text-heading">Darstellung</h2>
+              <p className="mt-1 text-body text-muted">Hell, dunkel oder passend zu deinem Gerät. Wir merken uns deine Wahl.</p>
+            </div>
+          </div>
+          <div className="mt-4"><ThemeToggle /></div>
+        </CardContent></Card>
+
+        <Card className="animate-rise mt-4"><CardContent>
+          <h2 className="text-heading">Daten sichern</h2>
+          <p className="mt-1 text-body text-muted">Lade eine Kopie deiner Bewerbungen herunter oder lies eine Sicherung ein.</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <Button onClick={exportData} disabled={busy} className="min-h-11"><Download size={16} /> Herunterladen</Button>
-            <Button variant="secondary" onClick={() => importRef.current?.click()} disabled={busy} className="min-h-11"><Upload size={16} /> Sicherung einlesen</Button>
+            <Button onClick={exportData} loading={busy} icon={<Download size={16} />}>Herunterladen</Button>
+            <Button variant="secondary" onClick={() => importRef.current?.click()} disabled={busy} icon={<Upload size={16} />}>Sicherung einlesen</Button>
             <input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" />
           </div>
         </CardContent></Card>
 
-        <Card className="mt-4 border-[#e8c7c7]"><CardContent>
-          <h2 className="text-base font-semibold">Daten löschen</h2>
-          <p className="mt-1 text-sm text-muted">Entfernt deine Bewerbungen, Notizen und Profilangaben. Deine Lebenslauf-Vorlagen bleiben bestehen.</p>
-          <Button variant="danger" onClick={clearData} disabled={busy} className="mt-4 min-h-11 w-full sm:w-auto"><Trash2 size={16} /> Meine Daten löschen</Button>
+        <Card className="animate-rise mt-4 !border-[var(--danger-line)]"><CardContent>
+          <h2 className="text-heading">Daten löschen</h2>
+          <p className="mt-1 text-body text-muted">Entfernt deine Bewerbungen, Notizen und Profilangaben. Deine Lebenslauf-Vorlagen bleiben bestehen.</p>
+          <Button variant="danger" onClick={clearData} disabled={busy} full className="mt-4 sm:w-auto" icon={<Trash2 size={16} />}>Meine Daten löschen</Button>
         </CardContent></Card>
       </div>
     </WorkspaceShell>
