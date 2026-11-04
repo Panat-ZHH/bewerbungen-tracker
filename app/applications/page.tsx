@@ -74,7 +74,7 @@ export default function ApplicationsPage() {
       <div className="mt-7 space-y-3">
         <label className="relative block">
           <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[#737378]" />
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma oder Stelle suchen" aria-label="Firma oder Stelle suchen" className="min-h-11 w-full rounded-full border border-[#d2d2d7] bg-white py-2.5 pl-11 pr-11 text-sm outline-none transition placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15 [&::-webkit-search-cancel-button]:hidden" />
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma oder Stelle suchen" aria-label="Firma oder Stelle suchen" className="min-h-11 w-full rounded-full border border-[#d2d2d7] bg-white py-2.5 pl-11 pr-11 text-base outline-none pointer-fine:text-sm transition placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15 [&::-webkit-search-cancel-button]:hidden" />
           {query && (
             <button type="button" onClick={() => setQuery("")} aria-label="Suche löschen" className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-[#737378] hover:text-[#1d1d1f]"><X size={16} /></button>
           )}
