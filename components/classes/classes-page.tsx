@@ -25,7 +25,7 @@ export function ClassesPage() {
     return () => { alive = false; };
   }, [attempt]);
 
-  if (failed) return <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>Dein Profil konnte nicht geladen werden.</span><Button size="sm" variant="secondary" onClick={() => setAttempt((n) => n + 1)}>Erneut versuchen</Button></div>;
+  if (failed) return <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>Dein Profil konnte nicht geladen werden.</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => setAttempt((n) => n + 1)}>Erneut versuchen</Button></div>;
   if (!role) return <div className="space-y-4"><Skeleton className="h-16 w-2/3 rounded-[var(--radius-lg)]" /><Skeleton className="h-40 rounded-[var(--radius-lg)]" /></div>;
   if (role === "teacher") return <TeacherClasses />;
   return (
@@ -33,7 +33,7 @@ export function ClassesPage() {
       {waiting && (
         <Card className="animate-rise flex flex-wrap items-center justify-between gap-3 p-4">
           <p className="text-body">Du hast eine Klasseneinladung geöffnet. Möchtest du jetzt beitreten?</p>
-          <div className="flex gap-2"><Button variant="ghost" size="sm" onClick={() => { clearPendingInvite(); setWaiting(null); }}>Verwerfen</Button><ButtonLink size="sm" href={`/classes/join/${encodeURIComponent(waiting)}`}>Zur Einladung</ButtonLink></div>
+          <div className="flex gap-2"><Button variant="ghost" size="sm" className="min-h-11 sm:min-h-11" onClick={() => { clearPendingInvite(); setWaiting(null); }}>Verwerfen</Button><ButtonLink size="sm" className="min-h-11 sm:min-h-11" href={`/classes/join/${encodeURIComponent(waiting)}`}>Zur Einladung</ButtonLink></div>
         </Card>
       )}
       <StudentClasses />

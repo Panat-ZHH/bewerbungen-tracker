@@ -64,7 +64,7 @@ function InviteContent({ code }: { code: string }) {
           <>
             <Button full size="lg" loading={busy} onClick={add} icon={<UserPlus size={17} />}>Als Freund hinzufügen</Button>
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
-            <Link href="/friends" className="block text-small text-muted hover:underline">Später</Link>
+            <Link href="/friends" className="text-small flex min-h-11 items-center justify-center text-muted hover:underline">Später</Link>
           </>
         ) : (
           <>

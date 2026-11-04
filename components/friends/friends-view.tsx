@@ -62,10 +62,10 @@ export function FriendsView() {
       {loading ? (
         <div className="space-y-4" aria-busy="true" aria-label="Freunde werden geladen"><Skeleton className="h-44" /><Skeleton className="h-40" /><Skeleton className="h-32" /></div>
       ) : error || !profile ? (
-        <StatusMessage tone="danger"><p>{error || "Deine Freunde konnten nicht geladen werden."}</p><Button className="mt-2" size="sm" variant="secondary" onClick={() => { setLoading(true); void load(); }}>Erneut versuchen</Button></StatusMessage>
+        <StatusMessage tone="danger"><p>{error || "Deine Freunde konnten nicht geladen werden."}</p><Button className="mt-2 min-h-11 sm:min-h-11" size="sm" variant="secondary" onClick={() => { setLoading(true); void load(); }}>Erneut versuchen</Button></StatusMessage>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-          <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+          <div className="min-w-0 space-y-5">
             <InviteCard profile={profile} />
             <AddFriend onChanged={load} />
             <Card className="animate-rise p-4">
@@ -75,15 +75,15 @@ export function FriendsView() {
                   <p className="font-semibold">Aktivität mit Freunden teilen</p>
                   <p className="text-small text-muted">{profile.shareWithFriends ? "Freunde sehen Anzahl und Status, nie Firmen, Notizen oder Gehalt." : "Du bist für Freunde auf privat gestellt."}</p>
                 </div>
-                <button type="button" role="switch" aria-checked={profile.shareWithFriends} aria-label="Aktivität mit Freunden teilen" disabled={sharingBusy} onClick={toggleSharing} className={`relative h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${profile.shareWithFriends ? "bg-[var(--brand)]" : "bg-[var(--line)]"}`}>
-                  <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${profile.shareWithFriends ? "left-[1.35rem]" : "left-0.5"}`} />
+                <button type="button" role="switch" aria-checked={profile.shareWithFriends} aria-label="Aktivität mit Freunden teilen" disabled={sharingBusy} onClick={toggleSharing} className="group flex min-h-11 min-w-12 shrink-0 items-center justify-center disabled:opacity-60">
+                  <span aria-hidden className={`relative block h-7 w-12 rounded-full transition-colors ${profile.shareWithFriends ? "bg-[var(--brand)]" : "bg-[var(--line)]"}`}><span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${profile.shareWithFriends ? "left-[1.35rem]" : "left-0.5"}`} /></span>
                 </button>
               </div>
               {sharingError && <StatusMessage tone="danger" className="mt-3">{sharingError}</StatusMessage>}
             </Card>
             <PrivacyPanel variant="friends" />
           </div>
-          <div className="space-y-5">
+          <div className="min-w-0 space-y-5">
             <PendingInvite onChanged={load} />
             <Requests incoming={incoming} outgoing={outgoing} onChanged={load} />
             <Motivation activity={activity} me={profile} />
