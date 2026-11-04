@@ -71,3 +71,116 @@ export interface CV {
   fileType?: string;
   fileSize?: number;
 }
+
+export type UserRole = "student" | "teacher";
+
+export interface SocialProfile {
+  userId: string;
+  role: UserRole;
+  displayName: string;
+  avatarSeed: string;
+  inviteCode: string;
+  shareWithFriends: boolean;
+  email?: string;
+}
+
+export type FriendRelation = "none" | "self" | "friend" | "pending_out" | "pending_in";
+
+export interface SocialLookup {
+  displayName: string;
+  avatarSeed: string;
+  role: UserRole;
+  inviteCode: string;
+  relation: FriendRelation;
+}
+
+export type FriendState = "friend" | "incoming" | "outgoing";
+
+export interface SocialConnection {
+  id: string;
+  otherUserId: string;
+  displayName: string;
+  avatarSeed: string;
+  role: UserRole;
+  state: FriendState;
+  createdAt: string;
+}
+
+export type StatusCounts = Partial<Record<ApplicationStatus, number>>;
+
+export interface FriendActivity {
+  userId: string;
+  displayName: string;
+  avatarSeed: string;
+  /** false when the friend disabled sharing; all numbers are then undefined. */
+  shared: boolean;
+  total?: number;
+  statusCounts?: StatusCounts;
+  mapPointsEarned?: number;
+  mapItems?: number;
+}
+
+export interface SchoolClass {
+  id: string;
+  name: string;
+  schoolYear: string;
+  joinCode: string;
+  createdAt: string;
+  memberCount: number;
+}
+
+export interface ClassMembership {
+  classId: string;
+  name: string;
+  schoolYear: string;
+  teacherName: string;
+  shareApplications: boolean;
+  joinedAt: string;
+}
+
+export interface ClassMember {
+  studentId: string;
+  displayName: string;
+  avatarSeed: string;
+  joinedAt: string;
+  hidden: boolean;
+}
+
+export interface ClassDeadline {
+  applicationId: string;
+  company: string;
+  position: string;
+  deadline: string;
+}
+
+export interface ClassStudentOverview {
+  studentId: string;
+  displayName: string;
+  avatarSeed: string;
+  /** true when the student does not share applications; numbers are then zero/empty. */
+  hidden: boolean;
+  total: number;
+  statusCounts: StatusCounts;
+  last7Days: number;
+  last30Days: number;
+  latest?: { company: string; position: string; status: ApplicationStatus; date: string };
+  upcomingDeadlines: ClassDeadline[];
+}
+
+export interface ClassStudentApplication {
+  id: string;
+  company: string;
+  position: string;
+  status: ApplicationStatus;
+  category: ApplicationCategory;
+  location?: string;
+  deadline?: string;
+  appliedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ClassStudentApplications {
+  hidden: boolean;
+  applications: ClassStudentApplication[];
+}
