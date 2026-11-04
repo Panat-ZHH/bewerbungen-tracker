@@ -6,6 +6,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildingStages, createApplicationMap } from "@/lib/application-map";
 import { statusLabels } from "@/lib/utils";
 import { canPlaceMapItem, isLockedMapObject, itemFootprint, villageDepth, villageObjects, type MapLayout, type MapPosition, type OwnedMapItem, type PlaceableItem, type Placement } from "@/lib/map-shop";
+import { lockedDrag, noopHandler } from "@/lib/map-readonly";
 import { evaluateDrop, grabOffset, LONG_PRESS_MS, MOUSE_DRAG_THRESHOLD, nudgeKeys, samePosition, snapDragPosition, TOUCH_CANCEL_THRESHOLD, type DragApi, type DropVerdict } from "@/lib/map-drag";
 import { createShopModel } from "@/lib/map-shop-models";
 import { createMapRenderer, mapRenderLayers, setMapRenderLayer } from "@/lib/map-renderer";
@@ -33,9 +34,16 @@ type WorldProps = {
   drag: DragApi;
   islandCount?: number;
   islandFocus?: { no: number; reveal: boolean; key: number } | null;
+  /** Friend view: nothing can be selected, placed, dragged or changed; only camera pan/zoom works. Overrides all handler props. */
+  readOnly?: boolean;
 };
 
-export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null }: WorldProps) {
+/** Read-only mode overrides every mutating handler, so the inner world can never place, drag or select anything. */
+export default function ApplicationMapWorld(props: WorldProps) {
+  return <World {...(props.readOnly ? { ...props, onSelect: noopHandler, onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null, selectedShopItemId: null, selectedId: null } : props)} />;
+}
+
+function World({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null, readOnly = false }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
@@ -77,7 +85,7 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
   return (
     <>
       <div ref={host} className={styles.canvasHost} role="region" tabIndex={0} aria-label="3D-Bewerbungsdorf" aria-describedby="map-drag-help" onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
+        if (readOnly || event.target !== event.currentTarget) return;
         const api = dragApi.current;
         if (nudgeKeys[event.key] && !event.altKey && !event.ctrlKey && !event.metaKey) { if (api.nudge(event.key)) event.preventDefault(); }
         else if (event.key === "Enter" && placement) { event.preventDefault(); api.confirm(); }
@@ -86,18 +94,24 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
       }}>
         <div ref={labels} className={styles.worldLabels}>
           {applications.filter(({ id }) => visibleIds.includes(id)).map((application) => (
+            readOnly ? (
+              <span data-building={application.id} key={application.id} className={`${styles.worldLabel} ${styles.readOnlyLabel}`}>
+                <strong>{application.company}</strong><span>{statusLabels[application.status]}</span>
+              </span>
+            ) : (
             <button type="button" data-building={application.id} key={application.id} className={`${styles.worldLabel} ${selectedId === application.id ? styles.selectedLabel : ""}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSelect(application.id)} aria-label={`${application.company}: ${statusLabels[application.status]}. Gebäudedetails öffnen`}>
               <strong>{application.company}</strong><span>{statusLabels[application.status]}</span>
             </button>
+            )
           ))}
         </div>
       </div>
-      <p id="map-drag-help" className={styles.dragHint}>Gegenstände und Häuser per Ziehen verschieben (Touch: kurz gedrückt halten, dann ziehen). Tastatur: Karte fokussieren, Gegenstand auswählen, Pfeiltasten verschieben, Enter platzieren, Esc abbrechen, Strg+Z rückgängig. Straßen sind fest.</p>
+      <p id="map-drag-help" className={styles.dragHint}>{readOnly ? "Nur ansehen: Ziehen bewegt die Kamera, Zoom mit Mausrad oder zwei Fingern. Hier kann nichts verändert werden." : "Gegenstände und Häuser per Ziehen verschieben (Touch: kurz gedrückt halten, dann ziehen). Tastatur: Karte fokussieren, Gegenstand auswählen, Pfeiltasten verschieben, Enter platzieren, Esc abbrechen, Strg+Z rückgängig. Straßen sind fest."}</p>
       {unavailable && <p className={styles.empty} role="status">Die 3D-Ansicht ist in diesem Browser nicht verfügbar. Deine Bewerbungen findest du unten.</p>}
-      <details className={styles.accessibleBuildings}>
+      {!readOnly && <details className={styles.accessibleBuildings}>
         <summary>Bewerbungen ({visibleIds.length})</summary>
         <div>{applications.filter(({ id }) => visibleIds.includes(id)).map((application) => <button key={application.id} type="button" onClick={() => onSelect(application.id)}><strong>{application.company}</strong><span>{statusLabels[application.status]}</span></button>)}</div>
-      </details>
+      </details>}
     </>
   );
 }
