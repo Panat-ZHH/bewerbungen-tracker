@@ -7,7 +7,7 @@ export type ButtonSize = "sm" | "md" | "lg";
 
 const variants: Record<ButtonVariant, string> = {
   primary: "text-white bg-[image:var(--brand-gradient)] shadow-[var(--shadow-brand)] hover:brightness-110 hover:-translate-y-px",
-  secondary: "border border-[var(--glass-border)] bg-white/60 text-[var(--ink)] shadow-[var(--shadow-xs)] backdrop-blur-xl hover:bg-white/85 hover:shadow-[var(--shadow-sm)]",
+  secondary: "border border-[var(--glass-border)] bg-[var(--raised)] text-[var(--ink)] shadow-[var(--shadow-xs)] backdrop-blur-xl hover:bg-[var(--raised-hover)] hover:shadow-[var(--shadow-sm)]",
   ghost: "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
   danger: "border border-[var(--danger-line)] bg-[var(--danger-bg)] text-[var(--danger-fg)] hover:brightness-95",
 };

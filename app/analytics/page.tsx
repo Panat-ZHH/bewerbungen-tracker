@@ -4,12 +4,17 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { BarChart3 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
+import { StatTile } from "@/components/ui/stat-tile";
+import { ButtonLink } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getApplications } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
 import type { Application, ApplicationStatus } from "@/types";
 
-const barColors: Partial<Record<ApplicationStatus, string>> = { offer: "#248a57", rejected: "#c43d3d", withdrawn: "#9a9aa0" };
+const barColors: Partial<Record<ApplicationStatus, string>> = { offer: "var(--success-fg)", rejected: "var(--danger-fg)", withdrawn: "var(--muted)" };
 
 export default function AnalyticsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -30,41 +35,34 @@ export default function AnalyticsPage() {
 
   return (
     <WorkspaceShell active="Auswertung">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Dein Fortschritt</h1>
-        <p className="mt-2 text-base text-muted">Ein einfacher Überblick darüber, wie es läuft.</p>
-      </div>
+      <PageHeader title="Dein Fortschritt" description="Ein einfacher Überblick darüber, wie es läuft." />
 
-      {failed && <p role="alert" className="mt-5 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">Deine Auswertung konnte nicht geladen werden.</p>}
+      {failed && <StatusMessage tone="danger" className="mb-5">Deine Auswertung konnte nicht geladen werden.</StatusMessage>}
 
-      <section className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label="Bewerbungen" value={loading ? "–" : total} />
-        <Stat label="Rückmeldungen" value={loading ? "–" : replied} detail={total ? `${Math.round((replied / total) * 100)} % deiner Bewerbungen` : "Noch keine Daten"} />
-        <Stat label="Gespräche" value={loading ? "–" : interviews} detail="Gespräch oder Angebot" />
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <StatTile label="Bewerbungen" value={loading ? "–" : total} trend={total ? undefined : loading ? undefined : "Noch keine Daten"} />
+        <StatTile label="Rückmeldungen" value={loading ? "–" : replied} trend={total ? `${Math.round((replied / total) * 100)} % deiner Bewerbungen` : undefined} />
+        <StatTile label="Gespräche" value={loading ? "–" : interviews} trend="Gespräch oder Angebot" tone="success" />
       </section>
 
-      <Card className="mt-8 max-w-3xl">
+      <Card className="animate-rise mt-6 max-w-3xl">
         <CardContent>
-          <h2 className="text-xl font-semibold tracking-[-.4px]">Wo stehen deine Bewerbungen?</h2>
-          <p className="mt-1 text-sm text-muted">So verteilen sie sich auf die einzelnen Schritte.</p>
+          <h2 className="text-heading">Wo stehen deine Bewerbungen?</h2>
+          <p className="mt-1 text-body text-muted">So verteilen sie sich auf die einzelnen Schritte.</p>
           {loading ? (
-            <div role="status" aria-label="Wird geladen" className="mt-5 h-72 animate-pulse rounded-xl bg-white/60" />
+            <div role="status" aria-label="Wird geladen" className="mt-5 space-y-3">{[70, 45, 30, 55, 20, 10].map((w, i) => <Skeleton key={i} className="h-5" style={{ width: `${w}%` }} />)}</div>
           ) : !total ? (
-            <div className="mt-5 flex flex-col items-center rounded-xl bg-white/50 px-4 py-10 text-center">
-              <BarChart3 size={26} className="text-[#737378]" />
-              <p className="mt-3 text-sm font-semibold">Noch nichts auszuwerten</p>
-              <p className="mt-1 text-sm text-muted">Sobald du Bewerbungen einträgst, erscheint hier dein Fortschritt.</p>
-            </div>
+            <EmptyState className="mt-5" icon={<BarChart3 />} title="Noch nichts auszuwerten" description="Sobald du Bewerbungen einträgst, erscheint hier dein Fortschritt." action={<ButtonLink href="/applications/new">Erste Bewerbung eintragen</ButtonLink>} />
           ) : (
             <>
               <div className="mt-5 h-80 w-full" role="img" aria-label={`Balkendiagramm: ${data.filter((item) => item.count).map((item) => `${item.label} ${item.count}`).join(", ")}`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
                     <XAxis type="number" allowDecimals={false} hide domain={[0, "dataMax"]} />
-                    <YAxis type="category" dataKey="label" width={112} tickLine={false} axisLine={false} tick={{ fontSize: 12 }} interval={0} />
-                    <Tooltip cursor={{ fill: "rgba(8,102,214,.06)" }} formatter={(value) => [value, "Bewerbungen"]} contentStyle={{ borderRadius: 12, border: "1px solid #e5e5ea", fontSize: 13 }} />
-                    <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={18} isAnimationActive>
-                      {data.map((item) => <Cell key={item.status} fill={barColors[item.status] ?? "#0866d6"} />)}
+                    <YAxis type="category" dataKey="label" width={112} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "var(--muted)" }} interval={0} />
+                    <Tooltip cursor={{ fill: "var(--hover)" }} formatter={(value) => [value, "Bewerbungen"]} contentStyle={{ borderRadius: 12, border: "1px solid var(--line)", background: "var(--sheet-bg)", color: "var(--ink)", boxShadow: "var(--shadow-md)", fontSize: 13 }} />
+                    <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={18} background={{ fill: "var(--hover)", radius: 8 }} isAnimationActive>
+                      {data.map((item) => <Cell key={item.status} fill={barColors[item.status] ?? "var(--brand)"} />)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -76,8 +74,4 @@ export default function AnalyticsPage() {
       </Card>
     </WorkspaceShell>
   );
-}
-
-function Stat({ label, value, detail }: { label: string; value: number | string; detail?: string }) {
-  return <Card className="p-5"><p className="text-sm text-muted">{label}</p><p className="mt-3 text-3xl font-semibold tabular-nums tracking-[-1px]">{value}</p>{detail && <p className="mt-1 text-xs text-muted">{detail}</p>}</Card>;
 }

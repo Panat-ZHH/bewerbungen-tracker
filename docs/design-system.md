@@ -9,7 +9,10 @@ All tokens are CSS variables in `app/globals.css`. Legacy names (`--paper --ink 
 - Shadows: `--shadow-xs|sm|md|lg` (layered, soft)
 - Motion: `--ease`, `--dur-fast|dur|dur-slow`; `prefers-reduced-motion` disables animation globally
 - Layout: `--nav-h`, `--tabbar-h`, `--safe-bottom`; use class `pb-safe` for content above the mobile tab bar
-- Dark mode: set `data-theme="dark"` on `<html>`. Opt-in only, since legacy pages hardcode light colors. New code should use variables (`bg-[var(--field-bg)]`) or Tailwind aliases `text-brand bg-brand-soft text-muted border-line`.
+- Dark mode: `data-theme="dark"` on `<html>`, chosen in Settings via `<ThemeToggle />` (`components/ui/theme-toggle.tsx`: Hell / Dunkel / Automatisch, persisted in `localStorage["wendapply-theme"]`, default follows the OS). `app/layout.tsx` applies it before first paint (no flash). `globals.css` ends with a "dark-mode bridge" that remaps legacy hardcoded utilities (`bg-white`, `bg-white/60`, `text-[#a32828]`, ...) to tokens, so older pages work in dark; new code should use variables (`bg-[var(--field-bg)]`) or Tailwind aliases `text-brand bg-brand-soft text-muted border-line`.
+- Surface tokens: `--raised` / `--raised-hover` (translucent control fill), `--solid` (opaque card/segment), `--placeholder`, `--highlight` (top inner edge of panels). Use these instead of `bg-white/..`.
+- Charts: use CSS variables for fills/tooltips (`var(--success-fg)`, `var(--muted)`, tooltip `background: var(--sheet-bg)`), see `app/analytics/page.tsx`.
+- Pages: start with `<PageHeader>`, status via `<StatusMessage>`, loading via `<Skeleton>` inside `<Card>`, empty via `<EmptyState>`, dialogs via `<Modal>`.
 
 ## Type classes
 `text-display`, `text-title`, `text-heading`, `text-body`, `text-small`, `text-eyebrow`, `text-gradient`, `tabular`.

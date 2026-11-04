@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Field, Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getProfile, saveProfile } from "@/lib/storage";
@@ -47,24 +50,22 @@ export default function ProfilePage() {
 
   return (
     <WorkspaceShell active="Profile">
-      <div className="max-w-2xl">
-        <h1 className="text-3xl font-semibold tracking-[-1px] md:text-[38px]">Dein Profil</h1>
-        <p className="mt-2 text-base text-muted">Deine Kontaktdaten an einem Ort.</p>
-        {notice && <p role="status" className="glass-surface mt-5 px-4 py-3 text-sm text-muted">{notice}</p>}
-        {loading ? <div role="status" aria-label="Dein Profil wird geladen" className="glass-surface mt-7 space-y-5 p-5 sm:p-7">{[0, 1, 2, 3].map((item) => <div key={item} className="h-11 animate-pulse rounded-xl bg-white/70" />)}</div> : profile && (
-          <form onSubmit={submit} className="glass-surface mt-7 rounded-[14px] p-5 sm:p-7">
+      <div className="max-w-2xl pb-safe">
+        <PageHeader title="Dein Profil" description="Deine Kontaktdaten an einem Ort." />
+        {notice && <StatusMessage tone={notice === "Gespeichert." ? "success" : "danger"} icon={notice === "Gespeichert." ? <Check /> : undefined} className="mb-5">{notice}</StatusMessage>}
+        {loading ? (
+          <Card><CardContent role="status" aria-label="Dein Profil wird geladen" className="grid gap-5 sm:grid-cols-2 sm:p-7">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="space-y-2"><Skeleton className="h-3.5 w-20" /><Skeleton className="h-11" /></div>)}</CardContent></Card>
+        ) : profile && (
+          <Card className="animate-rise"><form onSubmit={submit} className="p-5 sm:p-7">
             <div className="grid gap-5 sm:grid-cols-2">
               {fields.map(({ key, label, type }) => (
-                <label key={key} className={key === "email" || key === "location" ? "sm:col-span-2" : ""}>
-                  <span className="mb-2 block text-sm font-medium">{label}</span>
-                  <Input type={type ?? "text"} value={profile[key] ?? ""} onChange={(event) => setProfile({ ...profile, [key]: event.target.value })} />
-                </label>
+                <Field key={key} label={label} htmlFor={`profile-${key}`} className={key === "email" || key === "location" ? "sm:col-span-2" : ""}>
+                  <Input id={`profile-${key}`} type={type ?? "text"} value={profile[key] ?? ""} onChange={(event) => setProfile({ ...profile, [key]: event.target.value })} />
+                </Field>
               ))}
             </div>
-            <Button disabled={saving} className="mt-6 min-h-11 w-full px-5 sm:w-auto">
-              {notice === "Gespeichert." ? <Check size={16} /> : null}{saving ? "Speichert …" : "Änderungen speichern"}
-            </Button>
-          </form>
+            <Button loading={saving} full className="mt-6 sm:w-auto">{saving ? "Speichert …" : "Änderungen speichern"}</Button>
+          </form></Card>
         )}
       </div>
     </WorkspaceShell>
