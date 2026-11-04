@@ -38,3 +38,30 @@ Schüler: `class_join(p_code)` (Einwilligung `share_applications` standardmäßi
 ## TypeScript
 
 `lib/social.ts` und `lib/classes.ts` kapseln die RPCs; Typen stehen in `types/index.ts`.
+
+## Runde 2: Migrationen, Klassenverwaltung, Einladungsflow
+
+### Migrationen
+`supabase/migrations/` enthält `20260101000000_schema.sql` und `20260101000001_social.sql` (identische Kopien von `schema.sql` / `social.sql`, ein Test prüft die Gleichheit) sowie `20261104000000_class_management.sql` (neu, idempotent). `schema.sql` und `social.sql` bleiben lauffähig; für neue Datenbanken gilt: Migrationen in Dateinamen-Reihenfolge ausführen.
+
+### Neue RPCs
+| RPC | Wer | Zweck |
+| --- | --- | --- |
+| `class_preview(p_code)` | angemeldet | Name, Schuljahr, Lehrkraft, Schülerzahl, `already_member` vor dem Beitritt (sonst `CLASS_NOT_FOUND`) |
+| `class_rename(p_class_id, p_name, p_school_year)` | Lehrkraft der Klasse | umbenennen (`INVALID_NAME`); Schuljahr `null` = unverändert |
+| `class_delete(p_class_id)` | Lehrkraft der Klasse | Klasse löschen, Mitglieder werden entfernt, Bewerbungen der Schüler bleiben |
+| `class_remove_student(p_class_id, p_student_id)` | Lehrkraft der Klasse | Schüler entfernen (`NOT_FOUND` wenn kein Mitglied); Zugriff endet sofort |
+| `class_regenerate_code(p_class_id)` | Lehrkraft der Klasse | neuer Beitrittscode, alter Code ungültig, Mitglieder bleiben |
+
+Fremde Klassen oder Nicht-Lehrer: immer `FORBIDDEN`. Tests: `tests/classes.test.mjs`.
+
+### Einladungsflow
+- Freundeslink `/invite/<code>`, Klassenlink `/classes/join/<CODE>`. Wer nicht angemeldet ist, wird zu `/login` geschickt; der Code wird in `localStorage` gemerkt (7 Tage, übersteht E-Mail-Bestätigung in neuem Tab).
+- Nach dem Login landet der Nutzer (Login leitet derzeit immer auf `/dashboard`) auf `/friends` bzw. `/classes`, wo ein Hinweis die offene Einladung anbietet. `pendingInvitePath()` in `components/friends/shared.ts` liefert den Zielpfad, falls Login/Dashboard direkt dorthin weiterleiten wollen.
+- Einladung teilen: Code kopieren, Link kopieren, Web Share, E-Mail (`mailto:`).
+
+### Datenschutz sichtbar
+`PrivacyPanel` listet in Klartext, was Lehrkraft bzw. Freunde sehen (✓) und nie sehen (✗). Es steht beim Klassenbeitritt (mit Bestätigungsschritt nach `class_preview`), auf der Klassenseite der Schüler und bei den Freunden. Freigabe pro Klasse lässt sich jederzeit pausieren; eine Freigabe pro einzelner Bewerbung gibt es noch nicht (würde eine Spalte in `applications` brauchen).
+
+### Lehrkraft-Übersicht
+Suche (Name oder letzte Firma), Filter (Alle, Inaktiv 30 T, Aktiv 7 T, Mit Zusage, Teilt nicht, jeweils mit Anzahl), Sortierung, Schülerdetail mit „Aus Klasse entfernen“, Dialog „Verwalten“ (Link, Umbenennen, neuer Code, Löschen). Mobil Karten, ab `md` Tabelle.

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { clearPendingInvite, readPendingInviteEntry } from "@/components/friends/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getMySocialProfile } from "@/lib/social";
 import type { UserRole } from "@/types";
@@ -13,6 +15,9 @@ export function ClassesPage() {
   const [role, setRole] = useState<UserRole | null>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [waiting, setWaiting] = useState<string | null>(null);
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- reads browser storage after mount
+  useEffect(() => { const entry = readPendingInviteEntry(); setWaiting(entry?.kind === "class" ? entry.code : null); }, []);
 
   useEffect(() => {
     let alive = true;
@@ -22,5 +27,16 @@ export function ClassesPage() {
 
   if (failed) return <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>Dein Profil konnte nicht geladen werden.</span><Button size="sm" variant="secondary" onClick={() => setAttempt((n) => n + 1)}>Erneut versuchen</Button></div>;
   if (!role) return <div className="space-y-4"><Skeleton className="h-16 w-2/3 rounded-[var(--radius-lg)]" /><Skeleton className="h-40 rounded-[var(--radius-lg)]" /></div>;
-  return role === "teacher" ? <TeacherClasses /> : <StudentClasses />;
+  if (role === "teacher") return <TeacherClasses />;
+  return (
+    <div className="space-y-6">
+      {waiting && (
+        <Card className="animate-rise flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="text-body">Du hast eine Klasseneinladung geöffnet. Möchtest du jetzt beitreten?</p>
+          <div className="flex gap-2"><Button variant="ghost" size="sm" onClick={() => { clearPendingInvite(); setWaiting(null); }}>Verwerfen</Button><ButtonLink size="sm" href={`/classes/join/${encodeURIComponent(waiting)}`}>Zur Einladung</ButtonLink></div>
+        </Card>
+      )}
+      <StudentClasses />
+    </div>
+  );
 }

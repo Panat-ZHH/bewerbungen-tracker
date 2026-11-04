@@ -28,12 +28,30 @@ export const statusLabels: Record<ApplicationStatus, string> = {
   withdrawn: "Zurückgezogen",
 };
 
-export function readPendingInvite(): string | null {
-  try { return window.sessionStorage.getItem(PENDING_INVITE_KEY); } catch { return null; }
+export type PendingInviteKind = "friend" | "class";
+const PENDING_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Remembers an invite opened while logged out (localStorage survives e-mail confirmation in a new tab). */
+export function storePendingInvite(code: string, kind: PendingInviteKind = "friend") {
+  try { window.localStorage.setItem(PENDING_INVITE_KEY, JSON.stringify({ kind, code, at: Date.now() })); } catch { /* storage unavailable */ }
 }
-export function storePendingInvite(code: string) {
-  try { window.sessionStorage.setItem(PENDING_INVITE_KEY, code); } catch { /* storage unavailable */ }
+export function readPendingInviteEntry(): { kind: PendingInviteKind; code: string } | null {
+  try {
+    const raw = window.localStorage.getItem(PENDING_INVITE_KEY);
+    if (!raw) return null;
+    const value = JSON.parse(raw) as { kind?: string; code?: string; at?: number };
+    if (!value.code || (value.kind !== "friend" && value.kind !== "class") || !value.at || Date.now() - value.at > PENDING_MAX_AGE_MS) { window.localStorage.removeItem(PENDING_INVITE_KEY); return null; }
+    return { kind: value.kind, code: value.code };
+  } catch { return null; }
+}
+/** Friend invite code waiting after login, if any. */
+export function readPendingInvite(): string | null { const entry = readPendingInviteEntry(); return entry?.kind === "friend" ? entry.code : null; }
+/** Path to open after login so the user lands back on the invite. Login/dashboard can call this. */
+export function pendingInvitePath(): string | null {
+  const entry = readPendingInviteEntry();
+  if (!entry) return null;
+  return entry.kind === "class" ? `/classes/join/${encodeURIComponent(entry.code)}` : `/invite/${encodeURIComponent(entry.code)}`;
 }
 export function clearPendingInvite() {
-  try { window.sessionStorage.removeItem(PENDING_INVITE_KEY); } catch { /* storage unavailable */ }
+  try { window.localStorage.removeItem(PENDING_INVITE_KEY); } catch { /* storage unavailable */ }
 }

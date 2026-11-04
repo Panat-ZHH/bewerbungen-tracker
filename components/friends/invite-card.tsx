@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Link2, Share2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Copy, Link2, Mail, Share2 } from "lucide-react";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { inviteLink } from "@/lib/social";
 import type { SocialProfile } from "@/types";
@@ -32,6 +32,8 @@ export function InviteCard({ profile }: { profile: SocialProfile }) {
     }
   }
 
+  const mailto = `mailto:?subject=${encodeURIComponent("Bewirb dich mit mir bei WendApply")}&body=${encodeURIComponent(`Hallo!\n\nKomm zu WendApply, dann bleiben wir beim Bewerben gemeinsam dran. Hier ist mein Einladungslink:\n${link}\n\n(Oder gib in der App meinen Code ein: ${profile.inviteCode})`)}`;
+
   return (
     <Card className="animate-rise overflow-hidden">
       <CardContent className="space-y-4">
@@ -47,6 +49,7 @@ export function InviteCard({ profile }: { profile: SocialProfile }) {
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           <Button variant="secondary" onClick={() => copy("code")} icon={copied === "code" ? <Check size={16} /> : <Copy size={16} />}>Code kopieren</Button>
           <Button variant="secondary" onClick={() => copy("link")} icon={copied === "link" ? <Check size={16} /> : <Link2 size={16} />}>Link kopieren</Button>
+          <ButtonLink href={mailto} variant="secondary" icon={<Mail size={16} />}>Per E-Mail</ButtonLink>
           {canShare && <Button className="col-span-2 sm:col-span-1" onClick={share} icon={<Share2 size={16} />}>Teilen</Button>}
         </div>
         <p className="min-h-4 text-small text-muted" role="status" aria-live="polite">{note}</p>

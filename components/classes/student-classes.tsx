@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Eye, EyeOff, GraduationCap, LogOut, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, GraduationCap, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,8 +10,9 @@ import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getMyClassMemberships, joinClass, leaveClass, setClassSharing } from "@/lib/classes";
+import { type ClassPreview, getMyClassMemberships, joinClass, leaveClass, previewClass, setClassSharing } from "@/lib/classes";
 import type { ClassMembership } from "@/types";
+import { PrivacyPanel } from "./privacy-panel";
 import { errorMessage, formatDate } from "./shared";
 
 export function StudentClasses() {
@@ -30,16 +31,29 @@ export function StudentClasses() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  async function join(event: FormEvent) {
+  const [pending, setPending] = useState<ClassPreview | null>(null);
+
+  /** Step 1: look the class up so the student sees who they share with before consenting. */
+  async function lookup(event: FormEvent) {
     event.preventDefault();
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) { setJoinError("Bitte gib den Klassencode ein."); return; }
     setJoining(true); setJoinError(""); setNotice("");
     try {
-      const m = await joinClass(trimmed);
-      setItems((prev) => [m, ...(prev ?? []).filter((x) => x.classId !== m.classId)]);
-      setCode(""); setNotice(`Du bist der Klasse "${m.name}" beigetreten.`);
+      const found = await previewClass(trimmed);
+      if (found.alreadyMember) { setNotice(`Du bist schon in der Klasse "${found.name}".`); setCode(""); } else setPending(found);
     } catch (e) { setJoinError(errorMessage(e)); } finally { setJoining(false); }
+  }
+
+  /** Step 2: explicit consent. */
+  async function confirmJoin() {
+    if (!pending) return;
+    setJoining(true); setActionError("");
+    try {
+      const m = await joinClass(code.trim().toUpperCase());
+      setItems((prev) => [m, ...(prev ?? []).filter((x) => x.classId !== m.classId)]);
+      setCode(""); setPending(null); setNotice(`Du bist der Klasse "${m.name}" beigetreten.`);
+    } catch (e) { setActionError(errorMessage(e)); } finally { setJoining(false); }
   }
 
   async function toggle(m: ClassMembership) {
@@ -60,25 +74,19 @@ export function StudentClasses() {
       <PageHeader eyebrow="Schüler" title="Meine Klassen" description="Tritt der Klasse deiner Lehrkraft bei, damit sie deinen Bewerbungsfortschritt begleiten kann." />
 
       <Card className="space-y-4 p-5">
-        <form onSubmit={join}>
+        <form onSubmit={lookup}>
           <Field label="Klassencode" htmlFor="join-code" hint="Den Code bekommst du von deiner Lehrkraft." error={joinError}>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="z. B. AB12CD34" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="tracking-[.15em] sm:max-w-xs" />
-              <Button type="submit" loading={joining}>Klasse beitreten</Button>
+              <Button type="submit" loading={joining && !pending}>Weiter</Button>
             </div>
           </Field>
         </form>
-        <div className="flex gap-3 rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3.5 text-[var(--info-fg)]">
-          <ShieldCheck size={18} className="mt-0.5 shrink-0" />
-          <div className="text-small space-y-1">
-            <p className="font-semibold">Was deine Lehrkraft sieht</p>
-            <p>Mit dem Beitritt erlaubst du deiner Lehrkraft, Firma, Position, Status und Daten (Frist, Bewerbungsdatum) deiner Bewerbungen einzusehen. Notizen, Gehalt und Lebensläufe sind nie sichtbar. Du kannst die Freigabe jederzeit pausieren oder die Klasse verlassen.</p>
-          </div>
-        </div>
+        <PrivacyPanel variant="class" />
         {notice && <p role="status" className="text-small text-[var(--success-fg)]">{notice}</p>}
       </Card>
 
-      {(error || actionError) && !leaving && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error || actionError}</span>{error && <Button size="sm" variant="secondary" onClick={() => { setError(""); load(); }}>Erneut laden</Button>}</div>}
+      {(error || actionError) && !leaving && !pending && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error || actionError}</span>{error && <Button size="sm" variant="secondary" onClick={() => { setError(""); load(); }}>Erneut laden</Button>}</div>}
       {!items && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
       {items && items.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Du bist in keiner Klasse" description="Gib oben den Code deiner Lehrkraft ein, um beizutreten." />}
       {items && items.length > 0 && (
@@ -101,6 +109,12 @@ export function StudentClasses() {
           ))}
         </div>
       )}
+
+      <Modal open={!!pending} onClose={() => setPending(null)} title={pending ? `Klasse "${pending.name}" beitreten?` : ""} description={pending ? `${pending.teacherName}${pending.schoolYear ? ` · Schuljahr ${pending.schoolYear}` : ""} · ${pending.memberCount} Schüler` : undefined}
+        footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} onClick={confirmJoin}>Beitreten und Freigabe erlauben</Button></div>}>
+        <PrivacyPanel variant="class" teacherName={pending?.teacherName} />
+        {actionError && <p role="alert" className="text-small mt-3 text-[var(--danger-fg)]">{actionError}</p>}
+      </Modal>
 
       <Modal open={!!leaving} onClose={() => setLeaving(null)} title="Klasse verlassen?" description={leaving ? `Du verlässt "${leaving.name}". Deine Lehrkraft sieht deine Bewerbungen danach nicht mehr. Mit dem Code kannst du jederzeit wieder beitreten.` : undefined}
         footer={<div className="flex justify-end gap-2"><Button variant="ghost" onClick={() => setLeaving(null)}>Abbrechen</Button><Button variant="danger" loading={!!leaving && busy === leaving.classId} onClick={confirmLeave}>Verlassen</Button></div>}>
