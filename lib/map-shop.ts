@@ -68,6 +68,8 @@ export function canPlaceMapItem(item: Pick<PlaceableItem, "id" | "itemType">, po
   const size = itemFootprint(item.itemType, position.rotation);
   if (position.x < -10 || position.z < -7 || position.x + size.width > 33 || position.z + size.depth > maxZ) return false;
   if (overlaps(position.x, position.z, size.width, size.depth, -5, -6, 4, 3)) return false;
+  // The eastern meadow (x >= 17) is a fixed 26-deep strip (z -6..20); the main island is deeper, so don't allow floating over the void.
+  if (position.x + size.width > 17 && (position.z < -6 || position.z + size.depth > 20)) return false;
   return items.every((other) => {
     if (other.id === item.id || other.x === null || other.z === null) return true;
     const footprint = itemFootprint(other.itemType, other.rotation);

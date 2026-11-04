@@ -153,3 +153,11 @@ test("streets are fixed: layouts never move them and they cannot be placed", () 
   assert.deepEqual([same.x, same.z, same.rotation], [street.x, street.z, street.rotation]);
   assert.equal(canPlaceMapItem(street, { x: 25, z: 25, rotation: 0 }, base, 40), false);
 });
+
+test("items cannot hang over the void next to the eastern meadow", () => {
+  const item = { id: "t", itemType: "tree" };
+  assert.equal(canPlaceMapItem(item, { x: 20, z: -7, rotation: 0 }, []), false);
+  assert.equal(canPlaceMapItem(item, { x: 20, z: 20, rotation: 0 }, [], 40), false);
+  assert.equal(canPlaceMapItem(item, { x: 20, z: 19, rotation: 0 }, [], 40), true);
+  assert.equal(canPlaceMapItem(item, { x: 10, z: 30, rotation: 0 }, [], 40), true);
+});
