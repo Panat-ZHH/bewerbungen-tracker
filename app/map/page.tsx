@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Hammer, LocateFixed, Minus, Moon, Plus, RefreshCw, Search, ShoppingBag, Sun, Trophy, ZoomIn } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { MapApplicationDialog } from "@/components/applications/map-application-dialog";
@@ -11,12 +11,15 @@ import { MapPlacementTools, MapShop, useMapShop } from "@/components/application
 import { IslandPanel } from "@/components/applications/island-panel";
 import { useIslands } from "@/components/applications/use-islands";
 import { buildingStages } from "@/lib/application-map";
+import type { MapLayout, OwnedMapItem } from "@/lib/map-shop";
 import { getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { statusLabels } from "@/lib/utils";
 import type { Application, ApplicationStatus } from "@/types";
 import styles from "./map.module.css";
 
+const noItems: OwnedMapItem[] = [];
+const noLayouts: MapLayout[] = [];
 const ApplicationMapWorld = lazy(() => import("@/components/applications/application-map-world"));
 
 export default function MapPage() {
@@ -84,7 +87,8 @@ function ApplicationMap() {
   }, [refresh]);
 
   const search = query.trim().toLocaleLowerCase("de");
-  const visible = applications.filter((application) => (status === "all" || application.status === status) && `${application.company} ${application.position} ${application.location ?? ""}`.toLocaleLowerCase("de").includes(search));
+  const visible = useMemo(() => applications.filter((application) => (status === "all" || application.status === status) && `${application.company} ${application.position} ${application.location ?? ""}`.toLocaleLowerCase("de").includes(search)), [applications, status, search]);
+  const visibleIds = useMemo(() => visible.map(({ id }) => id), [visible]);
   const construction = applications.filter(({ status }) => buildingStages[status].workers).length;
   const offers = applications.filter(({ status }) => status === "offer").length;
   const selected = applications.find(({ id }) => id === selectedId);
@@ -118,7 +122,7 @@ function ApplicationMap() {
             {applications.length > 0 && visible.length === 0 && <p className={styles.empty} role="status">Keine Bewerbungen für diese Auswahl.</p>}
             <MapPlacementTools shop={shop} />
             <Suspense fallback={<div className={styles.loading} role="status">Dein Dorf wird aufgebaut ...</div>}>
-              <ApplicationMapWorld applications={applications} visibleIds={visible.map(({ id }) => id)} selectedId={selectedId} night={night} zoom={zoom} center={center} onSelect={setSelectedId} shopItems={shop.state?.items ?? []} layouts={shop.state?.layouts ?? []} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} islandCount={islands.unlocked} islandFocus={islands.focus} />
+              <ApplicationMapWorld applications={applications} visibleIds={visibleIds} selectedId={selectedId} night={night} zoom={zoom} center={center} onZoomChange={setZoom} onSelect={setSelectedId} shopItems={shop.state?.items ?? noItems} layouts={shop.state?.layouts ?? noLayouts} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} islandCount={islands.unlocked} islandFocus={islands.focus} />
             </Suspense>
           </>
         )}
