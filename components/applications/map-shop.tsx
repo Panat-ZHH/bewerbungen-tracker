@@ -12,7 +12,7 @@ import styles from "@/app/map/map.module.css";
 
 const icons = { road: Route, flowers: Flower2, tree: TreePine, bench: Armchair, fountain: Waves, amusement_park: FerrisWheel };
 
-export function useMapShop(refresh: number, applications: Application[]) {
+export function useMapShop(refresh: number, applications: Application[], islandCount = 1) {
   const [state, setState] = useState<MapShopState | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -66,7 +66,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
 
   function start(item: PlaceableItem) {
     if (locked.current || !state || isLockedMapObject(item)) return;
-    const position = item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : findFreeMapPosition(item as Parameters<typeof findFreeMapPosition>[0], allItems, maxZ);
+    const position = item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : findFreeMapPosition(item as Parameters<typeof findFreeMapPosition>[0], allItems, maxZ, islandCount);
     setSelectedId(item.id);
     if (!position) { setError("Auf der Baufläche ist kein freier Platz mehr."); return; }
     setError(""); setNotice(""); setPlacement({ item, position });
@@ -85,7 +85,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
       const item = next.items.find((candidate) => candidate.id === id);
       if (item) {
         setSelectedId(item.id);
-        const position = findFreeMapPosition(item, [...next.items, ...objects], maxZ);
+        const position = findFreeMapPosition(item, [...next.items, ...objects], maxZ, islandCount);
         setPlacement(position ? { item, position } : null);
       }
       setNotice(`${shopCatalog[itemType].name} gekauft.`);
@@ -97,7 +97,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
   }
 
   async function save(item: PlaceableItem, position: MapPosition | null) {
-    if (locked.current || !state || isLockedMapObject(item) || (position && !canPlaceMapItem(item, position, allItems, maxZ))) return;
+    if (locked.current || !state || isLockedMapObject(item) || (position && !canPlaceMapItem(item, position, allItems, maxZ, islandCount))) return;
     locked.current = true; setBusy(true); setError(""); setNotice(""); setLoading(false);
     const request = ++operation.current;
     try {
@@ -117,7 +117,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
 
   /** Drag & drop / undo: optimistic update, server confirms, any error rolls back to the previous state. */
   async function commitMove(item: PlaceableItem, from: MapPosition, to: MapPosition, undoing: boolean) {
-    if (locked.current || !state || isLockedMapObject(item) || !canPlaceMapItem(item, to, allItems, maxZ)) return false;
+    if (locked.current || !state || isLockedMapObject(item) || !canPlaceMapItem(item, to, allItems, maxZ, islandCount)) return false;
     const previous = state;
     locked.current = true; setBusy(true); setError(""); setNotice(""); say(""); setLoading(false);
     const request = ++operation.current;
@@ -140,7 +140,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
   function currentPosition(item: PlaceableItem): MapPosition | null { return item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : null; }
 
   return {
-    state, loading, busy, error, notice, placement, selectedId, objects, allItems, maxZ, lastMove, dragMessage, dismissMessage,
+    state, loading, busy, error, notice, placement, selectedId, objects, allItems, maxZ, islandCount, lastMove, dragMessage, dismissMessage,
     buy, start, save,
     /** Drop of a drag gesture on a placed item. Returns false if rejected (the item stays where it was). */
     move(id: string, to: MapPosition) {
@@ -154,7 +154,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
       const record = lastMove;
       const item = record && allItems.find(({ id }) => id === record.id);
       if (!record || !item) return;
-      if (!canPlaceMapItem(item, record.from, allItems, maxZ)) { say("Rückgängig nicht möglich – der alte Platz ist inzwischen belegt."); return; }
+      if (!canPlaceMapItem(item, record.from, allItems, maxZ, islandCount)) { say("Rückgängig nicht möglich – der alte Platz ist inzwischen belegt."); return; }
       const here = currentPosition(item);
       if (here) void commitMove(item, here, record.from, true);
     },
@@ -195,11 +195,11 @@ export function MapPlacementTools({ shop }: { shop: ShopController }) {
     return <div className={styles.placementTools} aria-label="Ausgewählter Gegenstand">{undo}{message}<strong>{placeableCatalog[item.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(item)}><LocateFixed size={15} />Verschieben</button>{item.itemType !== "house" && item.itemType !== "street" && <button type="button" disabled={shop.busy} onClick={() => void shop.save(item, null)}><Package size={15} />Einlagern</button>}<button type="button" title="Auswahl schließen" aria-label="Auswahl schließen" disabled={shop.busy} onClick={shop.clearSelection}><X size={17} /></button></div>;
   }
   const { item, position } = shop.placement;
-  const valid = canPlaceMapItem(item, position, shop.allItems, shop.maxZ);
+  const valid = canPlaceMapItem(item, position, shop.allItems, shop.maxZ, shop.islandCount);
   return <div className={styles.placementTools} aria-label="Gegenstand platzieren">
     <strong><MapPin size={16} />{placeableCatalog[item.itemType].name}</strong>
-    <label>X<input aria-label="Position X" type="number" min="-10" max="32" step="1" value={Number.isNaN(position.x) ? "" : position.x} disabled={shop.busy} onChange={(event) => shop.position({ ...position, x: event.target.valueAsNumber })} /></label>
-    <label>Z<input aria-label="Position Z" type="number" min="-7" max={shop.maxZ - 1} step="1" value={Number.isNaN(position.z) ? "" : position.z} disabled={shop.busy} onChange={(event) => shop.position({ ...position, z: event.target.valueAsNumber })} /></label>
+    <label>X<input aria-label="Position X" type="number" min="-10" max="95" step="1" value={Number.isNaN(position.x) ? "" : position.x} disabled={shop.busy} onChange={(event) => shop.position({ ...position, x: event.target.valueAsNumber })} /></label>
+    <label>Z<input aria-label="Position Z" type="number" min="-7" max="54" step="1" value={Number.isNaN(position.z) ? "" : position.z} disabled={shop.busy} onChange={(event) => shop.position({ ...position, z: event.target.valueAsNumber })} /></label>
     <button type="button" title="Um 90 Grad drehen" aria-label="Um 90 Grad drehen" disabled={shop.busy} onClick={() => shop.position({ ...position, rotation: (position.rotation + 1) % 4 })}><RotateCw size={17} /></button>
     <span>{position.rotation * 90}°</span>
     <button type="button" className={styles.placeConfirm} disabled={shop.busy || !valid} onClick={() => void shop.save(item, position)}><MapPin size={15} />{shop.busy ? "Speichern ..." : "Platzieren"}</button>

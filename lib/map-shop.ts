@@ -1,4 +1,5 @@
 import { createApplicationMap } from "./application-map.ts";
+import { isPlaceableArea, unlockedAreas } from "./islands.ts";
 import type { Application } from "../types/index.ts";
 
 export const APPLICATION_REWARD = 100;
@@ -62,12 +63,14 @@ export function itemFootprint(itemType: PlaceableItem["itemType"], rotation: num
   return rotation % 2 === 0 ? { width: item.width, depth: item.depth } : { width: item.depth, depth: item.width };
 }
 
-export function canPlaceMapItem(item: Pick<PlaceableItem, "id" | "itemType">, position: MapPosition, items: PlaceableItem[], maxZ = 20) {
+export function canPlaceMapItem(item: Pick<PlaceableItem, "id" | "itemType">, position: MapPosition, items: PlaceableItem[], maxZ = 20, islandCount = 1) {
   if (isLockedMapObject(item)) return false;
   if (![position.x, position.z, position.rotation].every(Number.isInteger) || position.rotation < 0 || position.rotation > 3) return false;
   const size = itemFootprint(item.itemType, position.rotation);
-  if (position.x < -10 || position.z < -7 || position.x + size.width > 33 || position.z + size.depth > maxZ) return false;
+  if (!isPlaceableArea(position.x, position.z, size.width, size.depth, islandCount, maxZ)) return false;
   if (overlaps(position.x, position.z, size.width, size.depth, -5, -6, 4, 3)) return false;
+  // The eastern meadow (x >= 17) is a fixed 26-deep strip (z -6..20); the main island is deeper, so don't allow floating over the void.
+  if (position.x + size.width > 17 && (position.z < -6 || position.z + size.depth > 20)) return false;
   return items.every((other) => {
     if (other.id === item.id || other.x === null || other.z === null) return true;
     const footprint = itemFootprint(other.itemType, other.rotation);
@@ -75,11 +78,19 @@ export function canPlaceMapItem(item: Pick<PlaceableItem, "id" | "itemType">, po
   });
 }
 
-export function findFreeMapPosition(item: Pick<OwnedMapItem, "id" | "itemType">, items: PlaceableItem[], maxZ = 20): MapPosition | null {
+export function findFreeMapPosition(item: Pick<OwnedMapItem, "id" | "itemType">, items: PlaceableItem[], maxZ = 20, islandCount = 1): MapPosition | null {
   for (let z = 0; z < maxZ; z++) {
     for (let x = -9; x < 33; x++) {
       const position = { x, z, rotation: 0 };
-      if (canPlaceMapItem(item, position, items, maxZ)) return position;
+      if (canPlaceMapItem(item, position, items, maxZ, islandCount)) return position;
+    }
+  }
+  for (const area of unlockedAreas(islandCount, maxZ).slice(1)) {
+    for (let z = area.z0; z < area.z1; z++) {
+      for (let x = area.x0; x < area.x1; x++) {
+        const position = { x, z, rotation: 0 };
+        if (canPlaceMapItem(item, position, items, maxZ, islandCount)) return position;
+      }
     }
   }
   return null;

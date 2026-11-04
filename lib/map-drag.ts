@@ -1,3 +1,4 @@
+import { isPlaceableArea } from "./islands.ts";
 import { canPlaceMapItem, isLockedMapObject, itemFootprint, type MapPosition, type MapShopState, type OwnedMapItem, type PlaceableItem } from "./map-shop.ts";
 
 export type DropVerdict = { valid: boolean; reason: "ok" | "locked" | "bounds" | "water" | "street" | "overlap" };
@@ -21,11 +22,11 @@ export function grabOffset(point: { x: number; z: number }, origin: { x: number;
 }
 
 /** Same rules as canPlaceMapItem, plus the reason for a rejection (used for red ghost + message). */
-export function evaluateDrop(item: Pick<PlaceableItem, "id" | "itemType">, position: MapPosition, items: PlaceableItem[], maxZ = 20): DropVerdict {
+export function evaluateDrop(item: Pick<PlaceableItem, "id" | "itemType">, position: MapPosition, items: PlaceableItem[], maxZ = 20, islandCount = 1): DropVerdict {
   if (isLockedMapObject(item)) return { valid: false, reason: "locked" };
-  if (canPlaceMapItem(item, position, items, maxZ)) return { valid: true, reason: "ok" };
+  if (canPlaceMapItem(item, position, items, maxZ, islandCount)) return { valid: true, reason: "ok" };
   const size = itemFootprint(item.itemType, position.rotation);
-  if (position.x < -10 || position.z < -7 || position.x + size.width > 33 || position.z + size.depth > maxZ) return { valid: false, reason: "bounds" };
+  if (!isPlaceableArea(position.x, position.z, size.width, size.depth, islandCount, maxZ)) return { valid: false, reason: "bounds" };
   if (position.x < -1 && position.x + size.width > -5 && position.z < -3 && position.z + size.depth > -6) return { valid: false, reason: "water" };
   const hit = items.find((other) => other.id !== item.id && other.x !== null && other.z !== null && (() => {
     const footprint = itemFootprint(other.itemType, other.rotation);

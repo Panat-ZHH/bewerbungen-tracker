@@ -1,0 +1,25 @@
+.panel { position: relative; display: grid; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--glass-border); background: var(--surface); }
+.switcher { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.switcher button { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--glass-border); background: var(--raised); color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap; }
+.switcher button.active { background: var(--brand-gradient); color: #fff; border-color: transparent; }
+.next { display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; align-items: center; }
+.progressText { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+.progressText span { display: inline-flex; align-items: center; gap: 6px; }
+.progressText strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.bar { height: 10px; border-radius: 999px; background: var(--hover); overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #5aa8a4, #e0b04f); transition: width .8s var(--ease); }
+.unlock { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 18px; border-radius: var(--radius-full); border: 1px solid var(--glass-border); background: var(--raised); color: var(--muted); font-size: 13px; font-weight: 700; }
+.unlock:not(:disabled) { background: var(--brand-gradient); color: #fff; border-color: transparent; box-shadow: var(--shadow-brand); animation: islandPulse 1.8s ease-in-out infinite; }
+.unlock:disabled { opacity: .7; }
+.hint { margin: 0; font-size: 13px; color: var(--muted); }
+.error { margin: 0; font-size: 13px; color: var(--danger-fg); }
+.celebrate { position: absolute; inset: 0 0 auto 0; z-index: 5; display: grid; place-items: center; align-content: center; gap: 2px; min-height: 120px; padding: 18px; text-align: center; background: color-mix(in srgb, var(--surface) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); animation: islandBanner 3.6s var(--ease) both; pointer-events: none; }
+.celebrate strong { font-size: 20px; color: var(--ink); }
+.celebrate span { font-size: 13px; color: var(--muted); }
+.confetti { position: absolute; inset: 0; overflow: hidden; }
+.confetti i { position: absolute; top: 50%; left: 50%; width: 8px; height: 12px; border-radius: 2px; background: hsl(calc(var(--i) * 23) 78% 58%); animation: islandConfetti 1.6s var(--ease) both; animation-delay: calc(var(--i) * 20ms); }
+@keyframes islandConfetti { from { transform: translate(0, 0) rotate(0); opacity: 1; } to { transform: translate(calc((var(--i) - 9) * 22px), calc(((var(--i) % 5) - 2) * 26px - 40px)) rotate(calc(var(--i) * 70deg)); opacity: 0; } }
+@keyframes islandBanner { 0% { opacity: 0; transform: translateY(-14px) scale(.96); } 10%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes islandPulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, #e0b04f 35%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .unlock:not(:disabled), .confetti i { animation: none; } .bar i { transition: none; } }
+@media (max-width: 767px) { .next { grid-template-columns: 1fr; } .unlock { width: 100%; justify-content: center; } }

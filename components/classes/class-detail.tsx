@@ -89,7 +89,7 @@ export function ClassDetail({ classId }: { classId: string }) {
             <StatTile label="Schüler" value={summary.students} icon={<Users size={16} />} />
             <StatTile label="Bewerbungen" value={summary.total} icon={<BriefcaseBusiness size={16} />} />
             <StatTile label="Aktiv diese Woche" value={summary.activeWeek} icon={<Sparkles size={16} />} />
-            <StatTile label="Angebote" value={summary.offers} icon={<Trophy size={16} />} />
+            <StatTile label="Zusagen" value={summary.offers} icon={<Trophy size={16} />} />
           </div>
 
           {cls && (

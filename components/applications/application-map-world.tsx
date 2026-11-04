@@ -9,6 +9,8 @@ import { canPlaceMapItem, isLockedMapObject, itemFootprint, villageDepth, villag
 import { evaluateDrop, grabOffset, LONG_PRESS_MS, MOUSE_DRAG_THRESHOLD, nudgeKeys, samePosition, snapDragPosition, TOUCH_CANCEL_THRESHOLD, type DragApi, type DropVerdict } from "@/lib/map-drag";
 import { createShopModel } from "@/lib/map-shop-models";
 import { createMapRenderer, mapRenderLayers, setMapRenderLayer } from "@/lib/map-renderer";
+import { buildIslands, revealProgress, type IslandParts } from "@/lib/island-scenery";
+import { islandConfig } from "@/lib/islands";
 import { createMapVillager, villageWalkingRoutes } from "@/lib/map-villager";
 import type { Application } from "@/types";
 import styles from "@/app/map/map.module.css";
@@ -20,6 +22,7 @@ type WorldProps = {
   night: boolean;
   zoom: number;
   center: number;
+  onZoomChange?: (zoom: number) => void;
   onSelect: (id: string) => void;
   shopItems: OwnedMapItem[];
   layouts: MapLayout[];
@@ -28,9 +31,11 @@ type WorldProps = {
   onSelectShopItem: (id: string) => void;
   onPlacePosition: (position: MapPosition) => void;
   drag: DragApi;
+  islandCount?: number;
+  islandFocus?: { no: number; reveal: boolean; key: number } | null;
 };
 
-export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag }: WorldProps) {
+export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
@@ -38,34 +43,36 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
   const selectShopItem = useRef(onSelectShopItem);
   const placePosition = useRef(onPlacePosition);
   const dragApi = useRef(drag);
+  const zoomChange = useRef(onZoomChange);
   const previousPlacementId = useRef<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
 
-  useEffect(() => { select.current = onSelect; }, [onSelect]);
+  useEffect(() => { select.current = onSelect; zoomChange.current = onZoomChange; }, [onSelect, onZoomChange]);
   useEffect(() => { dragApi.current = drag; world.current?.setDragEnabled(drag.enabled); }, [drag]);
   useEffect(() => { selectShopItem.current = onSelectShopItem; placePosition.current = onPlacePosition; }, [onSelectShopItem, onPlacePosition]);
   useEffect(() => {
     if (!host.current || !labels.current) return;
     try {
-      world.current = createWorld(host.current, labels.current, (id) => select.current(id), (id) => selectShopItem.current(id), (position) => placePosition.current(position), () => dragApi.current);
+      world.current = createWorld(host.current, labels.current, (id) => select.current(id), (id) => selectShopItem.current(id), (position) => placePosition.current(position), () => dragApi.current, (value) => zoomChange.current?.(value));
       world.current.setDragEnabled(dragApi.current.enabled);
     } catch {
       queueMicrotask(() => setUnavailable(true));
     }
     return () => { world.current?.dispose(); world.current = null; };
   }, []);
-  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts); }, [applications, visibleIds, selectedId, layouts, placement]);
+  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts, islandCount); }, [applications, visibleIds, selectedId, layouts, placement, islandCount]);
+  useEffect(() => { if (islandFocus) world.current?.focusIsland(islandFocus.no, islandFocus.reveal); }, [islandFocus]);
   useEffect(() => { world.current?.lighting(night); }, [night]);
   useEffect(() => { world.current?.zoom(zoom); }, [zoom]);
   useEffect(() => { world.current?.center(); }, [center]);
   useEffect(() => {
-    world.current?.setShop(shopItems, selectedShopItemId, placement, applications, layouts);
+    world.current?.setShop(shopItems, selectedShopItemId, placement, applications, layouts, islandCount);
     if (placement && previousPlacementId.current !== placement.item.id) {
       world.current?.focusConstruction(placement.position);
       host.current?.scrollIntoView({ block: "center", behavior: "instant" });
     }
     previousPlacementId.current = placement?.item.id ?? null;
-  }, [shopItems, selectedShopItemId, placement, applications, layouts]);
+  }, [shopItems, selectedShopItemId, placement, applications, layouts, islandCount]);
 
   return (
     <>
@@ -95,7 +102,7 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
   );
 }
 
-function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id: string) => void, onSelectShopItem: (id: string) => void, onPlacePosition: (position: MapPosition) => void, getDrag: () => DragApi) {
+function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id: string) => void, onSelectShopItem: (id: string) => void, onPlacePosition: (position: MapPosition) => void, getDrag: () => DragApi, onZoomChange: (zoom: number) => void) {
   const renderer = createMapRenderer();
   renderer.domElement.setAttribute("aria-hidden", "true");
   host.prepend(renderer.domElement);
@@ -115,6 +122,8 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
   controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
   controls.update();
+  // Mouse wheel / pinch zoom changes camera.zoom inside OrbitControls; report it so the toolbar percentage stays correct.
+  controls.addEventListener("change", () => onZoomChange(Number(camera.zoom.toFixed(2))));
 
   const ambient = new THREE.HemisphereLight("#fff5dc", "#658754", 2.6);
   scene.add(ambient);
@@ -152,6 +161,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   let activePlacement: Placement | null = null;
   const windowMaterial = new THREE.MeshStandardMaterial({ color: "#acd7d2", roughness: 0.4, emissive: "#f6bd51", emissiveIntensity: 0.1 });
   let boardDepth = 23;
+  let islandParts = new Map<number, IslandParts>();
+  let revealing: { no: number; start: number } | null = null;
+  let flight: { from: THREE.Vector3; to: THREE.Vector3; start: number } | null = null;
   let motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function material(color: string) {
@@ -300,7 +312,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     anchors.set(application.id, new THREE.Vector3(x, 0.25, z + 2.6));
   }
 
-  function populate(applications: Application[], visibleIds: string[], selectedId: string | null, layouts: MapLayout[]) {
+  function populate(applications: Application[], visibleIds: string[], selectedId: string | null, layouts: MapLayout[], islandCount = 1) {
     for (const villager of villagers) villager.dispose();
     villagers.length = 0;
     root.clear();
@@ -396,15 +408,17 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
         buildings[buildings.length - 1].rotation.y = -house.rotation * Math.PI / 2;
       }
     }
-    for (const plot of map.plots) {
-      const positionX = (plot.x - 700) / 48;
-      const positionZ = (plot.y - 270) / 48;
+    for (const house of villageObjects(applications, layouts).filter((item) => item.itemType === "house")) {
+      const positionX = house.x! + 2.5;
+      const positionZ = house.z! + 2.5;
       tree(positionX + 2.4, positionZ - 2, 0.65, true);
       for (let flower = 0; flower < 3; flower++) {
         cylinder(root, positionX - 2.1 + flower * 0.2, 0.3, positionZ - 1.8, 0.06, 0.06, 0.3, "#557847", 5);
         cylinder(root, positionX - 2.1 + flower * 0.2, 0.49, positionZ - 1.8, 0.12, 0.1, 0.08, flower % 2 ? "#e9bb70" : "#c97e89", 6);
       }
     }
+    islandParts = buildIslands({ box, cylinder, tree }, root, islandCount);
+    if (revealing) { const parts = islandParts.get(revealing.no); if (!parts) revealing = null; }
     const routes = villageWalkingRoutes(villageObjects(applications, layouts).filter((item) => item.itemType === "street"), renderer.isWebGL ? 5 : 3);
     routes.forEach((route, index) => {
       const villager = createMapVillager({ route, phase: index * 1.3, color: ["#618da0", "#b27b79", "#8d9366", "#a98c5d"][index % 4] });
@@ -413,7 +427,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     syncDrag();
   }
 
-  function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[]) {
+  function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[], islandCount = 1) {
     for (const model of shopModels) model.dispose();
     shopModels.length = 0; shopRoot.clear(); previewRoot.clear(); shopObjects.length = 0; shopAnimations.length = 0;
     activePlacement = placement;
@@ -425,8 +439,8 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     }
     const objects = villageObjects(applications, layouts);
     const allItems = [...items, ...objects];
-    liveItems = allItems; liveDepth = villageDepth(applications);
-    const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, villageDepth(applications));
+    liveItems = allItems; liveDepth = villageDepth(applications); liveIslands = islandCount;
+    const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, villageDepth(applications), islandCount);
     previewMaterial.color.set(valid ? "#90c978" : "#d5827d");
     for (const item of allItems) {
       const moving = item.id === placement?.item.id;
@@ -482,6 +496,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2);
   let down = { x: 0, y: 0 };
 
+  const touches = new Set<number>();
+  let multiTouch = false;
+
   // ---- Drag & drop of placed items (mouse: press + move; touch: long-press, then move) ----
   type DragSession = { item: PlaceableItem; from: MapPosition; grab: { x: number; z: number }; pointerId: number; start: { x: number; y: number }; touch: boolean; active: boolean; timer: number; position: MapPosition; verdict: DropVerdict; source: THREE.Object3D | null; ghost: THREE.Object3D | null; hidden: boolean };
   // Ghost and footprint ignore the depth buffer and render last, so a rejected spot stays visible even behind a house.
@@ -495,6 +512,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   scene.add(footprint);
   let liveItems: PlaceableItem[] = [];
   let liveDepth = 20;
+  let liveIslands = 1;
   let dragEnabled = false;
   let session: DragSession | null = null;
   let justDragged = false;
@@ -582,7 +600,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
 
   function place(current: DragSession, position: MapPosition) {
     current.position = position;
-    current.verdict = evaluateDrop(current.item, position, liveItems, liveDepth);
+    current.verdict = evaluateDrop(current.item, position, liveItems, liveDepth, liveIslands);
     const color = current.verdict.valid ? "#58b043" : "#e0443e";
     dragMaterial.color.set(color); footprintMaterial.color.set(color); outlineMaterial.color.set(color);
     const size = itemFootprint(current.item.itemType, position.rotation);
@@ -623,6 +641,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
 
   function pointerDown(event: PointerEvent) {
     down = { x: event.clientX, y: event.clientY };
+    if (event.pointerType === "touch") { touches.add(event.pointerId); if (touches.size > 1) multiTouch = true; }
     if (session && event.pointerId !== session.pointerId) { cancelDrag(); return; }
     if (event.button !== 0 || !event.isPrimary || !dragEnabled || session || (event.target as HTMLElement).closest("button")) return;
     const pick = pickMovable(event);
@@ -656,19 +675,29 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     if (!samePosition(position, current.position)) place(current, position);
   }
 
+  function pointerEnd(event: PointerEvent) {
+    touches.delete(event.pointerId);
+    if (!touches.size) queueMicrotask(() => { if (!touches.size) multiTouch = false; });
+  }
+
   function pointerUp(event: PointerEvent) {
+    const gesture = multiTouch;
+    pointerEnd(event);
     if (session && event.pointerId === session.pointerId) {
       const active = session.active;
       drop();
       if (active) { justDragged = true; window.setTimeout(() => { justDragged = false; }, 0); return; }
     }
-    if (justDragged || event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > (event.pointerType === "touch" ? 12 : 6) || (event.target as HTMLElement).closest("button")) return;
+    if (gesture || justDragged || event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > (event.pointerType === "touch" ? 12 : 6) || (event.target as HTMLElement).closest("button")) return;
     const bounds = host.getBoundingClientRect();
     pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
     if (activePlacement) {
-      const point = raycaster.ray.intersectPlane(groundPlane, new THREE.Vector3());
-      if (point) onPlacePosition({ x: Math.floor(point.x), z: Math.floor(point.z), rotation: activePlacement.position.rotation });
+      const point = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2), new THREE.Vector3());
+      if (point) {
+        const size = itemFootprint(activePlacement.item.itemType, activePlacement.position.rotation);
+        onPlacePosition({ x: Math.floor(point.x - size.width / 2 + 0.5), z: Math.floor(point.z - size.depth / 2 + 0.5), rotation: activePlacement.position.rotation });
+      }
       return;
     }
     const hit = raycaster.intersectObjects([...buildings, ...shopObjects], true)[0];
@@ -683,7 +712,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       if (decoration) onSelectShopItem(decoration.id);
     }
   }
-  function pointerCancel(event: PointerEvent) { if (session && event.pointerId === session.pointerId) cancelDrag(); }
+  function pointerCancel(event: PointerEvent) { pointerEnd(event); if (session && event.pointerId === session.pointerId) cancelDrag(); }
   function contextMenu(event: Event) { if (session?.touch) event.preventDefault(); }
   function visibilityChanged() { if (document.visibilityState !== "visible") cancelDrag(); }
   host.addEventListener("pointerdown", pointerDown, true);
@@ -697,6 +726,22 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   preference.addEventListener("change", preferenceChanged);
   const projection = new THREE.Vector3();
   renderer.setAnimationLoop((milliseconds) => {
+    const now = performance.now();
+    if (flight) {
+      const t = Math.min(1, (now - flight.start) / (motion ? 1500 : 1));
+      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      const offset = camera.position.clone().sub(controls.target);
+      controls.target.lerpVectors(flight.from, flight.to, ease);
+      camera.position.copy(controls.target).add(offset);
+      if (t >= 1) flight = null;
+    }
+    if (revealing) {
+      const parts = islandParts.get(revealing.no);
+      if (!parts || !revealProgress(parts, motion ? now - revealing.start : 1e6)) revealing = null;
+    }
+    sunlight.target.position.set(controls.target.x, 0, controls.target.z);
+    sunlight.position.set(controls.target.x - 12, 24, controls.target.z + 8);
+    sunlight.target.updateMatrixWorld();
     controls.update();
     if (motion) for (const animate of [...animations, ...shopAnimations]) animate(milliseconds / 1000);
     renderer.render(scene, camera);
@@ -720,7 +765,13 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       camera.position.copy(controls.target).add(new THREE.Vector3(24, 30, 34));
       controls.update();
     },
-    zoom(value: number) { camera.zoom = value; camera.updateProjectionMatrix(); },
+    focusIsland(no: number, reveal: boolean) {
+      const focus = islandConfig(no)?.focus;
+      if (!focus) return;
+      if (reveal) revealing = { no, start: performance.now() };
+      flight = { from: controls.target.clone(), to: new THREE.Vector3(focus.x, 0, focus.z), start: performance.now() };
+    },
+    zoom(value: number) { if (Math.abs(camera.zoom - value) < 0.005) return; camera.zoom = value; camera.updateProjectionMatrix(); },
     lighting(night: boolean) {
       scene.background = new THREE.Color(night ? "#314957" : "#b9c9ae");
       ambient.intensity = night ? 1.1 : 2.6;

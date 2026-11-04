@@ -42,7 +42,7 @@ export default function AnalyticsPage() {
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatTile label="Bewerbungen" value={loading ? "–" : total} trend={total ? undefined : loading ? undefined : "Noch keine Daten"} />
         <StatTile label="Rückmeldungen" value={loading ? "–" : replied} trend={total ? `${Math.round((replied / total) * 100)} % deiner Bewerbungen` : undefined} />
-        <StatTile label="Gespräche" value={loading ? "–" : interviews} trend="Gespräch oder Angebot" tone="success" />
+        <StatTile label="Gespräche" value={loading ? "–" : interviews} trend="Gespräch oder Zusage" tone="success" />
       </section>
 
       <Card className="animate-rise mt-6 max-w-3xl">
