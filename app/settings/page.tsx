@@ -90,8 +90,8 @@ export default function SettingsPage() {
           <h2 className="text-heading">Daten sichern</h2>
           <p className="mt-1 text-body text-muted">Lade eine Kopie deiner Bewerbungen herunter oder lies eine Sicherung ein.</p>
           <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-            <Button onClick={exportData} loading={busy} icon={<Download size={16} />}>Herunterladen</Button>
-            <Button variant="secondary" onClick={() => importRef.current?.click()} disabled={busy} icon={<Upload size={16} />}>Sicherung einlesen</Button>
+            <Button className="sm:min-h-11" onClick={exportData} loading={busy} icon={<Download size={16} />}>Herunterladen</Button>
+            <Button variant="secondary" className="sm:min-h-11" onClick={() => importRef.current?.click()} disabled={busy} icon={<Upload size={16} />}>Sicherung einlesen</Button>
             <input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" />
           </div>
         </CardContent></Card>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
         <Card className="animate-rise mt-4 !border-[var(--danger-line)]"><CardContent>
           <h2 className="text-heading">Daten löschen</h2>
           <p className="mt-1 text-body text-muted">Entfernt deine Bewerbungen, Notizen und Profilangaben. Deine Lebenslauf-Vorlagen bleiben bestehen.</p>
-          <Button variant="danger" onClick={clearData} disabled={busy} full className="mt-4 sm:w-auto" icon={<Trash2 size={16} />}>Meine Daten löschen</Button>
+          <Button variant="danger" onClick={clearData} disabled={busy} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<Trash2 size={16} />}>Meine Daten löschen</Button>
         </CardContent></Card>
       </div>
     </WorkspaceShell>
