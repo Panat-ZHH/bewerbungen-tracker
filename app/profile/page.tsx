@@ -7,6 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AvatarEditor } from "@/components/profile/avatar-editor";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getProfile, saveProfile } from "@/lib/storage";
 import type { Profile as ProfileType } from "@/types";
@@ -53,6 +54,7 @@ export default function ProfilePage() {
       <div className="max-w-2xl pb-safe">
         <PageHeader title="Dein Profil" description="Deine Kontaktdaten an einem Ort." />
         {notice && <StatusMessage tone={notice === "Gespeichert." ? "success" : "danger"} icon={notice === "Gespeichert." ? <Check /> : undefined} className="mb-5">{notice}</StatusMessage>}
+        <AvatarEditor name={[profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || profile?.email || "Profil"} />
         {loading ? (
           <Card><CardContent role="status" aria-label="Dein Profil wird geladen" className="grid gap-5 sm:grid-cols-2 sm:p-7">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="space-y-2"><Skeleton className="h-3.5 w-20" /><Skeleton className="h-11" /></div>)}</CardContent></Card>
         ) : profile && (
