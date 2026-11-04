@@ -113,7 +113,7 @@ function ApplicationMap() {
             {applications.length > 0 && visible.length === 0 && <p className={styles.empty} role="status">Keine Bewerbungen für diese Auswahl.</p>}
             <MapPlacementTools shop={shop} />
             <Suspense fallback={<div className={styles.loading} role="status">Dein Dorf wird aufgebaut ...</div>}>
-              <ApplicationMapWorld applications={applications} visibleIds={visible.map(({ id }) => id)} selectedId={selectedId} night={night} zoom={zoom} center={center} onSelect={setSelectedId} shopItems={shop.state?.items ?? []} layouts={shop.state?.layouts ?? []} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} />
+              <ApplicationMapWorld applications={applications} visibleIds={visible.map(({ id }) => id)} selectedId={selectedId} night={night} zoom={zoom} center={center} onSelect={setSelectedId} shopItems={shop.state?.items ?? []} layouts={shop.state?.layouts ?? []} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} drag={{ enabled: shop.state !== null && !shop.busy, move: (id, position) => void shop.move(id, position), reject: shop.reject, nudge: shop.nudge, confirm: () => { if (shop.placement) void shop.save(shop.placement.item, shop.placement.position); }, cancel: shop.cancel, undo: shop.undo }} />
             </Suspense>
           </>
         )}

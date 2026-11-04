@@ -5,7 +5,8 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildingStages, createApplicationMap } from "@/lib/application-map";
 import { statusLabels } from "@/lib/utils";
-import { canPlaceMapItem, itemFootprint, villageDepth, villageObjects, type MapLayout, type MapPosition, type OwnedMapItem, type Placement } from "@/lib/map-shop";
+import { canPlaceMapItem, isLockedMapObject, itemFootprint, villageDepth, villageObjects, type MapLayout, type MapPosition, type OwnedMapItem, type PlaceableItem, type Placement } from "@/lib/map-shop";
+import { evaluateDrop, grabOffset, LONG_PRESS_MS, MOUSE_DRAG_THRESHOLD, nudgeKeys, samePosition, snapDragPosition, TOUCH_CANCEL_THRESHOLD, type DragApi, type DropVerdict } from "@/lib/map-drag";
 import { createShopModel } from "@/lib/map-shop-models";
 import { createMapRenderer, mapRenderLayers, setMapRenderLayer } from "@/lib/map-renderer";
 import { createMapVillager, villageWalkingRoutes } from "@/lib/map-villager";
@@ -26,24 +27,28 @@ type WorldProps = {
   placement: Placement | null;
   onSelectShopItem: (id: string) => void;
   onPlacePosition: (position: MapPosition) => void;
+  drag: DragApi;
 };
 
-export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition }: WorldProps) {
+export default function ApplicationMapWorld({ applications, visibleIds, selectedId, night, zoom, center, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
   const select = useRef(onSelect);
   const selectShopItem = useRef(onSelectShopItem);
   const placePosition = useRef(onPlacePosition);
+  const dragApi = useRef(drag);
   const previousPlacementId = useRef<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => { select.current = onSelect; }, [onSelect]);
+  useEffect(() => { dragApi.current = drag; world.current?.setDragEnabled(drag.enabled); }, [drag]);
   useEffect(() => { selectShopItem.current = onSelectShopItem; placePosition.current = onPlacePosition; }, [onSelectShopItem, onPlacePosition]);
   useEffect(() => {
     if (!host.current || !labels.current) return;
     try {
-      world.current = createWorld(host.current, labels.current, (id) => select.current(id), (id) => selectShopItem.current(id), (position) => placePosition.current(position));
+      world.current = createWorld(host.current, labels.current, (id) => select.current(id), (id) => selectShopItem.current(id), (position) => placePosition.current(position), () => dragApi.current);
+      world.current.setDragEnabled(dragApi.current.enabled);
     } catch {
       queueMicrotask(() => setUnavailable(true));
     }
@@ -64,7 +69,14 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
 
   return (
     <>
-      <div ref={host} className={styles.canvasHost} role="region" aria-label="3D-Bewerbungsdorf">
+      <div ref={host} className={styles.canvasHost} role="region" tabIndex={0} aria-label="3D-Bewerbungsdorf" aria-describedby="map-drag-help" onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
+        const api = dragApi.current;
+        if (nudgeKeys[event.key] && !event.altKey && !event.ctrlKey && !event.metaKey) { if (api.nudge(event.key)) event.preventDefault(); }
+        else if (event.key === "Enter" && placement) { event.preventDefault(); api.confirm(); }
+        else if (event.key === "Escape" && placement) { event.preventDefault(); api.cancel(); }
+        else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") { event.preventDefault(); api.undo(); }
+      }}>
         <div ref={labels} className={styles.worldLabels}>
           {applications.filter(({ id }) => visibleIds.includes(id)).map((application) => (
             <button type="button" data-building={application.id} key={application.id} className={`${styles.worldLabel} ${selectedId === application.id ? styles.selectedLabel : ""}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSelect(application.id)} aria-label={`${application.company}: ${statusLabels[application.status]}. Gebäudedetails öffnen`}>
@@ -73,6 +85,7 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
           ))}
         </div>
       </div>
+      <p id="map-drag-help" className={styles.dragHint}>Gegenstände und Häuser per Ziehen verschieben (Touch: kurz gedrückt halten, dann ziehen). Tastatur: Karte fokussieren, Gegenstand auswählen, Pfeiltasten verschieben, Enter platzieren, Esc abbrechen, Strg+Z rückgängig. Straßen sind fest.</p>
       {unavailable && <p className={styles.empty} role="status">Die 3D-Ansicht ist in diesem Browser nicht verfügbar. Deine Bewerbungen findest du unten.</p>}
       <details className={styles.accessibleBuildings}>
         <summary>Bewerbungen ({visibleIds.length})</summary>
@@ -82,7 +95,7 @@ export default function ApplicationMapWorld({ applications, visibleIds, selected
   );
 }
 
-function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id: string) => void, onSelectShopItem: (id: string) => void, onPlacePosition: (position: MapPosition) => void) {
+function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id: string) => void, onSelectShopItem: (id: string) => void, onPlacePosition: (position: MapPosition) => void, getDrag: () => DragApi) {
   const renderer = createMapRenderer();
   renderer.domElement.setAttribute("aria-hidden", "true");
   host.prepend(renderer.domElement);
@@ -397,6 +410,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       const villager = createMapVillager({ route, phase: index * 1.3, color: ["#618da0", "#b27b79", "#8d9366", "#a98c5d"][index % 4] });
       villager.group.scale.setScalar(1.1); villagers.push(villager); root.add(villager.group); animations.push(villager.animate);
     });
+    syncDrag();
   }
 
   function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[]) {
@@ -411,6 +425,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     }
     const objects = villageObjects(applications, layouts);
     const allItems = [...items, ...objects];
+    liveItems = allItems; liveDepth = villageDepth(applications);
     const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, villageDepth(applications));
     previewMaterial.color.set(valid ? "#90c978" : "#d5827d");
     for (const item of allItems) {
@@ -439,6 +454,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       if (moving) model.group.traverse((object) => { if (object instanceof THREE.Mesh) { object.material = previewMaterial; object.castShadow = false; } });
       else if (item.itemType !== "street") shopObjects.push(model.group);
     }
+    syncDrag();
   }
 
   function center() {
@@ -463,15 +479,195 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   observer.observe(host);
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
+  const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2);
   let down = { x: 0, y: 0 };
-  function pointerDown(event: PointerEvent) { down = { x: event.clientX, y: event.clientY }; }
+
+  // ---- Drag & drop of placed items (mouse: press + move; touch: long-press, then move) ----
+  type DragSession = { item: PlaceableItem; from: MapPosition; grab: { x: number; z: number }; pointerId: number; start: { x: number; y: number }; touch: boolean; active: boolean; timer: number; position: MapPosition; verdict: DropVerdict; source: THREE.Object3D | null; ghost: THREE.Object3D | null; hidden: boolean };
+  // Ghost and footprint ignore the depth buffer and render last, so a rejected spot stays visible even behind a house.
+  const dragMaterial = new THREE.MeshStandardMaterial({ color: "#58b043", transparent: true, opacity: 0.72, roughness: 0.8, depthWrite: false, depthTest: false });
+  const footprintMaterial = new THREE.MeshBasicMaterial({ color: "#58b043", transparent: true, opacity: 0.5, depthWrite: false, depthTest: false });
+  const outlineMaterial = new THREE.LineBasicMaterial({ color: "#58b043", depthTest: false });
+  const footprint = new THREE.Mesh(new THREE.BoxGeometry(1, 0.08, 1), footprintMaterial);
+  footprint.add(new THREE.LineSegments(new THREE.EdgesGeometry(footprint.geometry), outlineMaterial));
+  footprint.visible = false;
+  footprint.traverse((object) => { object.renderOrder = 9; });
+  scene.add(footprint);
+  let liveItems: PlaceableItem[] = [];
+  let liveDepth = 20;
+  let dragEnabled = false;
+  let session: DragSession | null = null;
+  let justDragged = false;
+  let lastHover = 0;
+
+  function groundPoint(event: PointerEvent) {
+    const bounds = host.getBoundingClientRect();
+    pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
+    raycaster.setFromCamera(pointer, camera);
+    return raycaster.ray.intersectPlane(groundPlane, new THREE.Vector3());
+  }
+
+  function ownerId(object: THREE.Object3D | null) {
+    while (object && !object.userData.applicationId && !object.userData.shopItemId) object = object.parent;
+    return object ? (object.userData.applicationId ? `house:${object.userData.applicationId as string}` : (object.userData.shopItemId as string)) : null;
+  }
+
+  function findSource(item: PlaceableItem) {
+    const groups = item.itemType === "house" ? buildings : [...previewRoot.children, ...shopRoot.children];
+    return groups.find((object) => (item.itemType === "house" ? `house:${object.userData.applicationId as string}` : object.userData.shopItemId) === item.id) ?? null;
+  }
+
+  /** What is under the pointer and may be dragged? Streets/bridges are never returned. */
+  function pickMovable(event: PointerEvent) {
+    const point = groundPoint(event);
+    if (!point) return null;
+    if (activePlacement) {
+      const { item, position } = activePlacement;
+      const size = itemFootprint(item.itemType, position.rotation);
+      const cellX = Math.floor(point.x), cellZ = Math.floor(point.z);
+      const inside = cellX >= position.x && cellX < position.x + size.width && cellZ >= position.z && cellZ < position.z + size.depth;
+      const hit = raycaster.intersectObjects([...buildings, ...previewRoot.children], true)[0];
+      if (!inside && (!hit || ownerId(hit.object) !== item.id)) return null;
+      return { item, from: position, point };
+    }
+    const hit = raycaster.intersectObjects([...buildings, ...shopObjects], true)[0];
+    const id = (hit ? ownerId(hit.object) : null) ?? decorationAt(point)?.id;
+    const item = id ? liveItems.find((candidate) => candidate.id === id) : undefined;
+    if (!item || item.x === null || item.z === null || isLockedMapObject(item)) return null;
+    return { item, from: { x: item.x, z: item.z, rotation: item.rotation }, point };
+  }
+
+  /** Small decorations are hard to hit with the ray alone (thin trunks, flat flower beds): fall back to the grid cell under the pointer. */
+  function decorationAt(point: THREE.Vector3) {
+    const cellX = Math.floor(point.x), cellZ = Math.floor(point.z);
+    return liveItems.find((item) => {
+      if (item.itemType === "house" || isLockedMapObject(item) || item.x === null || item.z === null) return false;
+      const size = itemFootprint(item.itemType, item.rotation);
+      return cellX >= item.x && cellX < item.x + size.width && cellZ >= item.z && cellZ < item.z + size.depth;
+    });
+  }
+
+  /** The world is rebuilt on every React render; a drag in progress keeps going and just re-attaches to the rebuilt object. */
+  function syncDrag() {
+    const current = session;
+    if (!current) return;
+    if (!liveItems.some(({ id }) => id === current.item.id)) { cancelDrag(); return; }
+    if (!current.active) return;
+    current.source = findSource(current.item);
+    if (current.hidden && current.source) current.source.visible = false;
+    if (current.ghost && current.source) current.ghost.position.set(current.source.position.x + current.position.x - current.from.x, current.source.position.y, current.source.position.z + current.position.z - current.from.z);
+  }
+
+  function arm() {
+    if (!session || session.active) return;
+    const current = session;
+    current.active = true;
+    controls.enabled = false;
+    current.source = findSource(current.item);
+    if (current.source) {
+      const ghost = current.source.clone(true);
+      ghost.userData = {};
+      ghost.traverse((object) => { object.renderOrder = 10; if (object instanceof THREE.Mesh) { object.material = dragMaterial; object.castShadow = false; object.receiveShadow = false; } });
+      scene.add(ghost);
+      current.ghost = ghost;
+      if (activePlacement) { current.source.visible = false; current.hidden = true; }
+    }
+    const size = itemFootprint(current.item.itemType, current.from.rotation);
+    footprint.scale.set(size.width, 1, size.depth);
+    footprint.visible = true;
+    place(current, current.from);
+    host.style.cursor = "grabbing";
+    if (current.touch) navigator.vibrate?.(12);
+  }
+
+  function place(current: DragSession, position: MapPosition) {
+    current.position = position;
+    current.verdict = evaluateDrop(current.item, position, liveItems, liveDepth);
+    const color = current.verdict.valid ? "#58b043" : "#e0443e";
+    dragMaterial.color.set(color); footprintMaterial.color.set(color); outlineMaterial.color.set(color);
+    const size = itemFootprint(current.item.itemType, position.rotation);
+    footprint.position.set(position.x + size.width / 2, 0.22, position.z + size.depth / 2);
+    if (current.ghost && current.source) current.ghost.position.set(current.source.position.x + position.x - current.from.x, current.source.position.y, current.source.position.z + position.z - current.from.z);
+    host.dataset.dragState = current.verdict.valid ? "valid" : "invalid";
+    host.dataset.dragCell = `${position.x},${position.z}`;
+  }
+
+  function endSession() {
+    const current = session;
+    if (!current) return;
+    session = null;
+    window.clearTimeout(current.timer);
+    window.removeEventListener("keydown", dragKeyDown, true);
+    controls.enabled = true;
+    footprint.visible = false;
+    if (current.ghost) { scene.remove(current.ghost); current.ghost = null; }
+    if (current.hidden && current.source) current.source.visible = true;
+    host.style.cursor = "";
+    delete host.dataset.dragState; delete host.dataset.dragCell;
+    try { if (host.hasPointerCapture(current.pointerId)) host.releasePointerCapture(current.pointerId); } catch { /* pointer already gone */ }
+  }
+
+  function cancelDrag() { endSession(); }
+  function dragKeyDown(event: KeyboardEvent) { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); cancelDrag(); } }
+
+  function drop() {
+    const current = session;
+    if (!current || !current.active) { endSession(); return false; }
+    const { item, position, verdict, from } = current;
+    endSession();
+    if (samePosition(position, from)) return true;
+    if (!verdict.valid) { getDrag().reject(verdict); return true; }
+    if (activePlacement) onPlacePosition(position); else getDrag().move(item.id, position);
+    return true;
+  }
+
+  function pointerDown(event: PointerEvent) {
+    down = { x: event.clientX, y: event.clientY };
+    if (session && event.pointerId !== session.pointerId) { cancelDrag(); return; }
+    if (event.button !== 0 || !event.isPrimary || !dragEnabled || session || (event.target as HTMLElement).closest("button")) return;
+    const pick = pickMovable(event);
+    if (!pick) return;
+    const touch = event.pointerType !== "mouse";
+    session = { item: pick.item, from: pick.from, grab: grabOffset(pick.point, pick.from), pointerId: event.pointerId, start: { x: event.clientX, y: event.clientY }, touch, active: false, timer: 0, position: pick.from, verdict: { valid: true, reason: "ok" }, source: null, ghost: null, hidden: false };
+    window.addEventListener("keydown", dragKeyDown, true);
+    if (touch) session.timer = window.setTimeout(arm, LONG_PRESS_MS);
+    else { event.stopPropagation(); try { host.setPointerCapture(event.pointerId); } catch { /* ignore */ } }
+  }
+
+  function pointerMove(event: PointerEvent) {
+    const current = session;
+    if (!current) {
+      if (event.pointerType !== "mouse" || event.buttons !== 0 || !dragEnabled || event.timeStamp - lastHover < 60) return;
+      lastHover = event.timeStamp;
+      host.style.cursor = pickMovable(event) ? "move" : "";
+      return;
+    }
+    if (event.pointerId !== current.pointerId) return;
+    if (!current.active) {
+      const moved = Math.hypot(event.clientX - current.start.x, event.clientY - current.start.y);
+      if (current.touch) { if (moved > TOUCH_CANCEL_THRESHOLD) endSession(); } // finger moved before the long-press: the map pans as usual
+      else if (moved > MOUSE_DRAG_THRESHOLD) arm();
+      if (!current.active) return;
+    }
+    event.preventDefault();
+    const point = groundPoint(event);
+    if (!point) return;
+    const position = snapDragPosition(point, current.grab, current.from.rotation);
+    if (!samePosition(position, current.position)) place(current, position);
+  }
+
   function pointerUp(event: PointerEvent) {
-    if (event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > (event.pointerType === "touch" ? 12 : 6) || (event.target as HTMLElement).closest("button")) return;
+    if (session && event.pointerId === session.pointerId) {
+      const active = session.active;
+      drop();
+      if (active) { justDragged = true; window.setTimeout(() => { justDragged = false; }, 0); return; }
+    }
+    if (justDragged || event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > (event.pointerType === "touch" ? 12 : 6) || (event.target as HTMLElement).closest("button")) return;
     const bounds = host.getBoundingClientRect();
     pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
     if (activePlacement) {
-      const point = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2), new THREE.Vector3());
+      const point = raycaster.ray.intersectPlane(groundPlane, new THREE.Vector3());
       if (point) onPlacePosition({ x: Math.floor(point.x), z: Math.floor(point.z), rotation: activePlacement.position.rotation });
       return;
     }
@@ -481,10 +677,21 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       while (object && !object.userData.applicationId && !object.userData.shopItemId) object = object.parent;
       if (object?.userData.applicationId) onSelect(object.userData.applicationId as string);
       if (object?.userData.shopItemId) onSelectShopItem(object.userData.shopItemId as string);
+    } else {
+      const point = raycaster.ray.intersectPlane(groundPlane, new THREE.Vector3());
+      const decoration = point && decorationAt(point);
+      if (decoration) onSelectShopItem(decoration.id);
     }
   }
-  host.addEventListener("pointerdown", pointerDown);
+  function pointerCancel(event: PointerEvent) { if (session && event.pointerId === session.pointerId) cancelDrag(); }
+  function contextMenu(event: Event) { if (session?.touch) event.preventDefault(); }
+  function visibilityChanged() { if (document.visibilityState !== "visible") cancelDrag(); }
+  host.addEventListener("pointerdown", pointerDown, true);
+  host.addEventListener("pointermove", pointerMove);
   host.addEventListener("pointerup", pointerUp);
+  host.addEventListener("pointercancel", pointerCancel);
+  host.addEventListener("contextmenu", contextMenu);
+  document.addEventListener("visibilitychange", visibilityChanged);
   const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
   function preferenceChanged() { motion = !preference.matches; }
   preference.addEventListener("change", preferenceChanged);
@@ -506,6 +713,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   return {
     populate,
     setShop,
+    setDragEnabled(value: boolean) { dragEnabled = value; if (!value) cancelDrag(); },
     center,
     focusConstruction(position: MapPosition) {
       controls.target.set(position.x + 1, 0, position.z + 1);
@@ -525,8 +733,14 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       renderer.setAnimationLoop(null);
       observer.disconnect();
       controls.dispose();
-      host.removeEventListener("pointerdown", pointerDown);
+      cancelDrag();
+      host.removeEventListener("pointerdown", pointerDown, true);
+      host.removeEventListener("pointermove", pointerMove);
       host.removeEventListener("pointerup", pointerUp);
+      host.removeEventListener("pointercancel", pointerCancel);
+      host.removeEventListener("contextmenu", contextMenu);
+      document.removeEventListener("visibilitychange", visibilityChanged);
+      dragMaterial.dispose(); footprintMaterial.dispose(); outlineMaterial.dispose(); footprint.geometry.dispose();
       preference.removeEventListener("change", preferenceChanged);
       for (const geometry of geometries.values()) geometry.dispose();
       for (const item of materials.values()) item.dispose();

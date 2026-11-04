@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Armchair, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Package, RotateCw, Route, ShoppingCart, TreePine, Waves, X } from "lucide-react";
+import { Armchair, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Package, RotateCw, Route, ShoppingCart, TreePine, Undo2, Waves, X } from "lucide-react";
 import { buyMapItem, getMapShop, moveMapObject, placeMapItem } from "@/lib/storage";
+import { applyMove, dropMessages, nudgePosition, samePosition, type DropVerdict, type MoveRecord } from "@/lib/map-drag";
 import { canPlaceMapItem, findFreeMapPosition, isLockedMapObject, isMapShopSetupError, placeableCatalog, shopCatalog, villageDepth, villageObjects, type MapPosition, type MapShopState, type PlaceableItem, type Placement, type ShopItemType } from "@/lib/map-shop";
 import type { Application } from "@/types";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +27,8 @@ export function useMapShop(refresh: number, applications: Application[]) {
   const setupUnavailable = useRef(false);
   const pendingLoad = useRef<Promise<MapShopState> | null>(null);
   const purchase = useRef<{ itemType: ShopItemType; id: string } | null>(null);
+  const [lastMove, setLastMove] = useState<MoveRecord | null>(null);
+  const [dragMessage, setDragMessage] = useState("");
   const objects = villageObjects(applications, state?.layouts ?? []);
   const allItems = [...(state?.items ?? []), ...objects];
   const maxZ = villageDepth(applications);
@@ -35,7 +38,7 @@ export function useMapShop(refresh: number, applications: Application[]) {
     async function load(clear = false) {
       if (locked.current || (setupUnavailable.current && !clear)) return;
       const request = ++operation.current;
-      if (clear) { setupUnavailable.current = false; pendingLoad.current = null; hasData.current = false; setState(null); setSelectedId(null); setPlacement(null); purchase.current = null; }
+      if (clear) { setupUnavailable.current = false; pendingLoad.current = null; hasData.current = false; setState(null); setSelectedId(null); setPlacement(null); setLastMove(null); setDragMessage(""); purchase.current = null; }
       if (!hasData.current) setLoading(true);
       const promise = pendingLoad.current ?? getMapShop();
       pendingLoad.current = promise;
@@ -109,12 +112,65 @@ export function useMapShop(refresh: number, applications: Application[]) {
     }
   }
 
+  const say = setDragMessage;
+  const dismissMessage = useCallback(() => setDragMessage(""), []);
+
+  /** Drag & drop / undo: optimistic update, server confirms, any error rolls back to the previous state. */
+  async function commitMove(item: PlaceableItem, from: MapPosition, to: MapPosition, undoing: boolean) {
+    if (locked.current || !state || isLockedMapObject(item) || !canPlaceMapItem(item, to, allItems, maxZ)) return false;
+    const previous = state;
+    locked.current = true; setBusy(true); setError(""); setNotice(""); say(""); setLoading(false);
+    const request = ++operation.current;
+    setState(applyMove(state, item, to));
+    try {
+      const next = item.itemType === "house" ? await moveMapObject(item.id, to) : await placeMapItem(item.id, to);
+      if (request !== operation.current) return false;
+      setState(next);
+      setLastMove(undoing ? null : { id: item.id, itemType: item.itemType, from, to });
+      setNotice(`${placeableCatalog[item.itemType].name} ${undoing ? "zurückgesetzt" : "verschoben"}.`);
+      return true;
+    } catch {
+      if (request === operation.current) { setState(previous); say("Speichern fehlgeschlagen – der Gegenstand ist an seinen alten Platz zurückgekehrt."); }
+      return false;
+    } finally {
+      if (request === operation.current) { locked.current = false; setBusy(false); }
+    }
+  }
+
+  function currentPosition(item: PlaceableItem): MapPosition | null { return item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : null; }
+
   return {
-    state, loading, busy, error, notice, placement, selectedId, objects, allItems, maxZ,
+    state, loading, busy, error, notice, placement, selectedId, objects, allItems, maxZ, lastMove, dragMessage, dismissMessage,
     buy, start, save,
+    /** Drop of a drag gesture on a placed item. Returns false if rejected (the item stays where it was). */
+    move(id: string, to: MapPosition) {
+      const item = allItems.find((candidate) => candidate.id === id);
+      const from = item && currentPosition(item);
+      if (!item || !from || samePosition(from, to)) return Promise.resolve(false);
+      return commitMove(item, from, to, false);
+    },
+    reject(verdict: DropVerdict) { say(dropMessages[verdict.reason]); },
+    undo() {
+      const record = lastMove;
+      const item = record && allItems.find(({ id }) => id === record.id);
+      if (!record || !item) return;
+      if (!canPlaceMapItem(item, record.from, allItems, maxZ)) { say("Rückgängig nicht möglich – der alte Platz ist inzwischen belegt."); return; }
+      const here = currentPosition(item);
+      if (here) void commitMove(item, here, record.from, true);
+    },
+    /** Keyboard alternative: arrow keys shift the pending placement (or start one for the selected, already placed item) by one cell. */
+    nudge(key: string) {
+      if (locked.current) return false;
+      const base = placement ? placement.position : (() => { const item = allItems.find(({ id }) => id === selectedId); return item && !isLockedMapObject(item) ? currentPosition(item) : null; })();
+      const target = base && nudgePosition(base, key);
+      if (!target) return false;
+      if (placement) setPlacement({ ...placement, position: target });
+      else { const item = allItems.find(({ id }) => id === selectedId)!; setNotice(""); say(""); setPlacement({ item, position: target }); }
+      return true;
+    },
     select(id: string) { if (!locked.current && !id.startsWith("street:")) { setSelectedId(id); setPlacement(null); } },
     position(position: MapPosition) { if (!locked.current) setPlacement((current) => current ? { ...current, position } : null); },
-    cancel() { if (!locked.current) setPlacement(null); },
+    cancel() { if (!locked.current) { setPlacement(null); say(""); } },
     clearSelection() { if (!locked.current) { setSelectedId(null); setPlacement(null); } },
     retry() { setupUnavailable.current = false; setRetry((current) => current + 1); },
   };
@@ -123,10 +179,20 @@ export function useMapShop(refresh: number, applications: Application[]) {
 type ShopController = ReturnType<typeof useMapShop>;
 
 export function MapPlacementTools({ shop }: { shop: ShopController }) {
+  const { dragMessage, lastMove } = shop;
+  const { dismissMessage } = shop;
+  useEffect(() => {
+    if (!dragMessage) return;
+    const timer = window.setTimeout(dismissMessage, 5000);
+    return () => window.clearTimeout(timer);
+  }, [dragMessage, dismissMessage]);
+  const message = dragMessage ? <p role="status" className={styles.dragMessage}>{dragMessage}</p> : null;
+  const undoItem = lastMove ? shop.allItems.find(({ id }) => id === lastMove.id) : null;
+  const undo = lastMove && undoItem ? <button type="button" disabled={shop.busy} onClick={shop.undo} title="Letztes Verschieben rückgängig machen (Strg+Z)"><Undo2 size={15} />Rückgängig</button> : null;
   if (!shop.placement) {
     const item = shop.allItems.find(({ id }) => id === shop.selectedId);
-    if (!item || item.x === null || isLockedMapObject(item)) return null;
-    return <div className={styles.placementTools} aria-label="Ausgewählter Gegenstand"><strong>{placeableCatalog[item.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(item)}><LocateFixed size={15} />Verschieben</button>{item.itemType !== "house" && item.itemType !== "street" && <button type="button" disabled={shop.busy} onClick={() => void shop.save(item, null)}><Package size={15} />Einlagern</button>}<button type="button" title="Auswahl schließen" aria-label="Auswahl schließen" disabled={shop.busy} onClick={shop.clearSelection}><X size={17} /></button></div>;
+    if (!item || item.x === null || isLockedMapObject(item)) return undo || message ? <div className={styles.moveToast} aria-label="Verschieben">{undo}{message}</div> : null;
+    return <div className={styles.placementTools} aria-label="Ausgewählter Gegenstand">{undo}{message}<strong>{placeableCatalog[item.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(item)}><LocateFixed size={15} />Verschieben</button>{item.itemType !== "house" && item.itemType !== "street" && <button type="button" disabled={shop.busy} onClick={() => void shop.save(item, null)}><Package size={15} />Einlagern</button>}<button type="button" title="Auswahl schließen" aria-label="Auswahl schließen" disabled={shop.busy} onClick={shop.clearSelection}><X size={17} /></button></div>;
   }
   const { item, position } = shop.placement;
   const valid = canPlaceMapItem(item, position, shop.allItems, shop.maxZ);
@@ -138,7 +204,7 @@ export function MapPlacementTools({ shop }: { shop: ShopController }) {
     <span>{position.rotation * 90}°</span>
     <button type="button" className={styles.placeConfirm} disabled={shop.busy || !valid} onClick={() => void shop.save(item, position)}><MapPin size={15} />{shop.busy ? "Speichern ..." : "Platzieren"}</button>
     <button type="button" title="Platzierung abbrechen" aria-label="Platzierung abbrechen" disabled={shop.busy} onClick={shop.cancel}><X size={17} /></button>
-    {!valid && <p role="status">Dieser Platz ist belegt oder außerhalb der Baufläche.</p>}
+    {!valid && <p role="status">Dieser Platz ist belegt oder außerhalb der Baufläche.</p>}{message}
   </div>;
 }
 

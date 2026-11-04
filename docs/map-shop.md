@@ -25,6 +25,18 @@ Die sechs Shopvorschauen werden einmalig als SVG aus denselben Three.js-Modellen
 
 Eine fehlende Shop-Funktion (etwa PostgREST-Code `PGRST202`) wird als ausstehende Einrichtung angezeigt. Nach diesem Fehler unterbleiben automatische Wiederholungen beim Fensterfokus. Nach dem Ausführen des Schemas den Shop über „Erneut laden“ erneut verbinden.
 
+## Verschieben per Ziehen
+
+Platzierte Gegenstände und Bewerbungshäuser lassen sich direkt auf der Map ziehen (`lib/map-drag.ts`, Drag-Logik in `application-map-world.tsx`):
+
+- **Maus:** auf den Gegenstand drücken und ziehen (ab 4 px). Ziehen auf leerem Boden verschiebt weiter die Karte.
+- **Touch:** kurz (ca. 350 ms) gedrückt halten, dann ziehen. Wer vorher wischt, verschiebt nur die Karte.
+- **Vorschau:** halbtransparenter Geist plus Rasterfeld, grün = frei, rot = ungültig. Der Gegenstand rastet auf ganze Zellen ein und bleibt an der gegriffenen Stelle.
+- **Abgelehnt** (springt zurück, Hinweis unten): außerhalb der Insel, Wasser/Brunnen, Straße oder Gegenstand darunter. Esc bricht ab. Straßen und Brücken sind nie ziehbar.
+- **Speichern** beim Loslassen mit denselben RPCs wie „Platzieren“ (`map_move_object` bzw. `map_shop_place`), optimistisch mit Rollback bei Fehler. „Rückgängig“ (oder Strg+Z) setzt das letzte Verschieben zurück.
+- **Tastatur:** Karte fokussieren, Gegenstand auswählen, Pfeiltasten verschieben um eine Zelle (rechts/links = X, unten/oben = Z) im Platzierungsmodus, Enter platziert, Esc bricht ab. Pfeiltasten außerhalb der Karte scrollen die Seite wie gewohnt.
+- Im Platzierungsmodus verschiebt Ziehen nur die vorgemerkte Position; erst „Platzieren“ speichert.
+
 ## Sicherheit und Tests
 
 RLS schützt die Tabellen. Angemeldete Nutzer haben direkten Lesezugriff nur auf ihre eigenen Wallets, Belohnungen und Gegenstände. Schreibzugriffe laufen über authentifizierte RPCs mit Eigentumsprüfung; Punkte können nicht direkt im Browser verändert werden.
