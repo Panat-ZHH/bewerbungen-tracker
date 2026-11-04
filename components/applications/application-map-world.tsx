@@ -467,7 +467,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   let down = { x: 0, y: 0 };
   function pointerDown(event: PointerEvent) { down = { x: event.clientX, y: event.clientY }; }
   function pointerUp(event: PointerEvent) {
-    if (event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > 6 || (event.target as HTMLElement).closest("button")) return;
+    if (event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > (event.pointerType === "touch" ? 12 : 6) || (event.target as HTMLElement).closest("button")) return;
     const bounds = host.getBoundingClientRect();
     pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
     raycaster.setFromCamera(pointer, camera);

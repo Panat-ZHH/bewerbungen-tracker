@@ -142,7 +142,7 @@ export function MapPlacementTools({ shop }: { shop: ShopController }) {
   </div>;
 }
 
-export function MapShop({ shop }: { shop: ShopController }) {
+export function MapShop({ shop, compact = false }: { shop: ShopController; compact?: boolean }) {
   const [previews, setPreviews] = useState<Partial<Record<ShopItemType, string>>>({});
   useEffect(() => {
     let active = true;
@@ -150,8 +150,8 @@ export function MapShop({ shop }: { shop: ShopController }) {
     return () => { active = false; };
   }, []);
   const selected = shop.state?.items.find(({ id }) => id === shop.selectedId);
-  return <section className={styles.shop} aria-labelledby="map-shop-title" aria-busy={shop.busy || shop.loading}>
-    <header className={styles.shopHeading}><div><h2 id="map-shop-title">Shop</h2><p>{shop.state ? `${shop.state.rewardCount} Bewerbungen belohnt` : "Punktestand wird geladen"}</p></div><div className={styles.points} aria-label="Verfügbare Punkte"><Coins size={20} /><strong>{shop.state?.balance ?? "-"}</strong><span>Punkte</span></div></header>
+  return <section className={`${styles.shop} ${compact ? styles.shopCompact : ""}`} aria-labelledby="map-shop-title" aria-busy={shop.busy || shop.loading}>
+    <header className={styles.shopHeading}><div><h2 id="map-shop-title" className={compact ? "sr-only" : undefined}>Shop</h2><p>{shop.state ? `${shop.state.rewardCount} Bewerbungen belohnt` : "Punktestand wird geladen"}</p></div><div className={styles.points} aria-label="Verfügbare Punkte"><Coins size={20} /><strong>{shop.state?.balance ?? "-"}</strong><span>Punkte</span></div></header>
     {shop.error && <div className={styles.shopError} role="alert">{shop.error}<button type="button" disabled={shop.busy || shop.loading} onClick={shop.retry}>Erneut laden</button></div>}
     <p className={styles.shopNotice} role="status">{shop.notice}</p>
     <div className={styles.shopGrid}>{(Object.entries(shopCatalog) as [ShopItemType, typeof shopCatalog[ShopItemType]][]).map(([type, item]) => {
