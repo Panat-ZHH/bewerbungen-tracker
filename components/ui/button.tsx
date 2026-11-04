@@ -1,15 +1,41 @@
-import type { ButtonHTMLAttributes } from "react";
+import Link from "next/link";
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonSize = "sm" | "md" | "lg";
 
 const variants: Record<ButtonVariant, string> = {
-  primary: "bg-[#0866d6] text-white hover:bg-[#075bbb]",
-  secondary: "border border-white/80 bg-white/55 text-[#1d1d1f] backdrop-blur-xl hover:bg-white/75",
-  ghost: "text-[#5e5e63] hover:bg-[#f2f2f4] hover:text-[#1d1d1f]",
-  danger: "border border-[#e8c7c7] bg-[#fff8f8] text-[#b42323] hover:bg-[#fff0f0]",
+  primary: "text-white bg-[image:var(--brand-gradient)] shadow-[var(--shadow-brand)] hover:brightness-110 hover:-translate-y-px",
+  secondary: "border border-[var(--glass-border)] bg-white/60 text-[var(--ink)] shadow-[var(--shadow-xs)] backdrop-blur-xl hover:bg-white/85 hover:shadow-[var(--shadow-sm)]",
+  ghost: "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
+  danger: "border border-[var(--danger-line)] bg-[var(--danger-bg)] text-[var(--danger-fg)] hover:brightness-95",
+};
+const sizes: Record<ButtonSize, string> = {
+  sm: "min-h-9 px-3.5 text-[13px]",
+  md: "min-h-11 px-5 text-sm sm:min-h-10 sm:px-4",
+  lg: "min-h-12 px-6 text-[15px]",
 };
 
-export function Button({ className, variant = "primary", ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }) {
-  return <button className={cn("inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-[.98] disabled:pointer-events-none disabled:opacity-50", variants[variant], className)} {...props} />;
+export function buttonClasses({ variant = "primary", size = "md", full, className }: { variant?: ButtonVariant; size?: ButtonSize; full?: boolean; className?: string }) {
+  return cn(
+    "inline-flex items-center justify-center gap-2 rounded-full font-semibold leading-none whitespace-nowrap select-none transition duration-200 ease-out active:translate-y-0 active:scale-[.97] disabled:pointer-events-none disabled:opacity-50 aria-busy:pointer-events-none",
+    variants[variant], sizes[size], full && "w-full", className,
+  );
+}
+
+type Common = { variant?: ButtonVariant; size?: ButtonSize; full?: boolean; loading?: boolean; icon?: ReactNode };
+
+export function Button({ className, variant = "primary", size = "md", full, loading, icon, children, disabled, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & Common) {
+  return (
+    <button disabled={disabled || loading} aria-busy={loading || undefined} className={buttonClasses({ variant, size, full, className })} {...props}>
+      {loading ? <span className="spinner" aria-hidden /> : icon}
+      {children}
+    </button>
+  );
+}
+
+/** Link styled like a Button. */
+export function ButtonLink({ className, variant = "primary", size = "md", full, icon, children, href, ...props }: AnchorHTMLAttributes<HTMLAnchorElement> & Common & { href: string }) {
+  return <Link href={href} className={buttonClasses({ variant, size, full, className })} {...props}>{icon}{children}</Link>;
 }

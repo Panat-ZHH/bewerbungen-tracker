@@ -3,10 +3,25 @@
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCircle2, GraduationCap, MapPin, ShieldCheck, UserRound, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { Button } from "@/components/ui/button";
+import { Field, Input } from "@/components/ui/input";
+import { StatusMessage } from "@/components/ui/skeleton";
 
 type AuthMode = "login" | "signup";
+type Role = "student" | "teacher";
+
+const roles: { value: Role; label: string; hint: string; icon: typeof UserRound }[] = [
+  { value: "student", label: "Schüler:in", hint: "Ich bewerbe mich", icon: UserRound },
+  { value: "teacher", label: "Lehrperson", hint: "Ich begleite Klassen", icon: GraduationCap },
+];
+
+const highlights = [
+  { icon: BarChart3, text: "Alle Bewerbungen und Status an einem Ort" },
+  { icon: MapPin, text: "Betriebe auf der Karte finden" },
+  { icon: Users, text: "Gemeinsam mit Freunden und Klassen dranbleiben" },
+];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -14,6 +29,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<Role>("student");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -40,7 +56,7 @@ export default function LoginPage() {
     }
     const result = mode === "login"
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
+      : await supabase.auth.signUp({ email, password, options: { data: { role } } });
     if (result.error) {
       setError(authError(result.error.message));
       setLoading(false);
@@ -57,40 +73,82 @@ export default function LoginPage() {
   const isSignup = mode === "signup";
 
   return (
-    <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5 py-10">
-      <div className="w-full max-w-[410px]">
-        <div className="mb-7 text-center">
-          <Image src="/logo.png" alt="WendApply" width={56} height={56} className="mx-auto rounded-[16px] bg-white p-1" priority />
-          <h1 className="mt-5 text-2xl font-semibold tracking-[-.5px]">{isSignup ? "Konto erstellen" : "Schön, dass du da bist."}</h1>
-          <p className="mt-2 text-sm text-muted">{isSignup ? "Behalte deine Bewerbungen an einem Ort." : "Melde dich an und behalte deine Suche im Blick."}</p>
+    <main className="workspace-bg min-h-[100dvh] lg:grid lg:grid-cols-[1.05fr_1fr]">
+      <aside className="relative hidden overflow-hidden bg-[image:var(--brand-gradient)] p-12 text-white lg:flex lg:flex-col lg:justify-between" aria-hidden>
+        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
+        <div className="relative flex items-center gap-3">
+          <Image src="/logo.png" alt="" width={44} height={44} className="rounded-[13px] bg-white p-1 shadow-[var(--shadow-md)]" />
+          <span className="text-lg font-semibold tracking-[-.02em]">WendApply</span>
         </div>
+        <div className="relative max-w-md">
+          <h2 className="text-display">Bewerbungen einfach im Blick.</h2>
+          <ul className="mt-8 space-y-4">
+            {highlights.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3 text-[15px] text-white/90">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur"><Icon size={17} /></span>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <p className="relative flex items-center gap-2 text-sm text-white/75"><ShieldCheck size={16} /> Deine Daten bleiben in deinem persönlichen Konto.</p>
+      </aside>
 
-        <form onSubmit={submit} className="glass-surface rounded-[16px] p-5 sm:p-7">
-          {error && <p role="alert" className="mb-5 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
-          {success && <p role="status" className="mb-5 flex gap-2 rounded-xl border border-[#c5dfcf] bg-[#f1faf4] px-4 py-3 text-sm leading-5 text-[#246c40]"><CheckCircle2 size={17} className="mt-0.5 shrink-0" />{success}</p>}
+      <section className="flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6 sm:py-10">
+        <div className="animate-rise w-full max-w-[420px]">
+          <div className="mb-6 text-center sm:mb-7">
+            <Image src="/logo.png" alt="WendApply" width={56} height={56} className="mx-auto rounded-[16px] bg-white p-1 shadow-[var(--shadow-md)] lg:hidden" priority />
+            <h1 className="text-title mt-5 lg:mt-0">{isSignup ? "Konto erstellen" : "Schön, dass du da bist."}</h1>
+            <p className="mt-2 text-sm text-muted">{isSignup ? "Behalte deine Bewerbungen an einem Ort." : "Melde dich an und behalte deine Suche im Blick."}</p>
+          </div>
 
-          <label className="mb-2 block text-sm font-medium" htmlFor="email">E-Mail-Adresse</label>
-          <input id="email" type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+          <form onSubmit={submit} className="glass-surface space-y-5 p-5 sm:p-7">
+            {error && <StatusMessage tone="danger">{error}</StatusMessage>}
+            {success && <StatusMessage tone="success" icon={<CheckCircle2 />}>{success}</StatusMessage>}
 
-          <label className="mb-2 mt-5 block text-sm font-medium" htmlFor="password">Passwort</label>
-          <input id="password" type="password" required minLength={6} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 6 Zeichen" : "Dein Passwort"} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+            {isSignup && (
+              <fieldset>
+                <legend className="mb-2 block text-sm font-medium">Ich bin</legend>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {roles.map(({ value, label, hint, icon: Icon }) => {
+                    const selected = role === value;
+                    return (
+                      <label key={value} className={`relative flex min-h-[76px] cursor-pointer flex-col items-start justify-center gap-0.5 rounded-xl border p-3 transition duration-200 focus-within:ring-4 focus-within:ring-[var(--brand)]/20 active:scale-[.98] ${selected ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-[var(--shadow-sm)]" : "border-[var(--field-border)] bg-[var(--field-bg)] hover:border-[#b8b8c0]"}`}>
+                        <input type="radio" name="role" value={value} checked={selected} onChange={() => setRole(value)} className="sr-only" />
+                        <span className={`flex items-center gap-1.5 text-sm font-semibold ${selected ? "text-[var(--brand-strong)]" : ""}`}><Icon size={15} />{label}</span>
+                        <span className="text-xs text-muted">{hint}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            )}
 
-          {isSignup && <>
-            <label className="mb-2 mt-5 block text-sm font-medium" htmlFor="confirm-password">Passwort wiederholen</label>
-            <input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} className="min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
-          </>}
+            <Field label="E-Mail-Adresse" htmlFor="email">
+              <Input id="email" type="email" required autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" />
+            </Field>
+            <Field label="Passwort" htmlFor="password">
+              <Input id="password" type="password" required minLength={6} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 6 Zeichen" : "Dein Passwort"} />
+            </Field>
+            {isSignup && (
+              <Field label="Passwort wiederholen" htmlFor="confirm-password">
+                <Input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+              </Field>
+            )}
 
-          <button disabled={loading} className="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#0866d6] px-5 text-sm font-semibold text-white hover:bg-[#075bbb] disabled:opacity-60">
-            {loading ? "Einen Moment …" : isSignup ? "Konto erstellen" : "Anmelden"}<ArrowRight size={16} />
-          </button>
+            <Button type="submit" size="lg" full loading={loading}>
+              {loading ? "Einen Moment …" : isSignup ? "Konto erstellen" : "Anmelden"}{!loading && <ArrowRight size={16} />}
+            </Button>
 
-          <p className="mt-6 border-t border-[#e5e5ea] pt-5 text-center text-sm text-muted">
-            {isSignup ? "Du hast schon ein Konto?" : "Noch kein Konto?"}{" "}
-            <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="font-semibold text-[#0866d6] hover:underline">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
-          </p>
-        </form>
-        <p className="mt-5 text-center text-xs text-muted">Deine Daten bleiben in deinem persönlichen Konto.</p>
-      </div>
+            <p className="border-t border-[var(--line)] pt-5 text-center text-sm text-muted">
+              {isSignup ? "Du hast schon ein Konto?" : "Noch kein Konto?"}{" "}
+              <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="inline-flex min-h-8 items-center font-semibold text-[var(--brand)] hover:underline">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
+            </p>
+          </form>
+          <p className="mt-5 text-center text-xs text-muted lg:hidden">Deine Daten bleiben in deinem persönlichen Konto.</p>
+        </div>
+      </section>
     </main>
   );
 }
