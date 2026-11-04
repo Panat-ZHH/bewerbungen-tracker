@@ -1,0 +1,18 @@
+# PLAN – Bewerbungen Tracker (WendApply) round 2
+
+## State on main (a856f99, 14 commits ahead of origin, nothing pushed)
+Stack: Next.js 16 (App Router, read node_modules/next/dist/docs before coding), React 19, Tailwind 4, Supabase (client-side, supabase-js), recharts, three.js map. Tests: `npm test` (node --test + pglite, 44 pass). Build needs env: use dummy `NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy` (never commit real keys).
+Already merged by the previous orchestrator: design system (docs/design-system.md, components/ui), responsive shell + mobile tab bar, new login with role choice, friends/invites (supabase/social.sql, lib/social.ts, components/friends, app/friends, app/invite/[code]), classes (lib/classes.ts, components/classes, app/classes), restyled pages. Docs: docs/social-classes.md.
+Known problems: `npm run lint` scans `.claude/worktrees` (24k problems); no real UX audit with screenshots yet; nothing verified on mobile viewport.
+
+## Data model (existing, supabase/schema.sql + social.sql)
+applications (user's own, RLS), user_roles(student|teacher), friendships, classes, class_members(share_applications). Foreign data only via security-definer RPCs. Notes/salary/CV never shared. Changes = new migration file in supabase/migrations/, never edit remote.
+
+## Parts (one worktree/branch each, ~/Projects/bewerbungen-tracker-wt/<part>)
+- ux-responsive (A): UX audit + responsive/mobile fixes. Owns: app/dashboard/**, app/applications/**, components/applications/**, components/layout/**, app/page.tsx, app/login/**, eslint.config.mjs (add `.claude/**`, `**/*.tsbuildinfo` ignores; fix real lint errors in our own code). Audit at 375/768/1280 px with headless browser against a stubbed Supabase (Playwright route interception or small mock server), write docs/ux-audit.md, fix issues found (touch targets >=44px, overflow, nav, forms, empty states, clear first-run flow).
+- premium-ui (B): visual polish. Owns: app/globals.css, components/ui/**, docs/design-system.md, app/analytics, app/cvs, app/search, app/profile, app/settings, app/map/**, app/not-found.tsx, app/loading.tsx, app/error.tsx. Typography, spacing, motion, dark-mode toggle (persisted, in settings; check contrast), consistent cards/charts. Do not change component prop APIs (others consume them).
+- social-classes (C): UX/robustness of friends + classes. Owns: app/friends/**, app/invite/**, app/classes/**, components/friends/**, components/classes/**, lib/social.ts, lib/classes.ts, supabase/**, tests/social.test.mjs, tests/classes.test.mjs, docs/social-classes.md. Make invite link sharing (copy + Web Share + mailto) smooth, invite acceptance flow for logged-out users (redirect to login then back), per-Bewerbung privacy visible and clear, teacher class overview with status filters + search + sort, student detail, mobile layouts. Add tests for new SQL/RPC. Move SQL into supabase/migrations/ (keep schema.sql/social.sql working).
+- tester (D, after A-C): build, lint, tests, headless Playwright checks desktop + mobile on every route with stubbed Supabase, screenshots in ~/Projects/bewerbungen-tracker-wt/screenshots/, report bugs in docs/test-report.md and fix small ones.
+- integrator (E, after D): merge branches into main locally, resolve conflicts, build/lint/test, start `npm run dev` on port 3100 (dummy env), final screenshot.
+
+Rules: no push/deploy/Supabase project creation/remote changes; no secrets; nothing deleted permanently (use ~/.Trash); commit locally on the part branch; don't touch files owned by another part (message in your final report instead).
