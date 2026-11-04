@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BriefcaseBusiness, CalendarClock, EyeOff, Search, Settings2, Sparkles, Trophy, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { useAvatarUrls } from "@/components/ui/use-avatars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -34,6 +35,7 @@ const matches: Record<FilterKey, (s: ClassStudentOverview) => boolean> = {
 export function ClassDetail({ classId }: { classId: string }) {
   const [cls, setCls] = useState<SchoolClass | null>(null);
   const [students, setStudents] = useState<ClassStudentOverview[] | null>(null);
+  const avatars = useAvatarUrls((students ?? []).map((student) => student.studentId));
   const [error, setError] = useState("");
   const [sort, setSort] = useState<SortKey>("activity");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -122,7 +124,7 @@ export function ClassDetail({ classId }: { classId: string }) {
                   <li key={s.studentId}>
                     <button type="button" onClick={() => setSelected(s)} className="card-interactive panel w-full space-y-3 rounded-[var(--radius-lg)] p-4 text-left">
                       <div className="flex items-center gap-3">
-                        <Avatar name={s.displayName} size="sm" />
+                        <Avatar name={s.displayName} src={avatars[s.studentId]} size="sm" />
                         <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{s.displayName}</p>{s.hidden ? <p className="text-small text-muted">Teilt keine Daten</p> : <p className="text-small text-muted tabular">{s.total} Bewerbungen · 7 T: {s.last7Days} · 30 T: {s.last30Days}</p>}</div>
                         {s.hidden && <EyeOff size={16} className="text-muted" />}
                       </div>
@@ -156,7 +158,7 @@ export function ClassDetail({ classId }: { classId: string }) {
                     {rows.map((s) => (
                       <tr key={s.studentId} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                         <th scope="row" className="px-4 py-3 font-medium">
-                          <button type="button" onClick={() => setSelected(s)} className="inline-flex items-center gap-2.5 text-left hover:text-[var(--brand-strong)]"><Avatar name={s.displayName} size="xs" />{s.displayName}</button>
+                          <button type="button" onClick={() => setSelected(s)} className="inline-flex items-center gap-2.5 text-left hover:text-[var(--brand-strong)]"><Avatar name={s.displayName} src={avatars[s.studentId]} size="xs" />{s.displayName}</button>
                         </th>
                         {s.hidden ? (
                           <td colSpan={5} className="px-3 py-3 text-muted"><span className="inline-flex items-center gap-1.5"><EyeOff size={14} /> Teilt keine Daten</span></td>

@@ -8,6 +8,7 @@ import { BarChart3, BriefcaseBusiness, FileText, GraduationCap, LayoutDashboard,
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
+import { useMyAvatar } from "@/components/ui/use-avatars";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -37,6 +38,7 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
   const [user, setUser] = useState<User | null>(null);
   const [checkingSession, setCheckingSession] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
+  const myAvatar = useMyAvatar(Boolean(user));
 
   useEffect(() => {
     let mounted = true;
@@ -122,7 +124,7 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
               <LogOut size={17} strokeWidth={1.8} />
             </button>
             <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition active:scale-95">
-              <Avatar name={displayName} size="sm" />
+              <Avatar name={displayName} src={myAvatar} size="sm" />
             </Link>
           </div>
         </div>
@@ -154,7 +156,7 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
 
       <Modal open={moreOpen} onClose={() => setMoreOpen(false)} title="Mehr">
         <div className="mb-4 flex items-center gap-3 rounded-2xl bg-[var(--hover)] p-3">
-          <Avatar name={displayName} size="md" />
+          <Avatar name={displayName} src={myAvatar} size="md" />
           <p className="min-w-0 truncate text-sm font-medium">{user.email}</p>
         </div>
         <ul className="grid grid-cols-2 gap-2">

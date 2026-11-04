@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { EyeOff, MapPin, Trash2, UserMinus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { useAvatarUrls } from "@/components/ui/use-avatars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -27,6 +28,7 @@ function summary(activity?: FriendActivity) {
 }
 
 export function FriendList({ friends, activity, onChanged }: { friends: SocialConnection[]; activity: FriendActivity[]; onChanged: () => void }) {
+  const avatars = useAvatarUrls(friends.map((friend) => friend.otherUserId));
   const [target, setTarget] = useState<SocialConnection | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -47,7 +49,7 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
             <li key={friend.id}>
               <Card interactive className="h-full p-4">
                 <div className="flex items-center gap-3">
-                  <Avatar name={friend.displayName} size="lg" />
+                  <Avatar name={friend.displayName} src={avatars[friend.otherUserId]} size="lg" />
                   <div className="min-w-0 flex-1">
                     <p className="text-heading truncate">{friend.displayName}</p>
                     {act?.shared ? <p className="text-small text-muted">{summary(act)}</p> : <Badge tone="neutral" className="mt-1 gap-1"><EyeOff size={12} aria-hidden />privat</Badge>}
