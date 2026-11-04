@@ -1,7 +1,6 @@
 // Headless check of the islands feature against a stubbed Supabase (nothing real is touched).
 // Usage: start `next dev --webpack -p 3142` with dummy env (NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321), then
 //   PLAYWRIGHT=<path to playwright-core/index.mjs> CHROME=<chrome binary> node scripts/islands-e2e.mjs
-import fs from "node:fs";
 const { chromium } = await import(process.env.PLAYWRIGHT);
 const BASE = process.env.BASE || "http://localhost:3142";
 const OUT = process.env.OUT || `${process.env.HOME}/Projects/bewerbungen-tracker-wt/screenshots/map/`;
