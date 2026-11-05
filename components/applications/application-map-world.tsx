@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { buildingStages, createApplicationMap } from "@/lib/application-map";
 import { statusLabels } from "@/lib/utils";
 import { canPlaceMapItem, isLockedMapObject, itemFootprint, villageDepth, villageObjects, type MapLayout, type MapPosition, type OwnedMapItem, type PlaceableItem, type Placement } from "@/lib/map-shop";
 import { lockedDrag, noopHandler } from "@/lib/map-readonly";
 import { evaluateDrop, grabOffset, LONG_PRESS_MS, MOUSE_DRAG_THRESHOLD, nudgeKeys, samePosition, snapDragPosition, TOUCH_CANCEL_THRESHOLD, type DragApi, type DropVerdict } from "@/lib/map-drag";
 import { createShopModel } from "@/lib/map-shop-models";
-import { createMapRenderer, mapRenderLayers, setMapRenderLayer } from "@/lib/map-renderer";
+import { basePixelRatio, createMapRenderer, mapRenderLayers, nextPixelRatio, setMapRenderLayer, shadowDue } from "@/lib/map-renderer";
+import { BOUNDS_MARGIN, CAMERA_OFFSET, cameraRects, createCameraController, ZOOM_MAX, ZOOM_MIN } from "@/lib/map-camera";
+import { attachCameraInput } from "@/components/applications/map-camera-input";
 import { buildIslands, revealProgress, type IslandParts } from "@/lib/island-scenery";
 import { islandConfig } from "@/lib/islands";
 import { createMapVillager, villageWalkingRoutes } from "@/lib/map-villager";
@@ -36,6 +37,21 @@ type WorldProps = {
   islandFocus?: { no: number; reveal: boolean; key: number } | null;
   /** Friend view: nothing can be selected, placed, dragged or changed; only camera pan/zoom works. Overrides all handler props. */
   readOnly?: boolean;
+  /** Receives the imperative camera controls once the 3D world exists (null again when it is torn down). */
+  onCameraApi?: (api: MapCameraApi | null) => void;
+};
+
+/** Imperative camera controls for toolbars. All moves are animated (instant with prefers-reduced-motion) and clamped to the islands. */
+export type MapCameraApi = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  /** Absolute zoom level (0.4 - 2.4), about the view centre. */
+  setZoom: (zoom: number) => void;
+  /** Back to zoom 100 % and the village centre. */
+  reset: () => void;
+  /** Move the ground point (grid cells) to the view centre, optionally zooming. */
+  focusOn: (x: number, z: number, zoom?: number) => void;
+  getState: () => { x: number; z: number; zoom: number };
 };
 
 /** Read-only mode overrides every mutating handler, so the inner world can never place, drag or select anything. */
@@ -43,7 +59,7 @@ export default function ApplicationMapWorld(props: WorldProps) {
   return <World {...(props.readOnly ? { ...props, onSelect: noopHandler, onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null, selectedShopItemId: null, selectedId: null } : props)} />;
 }
 
-function World({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null, readOnly = false }: WorldProps) {
+function World({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onCameraApi, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null, readOnly = false }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
@@ -52,10 +68,12 @@ function World({ applications, visibleIds, selectedId, night, zoom, center, onZo
   const placePosition = useRef(onPlacePosition);
   const dragApi = useRef(drag);
   const zoomChange = useRef(onZoomChange);
+  const cameraApi = useRef(onCameraApi);
+  const placementId = placement?.item.id ?? null;
   const previousPlacementId = useRef<string | null>(null);
   const [unavailable, setUnavailable] = useState(false);
 
-  useEffect(() => { select.current = onSelect; zoomChange.current = onZoomChange; }, [onSelect, onZoomChange]);
+  useEffect(() => { select.current = onSelect; zoomChange.current = onZoomChange; cameraApi.current = onCameraApi; }, [onSelect, onZoomChange, onCameraApi]);
   useEffect(() => { dragApi.current = drag; world.current?.setDragEnabled(drag.enabled); }, [drag]);
   useEffect(() => { selectShopItem.current = onSelectShopItem; placePosition.current = onPlacePosition; }, [onSelectShopItem, onPlacePosition]);
   useEffect(() => {
@@ -63,12 +81,13 @@ function World({ applications, visibleIds, selectedId, night, zoom, center, onZo
     try {
       world.current = createWorld(host.current, labels.current, (id) => select.current(id), (id) => selectShopItem.current(id), (position) => placePosition.current(position), () => dragApi.current, (value) => zoomChange.current?.(value));
       world.current.setDragEnabled(dragApi.current.enabled);
+      cameraApi.current?.(world.current.api);
     } catch {
       queueMicrotask(() => setUnavailable(true));
     }
-    return () => { world.current?.dispose(); world.current = null; };
+    return () => { cameraApi.current?.(null); world.current?.dispose(); world.current = null; };
   }, []);
-  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts, islandCount); }, [applications, visibleIds, selectedId, layouts, placement, islandCount]);
+  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts, islandCount); }, [applications, visibleIds, selectedId, layouts, placementId, islandCount]);
   useEffect(() => { if (islandFocus) world.current?.focusIsland(islandFocus.no, islandFocus.reveal); }, [islandFocus]);
   useEffect(() => { world.current?.lighting(night); }, [night]);
   useEffect(() => { world.current?.zoom(zoom); }, [zoom]);
@@ -124,20 +143,37 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#b9c9ae");
   const camera = new THREE.OrthographicCamera(-16, 16, 12, -12, 0.1, 200);
-  camera.position.set(24, 30, 34);
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 0, 1);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.12;
-  controls.minZoom = 0.4;
-  controls.maxZoom = 2.4;
-  controls.minPolarAngle = Math.PI / 6;
-  controls.maxPolarAngle = Math.PI / 2.6;
-  controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
-  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
-  controls.update();
-  // Mouse wheel / pinch zoom changes camera.zoom inside OrbitControls; report it so the toolbar percentage stays correct.
-  controls.addEventListener("change", () => onZoomChange(Number(camera.zoom.toFixed(2))));
+  const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let motion = !preference.matches;
+  // Camera = pure state machine (lib/map-camera.ts); three's camera is only a copy of its state. Sizes/rects are cached, never read per frame.
+  let size = { width: host.clientWidth || 800, height: host.clientHeight || 600 };
+  const controller = createCameraController({ x: 0, z: 1, zoom: 1 }, { view: size, rects: cameraRects(1), reducedMotion: !motion });
+  const cameraTarget = new THREE.Vector3();
+  let cameraDirty = true;
+  /** Copy controller state into the three.js camera (position keeps the fixed isometric offset, rotation never changes). */
+  function syncCamera() {
+    const { x, z, zoom } = controller.state;
+    cameraTarget.set(x, 0, z);
+    camera.position.set(x + CAMERA_OFFSET.x, CAMERA_OFFSET.y, z + CAMERA_OFFSET.z);
+    if (camera.zoom !== zoom) { camera.zoom = zoom; camera.updateProjectionMatrix(); }
+    camera.lookAt(cameraTarget);
+    camera.updateMatrixWorld();
+    cameraDirty = false;
+  }
+  syncCamera();
+  const input = attachCameraInput({ host, controller, dragState: (id) => (session && session.pointerId === id ? (session.active ? "active" : "pending") : "none") });
+  // Zoom is reported to React throttled (it re-renders the whole page); the value we reported last is ignored when it comes back as the `zoom` prop.
+  let lastReportAt = 0;
+  let lastReportedZoom = 1;
+  // The page may deliver a stale echo of an earlier report after a newer one went out (slow render): remember what we sent in the last seconds.
+  const recentReports: { value: number; at: number }[] = [];
+  function reportZoom(now: number, force: boolean) {
+    const zoom = Number(controller.state.zoom.toFixed(2));
+    if (zoom === lastReportedZoom || (!force && now - lastReportAt < 120)) return;
+    lastReportedZoom = zoom; lastReportAt = now; stats.zoomChange++;
+    recentReports.push({ value: zoom, at: now }); while (recentReports.length > 16 || (recentReports.length && now - recentReports[0].at > 2000)) recentReports.shift();
+    onZoomChange(zoom);
+  }
 
   const ambient = new THREE.HemisphereLight("#fff5dc", "#658754", 2.6);
   scene.add(ambient);
@@ -166,6 +202,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   const geometries = new Map<string, THREE.BufferGeometry>();
   const animations: ((time: number) => void)[] = [];
   const villagers: ReturnType<typeof createMapVillager>[] = [];
+  const stats = { populate: 0, setShop: 0, shopRebuild: 0, zoomChange: 0, frames: 0, camera: 0 };
   const anchors = new Map<string, THREE.Vector3>();
   const buildings: THREE.Object3D[] = [];
   const shopObjects: THREE.Object3D[] = [];
@@ -177,8 +214,6 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   let boardDepth = 23;
   let islandParts = new Map<number, IslandParts>();
   let revealing: { no: number; start: number } | null = null;
-  let flight: { from: THREE.Vector3; to: THREE.Vector3; start: number } | null = null;
-  let motion = !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function material(color: string) {
     if (!materials.has(color)) materials.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true }));
@@ -327,6 +362,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   }
 
   function populate(applications: Application[], visibleIds: string[], selectedId: string | null, layouts: MapLayout[], islandCount = 1) {
+    stats.populate++; sceneChanged = true; labelsDirty = true;
     for (const villager of villagers) villager.dispose();
     villagers.length = 0;
     root.clear();
@@ -335,6 +371,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     anchors.clear();
     const map = createApplicationMap(applications);
     boardDepth = Math.max(23, map.height / 48);
+    liveIslands = islandCount; controller.setRects(cameraRects(islandCount, villageDepth(applications)));
     const centerZ = boardDepth / 2 - 7;
     setMapRenderLayer(box(root, 0, -0.65, centerZ, 34, 1.3, boardDepth + 8, "#8d8a6e"), mapRenderLayers.terrain);
     setMapRenderLayer(box(root, 0, -0.08, centerZ, 34, 0.45, boardDepth + 8, "#84a66b"), mapRenderLayers.terrain + 1);
@@ -441,61 +478,101 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     syncDrag();
   }
 
-  function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[], islandCount = 1) {
+  let sceneChanged = true;
+  let labelsDirty = true;
+  const previewModels: ReturnType<typeof createShopModel>[] = [];
+  let shopKey: { items: OwnedMapItem[]; selectedId: string | null; applications: Application[]; layouts: MapLayout[]; islandCount: number; movingId: string | null } | null = null;
+  let shopItemsCache: PlaceableItem[] = [];
+
+  function disposePreview() {
+    for (const model of previewModels) model.dispose();
+    previewModels.length = 0; previewRoot.clear();
+  }
+
+  /** The static shop models (everything except the item being placed). Rebuilt only when the inventory/layout/selection really changed. */
+  function rebuildShop(items: OwnedMapItem[], selectedId: string | null, movingId: string | null, applications: Application[], layouts: MapLayout[]) {
+    stats.shopRebuild++;
     for (const model of shopModels) model.dispose();
-    shopModels.length = 0; shopRoot.clear(); previewRoot.clear(); shopObjects.length = 0; shopAnimations.length = 0;
+    shopModels.length = 0; shopRoot.clear(); shopObjects.length = 0; shopAnimations.length = 0;
+    shopItemsCache = [...items, ...villageObjects(applications, layouts)];
+    for (const item of shopItemsCache) {
+      if (item.itemType === "house" || item.id === movingId) continue;
+      if (item.x === null || item.z === null || !Number.isFinite(item.x) || !Number.isFinite(item.z)) continue;
+      const model = createShopModel(item.itemType === "street" ? "road" : item.itemType, item.id === selectedId);
+      shopModels.push(model);
+      shopAnimations.push(model.animate);
+      const footprint = itemFootprint(item.itemType, item.rotation);
+      model.group.position.set(item.x + footprint.width / 2, 0.19, item.z + footprint.depth / 2);
+      model.group.rotation.y = -item.rotation * Math.PI / 2; model.group.userData.shopItemId = item.id;
+      shopRoot.add(model.group);
+      setMapRenderLayer(model.group, item.itemType === "road" || item.itemType === "street" ? mapRenderLayers.road : mapRenderLayers.object);
+      if (item.itemType !== "street") shopObjects.push(model.group);
+    }
+  }
+
+  function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[], islandCount = 1) {
+    stats.setShop++;
     activePlacement = placement;
+    const movingId = placement?.item.id ?? null;
+    // Hovering/clicking while placing only changes `placement.position`: keep the scene, update the ghost.
+    if (!shopKey || shopKey.items !== items || shopKey.selectedId !== selectedId || shopKey.applications !== applications || shopKey.layouts !== layouts || shopKey.movingId !== movingId) {
+      shopKey = { items, selectedId, applications, layouts, islandCount, movingId };
+      rebuildShop(items, selectedId, movingId, applications, layouts);
+      sceneChanged = true;
+    }
     constructionGrid.visible = placement !== null;
     if (placement) {
       const size = itemFootprint(placement.item.itemType, placement.position.rotation);
       constructionGrid.scale.set((size.width + 2) / 8, 1, (size.depth + 2) / 8);
       constructionGrid.position.set(placement.position.x + size.width / 2, 0.2, placement.position.z + size.depth / 2);
     }
-    const objects = villageObjects(applications, layouts);
-    const allItems = [...items, ...objects];
+    const allItems = shopItemsCache;
     liveItems = allItems; liveDepth = villageDepth(applications); liveIslands = islandCount;
-    const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, villageDepth(applications), islandCount);
+    const valid = !placement || canPlaceMapItem(placement.item, placement.position, allItems, liveDepth, islandCount);
     previewMaterial.color.set(valid ? "#90c978" : "#d5827d");
-    for (const item of allItems) {
-      const moving = item.id === placement?.item.id;
-      const position = moving ? placement.position : item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : null;
-      if (!position || !Number.isFinite(position.x) || !Number.isFinite(position.z)) continue;
-      if (item.itemType === "house") {
-        if (moving) {
-          const house = buildings.find((object) => object.userData.applicationId === item.applicationId);
-          if (house) {
-            house.position.set(position.x + 2.5, 0, position.z + 2.5); house.rotation.y = -position.rotation * Math.PI / 2;
-            house.traverse((object) => { if (object instanceof THREE.Mesh) object.material = previewMaterial; });
-            anchors.set(item.applicationId!, new THREE.Vector3(position.x + 2.5, 0.25, position.z + 5.1));
-          }
+    disposePreview();
+    const moving = placement ? allItems.find((item) => item.id === placement.item.id) : undefined;
+    if (placement && moving) {
+      const position = placement.position;
+      if (!Number.isFinite(position.x) || !Number.isFinite(position.z)) { syncDrag(); return; }
+      if (moving.itemType === "house") {
+        const house = buildings.find((object) => object.userData.applicationId === moving.applicationId);
+        if (house) {
+          house.position.set(position.x + 2.5, 0, position.z + 2.5); house.rotation.y = -position.rotation * Math.PI / 2;
+          house.traverse((object) => { if (object instanceof THREE.Mesh) object.material = previewMaterial; });
+          anchors.set(moving.applicationId!, new THREE.Vector3(position.x + 2.5, 0.25, position.z + 5.1));
         }
-        continue;
+      } else {
+        const model = createShopModel(moving.itemType === "street" ? "road" : moving.itemType, moving.id === selectedId);
+        previewModels.push(model);
+        const footprint = itemFootprint(moving.itemType, position.rotation);
+        model.group.position.set(position.x + footprint.width / 2, 0.19, position.z + footprint.depth / 2);
+        model.group.rotation.y = -position.rotation * Math.PI / 2; model.group.userData.shopItemId = moving.id;
+        previewRoot.add(model.group);
+        setMapRenderLayer(model.group, moving.itemType === "road" || moving.itemType === "street" ? mapRenderLayers.road : mapRenderLayers.object);
+        model.group.traverse((object) => { if (object instanceof THREE.Mesh) { object.material = previewMaterial; object.castShadow = false; } });
       }
-      const model = createShopModel(item.itemType === "street" ? "road" : item.itemType, item.id === selectedId);
-      shopModels.push(model);
-      if (!moving) shopAnimations.push(model.animate);
-      const footprint = itemFootprint(item.itemType, position.rotation);
-      model.group.position.set(position.x + footprint.width / 2, 0.19, position.z + footprint.depth / 2);
-      model.group.rotation.y = -position.rotation * Math.PI / 2; model.group.userData.shopItemId = item.id;
-      (moving ? previewRoot : shopRoot).add(model.group);
-      setMapRenderLayer(model.group, item.itemType === "road" || item.itemType === "street" ? mapRenderLayers.road : mapRenderLayers.object);
-      if (moving) model.group.traverse((object) => { if (object instanceof THREE.Mesh) { object.material = previewMaterial; object.castShadow = false; } });
-      else if (item.itemType !== "street") shopObjects.push(model.group);
     }
+    labelsDirty = true; sceneChanged = true;
     syncDrag();
   }
 
+  let firstCenter = true;
   function center() {
     const focus = buildings.slice(0, 3);
-    controls.target.set(focus.length ? focus.reduce((sum, object) => sum + object.position.x, 0) / focus.length : -3.2, 0, focus.length ? focus.reduce((sum, object) => sum + object.position.z, 0) / focus.length + 1 : 0);
-    camera.position.copy(controls.target).add(new THREE.Vector3(24, 30, 34));
-    controls.update();
+    const point = { x: focus.length ? focus.reduce((sum, object) => sum + object.position.x, 0) / focus.length : -3.2, z: focus.length ? focus.reduce((sum, object) => sum + object.position.z, 0) / focus.length + 1 : 0 };
+    if (firstCenter) { firstCenter = false; controller.set(point); cameraDirty = true; } else controller.focusOn(point);
   }
 
+  let hostRect = host.getBoundingClientRect();
+  const refreshRect = () => { hostRect = host.getBoundingClientRect(); input.refreshRect(); };
+  let pixelRatio = renderer.pixelRatio;
+  const ratioCeiling = basePixelRatio(window.devicePixelRatio);
   const observer = new ResizeObserver(() => {
     const width = host.clientWidth;
     const height = host.clientHeight;
     if (!width || !height) return;
+    size = { width, height };
     const vertical = width < 640 ? 10.5 : 9.5;
     camera.left = -vertical * width / height;
     camera.right = vertical * width / height;
@@ -503,6 +580,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     camera.bottom = -vertical;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+    controller.setView(size);
+    refreshRect();
+    cameraDirty = true; labelsDirty = true;
   });
   observer.observe(host);
   const raycaster = new THREE.Raycaster();
@@ -533,8 +613,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   let lastHover = 0;
 
   function groundPoint(event: PointerEvent) {
-    const bounds = host.getBoundingClientRect();
+    const bounds = hostRect;
     pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
+    if (cameraDirty) syncCamera();
     raycaster.setFromCamera(pointer, camera);
     return raycaster.ray.intersectPlane(groundPlane, new THREE.Vector3());
   }
@@ -594,7 +675,6 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     if (!session || session.active) return;
     const current = session;
     current.active = true;
-    controls.enabled = false;
     current.source = findSource(current.item);
     if (current.source) {
       const ghost = current.source.clone(true);
@@ -630,7 +710,6 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     session = null;
     window.clearTimeout(current.timer);
     window.removeEventListener("keydown", dragKeyDown, true);
-    controls.enabled = true;
     footprint.visible = false;
     if (current.ghost) { scene.remove(current.ghost); current.ghost = null; }
     if (current.hidden && current.source) current.source.visible = true;
@@ -654,6 +733,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   }
 
   function pointerDown(event: PointerEvent) {
+    if (!touches.size) refreshRect();
     down = { x: event.clientX, y: event.clientY };
     if (event.pointerType === "touch") { touches.add(event.pointerId); if (touches.size > 1) multiTouch = true; }
     if (session && event.pointerId !== session.pointerId) { cancelDrag(); return; }
@@ -697,14 +777,16 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   function pointerUp(event: PointerEvent) {
     const gesture = multiTouch;
     pointerEnd(event);
+    const cameraGesture = input.takeTapBlock(event.pointerId);
     if (session && event.pointerId === session.pointerId) {
       const active = session.active;
       drop();
       if (active) { justDragged = true; window.setTimeout(() => { justDragged = false; }, 0); return; }
     }
-    if (gesture || justDragged || event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > (event.pointerType === "touch" ? 12 : 6) || (event.target as HTMLElement).closest("button")) return;
-    const bounds = host.getBoundingClientRect();
+    if (gesture || cameraGesture || justDragged || event.button !== 0 || Math.hypot(event.clientX - down.x, event.clientY - down.y) > (event.pointerType === "touch" ? 12 : 6) || (event.target as HTMLElement).closest("button")) return;
+    const bounds = hostRect;
     pointer.set((event.clientX - bounds.left) / bounds.width * 2 - 1, -(event.clientY - bounds.top) / bounds.height * 2 + 1);
+    camera.updateMatrixWorld();
     raycaster.setFromCamera(pointer, camera);
     if (activePlacement) {
       const point = raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.2), new THREE.Vector3());
@@ -728,66 +810,131 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   }
   function pointerCancel(event: PointerEvent) { pointerEnd(event); if (session && event.pointerId === session.pointerId) cancelDrag(); }
   function contextMenu(event: Event) { if (session?.touch) event.preventDefault(); }
-  function visibilityChanged() { if (document.visibilityState !== "visible") cancelDrag(); }
   host.addEventListener("pointerdown", pointerDown, true);
   host.addEventListener("pointermove", pointerMove);
   host.addEventListener("pointerup", pointerUp);
   host.addEventListener("pointercancel", pointerCancel);
   host.addEventListener("contextmenu", contextMenu);
-  document.addEventListener("visibilitychange", visibilityChanged);
-  const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-  function preferenceChanged() { motion = !preference.matches; }
+  function preferenceChanged() { motion = !preference.matches; controller.setReducedMotion(!motion); }
   preference.addEventListener("change", preferenceChanged);
+
+  // ---- labels: cached element list, positions recomputed only when the camera or the scene changed ----
   const projection = new THREE.Vector3();
-  renderer.setAnimationLoop((milliseconds) => {
-    const now = performance.now();
-    if (flight) {
-      const t = Math.min(1, (now - flight.start) / (motion ? 1500 : 1));
-      const ease = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-      const offset = camera.position.clone().sub(controls.target);
-      controls.target.lerpVectors(flight.from, flight.to, ease);
-      camera.position.copy(controls.target).add(offset);
-      if (t >= 1) flight = null;
-    }
-    if (revealing) {
-      const parts = islandParts.get(revealing.no);
-      if (!parts || !revealProgress(parts, motion ? now - revealing.start : 1e6)) revealing = null;
-    }
-    sunlight.target.position.set(controls.target.x, 0, controls.target.z);
-    sunlight.position.set(controls.target.x - 12, 24, controls.target.z + 8);
-    sunlight.target.updateMatrixWorld();
-    controls.update();
-    if (motion) for (const animate of [...animations, ...shopAnimations]) animate(milliseconds / 1000);
-    renderer.render(scene, camera);
+  let labelElements: HTMLElement[] = [];
+  const collectLabels = () => { labelElements = [...labels.querySelectorAll<HTMLElement>("[data-building]")]; labelsDirty = true; };
+  collectLabels();
+  const labelObserver = new MutationObserver(collectLabels);
+  labelObserver.observe(labels, { childList: true });
+  function updateLabels() {
+    labelsDirty = false;
     // Labels grow/shrink gently with zoom, never below 1 so text stays >= 10px.
     const labelScale = Math.min(1.25, Math.max(1, Math.sqrt(camera.zoom))).toFixed(2);
-    for (const element of labels.querySelectorAll<HTMLButtonElement>("[data-building]")) {
+    const { width, height } = size;
+    for (const element of labelElements) {
       const anchor = anchors.get(element.dataset.building!);
       if (!anchor) { element.style.visibility = "hidden"; continue; }
       projection.copy(anchor).project(camera);
       const visible = projection.z >= -1 && projection.z <= 1 && Math.abs(projection.x) < 1.15 && Math.abs(projection.y) < 1.15;
       element.style.visibility = visible ? "visible" : "hidden";
-      element.style.transform = `translate(-50%, -50%) translate(${(projection.x + 1) / 2 * host.clientWidth}px, ${(-projection.y + 1) / 2 * host.clientHeight}px) scale(${labelScale})`;
+      element.style.transform = `translate(-50%, -50%) translate(${(projection.x + 1) / 2 * width}px, ${(-projection.y + 1) / 2 * height}px) scale(${labelScale})`;
     }
-  });
+  }
+
+  // ---- render loop: camera step, throttled shadows, adaptive resolution, paused while hidden / off screen ----
+  let syncedState = controller.state;
+  let lastFrame = performance.now(), lastRender = 0, lastShadow = 0, shadowX = 0, shadowZ = 0;
+  let averageFrame = 16, slowFrames = 0, fastFrames = 0;
+  function frame(milliseconds: number) {
+    const now = performance.now();
+    const dt = Math.min(500, now - lastFrame); lastFrame = now; // the camera maths is exact for any dt, so slow devices do not play animations in slow motion
+    controller.step(dt, now);
+    const interacting = controller.moving || session !== null || revealing !== null;
+    if (controller.state !== syncedState) cameraDirty = true;
+    // At rest ~30 fps is plenty for villagers and water and saves battery.
+    if (!interacting && !cameraDirty && !sceneChanged && !labelsDirty && now - lastRender < 33) return;
+    lastRender = now; stats.frames++;
+    if (interacting) {
+      averageFrame = averageFrame * 0.9 + dt * 0.1;
+      slowFrames = averageFrame > 26 ? slowFrames + 1 : 0; fastFrames = averageFrame < 15 ? fastFrames + 1 : 0;
+      const ratio = nextPixelRatio(pixelRatio, ratioCeiling, averageFrame, slowFrames, fastFrames);
+      if (ratio !== pixelRatio) { pixelRatio = ratio; renderer.setPixelRatio(ratio); slowFrames = 0; fastFrames = 0; }
+    }
+    if (revealing) {
+      const parts = islandParts.get(revealing.no);
+      if (!parts || !revealProgress(parts, motion ? now - revealing.start : 1e6)) revealing = null;
+      sceneChanged = true;
+    }
+    const moved = cameraDirty;
+    if (cameraDirty) { syncCamera(); syncedState = controller.state; }
+    const { x: targetX, z: targetZ } = controller.state;
+    sunlight.target.position.set(targetX, 0, targetZ);
+    sunlight.position.set(targetX - 12, 24, targetZ + 8);
+    sunlight.target.updateMatrixWorld();
+    if (motion) { const seconds = milliseconds / 1000; for (const animate of animations) animate(seconds); for (const animate of shopAnimations) animate(seconds); }
+    if (shadowDue(now, lastShadow, Math.hypot(targetX - shadowX, targetZ - shadowZ), sceneChanged)) { renderer.refreshShadows(); lastShadow = now; shadowX = targetX; shadowZ = targetZ; }
+    sceneChanged = false;
+    renderer.render(scene, camera);
+    if (moved || labelsDirty) updateLabels();
+    reportZoom(now, !controller.moving);
+  }
+  let pageVisible = document.visibilityState === "visible";
+  let onScreen = true;
+  let running = false;
+  function updateRunning() {
+    const should = pageVisible && onScreen;
+    if (should === running) return;
+    running = should;
+    if (should) { lastFrame = performance.now(); sceneChanged = true; renderer.setAnimationLoop(frame); } else renderer.setAnimationLoop(null);
+  }
+  function visibilityChanged() { pageVisible = document.visibilityState === "visible"; if (!pageVisible) cancelDrag(); updateRunning(); }
+  document.addEventListener("visibilitychange", visibilityChanged);
+  const intersection = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver((entries) => { onScreen = entries[entries.length - 1].isIntersecting; updateRunning(); }, { rootMargin: "120px" });
+  intersection?.observe(host);
+  updateRunning();
+
+  // Test hook (read-only): camera state, projection of ground/house points and counters for scripts/map-interaction-e2e.mjs.
+  const freshCamera = () => { if (controller.state !== syncedState) { syncCamera(); syncedState = controller.state; } };
+  Object.defineProperty(host, "__map", { value: {
+    stats,
+    camera: () => ({ ...controller.state }),
+    mode: () => controller.mode,
+    project: (x: number, z: number) => { freshCamera(); const r = host.getBoundingClientRect(); const v = new THREE.Vector3(x, 0, z).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (-v.y + 1) / 2 * r.height }; },
+    ground: (clientX: number, clientY: number) => { freshCamera(); const r = host.getBoundingClientRect(); const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera); const p = ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3()); return p ? { x: p.x, z: p.z } : null; },
+    house: (id: string) => { const b = buildings.find((o) => o.userData.applicationId === id); return b ? { x: b.position.x, z: b.position.z } : null; },
+    pixelRatio: () => renderer.pixelRatio,
+    bounds: () => ({ rects: controller.rects, margin: BOUNDS_MARGIN }),
+    movableAt: (clientX: number, clientY: number) => { freshCamera(); hostRect = host.getBoundingClientRect(); return pickMovable({ clientX, clientY } as PointerEvent) !== null; },
+  }, configurable: true });
+
+  const api: MapCameraApi = {
+    zoomIn() { controller.zoomTo(Math.round((controller.goal.zoom + 0.2) * 100) / 100); },
+    zoomOut() { controller.zoomTo(Math.round((controller.goal.zoom - 0.2) * 100) / 100); },
+    setZoom(value: number) { controller.zoomTo(value); },
+    reset() { controller.zoomTo(1); center(); },
+    focusOn(x: number, z: number, zoom?: number) { controller.focusOn({ x, z }, zoom); },
+    getState() { return { ...controller.state }; },
+  };
 
   return {
+    api,
     populate,
     setShop,
     setDragEnabled(value: boolean) { dragEnabled = value; if (!value) cancelDrag(); },
     center,
-    focusConstruction(position: MapPosition) {
-      controls.target.set(position.x + 1, 0, position.z + 1);
-      camera.position.copy(controls.target).add(new THREE.Vector3(24, 30, 34));
-      controls.update();
-    },
+    focusConstruction(position: MapPosition) { controller.focusOn({ x: position.x + 1, z: position.z + 1 }); },
     focusIsland(no: number, reveal: boolean) {
       const focus = islandConfig(no)?.focus;
       if (!focus) return;
       if (reveal) revealing = { no, start: performance.now() };
-      flight = { from: controls.target.clone(), to: new THREE.Vector3(focus.x, 0, focus.z), start: performance.now() };
+      controller.setRects(cameraRects(Math.max(liveIslands, no), liveDepth));
+      controller.flyTo({ x: focus.x, z: focus.z }, performance.now());
     },
-    zoom(value: number) { if (Math.abs(camera.zoom - value) < 0.005) return; camera.zoom = value; camera.updateProjectionMatrix(); },
+    /** `zoom` prop from the toolbar. Values we reported ourselves come back as props and must not restart the animation. */
+    zoom(value: number) {
+      const now = performance.now();
+      if (Math.abs(lastReportedZoom - value) < 0.006 || Math.abs(controller.goal.zoom - value) < 0.005 || recentReports.some((report) => now - report.at < 2000 && Math.abs(report.value - value) < 0.006)) return;
+      controller.zoomTo(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, value)));
+    },
     lighting(night: boolean) {
       scene.background = new THREE.Color(night ? "#314957" : "#b9c9ae");
       ambient.intensity = night ? 1.1 : 2.6;
@@ -797,10 +944,12 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       windowMaterial.emissiveIntensity = night ? 1.5 : 0.1;
     },
     dispose() {
+      running = false;
       renderer.setAnimationLoop(null);
-      observer.disconnect();
-      controls.dispose();
+      observer.disconnect(); labelObserver.disconnect(); intersection?.disconnect();
+      input.dispose();
       cancelDrag();
+      disposePreview();
       host.removeEventListener("pointerdown", pointerDown, true);
       host.removeEventListener("pointermove", pointerMove);
       host.removeEventListener("pointerup", pointerUp);
@@ -815,6 +964,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       for (const model of shopModels) model.dispose();
       for (const villager of villagers) villager.dispose();
       previewMaterial.dispose();
+      delete (host as unknown as Record<string, unknown>).__map;
       constructionGrid.geometry.dispose();
       for (const item of Array.isArray(constructionGrid.material) ? constructionGrid.material : [constructionGrid.material]) item.dispose();
       renderer.dispose();
