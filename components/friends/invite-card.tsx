@@ -47,10 +47,10 @@ export function InviteCard({ profile }: { profile: SocialProfile }) {
           <span className="min-w-0 flex-1 select-all truncate text-small">{link}</span>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <Button variant="secondary" onClick={() => copy("code")} icon={copied === "code" ? <Check size={16} /> : <Copy size={16} />}>Code kopieren</Button>
-          <Button variant="secondary" onClick={() => copy("link")} icon={copied === "link" ? <Check size={16} /> : <Link2 size={16} />}>Link kopieren</Button>
-          <ButtonLink href={mailto} variant="secondary" icon={<Mail size={16} />}>Per E-Mail</ButtonLink>
-          {canShare && <Button className="col-span-2 sm:col-span-1" onClick={share} icon={<Share2 size={16} />}>Teilen</Button>}
+          <Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => copy("code")} icon={copied === "code" ? <Check size={16} /> : <Copy size={16} />}>Code kopieren</Button>
+          <Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => copy("link")} icon={copied === "link" ? <Check size={16} /> : <Link2 size={16} />}>Link kopieren</Button>
+          <ButtonLink href={mailto} variant="secondary" className="min-h-11 sm:min-h-11" icon={<Mail size={16} />}>Per E-Mail</ButtonLink>
+          {canShare && <Button className="col-span-2 min-h-11 sm:col-span-1 sm:min-h-11" onClick={share} icon={<Share2 size={16} />}>Teilen</Button>}
         </div>
         <p className="min-h-4 text-small text-muted" role="status" aria-live="polite">{note}</p>
       </CardContent>

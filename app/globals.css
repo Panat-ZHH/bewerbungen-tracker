@@ -105,10 +105,13 @@
 }
 
 * { box-sizing: border-box; }
-html { min-height: 100%; background: var(--paper); -webkit-text-size-adjust: 100%; }
+html { min-height: 100%; min-height: 100dvh; overflow-x: clip; background: var(--paper); -webkit-text-size-adjust: 100%; }
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
   background: var(--paper);
   color: var(--ink);
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
@@ -120,7 +123,7 @@ body {
 }
 a { text-decoration: none; color: inherit; }
 img, svg { max-width: 100%; }
-button, input, select, textarea { font: inherit; }
+@layer base { button, input, select, textarea { font: inherit; } }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled) { cursor: pointer; }
 :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; border-radius: 6px; }

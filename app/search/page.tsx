@@ -146,10 +146,10 @@ export default function JobSearchPage() {
             <Segmented<SearchKind> label="Was suchst du?" value={kind} onChange={setKind} options={[{ value: "apprenticeship", label: "Lehrstelle" }, { value: "job", label: "Job" }]} />
           </fieldset>
           <div className="grid gap-4 sm:grid-cols-[1.3fr_1fr]">
-            <label><span className="mb-2 block text-sm font-medium">Beruf oder Stelle</span><Input required minLength={2} maxLength={80} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Zum Beispiel: Informatiker" /></label>
-            <label><span className="mb-2 block text-sm font-medium">Ort <span className="text-muted">(optional)</span></span><Input maxLength={80} value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Zum Beispiel: Zürich" /></label>
+            <label><span className="mb-2 block text-sm font-medium">Beruf oder Stelle</span><Input className="sm:text-base" required minLength={2} maxLength={80} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Zum Beispiel: Informatiker" /></label>
+            <label><span className="mb-2 block text-sm font-medium">Ort <span className="text-muted">(optional)</span></span><Input className="sm:text-base" maxLength={80} value={location} onChange={(event) => setLocation(event.target.value)} placeholder="Zum Beispiel: Zürich" /></label>
           </div>
-          <Button type="submit" disabled={loading} className="min-h-11 w-full sm:w-auto"><Search size={17} />{loading ? "Sucht …" : "Stellen suchen"}</Button>
+          <Button type="submit" disabled={loading} className="min-h-11 w-full sm:min-h-11 sm:w-auto"><Search size={17} />{loading ? "Sucht …" : "Stellen suchen"}</Button>
         </Card>
       </form>
 
@@ -162,7 +162,7 @@ export default function JobSearchPage() {
         {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-3 flex flex-wrap gap-2">
           {sourceStatuses.map((source) => <li key={source.name}><Badge tone={source.status === "unavailable" ? "danger" : "neutral"}>{source.name}{source.status === "unavailable" ? " · gerade nicht erreichbar" : " · durchsucht"}</Badge></li>)}
         </ul>}
-        {!results.length ? <Card className="mt-5 flex flex-col items-center px-6 py-10 text-center"><SearchX size={28} className="text-muted" /><p className="mt-3 font-semibold">Keine passenden Anzeigen gefunden</p><p className="mt-1 text-sm text-muted">Probiere einen anderen Beruf oder Ort.</p><Button type="button" variant="secondary" className="mt-4 min-h-11" onClick={() => setFiltersOpen(true)}>Suche anpassen</Button></Card> : <div className="mt-4 grid gap-3">
+        {!results.length ? <Card className="mt-5 flex flex-col items-center px-6 py-10 text-center"><SearchX size={28} className="text-muted" /><p className="mt-3 font-semibold">Keine passenden Anzeigen gefunden</p><p className="mt-1 text-sm text-muted">Probiere einen anderen Beruf oder Ort.</p><Button type="button" variant="secondary" className="mt-4 min-h-11 sm:min-h-11" onClick={() => setFiltersOpen(true)}>Suche anpassen</Button></Card> : <div className="mt-4 grid gap-3">
           {results.map((result) => {
             const sources = listingSources(result);
             const isSaved = sources.some((source) => saved.has(source.url));
@@ -177,12 +177,12 @@ export default function JobSearchPage() {
             </div>
             <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
               <ButtonLink href={result.url} target="_blank" rel="noopener noreferrer" icon={<ExternalLink size={15} />}>Originalanzeige öffnen</ButtonLink>
-              <Button type="button" variant="secondary" className="min-h-11" disabled={Boolean(saving) || isSaved} onClick={() => save(result)}>{isSaved ? <Check size={15} /> : <Plus size={15} />}{isSaved ? "Gemerkt" : saving === result.url ? "Speichert …" : "Merken"}</Button>
+              <Button type="button" variant="secondary" className="min-h-11 sm:min-h-11" disabled={Boolean(saving) || isSaved} onClick={() => save(result)}>{isSaved ? <Check size={15} /> : <Plus size={15} />}{isSaved ? "Gemerkt" : saving === result.url ? "Speichert …" : "Merken"}</Button>
             </div>
           </article></Card>; })}
         </div>}
         <div className="mt-6">
-          {nextCursor ? <Button type="button" variant="secondary" className="min-h-11 w-full sm:w-auto" disabled={loadingMore || loading} onClick={loadMore}><Plus size={16} />{loadingMore ? "Lädt weitere Stellen …" : "Mehr laden"}</Button> : results.length > 0 && <p className="text-sm text-muted">Alle passenden Stellen der durchsuchten Quellen sind angezeigt.</p>}
+          {nextCursor ? <Button type="button" variant="secondary" className="min-h-11 w-full sm:min-h-11 sm:w-auto" disabled={loadingMore || loading} onClick={loadMore}><Plus size={16} />{loadingMore ? "Lädt weitere Stellen …" : "Mehr laden"}</Button> : results.length > 0 && <p className="text-sm text-muted">Alle passenden Stellen der durchsuchten Quellen sind angezeigt.</p>}
         </div>
       </section>}
     </WorkspaceShell>

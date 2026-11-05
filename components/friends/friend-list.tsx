@@ -42,12 +42,12 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
 
   return (
     <>
-      <ul className="grid gap-3 md:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {friends.map((friend) => {
           const act = activity.find((a) => a.userId === friend.otherUserId);
           const counts = act?.shared ? order.filter((s) => (act.statusCounts?.[s] ?? 0) > 0) : [];
           return (
-            <li key={friend.id}>
+            <li key={friend.id} className="min-w-0">
               <Card interactive className="h-full p-4">
                 <div className="flex items-center gap-3">
                   <Avatar name={friend.displayName} src={avatars[friend.otherUserId]} size="lg" />
@@ -55,7 +55,7 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
                     <Link href={`/friends/${encodeURIComponent(friend.otherUserId)}`} className="text-heading block truncate hover:underline focus-visible:underline" title={`Insel von ${friend.displayName} ansehen`}>{friend.displayName}</Link>
                     {act?.shared ? <p className="text-small text-muted">{summary(act)}</p> : <Badge tone="neutral" className="mt-1 gap-1"><EyeOff size={12} aria-hidden />privat</Badge>}
                   </div>
-                  <button type="button" aria-label={`${friend.displayName} entfernen`} title="Freundschaft beenden" onClick={() => { setError(""); setTarget(friend); }} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--danger-bg)] hover:text-[var(--danger-fg)]"><UserMinus size={17} /></button>
+                  <button type="button" aria-label={`${friend.displayName} entfernen`} title="Freundschaft beenden" onClick={() => { setError(""); setTarget(friend); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--danger-bg)] hover:text-[var(--danger-fg)]"><UserMinus size={17} /></button>
                 </div>
                 {act?.shared && (
                   <div className="mt-3 border-t border-[var(--line)] pt-3">
@@ -76,7 +76,7 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
         onClose={() => { if (!busy) setTarget(null); }}
         title="Freundschaft beenden?"
         description={target ? `${target.displayName} sieht deine Aktivität danach nicht mehr und du ihre auch nicht.` : undefined}
-        footer={<div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="secondary" onClick={() => setTarget(null)} disabled={busy}>Abbrechen</Button><Button variant="danger" loading={busy} onClick={confirm} icon={<Trash2 size={15} />}>Entfernen</Button></div>}
+        footer={<div className="flex w-full flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => setTarget(null)} disabled={busy}>Abbrechen</Button><Button variant="danger" loading={busy} onClick={confirm} icon={<Trash2 size={15} />}>Entfernen</Button></div>}
       >
         {error && <StatusMessage tone="danger">{error}</StatusMessage>}
       </Modal>

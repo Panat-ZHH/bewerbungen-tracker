@@ -84,7 +84,7 @@ export default function CVsPage() {
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((item) => <Card key={item} className="space-y-4 p-5" aria-hidden><Skeleton className="h-10 w-10 !rounded-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4" /><Skeleton className="h-11 w-1/2" /></Card>)}</div>
       ) : (
-        <div className="pb-safe grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="pb-safe grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           {cvs.map((cv) => (
             <Card key={cv.id} interactive className="animate-rise flex min-h-[250px] flex-col p-5">
               <div className="flex items-center justify-between">
@@ -96,7 +96,7 @@ export default function CVsPage() {
               <p className="text-small mt-3 mb-4 truncate text-muted">{cv.fileName ?? "PDF oder Word-Datei"}</p>
               <input ref={(element) => { fileRefs.current[cv.id] = element; }} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(event) => replaceCV(cv, event.target.files?.[0])} />
               <div className="mt-auto flex flex-wrap items-center gap-2 border-t border-[var(--line)] pt-4">
-                <Button onClick={() => fileRefs.current[cv.id]?.click()} loading={busy === cv.id} icon={<Upload size={15} />} className="flex-1 sm:flex-none">
+                <Button onClick={() => fileRefs.current[cv.id]?.click()} loading={busy === cv.id} icon={<Upload size={15} />} className="flex-1 sm:min-h-11 sm:flex-none">
                   {busy === cv.id ? "Lädt …" : cv.fileName ? "Ersetzen" : "Datei auswählen"}
                 </Button>
                 <button onClick={() => preview(cv)} disabled={!cv.storagePath} aria-label="Lebenslauf ansehen" title="Lebenslauf ansehen" className="flex h-11 w-11 items-center justify-center rounded-full text-muted transition hover:bg-[var(--hover)] hover:text-[var(--ink)] disabled:opacity-40"><Eye size={16} /></button>

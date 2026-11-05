@@ -53,9 +53,9 @@ export function CodeActions({ code, name }: { code: string; name: string }) {
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <code className="tabular rounded-[var(--radius-md)] border border-[var(--neutral-line)] bg-[var(--neutral-bg)] px-3 py-1.5 text-[15px] font-semibold tracking-[.18em]">{code}</code>
-      <Button size="sm" variant="secondary" onClick={copy} icon={copied ? <Check size={14} /> : <Copy size={14} />}>{copied ? "Kopiert" : "Kopieren"}</Button>
-      <Button size="sm" variant="ghost" onClick={share} icon={<Share2 size={14} />}>Teilen</Button>
+      <code className="tabular break-all rounded-[var(--radius-md)] border border-[var(--neutral-line)] bg-[var(--neutral-bg)] px-3 py-1.5 text-[15px] font-semibold tracking-[.18em]">{code}</code>
+      <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={copy} icon={copied ? <Check size={14} /> : <Copy size={14} />}>{copied ? "Kopiert" : "Kopieren"}</Button>
+      <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" onClick={share} icon={<Share2 size={14} />}>Teilen</Button>
     </div>
   );
 }

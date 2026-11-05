@@ -12,8 +12,8 @@ const variants: Record<ButtonVariant, string> = {
   danger: "border border-[var(--danger-line)] bg-[var(--danger-bg)] text-[var(--danger-fg)] hover:brightness-95",
 };
 const sizes: Record<ButtonSize, string> = {
-  sm: "min-h-9 px-3.5 text-[13px]",
-  md: "min-h-11 px-5 text-sm sm:min-h-10 sm:px-4",
+  sm: "min-h-9 px-3.5 text-[13px] pointer-coarse:min-h-11",
+  md: "min-h-11 px-5 text-sm sm:min-h-10 sm:px-4 pointer-coarse:min-h-11",
   lg: "min-h-12 px-6 text-[15px]",
 };
 
