@@ -158,6 +158,7 @@ flow("login", () => ({ authed: false }), async (t) => {
     t.check("signup: password mismatch is reported", await t.text(/Passwörter stimmen nicht überein/, 5000));
   } else t.skip("signup: password mismatch", "confirm password field not found");
   await page.goto(base(t) + "/applications", { waitUntil: "domcontentloaded" });
+  await page.waitForURL(/\/login/, { timeout: 20000 }).catch(() => undefined);
   await t.settle(800);
   t.check("anonymous visitor is sent to /login", /\/login/.test(page.url()), page.url());
   t.expect(/Failed to load resource|401/);
@@ -245,6 +246,7 @@ flow("search-filter", student({ apps: seedApps(5) }), async (t) => {
   const { page } = t;
   await t.visit("/applications");
   const rows = page.locator("a[href^='/applications/a']");
+  await rows.first().waitFor({ timeout: 20000 }).catch(() => undefined);
   t.check("all seeded Bewerbungen are listed", (await rows.count()) === 5, String(await rows.count()));
   await page.getByLabel("Firma oder Stelle suchen").fill("Firma 2");
   await t.settle(300);
@@ -365,6 +367,7 @@ flow("classes-student", student(), async (t) => {
   await t.shot("classes-student");
   await t.visit("/classes/join/KLAS7Q2", { label: "join page" });
   t.check("join page previews the class before joining", await t.text(/Informatik 4a/));
+  t.expect(/status of 400/);
   await t.visit("/classes/join/FALSCH", { label: "join page (bad code)" });
   t.check("join page with an unknown code explains the problem", await t.text(/nicht gefunden|gibt es nicht|ungültig|Code/i, 8000));
 });
@@ -376,10 +379,10 @@ flow("classes-teacher", () => ({ role: "teacher", apps: [] }), async (t) => {
   await t.visit("/classes/c1");
   t.check("class overview lists students", await t.text(/Anna Meier/) && await t.text(/Ben Huber/));
   t.check("student without consent shows no data", await t.text(/Teilt keine Daten/));
-  await page.getByRole("button", { name: /Mit Zusage/ }).click();
+  await page.getByRole("tab", { name: /Mit Zusage/ }).click();
   await t.settle(300);
-  t.check("filter 'Mit Zusage' keeps only Anna", await page.getByText("Anna Meier").first().isVisible() && !(await page.getByText("Ben Huber").first().isVisible().catch(() => false)));
-  await page.getByText("Anna Meier").first().click();
+  t.check("filter 'Mit Zusage' keeps only Anna", await page.getByText("Anna Meier").locator("visible=true").count() > 0 && (await page.getByText("Ben Huber").locator("visible=true").count()) === 0);
+  await page.getByText("Anna Meier").locator("visible=true").first().click();
   await t.settle(600);
   t.check("student drilldown opens with applications", await t.text(/Swisscom/));
   await t.shot("class-drilldown");
@@ -408,15 +411,17 @@ flow("navigation", student({ apps: seedApps(3) }), async (t) => {
   await page.waitForURL(/\/friends$/).catch(() => undefined);
   t.check("nav link 'Freunde' navigates", /\/friends$/.test(page.url()), page.url());
   if (t.mobile) {
-    const more = page.getByRole("button", { name: /Mehr/ }).first();
-    t.check("mobile tab bar has a 'Mehr' sheet", await more.isVisible().catch(() => false));
+    const more = page.locator('nav[aria-label="Hauptmenü mobil"] button', { hasText: "Mehr" });
+    const hasMore = await more.first().waitFor({ state: "visible", timeout: 8000 }).then(() => true, () => false);
+    t.check("mobile tab bar has a 'Mehr' sheet", hasMore, `matches: ${await more.count()}`);
+    if (hasMore) { await more.first().click(); t.check("'Mehr' opens a dialog with the settings link", await page.getByRole("dialog").getByRole("link", { name: /Einstellungen/ }).isVisible().catch(() => false)); await page.keyboard.press("Escape"); }
   }
   await t.shot("nav");
 });
 
 // ------------------------------------------------------------------------------------------------ map section (separate on purpose)
 // Selectors are aria-label / role / text based with fallbacks, because the map UI is being reworked (fullscreen layout, overlays).
-flow("map", () => ({ role: "student", apps: seedApps(8) }), async (t) => {
+flow("map", () => ({ role: "student", apps: seedApps(8), unlocked: 2 }), async (t) => {
   const { page, mock } = t;
   const renderer = page.locator("[data-map-renderer]").first();
   await t.visit("/map", { waitFor: () => renderer.waitFor({ timeout: 90000 }) });
