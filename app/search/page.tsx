@@ -10,6 +10,8 @@ import { Segmented } from "@/components/ui/tabs";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { Input } from "@/components/ui/input";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { toast } from "@/lib/toast";
+import { friendlyMessage, generalCause } from "@/lib/ux";
 import { createApplication, getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import type { MultiSourceSearchBatch, MultiSourceSearchInput, JobSearchResult, SearchKind } from "@/lib/job-search";
@@ -75,7 +77,7 @@ export default function JobSearchPage() {
         if (!controller.signal.aborted) setNotice("Deine gemerkten Bewerbungen konnten nicht geprüft werden.");
       }
     } catch (cause) {
-      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Die Suche hat nicht geklappt.");
+      if (!controller.signal.aborted) setError(generalCause(cause) ?? (cause instanceof Error && cause.message ? cause.message : "Die Suche hat nicht geklappt."));
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
@@ -106,7 +108,7 @@ export default function JobSearchPage() {
       setSourceStatuses(payload.sources ?? []);
       if (payload.warning) setNotice(payload.warning);
     } catch (cause) {
-      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Weitere Stellen konnten nicht geladen werden.");
+      if (!controller.signal.aborted) setError(generalCause(cause) ?? (cause instanceof Error && cause.message ? cause.message : "Weitere Stellen konnten nicht geladen werden."));
     } finally {
       if (!controller.signal.aborted) setLoadingMore(false);
     }
@@ -120,9 +122,9 @@ export default function JobSearchPage() {
     try {
       await createApplication({ company: result.company || "Firma noch ergänzen", position: result.title, location: result.location, jobUrl: result.url, source: [...new Set(sources.map((source) => source.name))].join(", "), notes: sources.length > 1 ? sources.map((source) => `${source.name}: ${source.url}`).join("\n") : undefined, category: "other", status: "saved" });
       setSaved((current) => new Set([...current, ...sources.map((source) => source.url)]));
-      setNotice("Die Stelle ist jetzt bei deinen Bewerbungen.");
-    } catch {
-      setNotice("Die Stelle konnte nicht gemerkt werden. Versuch es noch einmal.");
+      toast({ message: "Gemerkt – die Stelle steht jetzt unter „Bewerbungen“." });
+    } catch (reason) {
+      toast({ tone: "danger", message: friendlyMessage(reason, "Die Stelle konnte nicht gemerkt werden.") });
     } finally {
       setSaving("");
     }
@@ -153,6 +155,7 @@ export default function JobSearchPage() {
         </Card>
       </form>
 
+      {!searched && !loading && !error && <Card className="mt-6 max-w-3xl border-dashed p-5 text-sm text-muted"><p className="font-semibold text-[var(--ink)]">So geht die Suche</p><ul className="mt-2 list-disc space-y-1 pl-5"><li>Wähle „Lehrstelle“ oder „Job“ und tippe einen Beruf ein.</li><li>Der Ort ist optional – ohne Ort suchen wir in der ganzen Schweiz.</li><li>Mit „Merken“ legst du eine Stelle direkt bei deinen Bewerbungen ab.</li></ul></Card>}
       {error && <StatusMessage tone="danger" className="mt-6 max-w-3xl">{error}</StatusMessage>}
       {notice && <StatusMessage tone="info" className="mt-5 max-w-3xl">{notice}</StatusMessage>}
       {loading && <div role="status" className="mt-8 space-y-3"><p className="text-body text-muted">Passende Anzeigen werden gesucht …</p>{[0, 1, 2].map((item) => <Card key={item} className="space-y-3 p-5" aria-hidden><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-1/2" /></Card>)}</div>}

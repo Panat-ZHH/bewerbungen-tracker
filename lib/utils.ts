@@ -6,8 +6,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const statusLabels = {
-  saved: "Merken",
-  preparing: "Vorbereiten",
+  saved: "Gemerkt",
+  preparing: "In Vorbereitung",
   applied: "Abgeschickt",
   interview: "Gespräch",
   final_interview: "Weiteres Gespräch",

@@ -5,6 +5,7 @@ import { Check, Copy, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { classErrorCode, classInviteLink } from "@/lib/classes";
 import { statusLabels } from "@/lib/utils";
+import { generalCause } from "@/lib/ux";
 import type { ApplicationStatus, StatusCounts } from "@/types";
 
 export const STATUS_ORDER: ApplicationStatus[] = ["saved", "preparing", "applied", "interview", "final_interview", "offer", "rejected", "withdrawn"];
@@ -20,14 +21,14 @@ export function errorMessage(reason: unknown): string {
     case "NOT_FOUND": return "Der Eintrag wurde nicht gefunden.";
     case "INVALID_NAME": return "Bitte gib einen gültigen Namen ein.";
     case "INVALID_REQUEST": return "Die Anfrage ist ungültig.";
-    default: return "Etwas ist schiefgelaufen. Bitte versuche es erneut.";
+    default: return generalCause(reason) ?? "Etwas ist schiefgelaufen. Bitte versuche es erneut.";
   }
 }
 
 export function formatDate(value?: string) {
   if (!value) return "–";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "–" : date.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return Number.isNaN(date.getTime()) ? "–" : date.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 export function StatusBar({ counts, total }: { counts: StatusCounts; total: number }) {

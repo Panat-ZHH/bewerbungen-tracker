@@ -41,7 +41,7 @@ export function TeacherClasses() {
 
   return (
     <div className="space-y-6 pb-safe">
-      <PageHeader eyebrow="Lehrkraft" title="Meine Klassen" description="Erstelle eine Klasse, teile den Code und behalte den Bewerbungsfortschritt deiner Schülerinnen und Schüler im Blick." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
+      <PageHeader eyebrow="Lehrperson" title="Meine Klassen" description="Erstelle eine Klasse, teile den Code und behalte den Bewerbungsfortschritt deiner Schülerinnen und Schüler im Blick." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
       {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
       {!classes && !error && <div className="grid gap-4 md:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-40 rounded-[var(--radius-lg)]" />)}</div>}
       {classes && classes.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und teile den Beitrittscode mit deinen Schülern." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}

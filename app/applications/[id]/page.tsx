@@ -9,8 +9,13 @@ import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
-import { deleteApplication, getApplication, updateApplication } from "@/lib/storage";
+import { deleteApplication, getApplication, importApplications, updateApplication } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
+import { deadlineInfo, friendlyMessage } from "@/lib/ux";
+import { toast } from "@/lib/toast";
+import { Badge } from "@/components/ui/badge";
+import { StatusMessage } from "@/components/ui/skeleton";
+import { statusHints } from "@/components/ui/status-badge";
 import type { Application, ApplicationStatus } from "@/types";
 
 const statuses = Object.entries(statusLabels) as [ApplicationStatus, string][];
@@ -29,52 +34,69 @@ export default function ApplicationDetailPage() {
     let active = true;
     getApplication(params.id)
       .then((data) => { if (active) setApplication(data); })
-      .catch(() => { if (active) setError("Diese Bewerbung konnte nicht geladen werden."); })
+      .catch((reason) => { if (active) setError(friendlyMessage(reason, "Diese Bewerbung konnte nicht geladen werden.")); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [params.id]);
 
   async function changeStatus(status: ApplicationStatus) {
     if (!application) return;
+    if (status === application.status) return;
     setError("");
+    const previous = application.status;
     try {
       const updated = await updateApplication(application.id, { status });
       if (updated) setApplication(updated);
-    } catch {
-      setError("Der neue Stand konnte nicht gespeichert werden.");
+      toast({
+        message: `Stand geändert: ${statusLabels[status]}`,
+        action: { label: "Rückgängig", onClick: async () => {
+          try { const back = await updateApplication(application.id, { status: previous }); if (back) setApplication(back); toast({ message: `Wieder auf „${statusLabels[previous]}“ gesetzt` }); }
+          catch (reason) { toast({ tone: "danger", message: friendlyMessage(reason, "Das konnte nicht rückgängig gemacht werden.") }); }
+        } },
+      });
+    } catch (reason) {
+      setError(friendlyMessage(reason, "Der neue Stand konnte nicht gespeichert werden."));
     }
   }
 
   async function remove() {
     if (!application) return;
     setDeleting(true);
+    const backup = application;
     try {
-      await deleteApplication(application.id);
+      await deleteApplication(backup.id);
+      toast({
+        message: `„${backup.position}“ bei ${backup.company} gelöscht`,
+        action: { label: "Rückgängig", onClick: async () => {
+          try { await importApplications([backup]); toast({ message: "Bewerbung wiederhergestellt" }); router.push(`/applications/${backup.id}`); }
+          catch (reason) { toast({ tone: "danger", message: friendlyMessage(reason, "Die Bewerbung konnte nicht wiederhergestellt werden.") }); }
+        } },
+      });
       router.push("/applications");
-    } catch {
+    } catch (reason) {
       setConfirmDelete(false);
       setDeleting(false);
-      setError("Die Bewerbung konnte nicht gelöscht werden.");
+      setError(friendlyMessage(reason, "Die Bewerbung konnte nicht gelöscht werden."));
     }
   }
 
   return (
     <WorkspaceShell active="Bewerbungen">
-      <Link href="/applications" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[#5e5e63] transition hover:text-[#0866d6]">
+      <Link href="/applications" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted transition hover:text-[var(--brand)]">
         <ArrowLeft size={16} /> Alle Bewerbungen
       </Link>
 
       {loading ? (
         <div className="mt-6 space-y-4" role="status" aria-label="Bewerbung wird geladen">
-          <div className="h-9 w-2/3 animate-pulse rounded-lg bg-white/60" />
-          <div className="h-5 w-1/3 animate-pulse rounded-lg bg-white/60" />
-          <div className="h-40 animate-pulse rounded-[14px] bg-white/60" />
+          <div className="h-9 w-2/3 skeleton rounded-lg" />
+          <div className="h-5 w-1/3 skeleton rounded-lg" />
+          <div className="h-40 skeleton rounded-[14px]" />
         </div>
       ) : !application ? (
         <Card className="mt-6 p-6">
           <h1 className="text-xl font-semibold">{error ? "Das hat nicht geklappt" : "Bewerbung nicht gefunden"}</h1>
           <p className="mt-2 text-sm text-muted">{error || "Vielleicht wurde sie schon gelöscht."}</p>
-          <Link href="/applications" className="mt-5 inline-flex min-h-11 items-center rounded-full border border-[#d2d2d7] bg-white px-5 text-sm font-semibold hover:bg-[#f5f5f7]">Zur Übersicht</Link>
+          <Link href="/applications" className="mt-5 inline-flex min-h-11 items-center rounded-full border border-[var(--glass-border)] bg-[var(--raised)] px-5 text-sm font-semibold hover:bg-[var(--raised-hover)]">Zur Übersicht</Link>
         </Card>
       ) : editing ? (
         <div className="mt-4 max-w-3xl">
@@ -86,7 +108,7 @@ export default function ApplicationDetailPage() {
         </div>
       ) : (
         <>
-          {error && <p role="alert" className="mt-5 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
+          {error && <StatusMessage tone="danger" className="mt-5">{error}</StatusMessage>}
           <div className="mt-4 flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
             <div className="min-w-0">
               <h1 className="break-words text-[28px] font-semibold leading-tight tracking-[-1px] md:text-[38px]">{application.position}</h1>
@@ -94,12 +116,12 @@ export default function ApplicationDetailPage() {
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
                 {application.location && <span><MapPin size={15} className="mr-1 inline" />{application.location}</span>}
                 {application.appliedAt && <span><CalendarDays size={15} className="mr-1 inline" />Abgeschickt am {new Date(application.appliedAt).toLocaleDateString("de-CH")}</span>}
-                {application.jobUrl && <a href={application.jobUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-[#0866d6] hover:underline"><ExternalLink size={14} className="mr-1 inline" />Stellenanzeige öffnen</a>}
+                {application.jobUrl && <a href={application.jobUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-[var(--brand)] hover:underline"><ExternalLink size={14} className="mr-1 inline" />Stellenanzeige öffnen</a>}
               </div>
             </div>
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="application-status">Stand der Bewerbung</label>
-              <select id="application-status" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[#d2d2d7] bg-white px-4 text-base pointer-fine:text-sm font-medium outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15 sm:flex-none">
+              <select id="application-status" aria-describedby="status-hint" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 text-base text-[var(--ink)] pointer-fine:text-sm font-medium outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15 sm:flex-none">
                 {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <Button variant="secondary" onClick={() => setEditing(true)} className="min-h-11 sm:min-h-11"><Pencil size={15} /> Ändern</Button>
@@ -107,8 +129,10 @@ export default function ApplicationDetailPage() {
             </div>
           </div>
 
-          <Card className="mt-8 max-w-3xl divide-y divide-[#e5e5ea] px-5 md:px-6">
-            {application.deadline && <DetailRow label="Bewerben bis" value={new Date(application.deadline).toLocaleDateString("de-CH")} />}
+          <p className="mt-4 text-sm text-muted" id="status-hint">{statusHints[application.status]}</p>
+
+          <Card className="mt-6 max-w-3xl divide-y divide-[var(--line)] px-5 md:px-6">
+            {application.deadline && <DetailRow label="Bewerben bis" value={new Date(application.deadline).toLocaleDateString("de-CH")} badge={["saved", "preparing"].includes(application.status) ? deadlineInfo(application.deadline) : null} />}
             {application.source && <DetailRow label="Gefunden bei" value={application.source} />}
             {(application.salaryMin || application.salaryMax) && <DetailRow label="Lohn" value={`${application.salaryMin ?? "?"}–${application.salaryMax ?? "?"} ${application.currency ?? "CHF"}`} />}
             {application.notes && <div className="py-5"><h2 className="text-sm font-semibold">Deine Notizen</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{application.notes}</p></div>}
@@ -122,20 +146,20 @@ export default function ApplicationDetailPage() {
         open={confirmDelete}
         onClose={() => !deleting && setConfirmDelete(false)}
         title="Bewerbung löschen?"
-        description={application ? `${application.position} bei ${application.company} wird endgültig gelöscht.` : undefined}
+        description={application ? `${application.position} bei ${application.company} wird gelöscht.` : undefined}
         footer={
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button variant="ghost" onClick={() => setConfirmDelete(false)} disabled={deleting} className="min-h-11 sm:min-h-11">Abbrechen</Button>
-            <Button variant="danger" onClick={remove} loading={deleting} className="min-h-11 sm:min-h-11">Endgültig löschen</Button>
+            <Button variant="danger" onClick={remove} loading={deleting} className="min-h-11 sm:min-h-11">Löschen</Button>
           </div>
         }
       >
-        <p className="text-sm text-muted">Das lässt sich nicht rückgängig machen.</p>
+        <p className="text-sm text-muted">Gleich danach kannst du das Löschen noch rückgängig machen.</p>
       </Modal>
     </WorkspaceShell>
   );
 }
 
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center"><span className="w-44 shrink-0 text-sm text-muted">{label}</span><span className="min-w-0 break-words text-sm font-medium">{value}</span></div>;
+function DetailRow({ label, value, badge }: { label: string; value: string; badge?: ReturnType<typeof deadlineInfo> }) {
+  return <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center"><span className="w-44 shrink-0 text-sm text-muted">{label}</span><span className="flex min-w-0 flex-wrap items-center gap-2 break-words text-sm font-medium">{value}{badge && <Badge tone={badge.tone}>{badge.label}</Badge>}</span></div>;
 }

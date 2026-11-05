@@ -7,6 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { createApplication, updateApplication } from "@/lib/storage";
 import { cn, statusLabels } from "@/lib/utils";
+import { friendlyMessage } from "@/lib/ux";
+import { toast } from "@/lib/toast";
+import { StatusMessage } from "@/components/ui/skeleton";
+import { statusHints } from "@/components/ui/status-badge";
 import type { Application, ApplicationCategory, ApplicationStatus } from "@/types";
 
 const categories: { value: ApplicationCategory; label: string }[] = [
@@ -99,7 +103,10 @@ export function ApplicationForm({ application }: { application?: Application }) 
     event.preventDefault();
     setSubmitted(true);
     if (Object.keys(errors).length) {
-      setError("Bitte prüfe die markierten Felder.");
+      const count = Object.keys(errors).length;
+      setError(count === 1 ? "Ein Feld braucht noch deine Aufmerksamkeit." : `${count} Felder brauchen noch deine Aufmerksamkeit.`);
+      // move focus to the first invalid field so keyboard and screen-reader users land on it
+      window.setTimeout(() => document.querySelector<HTMLElement>("form [aria-invalid='true']")?.focus(), 0);
       return;
     }
     setSaving(true);
@@ -117,26 +124,33 @@ export function ApplicationForm({ application }: { application?: Application }) 
       const result = isEditing && application
         ? await updateApplication(application.id, payload)
         : await createApplication(payload);
-      if (result) router.push(`/applications/${result.id}`);
+      if (result) {
+        toast({ message: isEditing ? "Änderungen gespeichert" : "Bewerbung gespeichert – du findest sie jetzt unter „Bewerbungen“" });
+        router.push(`/applications/${result.id}`);
+      } else {
+        setError("Diese Bewerbung gibt es nicht mehr. Vielleicht wurde sie gelöscht.");
+        setSaving(false);
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Das hat nicht geklappt. Versuch es bitte noch einmal.");
+      console.error(cause);
+      setError(friendlyMessage(cause, "Die Bewerbung konnte nicht gespeichert werden."));
       setSaving(false);
     }
   }
 
   return (
     <form onSubmit={submit} noValidate className="max-w-2xl">
-      {error && <p role="alert" className="mb-5 rounded-xl border border-[#e8c7c7] bg-[#fff8f8] px-4 py-3 text-sm text-[#a32828]">{error}</p>}
+      {error && <StatusMessage tone="danger" className="mb-5">{error}</StatusMessage>}
 
       <fieldset className="min-w-0 space-y-5 border-0 p-0">
         <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Das Wichtigste</legend>
         <Field label="Firma" required {...bind("company")} placeholder="Zum Beispiel: Migros" autoFocus={!isEditing} autoComplete="organization" />
         <Field label="Welche Stelle?" required {...bind("position")} placeholder="Zum Beispiel: Mediamatiker:in" />
-        <SelectField label="Was ist der Stand?" value={form.status} onChange={(value) => update("status", value)} options={Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))} />
+        <SelectField label="Was ist der Stand?" hint={statusHints[form.status]} value={form.status} onChange={(value) => update("status", value)} options={Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))} />
       </fieldset>
 
-      <details open={isEditing || optionalHasError || undefined} className="group mt-7 border-t border-[#e5e5ea] pt-2">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-[#0866d6] marker:hidden [&::-webkit-details-marker]:hidden">
+      <details open={isEditing || optionalHasError || undefined} className="group mt-7 border-t border-[var(--line)] pt-2">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-[var(--brand)] marker:hidden [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2"><Plus size={16} className="transition-transform group-open:rotate-45" /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
         </summary>
         <div className="mt-4 space-y-7">
@@ -168,7 +182,7 @@ export function ApplicationForm({ application }: { application?: Application }) 
         </div>
       </details>
 
-      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[#e5e5ea] bg-white/70 px-4 py-4 backdrop-blur-xl sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
+      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[var(--line)] bg-[var(--glass-bar-bg)] px-4 py-4 backdrop-blur-xl sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
         <Button type="button" variant="ghost" onClick={() => router.back()} className="min-h-11 sm:min-h-11">
           <ArrowLeft size={16} /> Zurück
         </Button>
@@ -198,14 +212,15 @@ function Field({ label, value, onChange, onBlur, error, placeholder, type = "tex
   return (
     <div>
       <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}{required && <span aria-hidden="true" className="text-muted"> *</span>}</label>
-      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[#c43d3d] focus:border-[#c43d3d] focus:ring-[#c43d3d]/15")} />
-      {error && <p id={`${id}-error`} className="mt-1.5 text-xs font-medium text-[#a32828]">{error}</p>}
+      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[var(--danger-fg)] focus:border-[var(--danger-fg)] focus:ring-[var(--danger-fg)]/15")} />
+      {error && <p id={`${id}-error`} className="mt-1.5 text-xs font-medium text-[var(--danger-fg)]">{error}</p>}
     </div>
   );
 }
 
-function SelectField({ label, value, onChange, options }: {
+function SelectField({ label, value, onChange, options, hint }: {
   label: string;
+  hint?: string;
   value: string;
   onChange: (value: never) => void;
   options: { value: string; label: string }[];
@@ -214,9 +229,10 @@ function SelectField({ label, value, onChange, options }: {
   return (
     <div>
       <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
-      <select id={id} value={value} onChange={(event) => onChange(event.target.value as never)} className="min-h-11 sm:min-h-11 w-full rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-base pointer-fine:text-sm outline-none transition focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15">
+      <select id={id} value={value} aria-describedby={hint ? `${id}-hint` : undefined} onChange={(event) => onChange(event.target.value as never)} className="min-h-11 sm:min-h-11 w-full rounded-xl border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2.5 text-base text-[var(--ink)] pointer-fine:text-sm outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15">
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
+      {hint && <p id={`${id}-hint`} className="mt-1.5 text-xs text-muted">{hint}</p>}
     </div>
   );
 }
@@ -231,7 +247,7 @@ function TextArea({ label, value, onChange, placeholder }: {
   return (
     <div>
       <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
-      <textarea id={id} rows={4} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="w-full resize-y rounded-xl border border-[#d2d2d7] bg-white px-3.5 py-2.5 text-base pointer-fine:text-sm outline-none transition placeholder:text-[#737378] focus:border-[#0866d6] focus:ring-2 focus:ring-[#0866d6]/15" />
+      <textarea id={id} rows={4} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="w-full resize-y rounded-xl border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2.5 text-base text-[var(--ink)] pointer-fine:text-sm outline-none transition placeholder:text-[var(--placeholder)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15" />
     </div>
   );
 }
