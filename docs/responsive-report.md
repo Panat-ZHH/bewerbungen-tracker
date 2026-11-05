@@ -17,6 +17,7 @@ Screenshots: `~/Projects/bewerbungen-tracker-wt/screenshots/responsive/after/` (
 Fixes made during integration:
 - `app/map/islands.module.css`: island switcher buttons `min-height` 36px → 44px.
 - `components/ui/tabs.tsx`: merge conflict resolved, kept `min-h-9 pointer-coarse:min-h-11`.
+- `components/friends/friend-list.tsx`: after main gained the friend-island link, its tap target (23px) got invisible `py-3 -my-3` padding (found by a targeted re-audit of /friends, /map, /classes/c1 on merged main: 0 defects after).
 - `scripts/responsive-audit.mjs`: the "bar covers content" probe ignored nothing inside collapsed `<details>` (false positives on /applications/new, /map); it now skips elements where `checkVisibility()` is false.
 
 ## Still open / notes

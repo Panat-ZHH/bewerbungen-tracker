@@ -52,7 +52,7 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
                 <div className="flex items-center gap-3">
                   <Avatar name={friend.displayName} src={avatars[friend.otherUserId]} size="lg" />
                   <div className="min-w-0 flex-1">
-                    <Link href={`/friends/${encodeURIComponent(friend.otherUserId)}`} className="text-heading block truncate hover:underline focus-visible:underline" title={`Insel von ${friend.displayName} ansehen`}>{friend.displayName}</Link>
+                    <Link href={`/friends/${encodeURIComponent(friend.otherUserId)}`} className="text-heading block truncate py-3 -my-3 hover:underline focus-visible:underline" title={`Insel von ${friend.displayName} ansehen`}>{friend.displayName}</Link>
                     {act?.shared ? <p className="text-small text-muted">{summary(act)}</p> : <Badge tone="neutral" className="mt-1 gap-1"><EyeOff size={12} aria-hidden />privat</Badge>}
                   </div>
                   <button type="button" aria-label={`${friend.displayName} entfernen`} title="Freundschaft beenden" onClick={() => { setError(""); setTarget(friend); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--danger-bg)] hover:text-[var(--danger-fg)]"><UserMinus size={17} /></button>
