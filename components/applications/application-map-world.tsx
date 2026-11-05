@@ -137,7 +137,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
   controls.update();
   // Mouse wheel / pinch zoom changes camera.zoom inside OrbitControls; report it so the toolbar percentage stays correct.
-  controls.addEventListener("change", () => onZoomChange(Number(camera.zoom.toFixed(2))));
+  controls.addEventListener("change", () => { stats.zoomChange++; onZoomChange(Number(camera.zoom.toFixed(2))); });
 
   const ambient = new THREE.HemisphereLight("#fff5dc", "#658754", 2.6);
   scene.add(ambient);
@@ -326,7 +326,9 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     anchors.set(application.id, new THREE.Vector3(x, 0.25, z + 2.6));
   }
 
+  const stats = { populate: 0, setShop: 0, zoomChange: 0, frames: 0 };
   function populate(applications: Application[], visibleIds: string[], selectedId: string | null, layouts: MapLayout[], islandCount = 1) {
+    stats.populate++;
     for (const villager of villagers) villager.dispose();
     villagers.length = 0;
     root.clear();
@@ -442,6 +444,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   }
 
   function setShop(items: OwnedMapItem[], selectedId: string | null, placement: Placement | null, applications: Application[], layouts: MapLayout[], islandCount = 1) {
+    stats.setShop++;
     for (const model of shopModels) model.dispose();
     shopModels.length = 0; shopRoot.clear(); previewRoot.clear(); shopObjects.length = 0; shopAnimations.length = 0;
     activePlacement = placement;
@@ -739,7 +742,16 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   function preferenceChanged() { motion = !preference.matches; }
   preference.addEventListener("change", preferenceChanged);
   const projection = new THREE.Vector3();
+  // Test hook (read-only): camera state, projection of ground/house points and counters for scripts/map-interaction-e2e.mjs.
+  Object.defineProperty(host, "__map", { value: {
+    stats,
+    camera: () => ({ x: controls.target.x, z: controls.target.z, zoom: camera.zoom }),
+    project: (x: number, z: number) => { const r = host.getBoundingClientRect(); const v = new THREE.Vector3(x, 0, z).project(camera); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (-v.y + 1) / 2 * r.height }; },
+    ground: (clientX: number, clientY: number) => { const r = host.getBoundingClientRect(); const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera); const p = ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3()); return p ? { x: p.x, z: p.z } : null; },
+    house: (id: string) => { const b = buildings.find((o) => o.userData.applicationId === id); return b ? { x: b.position.x, z: b.position.z } : null; },
+  }, configurable: true });
   renderer.setAnimationLoop((milliseconds) => {
+    stats.frames++;
     const now = performance.now();
     if (flight) {
       const t = Math.min(1, (now - flight.start) / (motion ? 1500 : 1));
