@@ -29,7 +29,7 @@ export function Requests({ incoming, outgoing, onChanged }: { incoming: SocialCo
         {incoming.map((c) => (
           <div key={c.id} className="flex flex-wrap items-center gap-3 p-4">
             <Avatar name={c.displayName} />
-            <div className="min-w-0 flex-1"><p className="truncate font-semibold">{c.displayName}</p><p className="text-small text-muted">möchte mit dir befreundet sein</p></div>
+            <div className="min-w-[10rem] flex-1 basis-[10rem]"><p className="truncate font-semibold">{c.displayName}</p><p className="text-small text-muted">möchte mit dir befreundet sein</p></div>
             <div className="flex gap-2">
               <Button size="sm" className="min-h-11 sm:min-h-11" loading={busyId === c.id} onClick={() => run(c.id, () => respondToFriendRequest(c.id, true))} icon={<Check size={15} />}>Annehmen</Button>
               <Button size="sm" className="min-h-11 sm:min-h-11" variant="secondary" disabled={busyId === c.id} onClick={() => run(c.id, () => respondToFriendRequest(c.id, false))} icon={<X size={15} />}>Ablehnen</Button>
