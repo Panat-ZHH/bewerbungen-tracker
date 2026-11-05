@@ -1,24 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, CalendarDays, Check, LocateFixed, MapPin, Save, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { ArrowUpRight, CalendarDays, Check, LocateFixed, MapPin, Save } from "lucide-react";
 import { updateApplication } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
 import type { Application, ApplicationStatus } from "@/types";
+import { MapSheet } from "./map-fullscreen";
 import styles from "@/app/map/map.module.css";
 
+/** Details of the selected building as a bottom sheet (phones) / side card (from 768px). Kept under its old name for the page import. */
 export function MapApplicationDialog({ application, onClose, onUpdated, onMove, canMove }: { application: Application; onClose: () => void; onUpdated: (application: Application) => void; onMove: () => void; canMove: boolean }) {
-  const dialog = useRef<HTMLDialogElement>(null);
   const saving = useRef(false);
   const [draft, setDraft] = useState(application.status);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
-
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
 
   async function save() {
     if (saving.current || draft === application.status) return;
@@ -45,32 +42,29 @@ export function MapApplicationDialog({ application, onClose, onUpdated, onMove, 
   }
 
   return (
-    <dialog ref={dialog} className={styles.applicationDialog} aria-labelledby="map-application-title" onClose={onClose} onCancel={(event) => { if (saving.current) event.preventDefault(); }} onClick={(event) => { if (event.target === event.currentTarget && !saving.current) dialog.current?.close(); }}>
-      <div className={styles.dialogHeader}>
-        <div><p className={styles.dialogCompany}>{application.company}</p><h2 id="map-application-title">{application.position}</h2></div>
-        <button type="button" title="Schließen" aria-label="Schließen" disabled={busy} onClick={() => dialog.current?.close()}><X size={20} /></button>
+    <MapSheet id="application" open onClose={onClose} title={application.position} subtitle={application.company} closeDisabled={busy}>
+      <p className={styles.sheetStatus}>{statusLabels[application.status]}</p>
+      {application.location && <p className={styles.sheetMeta}><MapPin size={16} aria-hidden />{application.location}</p>}
+      <dl className={styles.sheetDates}>
+        <div><dt><CalendarDays size={15} aria-hidden /> Letzte Änderung</dt><dd><time dateTime={application.updatedAt}>{date(application.updatedAt)}</time></dd></div>
+        <div><dt>Erfasst am</dt><dd><time dateTime={application.createdAt}>{date(application.createdAt)}</time></dd></div>
+        {application.appliedAt && <div><dt>Abgeschickt am</dt><dd><time dateTime={application.appliedAt}>{date(application.appliedAt)}</time></dd></div>}
+        {application.deadline && <div><dt>Bewerbungsfrist</dt><dd><time dateTime={application.deadline}>{date(application.deadline)}</time></dd></div>}
+      </dl>
+      {application.notes && <div className={styles.sheetNotes}><h3>Deine Notizen</h3><p>{application.notes}</p></div>}
+      <form className={styles.sheetForm} onSubmit={(event) => { event.preventDefault(); void save(); }}>
+        <label htmlFor="map-application-status">Status ändern</label>
+        <select id="map-application-status" value={draft} disabled={busy} onChange={(event) => { setDraft(event.target.value as ApplicationStatus); setSaved(false); setError(""); }}>
+          {(Object.entries(statusLabels) as [ApplicationStatus, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </select>
+        {error && <p className={styles.dialogError} role="alert">{error}</p>}
+        <p className={styles.saveNotice} role="status">{busy ? "Wird gespeichert ..." : saved ? <><Check size={16} aria-hidden /> Status gespeichert</> : ""}</p>
+        <button type="submit" className={styles.saveButton} disabled={busy || draft === application.status}><Save size={16} aria-hidden />{busy ? "Speichern ..." : "Status speichern"}</button>
+      </form>
+      <div className={styles.sheetActions}>
+        <button type="button" disabled={busy || !canMove} onClick={onMove}><LocateFixed size={16} aria-hidden />Haus verschieben</button>
+        <Link href={`/applications/${encodeURIComponent(application.id)}`}><ArrowUpRight size={16} aria-hidden /> Bewerbung öffnen</Link>
       </div>
-      <div className={styles.dialogBody}>
-        <p className={styles.currentStatus}>{statusLabels[application.status]}</p>
-        {application.location && <p className={styles.dialogMeta}><MapPin size={16} />{application.location}</p>}
-        <dl className={styles.dialogDates}>
-          <div><dt><CalendarDays size={15} /> Letzte Änderung</dt><dd><time dateTime={application.updatedAt}>{date(application.updatedAt)}</time></dd></div>
-          <div><dt>Erfasst am</dt><dd><time dateTime={application.createdAt}>{date(application.createdAt)}</time></dd></div>
-          {application.appliedAt && <div><dt>Abgeschickt am</dt><dd><time dateTime={application.appliedAt}>{date(application.appliedAt)}</time></dd></div>}
-          {application.deadline && <div><dt>Bewerbungsfrist</dt><dd><time dateTime={application.deadline}>{date(application.deadline)}</time></dd></div>}
-        </dl>
-        {application.notes && <div className={styles.dialogNotes}><h3>Deine Notizen</h3><p>{application.notes}</p></div>}
-        <form onSubmit={(event) => { event.preventDefault(); void save(); }}>
-          <label htmlFor="map-application-status">Status ändern</label>
-          <select id="map-application-status" value={draft} disabled={busy} onChange={(event) => { setDraft(event.target.value as ApplicationStatus); setSaved(false); setError(""); }}>
-            {(Object.entries(statusLabels) as [ApplicationStatus, string][]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-          {error && <p className={styles.dialogError} role="alert">{error}</p>}
-          <p className={styles.saveNotice} role="status">{busy ? "Wird gespeichert ..." : saved ? <><Check size={16} /> Status gespeichert</> : ""}</p>
-          <button type="submit" className={styles.saveButton} disabled={busy || draft === application.status}><Save size={16} />{busy ? "Speichern ..." : "Status speichern"}</button>
-        </form>
-      </div>
-      <footer className={styles.dialogFooter}><button type="button" disabled={busy || !canMove} onClick={onMove}><LocateFixed size={16} />Haus verschieben</button><Link href={`/applications/${encodeURIComponent(application.id)}`}><ArrowUpRight size={16} /> Bewerbung öffnen</Link></footer>
-    </dialog>
+    </MapSheet>
   );
 }
