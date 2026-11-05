@@ -65,7 +65,7 @@ const results = [];
 let currentScope = "";
 const report = (ok, name, info = "", skip = false, known = false) => {
   const status = skip ? "SKIP" : ok ? "PASS" : known ? "KNOWN" : "FAIL";
-  results.push({ scope: currentScope, name, status, info: String(info).slice(0, 300) });
+  results.push({ scope: currentScope, name, status, info: String(info).slice(0, 4500) });
   console.log(`${status.padEnd(4)} [${currentScope}] ${name}${info && status !== "PASS" ? " — " + String(info).slice(0, 240) : ""}`);
 };
 
@@ -79,7 +79,7 @@ function makeT({ page, mock, profile, theme, flowName, base }) {
   const issues = [];
   const expected = [];
   let failed = false;
-  page.on("console", (m) => { if (m.type() === "error" && !NOISE.some((r) => r.test(m.text()))) issues.push(`console.error: ${m.text().slice(0, 200)}`); });
+  page.on("console", (m) => { if (m.type() === "error" && !NOISE.some((r) => r.test(m.text()))) issues.push(`console.error: ${m.text().slice(0, 4000)}`); });
   page.on("pageerror", (e) => issues.push(`uncaught: ${e.message.slice(0, 200)}`));
   page.on("requestfailed", (r) => { const f = r.failure()?.errorText ?? ""; if (!/ERR_ABORTED/.test(f)) issues.push(`request failed: ${r.url().slice(0, 120)} ${f}`); });
   page.on("response", (r) => { const url = r.url(); if (r.status() >= 400 && !url.startsWith("http://localhost:54321")) issues.push(`HTTP ${r.status()}: ${url.slice(0, 120)}`); });
@@ -91,7 +91,7 @@ function makeT({ page, mock, profile, theme, flowName, base }) {
     skip(name, why) { report(true, name, why, true); },
     /** A check for a documented app bug (docs/test-report-v2.md): reported as KNOWN (not a failure) until the bug is fixed, then PASS. */
     known(name, ok, ref) { report(!!ok, name, ref, false, true); return !!ok; },
-    async shot(label) { await page.screenshot({ path: `${OUT}${flowName}-${profile.name}-${theme}-${label}.png`, timeout: 30000 }).catch(() => undefined); },
+    async shot(label) { await page.screenshot({ path: `${OUT}${flowName}-${profile.name}-${theme}-${label}.png`, timeout: 30000, caret: "initial" }).catch(() => undefined); },
     async settle(ms = 400) { await page.waitForLoadState("networkidle", { timeout: 12000 }).catch(() => undefined); await page.waitForTimeout(ms); },
     async visit(path, { label = path, waitFor } = {}) {
       await page.goto(base + path, { waitUntil: "domcontentloaded", timeout: 120000 });
@@ -103,7 +103,7 @@ function makeT({ page, mock, profile, theme, flowName, base }) {
     async clean(label) {
       const wide = await page.evaluate(() => { const d = document.documentElement; return d.scrollWidth - d.clientWidth; }).catch(() => 0);
       const found = issues.splice(0).filter((i) => !expected.some((p) => p.test(i)));
-      const ok1 = t.check(`${label}: no console errors / failed requests / exceptions`, found.length === 0, found.slice(0, 3).join(" | "));
+      const ok1 = t.check(`${label}: no console errors / failed requests / exceptions`, found.length === 0, found.slice(0, 3).join(" | ").slice(0, 4500));
       const ok2 = t.check(`${label}: no horizontal overflow`, wide <= 1, `scrollWidth - clientWidth = ${wide}`);
       return ok1 && ok2;
     },
@@ -125,7 +125,7 @@ async function runFlow(browser, base, profile, theme, flow) {
   const start = Date.now();
   try { await flow.run(t); await t.clean("end of flow"); }
   catch (error) { t.check("flow ran to completion", false, String(error?.message ?? error).split("\n")[0]); }
-  if (t.failed) await page.screenshot({ path: `${OUT}failures/${flow.name}-${profile.name}-${theme}.png`, fullPage: false, timeout: 30000 }).catch(() => undefined);
+  if (t.failed) await page.screenshot({ path: `${OUT}failures/${flow.name}-${profile.name}-${theme}.png`, fullPage: false, timeout: 30000, caret: "initial" }).catch(() => undefined);
   await ctx.close();
   return Date.now() - start;
 }
@@ -168,7 +168,7 @@ flow("login", () => ({ authed: false }), async (t) => {
   await page.getByLabel("E-Mail-Adresse").fill("lena@beispiel.ch");
   await page.getByLabel("Passwort").first().fill("richtig123");
   await page.getByRole("button", { name: "Anmelden" }).click();
-  await page.waitForURL(/\/dashboard/, { timeout: 30000 }).catch(() => undefined);
+  await page.waitForURL(/\/dashboard/, { timeout: 30000, caret: "initial" }).catch(() => undefined);
   t.check("valid sign-in lands on the dashboard", /\/dashboard/.test(page.url()), page.url());
 });
 const base = (t) => t.base;

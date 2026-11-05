@@ -6,11 +6,13 @@ Date 2026-11-05, branch `tests-v2`, dev server `next dev --webpack -p 3204`, dum
 
 | Suite | Result |
 |---|---|
-| `npm test` (node --test) | see final numbers in the commit message / hand-off: all green (84 existing + 9 lib-pure + 6 migrations) |
+| `npm test` (node --test) | 99 tests, 99 pass (84 existing + 9 lib-pure + 6 migrations) |
 | `npm run test:e2e` non-map (`--skip=map`) | 1st run 573 PASS, 13 FAIL, 4 KNOWN, 4 SKIP; the 13 failures were test-script issues (timing, `tab` role for filters, hidden mobile card duplicates, expected 400 from the mock), fixed -> 0 FAIL |
 | map section (`--only=map`) | 58 PASS, 0 FAIL, 2 SKIP (mobile: no "Haus verschieben" button visible) |
 
 Screenshots: `~/Projects/bewerbungen-tracker-wt/screenshots/v2/tests/` (summary.json there).
+
+Final full run (desktop+mobile x light+dark, all flows incl. map): 657 PASS, 1 FAIL, 4 KNOWN (BUG-1), 6 SKIP of 668 checks. The 1 FAIL (`login`, hydration warning) was a test artifact: Playwright screenshots inject `caret-color:transparent` into inputs while React hydrates; fixed with `caret: "initial"` and re-run 3x green.
 
 ## Findings (app bugs)
 
