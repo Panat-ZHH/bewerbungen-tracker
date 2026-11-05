@@ -86,8 +86,9 @@ The improvement is mostly the skipped shadow pass and the removed per-frame Reac
 
 * `tests/map-camera.test.mjs` (31 tests): conversions vs three.js, zoom-about anchoring, bounds incl. L-shaped union and all four islands, rubber band, release velocity, inertia (monotonic, glide distance = v*tau, frame-rate independence, edge spring), controller gestures (pan 1:1, pinch + pan, finger lift/land without jump, soft limits, fling, no fling after resting, cancel), wheel anchoring and clamping, `zoomTo`, `focusOn`, `flyTo`, reduced motion, commands ignored mid-gesture.
 * `tests/map-renderer.test.mjs` (+3): pixel-ratio cap, adaptive resolution policy, shadow refresh policy.
-* `scripts/map-interaction-e2e.mjs`: ~45 real-input checks (see header; `ONLY=desktop|clamp|placement|arbitration|mobile`, `LABEL=...`, `SKIP_WHEEL=1`).
-* Existing `friend-island-e2e`, `islands-e2e`, `map-integration-e2e` re-run against the new code: see the final report.
+* `scripts/map-interaction-e2e.mjs`: 47 real-input checks, **47/47 pass** on the final code (before: 22/33 on the first valid run; the rest of the old failures are the table above). Options: `ONLY=desktop|clamp|placement|arbitration|mobile`, `LABEL=...`, `SKIP_WHEEL=1`.
+* Regression, run against the new code: `friend-island-e2e` (33 PASS, 0 FAIL, no console errors), `islands-e2e` (unlock + bridge + switcher, no console errors), `map-integration-e2e` desktop 15/15 and mobile 15/15; `npm test` 118/118, `npm run lint` 0 errors, `npx tsc --noEmit` clean.
+* Screenshots: `~/Projects/bewerbungen-tracker-wt/screenshots/v2/map-interaction/` (`before*-` and `final-*`).
 
 ## Open items / notes
 
