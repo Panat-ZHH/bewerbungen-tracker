@@ -759,13 +759,15 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     controls.update();
     if (motion) for (const animate of [...animations, ...shopAnimations]) animate(milliseconds / 1000);
     renderer.render(scene, camera);
+    // Labels grow/shrink gently with zoom, never below 1 so text stays >= 10px.
+    const labelScale = Math.min(1.25, Math.max(1, Math.sqrt(camera.zoom))).toFixed(2);
     for (const element of labels.querySelectorAll<HTMLButtonElement>("[data-building]")) {
       const anchor = anchors.get(element.dataset.building!);
       if (!anchor) { element.style.visibility = "hidden"; continue; }
       projection.copy(anchor).project(camera);
       const visible = projection.z >= -1 && projection.z <= 1 && Math.abs(projection.x) < 1.15 && Math.abs(projection.y) < 1.15;
       element.style.visibility = visible ? "visible" : "hidden";
-      element.style.transform = `translate(-50%, -50%) translate(${(projection.x + 1) / 2 * host.clientWidth}px, ${(-projection.y + 1) / 2 * host.clientHeight}px)`;
+      element.style.transform = `translate(-50%, -50%) translate(${(projection.x + 1) / 2 * host.clientWidth}px, ${(-projection.y + 1) / 2 * host.clientHeight}px) scale(${labelScale})`;
     }
   });
 

@@ -16,6 +16,7 @@ import { InviteCard } from "./invite-card";
 import { Motivation } from "./motivation";
 import { PendingInvite } from "./pending-invite";
 import { Requests } from "./requests";
+import { useFriendRequests } from "./friend-requests-context";
 import { friendlyError } from "./shared";
 
 export function FriendsView() {
@@ -26,6 +27,7 @@ export function FriendsView() {
   const [error, setError] = useState("");
   const [sharingBusy, setSharingBusy] = useState(false);
   const [sharingError, setSharingError] = useState("");
+  const { setCount: setRequestCount } = useFriendRequests();
 
   const load = useCallback(async () => {
     setError("");
@@ -33,13 +35,14 @@ export function FriendsView() {
       const [me, list, acts] = await Promise.all([getMySocialProfile(), listConnections(), getFriendsActivity().catch(() => [] as FriendActivity[])]);
       setProfile(me);
       setConnections(list);
+      setRequestCount(list.filter((c) => c.state === "incoming").length); // nav badge follows accept/decline immediately
       setActivity(acts);
     } catch (reason) {
       setError(friendlyError(reason, "Deine Freunde konnten nicht geladen werden."));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [setRequestCount]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch

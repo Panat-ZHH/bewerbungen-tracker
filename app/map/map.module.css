@@ -28,9 +28,9 @@
 .canvasHost canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 .canvasHost > svg[data-map-renderer] { display: block; width: 100%; height: 100%; touch-action: none; }
 .worldLabels { position: absolute; inset: 0; pointer-events: none; clip-path: inset(0); }
-.worldLabel { position: absolute; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 136px; min-height: 40px; padding: 5px 8px; border: 1px solid rgba(255,255,255,.85); border-radius: var(--radius-md); background: rgba(255,255,255,.88); color: var(--ink); box-shadow: var(--shadow-sm); pointer-events: auto; cursor: pointer; }
-.worldLabel strong { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 700; }
-.worldLabel span { font-size: 11px; color: var(--muted); }
+.worldLabel { --label-title-size: 11px; --label-status-size: 10px; --label-width: 96px; position: absolute; top: 0; left: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; width: var(--label-width); padding: 2px 5px; line-height: 1.25; border: 1px solid rgba(255,255,255,.85); border-radius: 8px; background: rgba(255,255,255,.88); color: var(--ink); box-shadow: var(--shadow-sm); pointer-events: auto; cursor: pointer; }
+.worldLabel strong { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--label-title-size); font-weight: 700; }
+.worldLabel span { font-size: var(--label-status-size); color: var(--muted); }
 .worldLabel:hover, .worldLabel:focus-visible, .selectedLabel { border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 2px var(--focus-ring), var(--shadow-sm); }
 .accessibleBuildings { border-top: 1px solid var(--line); font-size: 13px; }
 .accessibleBuildings summary { min-height: 44px; padding: 12px 16px; color: #4a6047; cursor: pointer; }
@@ -125,9 +125,7 @@
   .tools::-webkit-scrollbar { display: none; }
   .tools button { flex-shrink: 0; }
   .summary { gap: 6px 16px; padding: 10px 12px; }
-  .worldLabel { width: 108px; min-height: 36px; padding: 3px 6px; border-radius: 10px; }
-  .worldLabel strong { font-size: 11px; }
-  .worldLabel span { font-size: 10px; }
+  .worldLabel { --label-width: 84px; padding: 2px 4px; }
   .applicationDialog { width: 100vw; max-width: 100vw; max-height: 88dvh; margin: auto 0 0; border-radius: var(--radius-xl) var(--radius-xl) 0 0; padding-bottom: var(--safe-bottom); }
   .dialogHeader, .dialogBody { padding: 20px; }
   .dialogFooter { padding: 14px 20px; }

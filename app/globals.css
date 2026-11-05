@@ -27,6 +27,7 @@
   --warning-bg: #fff8e8; --warning-fg: #8a5a00; --warning-line: #f0dba8;
   --danger-bg: #fff4f4;  --danger-fg: #a32828;  --danger-line: #e8c7c7;
   --info-bg: #eaf3ff;    --info-fg: #064fab;    --info-line: #c4dcf8;
+  --badge-bg: #c62828; --badge-fg: #ffffff; --badge-ring: #ffffff; /* notification counter: 5.6:1 */
   --neutral-bg: #f2f2f4; --neutral-fg: #4a4a4f; --neutral-line: #e0e0e5;
 
   /* surfaces */
@@ -74,6 +75,7 @@
   --warning-bg: #2c2410; --warning-fg: #f0c869; --warning-line: #54431a;
   --danger-bg: #301717; --danger-fg: #ff9a9a; --danger-line: #5a2626;
   --info-bg: #14243b; --info-fg: #8fc0ff; --info-line: #24406a;
+  --badge-bg: #ff7b7b; --badge-fg: #2a0808; --badge-ring: #161b24; /* 7.6:1 */
   --neutral-bg: #222936; --neutral-fg: #c3cad6; --neutral-line: #313a4a;
   --glass-bg: linear-gradient(135deg, rgba(34,41,54,.72), rgba(22,27,36,.55));
   --glass-border: rgba(255,255,255,.08);

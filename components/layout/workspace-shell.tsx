@@ -9,6 +9,9 @@ import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
 import { useMyAvatar } from "@/components/ui/use-avatars";
+import { FriendRequestsProvider, useFriendRequests } from "@/components/friends/friend-requests-context";
+import { RequestBadge } from "@/components/friends/request-badge";
+import { badgeLabel } from "@/lib/friend-requests";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -32,7 +35,12 @@ const accountLinks = [
   { label: "Einstellungen", href: "/settings", icon: Settings, keys: ["Settings", "Einstellungen"] },
 ];
 
-export function WorkspaceShell({ children, active }: { children: React.ReactNode; active: string; title?: string }) {
+export function WorkspaceShell(props: { children: React.ReactNode; active: string; title?: string }) {
+  return <FriendRequestsProvider enabled><ShellInner {...props} /></FriendRequestsProvider>;
+}
+
+function ShellInner({ children, active }: { children: React.ReactNode; active: string; title?: string }) {
+  const { count: requestCount } = useFriendRequests();
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
@@ -104,12 +112,13 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
                   key={href}
                   href={href}
                   title={label}
-                  aria-label={label}
+                  aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : label}
                   aria-current={selected ? "page" : undefined}
-                  className={`flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
+                  className={`relative flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
                 >
                   <Icon size={16} strokeWidth={1.9} />
                   <span className="hidden xl:inline">{label}</span>
+                  {href === "/friends" && <RequestBadge count={requestCount} className="-right-0.5 -top-0.5" />}
                 </Link>
               );
             })}
@@ -138,8 +147,8 @@ export function WorkspaceShell({ children, active }: { children: React.ReactNode
             const selected = keys.includes(active);
             return (
               <li key={href} className="min-w-0 flex-1">
-                <Link href={href} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
-                  <span className={`flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${selected ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.2 : 1.8} /></span>
+                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
+                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${selected ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.2 : 1.8} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
                   <span className="max-w-full truncate">{label}</span>
                 </Link>
               </li>
