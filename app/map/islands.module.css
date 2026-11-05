@@ -1,4 +1,4 @@
-.panel { position: relative; display: grid; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--glass-border); background: var(--surface); }
+.panel { position: relative; display: grid; gap: 10px; }
 .switcher { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
 .switcher button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--glass-border); background: var(--raised); color: var(--ink); font-size: 13px; font-weight: 600; white-space: nowrap; }
 .switcher button.active { background: var(--brand-gradient); color: #fff; border-color: transparent; }
@@ -13,7 +13,7 @@
 .unlock:disabled { opacity: .7; }
 .hint { margin: 0; font-size: 13px; color: var(--muted); }
 .error { margin: 0; font-size: 13px; color: var(--danger-fg); }
-.celebrate { position: absolute; inset: 0 0 auto 0; z-index: 5; display: grid; place-items: center; align-content: center; gap: 2px; min-height: 120px; padding: 18px; text-align: center; background: color-mix(in srgb, var(--surface) 88%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); animation: islandBanner 3.6s var(--ease) both; pointer-events: none; }
+.celebrate { position: absolute; z-index: 50; left: 0; right: 0; margin: 0 auto; top: 60px; width: min(360px, 100%); overflow: hidden; display: grid; place-items: center; align-content: center; gap: 2px; min-height: 110px; padding: 18px; text-align: center; border-radius: var(--radius-xl); border: 1px solid var(--glass-border); background: color-mix(in srgb, var(--sheet-bg) 92%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-shadow: var(--shadow-lg); pointer-events: none; animation: islandBanner 3.6s var(--ease) both; }
 .celebrate strong { font-size: 20px; color: var(--ink); }
 .celebrate span { font-size: 13px; color: var(--muted); }
 .confetti { position: absolute; inset: 0; overflow: hidden; }

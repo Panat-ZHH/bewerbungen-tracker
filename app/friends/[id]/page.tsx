@@ -7,7 +7,7 @@ import { FriendIslandView } from "@/components/friends/friend-island-view";
 export default function FriendIslandPage() {
   const { id } = useParams<{ id: string }>();
   return (
-    <WorkspaceShell active="Freunde">
+    <WorkspaceShell active="Freunde" fullscreen>
       <FriendIslandView friendId={decodeURIComponent(id ?? "")} />
     </WorkspaceShell>
   );

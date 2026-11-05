@@ -35,11 +35,12 @@ const accountLinks = [
   { label: "Einstellungen", href: "/settings", icon: Settings, keys: ["Settings", "Einstellungen"] },
 ];
 
-export function WorkspaceShell(props: { children: React.ReactNode; active: string; title?: string }) {
+/** `fullscreen`: the page owns the whole viewport (map). No page scroll, header hidden on phones (bottom tab bar stays), children fill the remaining space. */
+export function WorkspaceShell(props: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
   return <FriendRequestsProvider enabled><ShellInner {...props} /></FriendRequestsProvider>;
 }
 
-function ShellInner({ children, active }: { children: React.ReactNode; active: string; title?: string }) {
+function ShellInner({ children, active, fullscreen = false }: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
   const { count: requestCount } = useFriendRequests();
   const router = useRouter();
   const pathname = usePathname();
@@ -67,6 +68,22 @@ function ShellInner({ children, active }: { children: React.ReactNode; active: s
     if (!checkingSession && !user) router.replace(pathname && pathname !== "/dashboard" ? `/login?next=${encodeURIComponent(pathname)}` : "/login");
   }, [checkingSession, pathname, router, user]);
 
+  // Fullscreen pages (map): the document itself must never scroll or rubber-band.
+  useEffect(() => {
+    if (!fullscreen) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const previous = [html.style.overflow, html.style.overscrollBehavior, body.style.overflow, body.style.overscrollBehavior];
+    html.dataset.fullscreen = "true";
+    html.style.overflow = "hidden"; html.style.overscrollBehavior = "none";
+    body.style.overflow = "hidden"; body.style.overscrollBehavior = "none";
+    window.scrollTo(0, 0);
+    return () => {
+      delete html.dataset.fullscreen;
+      [html.style.overflow, html.style.overscrollBehavior, body.style.overflow, body.style.overscrollBehavior] = previous;
+    };
+  }, [fullscreen]);
+
   async function logout() {
     setMoreOpen(false);
     await supabase.auth.signOut();
@@ -92,10 +109,10 @@ function ShellInner({ children, active }: { children: React.ReactNode; active: s
   const moreActive = [...more, ...accountLinks].some((item) => item.keys.includes(active));
 
   return (
-    <div className="workspace-bg min-h-[100dvh]">
+    <div className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-[var(--shadow-md)]">Zum Inhalt springen</a>
 
-      <header className="glass-bar sticky top-0 z-30 border-b">
+      <header className={`glass-bar sticky top-0 z-30 shrink-0 border-b ${fullscreen ? "max-md:hidden" : ""}`}>
         <div className="page-wrap flex h-[var(--nav-h)] items-center gap-3 md:gap-5">
           <Link href="/dashboard" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
             <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px] bg-[#f2f7ff] shadow-[var(--shadow-xs)]">
@@ -139,7 +156,11 @@ function ShellInner({ children, active }: { children: React.ReactNode; active: s
         </div>
       </header>
 
-      <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{children}</main>
+      {fullscreen ? (
+        <main id="main" className="relative min-h-0 flex-1 max-md:mb-[calc(var(--tabbar-h)+var(--safe-bottom))]">{children}</main>
+      ) : (
+        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{children}</main>
+      )}
 
       <nav aria-label="Hauptmenü mobil" className="glass-bar fixed inset-x-0 bottom-0 z-30 border-t md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
         <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-xl items-stretch px-1">

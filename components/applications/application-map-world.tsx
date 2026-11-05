@@ -126,11 +126,7 @@ function World({ applications, visibleIds, selectedId, night, zoom, center, onZo
         </div>
       </div>
       <p id="map-drag-help" className={styles.dragHint}>{readOnly ? "Nur ansehen: Ziehen bewegt die Kamera, Zoom mit Mausrad oder zwei Fingern. Hier kann nichts verändert werden." : "Gegenstände und Häuser per Ziehen verschieben (Touch: kurz gedrückt halten, dann ziehen). Tastatur: Karte fokussieren, Gegenstand auswählen, Pfeiltasten verschieben, Enter platzieren, Esc abbrechen, Strg+Z rückgängig. Straßen sind fest."}</p>
-      {unavailable && <p className={styles.empty} role="status">Die 3D-Ansicht ist in diesem Browser nicht verfügbar. Deine Bewerbungen findest du unten.</p>}
-      {!readOnly && <details className={styles.accessibleBuildings}>
-        <summary>Bewerbungen ({visibleIds.length})</summary>
-        <div>{applications.filter(({ id }) => visibleIds.includes(id)).map((application) => <button key={application.id} type="button" onClick={() => onSelect(application.id)}><strong>{application.company}</strong><span>{statusLabels[application.status]}</span></button>)}</div>
-      </details>}
+      {unavailable && <p className={`${styles.empty} ${styles.unavailable}`} role="status">Die 3D-Ansicht ist in diesem Browser nicht verfügbar. Deine Bewerbungen findest du in der Suche.</p>}
     </>
   );
 }
