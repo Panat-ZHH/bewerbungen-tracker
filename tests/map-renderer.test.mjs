@@ -40,3 +40,30 @@ test("SVG painter ordering draws large terrain before water, roads, grid and bui
     assert.equal(elements.at(-1).renderOrder, mapRenderLayers.object);
   } finally { geometries.forEach((geometry) => geometry.dispose()); material.dispose(); }
 });
+test("pixel ratio is capped at 1.5 and never below 1", async () => {
+  const { basePixelRatio, MAX_PIXEL_RATIO } = await import("../lib/map-renderer.ts");
+  assert.equal(MAX_PIXEL_RATIO, 1.5);
+  assert.equal(basePixelRatio(3), 1.5); assert.equal(basePixelRatio(2), 1.5); assert.equal(basePixelRatio(1.25), 1.25);
+  assert.equal(basePixelRatio(1), 1); assert.equal(basePixelRatio(0.5), 1); assert.equal(basePixelRatio(NaN), 1);
+});
+
+test("adaptive resolution: drops after a run of slow frames, recovers slowly, stays inside [1, ceiling]", async () => {
+  const { nextPixelRatio } = await import("../lib/map-renderer.ts");
+  assert.equal(nextPixelRatio(1.5, 1.5, 40, 12, 0), 1.25, "slow run -> step down");
+  assert.equal(nextPixelRatio(1.5, 1.5, 40, 3, 0), 1.5, "a few slow frames are tolerated");
+  assert.equal(nextPixelRatio(1, 1.5, 80, 99, 0), 1, "never below 1");
+  assert.equal(nextPixelRatio(1, 1.5, 12, 0, 179), 1, "recovery needs a long fast run");
+  assert.equal(nextPixelRatio(1, 1.5, 12, 0, 180), 1.25);
+  assert.equal(nextPixelRatio(1.5, 1.5, 12, 0, 999), 1.5, "never above the ceiling");
+  assert.equal(nextPixelRatio(1.25, 1.5, 20, 99, 99), 1.25, "medium frames: hold");
+});
+
+test("shadow refresh policy: on scene change, when the light moved, or every ~120 ms, but not every frame", async () => {
+  const { shadowDue } = await import("../lib/map-renderer.ts");
+  assert.equal(shadowDue(1016, 1000, 0, false), false);
+  assert.equal(shadowDue(1016, 1000, 0, true), true);
+  assert.equal(shadowDue(1016, 1000, 5, false), true);
+  assert.equal(shadowDue(1130, 1000, 0, false), true);
+  const refreshed = Array.from({ length: 60 }, (_, frame) => frame).filter((frame) => shadowDue(frame * 16, 0, 0, false)).length;
+  assert.ok(refreshed >= 1);
+});

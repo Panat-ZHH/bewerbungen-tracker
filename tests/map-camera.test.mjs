@@ -379,3 +379,14 @@ test("all islands reachable: the farthest island centre can be focused when ever
   const c = make(all);
   for (const island of ISLANDS) { c.focusOn(island.focus, 1); settle(c, 3000, 0); close(c.state.x, island.focus.x, 0.01, `island ${island.no}`); close(c.state.z, island.focus.z, 0.01); }
 });
+
+test("cancelGesture keeps the view, never flings and eases back inside the bounds", () => {
+  const c = make();
+  c.gesture(pointers([1, 200, 300]), 0);
+  for (let i = 1; i <= 5; i++) c.gesture(pointers([1, 200 + i * 40, 300]), i * 16);
+  c.cancelGesture();
+  assert.notEqual(c.mode, "inertia");
+  settle(c, 3000, 100);
+  assert.equal(c.mode, "idle");
+  c.cancelGesture(); // no-op outside a gesture
+});

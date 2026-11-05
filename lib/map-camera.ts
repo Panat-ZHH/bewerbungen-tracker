@@ -235,6 +235,7 @@ export function createCameraController(initial: CameraState, options: Controller
     get mode(): Mode { return mode; },
     /** True while the camera moves by itself or by a finger (the page uses this to ignore the tap that stops a glide). */
     get moving() { return mode !== "idle"; },
+    get rects(): Rect[] { return rects; },
     get gliding() { return mode === "inertia"; },
     setView(next: View) { view = next; },
     setRects(next: Rect[]) { rects = next; if (mode === "idle") settle(); },
@@ -311,6 +312,13 @@ export function createCameraController(initial: CameraState, options: Controller
       flight = { from: { x: state.x, z: state.z }, to: target, startedAt: now, duration: durationMs };
       goal = { ...state, x: target.x, z: target.z };
       mode = "flight";
+    },
+
+    /** The gesture was cancelled by the system (no fling): keep the view, ease back inside the bounds if needed. */
+    cancelGesture() {
+      if (mode !== "gesture") return;
+      samples = []; start = null; ids = []; goal = { ...state };
+      settle();
     },
 
     /** Stop any glide / easing right where the camera is (a finger touched the map). */
