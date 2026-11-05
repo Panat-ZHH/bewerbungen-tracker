@@ -156,7 +156,7 @@ function pageChecks({ phone, isMap }) {
   const vw = document.documentElement.clientWidth, vh = window.innerHeight;
   const out = { overflow: [], wide: [], clipped: [], tap: [], font: [], bars: [], modals: [], map: [], docOverflow: 0 };
   const skip = (el) => el.closest("nextjs-portal, script, style, noscript, .sr-only, [aria-hidden='true'] svg");
-  const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && cs.opacity !== "0"; };
+  const visible = (el) => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); if (typeof el.checkVisibility === "function" && !el.checkVisibility()) return false; return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && cs.display !== "none" && cs.opacity !== "0"; };
   const sel = (el) => {
     const parts = []; let cur = el;
     for (let i = 0; i < 3 && cur && cur !== document.body && cur.nodeType === 1; i++) {
