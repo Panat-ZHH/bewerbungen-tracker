@@ -71,11 +71,11 @@ export function StudentClasses() {
 
   return (
     <div className="space-y-6 pb-safe">
-      <PageHeader eyebrow="Schüler" title="Meine Klassen" description="Tritt der Klasse deiner Lehrkraft bei, damit sie deinen Bewerbungsfortschritt begleiten kann." />
+      <PageHeader eyebrow="Schüler:in" title="Meine Klassen" description="Tritt der Klasse deiner Lehrperson bei, damit sie deinen Bewerbungsfortschritt begleiten kann." />
 
       <Card className="space-y-4 p-5">
         <form onSubmit={lookup}>
-          <Field label="Klassencode" htmlFor="join-code" hint="Den Code bekommst du von deiner Lehrkraft." error={joinError}>
+          <Field label="Klassencode" htmlFor="join-code" hint="Den Code bekommst du von deiner Lehrperson." error={joinError}>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="z. B. AB12CD34" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! tracking-[.15em] sm:max-w-xs sm:text-base!" />
               <Button type="submit" className="min-h-11 sm:min-h-11" loading={joining && !pending}>Weiter</Button>
@@ -88,7 +88,7 @@ export function StudentClasses() {
 
       {(error || actionError) && !leaving && !pending && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error || actionError}</span>{error && <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button>}</div>}
       {!items && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
-      {items && items.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Du bist in keiner Klasse" description="Gib oben den Code deiner Lehrkraft ein, um beizutreten." />}
+      {items && items.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Du bist in keiner Klasse" description="Gib oben den Code deiner Lehrperson ein, um beizutreten." />}
       {items && items.length > 0 && (
         <div className="space-y-3">
           {items.map((m) => (
@@ -100,7 +100,7 @@ export function StudentClasses() {
                 </div>
                 <Badge tone={m.shareApplications ? "success" : "neutral"}>{m.shareApplications ? <><Eye size={12} /> Freigabe aktiv</> : <><EyeOff size={12} /> Nicht geteilt</>}</Badge>
               </div>
-              <p className="text-small text-muted">{m.shareApplications ? "Deine Lehrkraft sieht Firma, Position, Status und Daten deiner Bewerbungen." : "Deine Lehrkraft sieht nur, dass du in der Klasse bist."}</p>
+              <p className="text-small text-muted">{m.shareApplications ? "Deine Lehrperson sieht Firma, Position, Status und Daten deiner Bewerbungen." : "Deine Lehrperson sieht nur, dass du in der Klasse bist."}</p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" loading={busy === m.classId && !leaving} onClick={() => toggle(m)} icon={m.shareApplications ? <EyeOff size={14} /> : <Eye size={14} />}>{m.shareApplications ? "Freigabe pausieren" : "Wieder teilen"}</Button>
                 <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" onClick={() => { setActionError(""); setLeaving(m); }} icon={<LogOut size={14} />}>Klasse verlassen</Button>
@@ -116,7 +116,7 @@ export function StudentClasses() {
         {actionError && <p role="alert" className="text-small mt-3 text-[var(--danger-fg)]">{actionError}</p>}
       </Modal>
 
-      <Modal open={!!leaving} onClose={() => setLeaving(null)} title="Klasse verlassen?" description={leaving ? `Du verlässt "${leaving.name}". Deine Lehrkraft sieht deine Bewerbungen danach nicht mehr. Mit dem Code kannst du jederzeit wieder beitreten.` : undefined}
+      <Modal open={!!leaving} onClose={() => setLeaving(null)} title="Klasse verlassen?" description={leaving ? `Du verlässt "${leaving.name}". Deine Lehrperson sieht deine Bewerbungen danach nicht mehr. Mit dem Code kannst du jederzeit wieder beitreten.` : undefined}
         footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setLeaving(null)}>Abbrechen</Button><Button variant="danger" loading={!!leaving && busy === leaving.classId} onClick={confirmLeave}>Verlassen</Button></div>}>
         {actionError && <p role="alert" className="text-small text-[var(--danger-fg)]">{actionError}</p>}
       </Modal>

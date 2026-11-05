@@ -3,11 +3,12 @@
 import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BarChart3, CheckCircle2, GraduationCap, MapPin, ShieldCheck, UserRound, Users } from "lucide-react";
+import { ArrowRight, BarChart3, CheckCircle2, Eye, EyeOff, GraduationCap, MapPin, ShieldCheck, UserRound, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
+import { authMessage, passwordHint, safeNextPath } from "@/lib/ux";
 
 type AuthMode = "login" | "signup";
 type Role = "student" | "teacher";
@@ -33,6 +34,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace(nextPath()); });
@@ -54,11 +56,18 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    const result = mode === "login"
-      ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password, options: { data: { role } } });
+    let result;
+    try {
+      result = mode === "login"
+        ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
+        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { role } } });
+    } catch (reason) {
+      setError(authMessage(reason));
+      setLoading(false);
+      return;
+    }
     if (result.error) {
-      setError(authError(result.error.message));
+      setError(authMessage(result.error));
       setLoading(false);
       return;
     }
@@ -70,7 +79,20 @@ export default function LoginPage() {
     router.replace(nextPath());
   }
 
+  async function forgotPassword() {
+    setError(""); setSuccess("");
+    if (!email.trim()) { setError("Trag oben deine E-Mail-Adresse ein. Dann schicken wir dir einen Link zum Zurücksetzen."); document.getElementById("email")?.focus(); return; }
+    setLoading(true);
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/login/reset` });
+      if (resetError) { setError(authMessage(resetError)); }
+      else setSuccess("Falls es ein Konto mit dieser Adresse gibt, haben wir dir einen Link zum Zurücksetzen geschickt. Schau auch im Spam-Ordner nach.");
+    } catch (reason) { setError(authMessage(reason)); }
+    setLoading(false);
+  }
+
   const isSignup = mode === "signup";
+  const hint = isSignup ? passwordHint(password) : null;
 
   return (
     <main className="workspace-bg min-h-[100dvh] lg:grid lg:grid-cols-[1.05fr_1fr]">
@@ -128,9 +150,13 @@ export default function LoginPage() {
             <Field label="E-Mail-Adresse" htmlFor="email">
               <Input id="email" type="email" required autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" />
             </Field>
-            <Field label="Passwort" htmlFor="password">
-              <Input id="password" type="password" required minLength={6} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 6 Zeichen" : "Dein Passwort"} />
+            <Field label="Passwort" htmlFor="password" hint={hint?.label || undefined}>
+              <div className="relative">
+                <Input id="password" type={showPassword ? "text" : "password"} required minLength={6} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 6 Zeichen" : "Dein Passwort"} className="pr-12" aria-describedby={hint?.label ? "password-hint" : undefined} />
+                <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
+              </div>
             </Field>
+            {!isSignup && <p className="-mt-3 text-right"><button type="button" onClick={forgotPassword} disabled={loading} className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-[var(--brand)] hover:underline disabled:opacity-60">Passwort vergessen?</button></p>}
             {isSignup && (
               <Field label="Passwort wiederholen" htmlFor="confirm-password">
                 <Input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
@@ -155,13 +181,5 @@ export default function LoginPage() {
 
 /** Where to go after login: a safe same-site path from ?next=, else the dashboard. */
 function nextPath() {
-  const next = new URLSearchParams(window.location.search).get("next");
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/login") ? next : "/dashboard";
-}
-
-function authError(message: string) {
-  if (message.includes("Invalid login credentials")) return "E-Mail oder Passwort stimmt nicht. Versuch es noch einmal.";
-  if (message.includes("User already registered")) return "Für diese E-Mail gibt es schon ein Konto. Melde dich an.";
-  if (message.includes("Password should be at least")) return "Dein Passwort muss mindestens sechs Zeichen haben.";
-  return "Das hat nicht geklappt. Bitte prüfe deine Angaben und versuch es noch einmal.";
+  return safeNextPath(new URLSearchParams(window.location.search).get("next")) ?? "/dashboard";
 }

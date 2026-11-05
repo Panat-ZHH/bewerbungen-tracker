@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 export default function NewApplicationPage() {
   return (
     <WorkspaceShell active="Bewerbungen">
-      <Link href="/applications" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-[#5e5e63] transition hover:text-[#0866d6]">
+      <Link href="/applications" className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-muted transition hover:text-[var(--brand)]">
         <ArrowLeft size={16} /> Zurück zu Bewerbungen
       </Link>
       <div className="mt-4 max-w-2xl">

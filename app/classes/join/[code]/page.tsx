@@ -35,7 +35,7 @@ function JoinContent({ code }: { code: string }) {
   }
 
   if (preview === undefined) return <Card className="mx-auto max-w-md p-6" aria-busy="true"><Skeleton className="mx-auto h-16 w-16 rounded-full" /><Skeleton className="mx-auto mt-4 h-6 w-1/2" /><Skeleton className="mt-6 h-11" /></Card>;
-  if (!preview) return <EmptyState className="mx-auto max-w-md" title="Klassencode nicht gefunden" description={error || "Dieser Link ist nicht mehr gültig. Frag deine Lehrkraft nach einem neuen Link."} action={<ButtonLink href="/classes" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
+  if (!preview) return <EmptyState className="mx-auto max-w-md" title="Klassencode nicht gefunden" description={error || "Dieser Link ist nicht mehr gültig. Frag deine Lehrperson nach einem neuen Link."} action={<ButtonLink href="/classes" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
 
   return (
     <Card className="animate-rise mx-auto max-w-md space-y-5 p-6 text-center sm:p-8">
@@ -51,7 +51,7 @@ function JoinContent({ code }: { code: string }) {
           <ButtonLink href="/classes" full>Zu meinen Klassen</ButtonLink>
         </div>
       ) : isTeacher ? (
-        <StatusMessage tone="info">Du bist als Lehrkraft angemeldet. Nur Schülerkonten können einer Klasse beitreten.</StatusMessage>
+        <StatusMessage tone="info">Du bist als Lehrperson angemeldet. Nur Schülerkonten können einer Klasse beitreten.</StatusMessage>
       ) : (
         <div className="space-y-3 text-left">
           <PrivacyPanel variant="class" teacherName={preview.teacherName} />

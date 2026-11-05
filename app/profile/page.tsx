@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check } from "lucide-react";
 import { Field, Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
@@ -9,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AvatarEditor } from "@/components/profile/avatar-editor";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
+import { friendlyMessage } from "@/lib/ux";
+import { toast } from "@/lib/toast";
 import { getProfile, saveProfile } from "@/lib/storage";
 import type { Profile as ProfileType } from "@/types";
 
@@ -30,7 +31,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     let active = true;
-    getProfile().then((data) => { if (active) setProfile(data); }).catch(() => { if (active) setNotice("Dein Profil konnte nicht geladen werden."); }).finally(() => { if (active) setLoading(false); });
+    getProfile().then((data) => { if (active) setProfile(data); }).catch((reason) => { if (active) setNotice(friendlyMessage(reason, "Dein Profil konnte nicht geladen werden.")); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
 
@@ -41,9 +42,9 @@ export default function ProfilePage() {
     setNotice("");
     try {
       await saveProfile(profile);
-      setNotice("Gespeichert.");
-    } catch {
-      setNotice("Deine Angaben konnten nicht gespeichert werden.");
+      toast({ message: "Profil gespeichert" });
+    } catch (reason) {
+      setNotice(friendlyMessage(reason, "Deine Angaben konnten nicht gespeichert werden."));
     } finally {
       setSaving(false);
     }
@@ -53,7 +54,7 @@ export default function ProfilePage() {
     <WorkspaceShell active="Profile">
       <div className="max-w-2xl pb-safe">
         <PageHeader title="Dein Profil" description="Deine Kontaktdaten an einem Ort." />
-        {notice && <StatusMessage tone={notice === "Gespeichert." ? "success" : "danger"} icon={notice === "Gespeichert." ? <Check /> : undefined} className="mb-5">{notice}</StatusMessage>}
+        {notice && <StatusMessage tone="danger" className="mb-5">{notice}</StatusMessage>}
         <AvatarEditor name={[profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || profile?.email || "Profil"} />
         {loading ? (
           <Card><CardContent role="status" aria-label="Dein Profil wird geladen" className="grid gap-5 sm:grid-cols-2 sm:p-7">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="space-y-2"><Skeleton className="h-3.5 w-20" /><Skeleton className="h-11" /></div>)}</CardContent></Card>

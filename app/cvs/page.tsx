@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Check, Eye, FileText, Pencil, Upload } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
+import { friendlyMessage } from "@/lib/ux";
+import { toast } from "@/lib/toast";
 import { getCVPreviewUrl, getCVs, updateCV, uploadCV } from "@/lib/storage";
 import type { CV, CVType } from "@/types";
 
@@ -31,20 +34,22 @@ export default function CVsPage() {
 
   useEffect(() => {
     let active = true;
-    getCVs().then((data) => { if (active) setCvs(data); }).catch(() => { if (active) setNotice("Deine Lebensläufe konnten nicht geladen werden."); }).finally(() => { if (active) setLoading(false); });
+    getCVs().then((data) => { if (active) setCvs(data); }).catch((reason) => { if (active) setNotice(friendlyMessage(reason, "Deine Lebensläufe konnten nicht geladen werden.")); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
 
   async function replaceCV(cv: CV, file?: File) {
     if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setNotice("Die Datei ist grösser als 10 MB. Wähle eine kleinere PDF- oder Word-Datei."); return; }
+    if (!/\.(pdf|docx?)$/i.test(file.name)) { setNotice("Dieses Dateiformat wird nicht unterstützt. Nutze PDF oder Word (.pdf, .doc, .docx)."); return; }
     setBusy(cv.id);
     setNotice("");
     try {
       const updated = await uploadCV(cv.id, file);
       if (updated) setCvs((current) => current.map((item) => item.id === cv.id ? updated : item));
-      setNotice(`${file.name} ist gespeichert.`);
-    } catch {
-      setNotice("Die Datei konnte nicht gespeichert werden. Versuch es bitte noch einmal.");
+      toast({ message: `${file.name} ist gespeichert.` });
+    } catch (reason) {
+      setNotice(friendlyMessage(reason, "Die Datei konnte nicht gespeichert werden."));
     } finally {
       setBusy("");
     }
@@ -58,9 +63,9 @@ export default function CVsPage() {
       const updated = await updateCV(editing.id, editing);
       setCvs((current) => current.map((item) => item.id === editing.id ? updated : item));
       setEditing(undefined);
-      setNotice("Deine Änderungen sind gespeichert.");
-    } catch {
-      setNotice("Die Änderungen konnten nicht gespeichert werden.");
+      toast({ message: "Beschreibung gespeichert." });
+    } catch (reason) {
+      setNotice(friendlyMessage(reason, "Die Änderungen konnten nicht gespeichert werden."));
     } finally {
       setBusy("");
     }
@@ -70,8 +75,8 @@ export default function CVsPage() {
     if (!cv.storagePath) return;
     try {
       window.open(await getCVPreviewUrl(cv.storagePath), "_blank", "noopener,noreferrer");
-    } catch {
-      setNotice("Die Datei konnte nicht geöffnet werden.");
+    } catch (reason) {
+      setNotice(friendlyMessage(reason, "Die Datei konnte nicht geöffnet werden."));
     }
   }
 
@@ -79,10 +84,12 @@ export default function CVsPage() {
     <WorkspaceShell active="Lebensläufe">
       <PageHeader title="Deine Lebensläufe" description="Lade hier die Version hoch, die du für deine Bewerbungen nutzt." />
 
-      {notice && <StatusMessage tone={/nicht/.test(notice) ? "danger" : "success"} icon={<Check />} className="mb-5">{notice}</StatusMessage>}
+      {notice && <StatusMessage tone="danger" className="mb-5">{notice}</StatusMessage>}
 
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map((item) => <Card key={item} className="space-y-4 p-5" aria-hidden><Skeleton className="h-10 w-10 !rounded-full" /><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4" /><Skeleton className="h-11 w-1/2" /></Card>)}</div>
+      ) : cvs.length === 0 && !notice ? (
+        <EmptyState icon={<FileText />} title="Noch keine Lebenslauf-Vorlagen" description="Sobald Vorlagen da sind, kannst du hier PDF- oder Word-Dateien hochladen." />
       ) : (
         <div className="pb-safe grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
           {cvs.map((cv) => (

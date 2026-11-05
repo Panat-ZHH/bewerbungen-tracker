@@ -7,7 +7,7 @@ const never = ["Notizen", "Gehalt", "Stellenbeschreibung", "Lebensläufe und Dok
 export function PrivacyPanel({ variant, teacherName }: { variant: "class" | "friends"; teacherName?: string }) {
   const sees = variant === "class" ? shared : ["Anzahl deiner Bewerbungen", "Wie viele davon in welchem Status sind", "Deinen Fortschritt auf der Karte"];
   const never_ = variant === "class" ? never : ["Firmen und Positionen", "Fristen", ...never.slice(0, 4)];
-  const who = variant === "class" ? (teacherName ? teacherName : "Deine Lehrkraft") : "Deine Freunde";
+  const who = variant === "class" ? (teacherName ? teacherName : "Deine Lehrperson") : "Deine Freunde";
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3.5 text-[var(--info-fg)]">
       <p className="flex items-center gap-2 font-semibold"><ShieldCheck size={17} className="shrink-0" /> Was {who} sieht</p>

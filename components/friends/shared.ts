@@ -1,5 +1,5 @@
 import { socialErrorCode } from "@/lib/social";
-import type { ApplicationStatus } from "@/types";
+import { generalCause } from "@/lib/ux";
 
 export const PENDING_INVITE_KEY = "pendingInviteCode";
 
@@ -13,20 +13,12 @@ export function friendlyError(reason: unknown, fallback = "Das hat leider nicht 
     case "NOT_FOUND": return "Diese Anfrage gibt es nicht mehr.";
     case "INVALID_NAME": return "Dieser Name ist nicht gültig.";
     case "INVALID_AVATAR": return "Dieses Profilbild ist nicht gültig.";
-    default: return fallback;
+    default: return generalCause(reason) ?? fallback;
   }
 }
 
-export const statusLabels: Record<ApplicationStatus, string> = {
-  saved: "Gemerkt",
-  preparing: "In Vorbereitung",
-  applied: "Beworben",
-  interview: "Gespräch",
-  final_interview: "Finalrunde",
-  offer: "Zusage",
-  rejected: "Absage",
-  withdrawn: "Zurückgezogen",
-};
+/** One label set for the whole app (lib/utils). */
+export { statusLabels } from "@/lib/utils";
 
 export type PendingInviteKind = "friend" | "class";
 const PENDING_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
