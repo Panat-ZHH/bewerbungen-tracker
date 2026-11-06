@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { friendlyMessage } from "@/lib/ux";
 import { toast } from "@/lib/toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { DeleteAccountCard } from "@/components/settings/delete-account";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
 import type { Application } from "@/types";
@@ -108,6 +109,8 @@ export default function SettingsPage() {
           <Button variant="danger" onClick={() => setConfirmClear(true)} disabled={busy} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<Trash2 size={16} />}>Meine Daten löschen</Button>
           <p className="mt-2 text-small text-muted">Tipp: Lade vorher eine Sicherung herunter. Gelöschte Daten lassen sich nicht zurückholen.</p>
         </CardContent></Card>
+
+        <DeleteAccountCard />
 
         <Modal open={confirmClear} onClose={() => !busy && setConfirmClear(false)} title="Alle Daten wirklich löschen?" description="Alle Bewerbungen, Notizen und Profilangaben werden entfernt. Deine Lebenslauf-Vorlagen bleiben erhalten."
           footer={<><Button variant="ghost" onClick={() => setConfirmClear(false)} disabled={busy}>Abbrechen</Button><Button variant="danger" onClick={clearData} loading={busy}>Ja, alles löschen</Button></>}>
