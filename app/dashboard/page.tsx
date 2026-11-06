@@ -134,8 +134,8 @@ export default function DashboardPage() {
 
 function Summary({ label, value, detail }: { label: string; value: number | string; detail: string }) {
   return (
-    <Card className="min-w-0 p-3 sm:p-5">
-      <p className="truncate text-[10.5px] tracking-tight text-muted min-[360px]:text-xs min-[360px]:tracking-normal sm:text-sm">{label}</p>
+    <Card className="min-w-0 p-2.5 min-[360px]:p-3 sm:p-5">
+      <p className="truncate text-[10px] tracking-tighter text-muted min-[360px]:text-xs min-[360px]:tracking-normal sm:text-sm">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums tracking-[-1px] sm:mt-3 sm:text-3xl">{value}</p>
       <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted sm:text-xs">{detail}</p>
     </Card>
