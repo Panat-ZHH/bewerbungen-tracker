@@ -8,7 +8,8 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
-import { authMessage, oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
+import { oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
+import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { pendingInvitePath } from "@/components/friends/shared";
 import { resolveLanding } from "@/lib/role";
 
