@@ -57,7 +57,7 @@ export function TeacherDashboardView() {
       {data && t && (
         <>
           {mode === "no-students" && firstClass && (
-            <EmptyState icon={<Users size={26} />} title="Noch niemand in deinen Klassen" description="Sobald sich Schülerinnen und Schüler mit dem Code oder Link anmelden, siehst du hier ihren Fortschritt. Nächster Schritt: die Klasse einladen." action={<Link href={`/teacher/classes/${firstClass.id}?tab=invite`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--brand-gradient)] px-5 font-semibold text-white">Klasse «{firstClass.name}» einladen</Link>} />
+            <EmptyState icon={<Users size={26} />} title="Noch niemand in deinen Klassen" description="Sobald sich Schülerinnen und Schüler mit dem Code oder Link anmelden, siehst du hier ihren Fortschritt. Nächster Schritt: die Klasse einladen." action={<Link href={`/teacher/classes/${firstClass.id}?tab=invite`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[image:var(--brand-gradient)] px-5 font-semibold text-white">Klasse «{firstClass.name}» einladen</Link>} />
           )}
           {mode === "no-applications" && (
             <section aria-label="Kennzahlen" className="space-y-3">
