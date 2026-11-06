@@ -15,6 +15,7 @@ import { StatusMessage } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { isClosedStatus, isSentStatus, isConversationStatus, isPlacedStatus, isSchnupperStatus, showsDeadline } from "@/lib/status";
 import { RemindersCard } from "@/components/reminders/reminders-card";
+import { WeeklyGoal } from "@/components/dashboard/weekly-goal";
 import type { Application } from "@/types";
 
 
@@ -68,6 +69,7 @@ export default function DashboardPage() {
         <Summary label="Gespräche" value={loading ? "–" : conversations} detail={[offers ? `${offers} ${offers === 1 ? "Zusage" : "Zusagen"}` : "", schnuppern ? `${schnuppern} Schnupperlehre${schnuppern === 1 ? "" : "n"}` : ""].filter(Boolean).join(" · ") || "Noch keine"} />
       </section>
 
+      {!loading && applications.length > 0 && <WeeklyGoal applications={applications} />}
       {!loading && !error && <RemindersCard applications={applications} />}
 
       <section className="mt-10">

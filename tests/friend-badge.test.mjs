@@ -23,7 +23,7 @@ test("existing social_list RPC marks incoming requests (no new migration needed)
 });
 test("shell wires the badge into mobile + desktop nav and the friends page updates it", async () => {
   const shell = await readFile(new URL("../components/layout/workspace-shell.tsx", import.meta.url), "utf8");
-  assert.equal((shell.match(/<RequestBadge/g) ?? []).length, 2);
+  assert.equal((shell.match(/<RequestBadge/g) ?? []).length, 3);
   const view = await readFile(new URL("../components/friends/friends-view.tsx", import.meta.url), "utf8");
   assert.match(view, /setRequestCount\(/);
 });

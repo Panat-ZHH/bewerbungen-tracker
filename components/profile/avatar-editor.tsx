@@ -157,7 +157,7 @@ export function AvatarEditor({ name }: { name: string }) {
         <div className="mx-auto mt-4 flex max-w-[280px] items-center gap-2">
           <button type="button" aria-label="Verkleinern" onClick={() => applyZoom(zoom - 0.2)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)]"><Minus size={18} /></button>
           <input type="range" aria-label="Zoom" min={AVATAR_MIN_ZOOM} max={AVATAR_MAX_ZOOM} step={0.01} value={zoom} onChange={(event) => applyZoom(Number(event.target.value))} className="h-11 min-w-0 flex-1 accent-[var(--brand)]" />
-          <button type="button" aria-label="Vergrößern" onClick={() => applyZoom(zoom + 0.2)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)]"><Plus size={18} /></button>
+          <button type="button" aria-label="Vergrössern" onClick={() => applyZoom(zoom + 0.2)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)]"><Plus size={18} /></button>
         </div>
         <div className="mt-3 flex items-center justify-center gap-3 text-small text-muted"><canvas ref={previewRef} width={64} height={64} aria-label="Vorschau" role="img" className="h-16 w-16 rounded-full bg-[var(--hover)] ring-2 ring-[var(--solid)]" />Vorschau</div>
       </Modal>

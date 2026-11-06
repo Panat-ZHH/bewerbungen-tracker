@@ -64,7 +64,7 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
               <Badge tone="info">{student.interviews} {student.interviews === 1 ? "Gespräch" : "Gespräche"}</Badge><Badge tone={student.offers ? "success" : "neutral"}>{student.offers} {student.offers === 1 ? "Zusage" : "Zusagen"}</Badge>
               {student.schnupper > 0 && <Badge tone="info">{student.schnupper} Schnupperlehre{student.schnupper === 1 ? "" : "n"}</Badge>}{student.placed && <Badge tone="success">Lehrstelle gefunden</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
             </div>
-            <StatusBar counts={student.statusCounts} total={student.total} />
+            <StatusBar counts={student.statusCounts} total={student.total} legend />
           </Card>
           {cards && cards.length === 0
             ? <EmptyState icon={<ShieldCheck size={24} />} title="Noch keine geteilten Bewerbungen" description="Sobald die Person Bewerbungen erfasst, erscheint hier der Verlauf." />

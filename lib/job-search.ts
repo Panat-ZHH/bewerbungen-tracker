@@ -119,7 +119,7 @@ async function getPublicHtml(url: URL, signal?: AbortSignal): Promise<string> {
     size += value.byteLength;
     if (size > 4000000) {
       await reader.cancel();
-      throw new Error("Die Suchseite ist zu groß.");
+      throw new Error("Die Suchseite ist zu gross.");
     }
     chunks.push(value);
   }

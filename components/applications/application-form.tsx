@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { createApplication, updateApplication } from "@/lib/storage";
 import { cn, statusLabels } from "@/lib/utils";
 import { friendlyMessage } from "@/lib/ux";
+import { reward } from "@/lib/rewards";
 import { toast } from "@/lib/toast";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { statusHints } from "@/components/ui/status-badge";
@@ -126,6 +127,7 @@ export function ApplicationForm({ application }: { application?: Application }) 
         ? await updateApplication(application.id, payload)
         : await createApplication(payload);
       if (result) {
+        if (payload.status === "applied" && (!isEditing || application?.status !== "applied")) reward("applied");
         toast({ message: isEditing ? "Änderungen gespeichert" : "Bewerbung gespeichert – du findest sie jetzt unter „Bewerbungen“" });
         router.push(`/applications/${result.id}`);
       } else {

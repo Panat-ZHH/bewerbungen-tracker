@@ -17,6 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
 import type { UserRole } from "@/types";
+import { getMyClassMemberships } from "@/lib/classes";
 import { NotificationsBell } from "./notifications-bell";
 
 type NavItem = { label: string; href: string; icon: typeof Search; keys: string[]; prefixes?: string[] };
@@ -25,7 +26,7 @@ const navigation: NavItem[] = [
   { label: "Start", href: "/dashboard", icon: LayoutDashboard, keys: ["Dashboard", "Übersicht", "Start"] },
   { label: "Suchen", href: "/search", icon: Search, keys: ["Suchen"] },
   { label: "Bewerbungen", href: "/applications", icon: BriefcaseBusiness, keys: ["Applications", "Bewerbungen"] },
-  { label: "Map", href: "/map", icon: Map, keys: ["Map"] },
+  { label: "Dorf", href: "/map", icon: Map, keys: ["Map", "Dorf"] },
   { label: "Dokumente", href: "/cvs", icon: FileText, keys: ["CVs", "Lebensläufe", "Dokumente"] },
   { label: "Auswertung", href: "/analytics", icon: BarChart3, keys: ["Analytics", "Analysen", "Auswertung"] },
   { label: "Freunde", href: "/friends", icon: Users, keys: ["Friends", "Freunde"] },
@@ -38,7 +39,9 @@ const teacherNavigation: NavItem[] = [
 ];
 const teacherPrimaryHrefs = ["/teacher", "/profile", "/settings"];
 /** Items shown directly in the mobile tab bar; everything else goes into the "Mehr" sheet. */
-const primaryHrefs = ["/dashboard", "/search", "/applications", "/friends"];
+const primaryHrefs = ["/dashboard", "/search", "/applications", "/map", "/friends"];
+/** Students who joined a class see "Klassen" in the tab bar instead of "Freunde" (friends then live in "Mehr"). */
+const primaryHrefsInClass = ["/dashboard", "/search", "/applications", "/map", "/classes"];
 const accountLinks = [
   { label: "Mein Profil", href: "/profile", icon: UserRound, keys: ["Profile", "Profil"] },
   { label: "Einstellungen", href: "/settings", icon: Settings, keys: ["Settings", "Einstellungen"] },
@@ -58,6 +61,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const [moreOpen, setMoreOpen] = useState(false);
   const myAvatar = useMyAvatar(Boolean(user));
   const [role, setRole] = useState<UserRole | null>(null);
+  const [inClass, setInClass] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -90,6 +94,14 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
     });
     return () => { alive = false; };
   }, [user, pathname, router]);
+
+  // Students in at least one class get "Klassen" in the mobile tab bar.
+  useEffect(() => {
+    if (!user || role !== "student") return;
+    let alive = true;
+    getMyClassMemberships().then((list) => { if (alive) setInClass(list.length > 0); }).catch(() => {});
+    return () => { alive = false; };
+  }, [user, role]);
 
   // Fullscreen pages (map): the document itself must never scroll or rubber-band.
   useEffect(() => {
@@ -132,8 +144,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const accountItems: NavItem[] = isTeacher ? [{ ...accountLinks[0], keys: [...accountLinks[0].keys] }, { ...accountLinks[1], keys: [...accountLinks[1].keys] }] : accountLinks;
   const isSelected = (item: NavItem) => item.keys.includes(active) || (isTeacher && (item.prefixes ?? [item.href]).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)));
   const mobileAll = isTeacher ? [...teacherNavigation, ...accountItems] : navigation;
-  const primary = isTeacher ? mobileAll.filter((item) => teacherPrimaryHrefs.includes(item.href)) : navigation.filter((item) => primaryHrefs.includes(item.href));
-  const more = isTeacher ? [] : navigation.filter((item) => !primaryHrefs.includes(item.href));
+  const studentPrimary = inClass ? primaryHrefsInClass : primaryHrefs;
+  const primary = isTeacher ? mobileAll.filter((item) => teacherPrimaryHrefs.includes(item.href)) : navigation.filter((item) => studentPrimary.includes(item.href));
+  const more = isTeacher ? [] : navigation.filter((item) => !studentPrimary.includes(item.href));
   const moreList = isTeacher ? [] : [...more, ...accountLinks];
   const moreActive = moreList.some(isSelected);
   const home = homeFor(role);
@@ -160,7 +173,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
                   title={label}
                   aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : label}
                   aria-current={selected ? "page" : undefined}
-                  className={`relative flex h-9 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
+                  className={`relative flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
                 >
                   <Icon size={16} strokeWidth={1.9} />
                   <span className="hidden xl:inline">{label}</span>
@@ -174,10 +187,10 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
           <div className="flex shrink-0 items-center gap-1">
             {!isTeacher && <NotificationsBell />}
-            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex pointer-coarse:h-11 pointer-coarse:w-11">
+            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
               <Settings size={17} strokeWidth={1.8} />
             </Link>
-            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex pointer-coarse:h-11 pointer-coarse:w-11">
+            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
               <LogOut size={17} strokeWidth={1.8} />
             </button>
             <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition active:scale-95">
@@ -209,7 +222,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
           })}
           <li className="min-w-0 flex-1">
             <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${moreActive ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
-              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${moreActive ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!isTeacher && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" /></span>
+              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${moreActive ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!isTeacher && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
               <span className="text-[10.5px] font-medium">Mehr</span>
             </button>
           </li>

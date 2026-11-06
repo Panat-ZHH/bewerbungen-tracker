@@ -153,7 +153,7 @@ export function MapControls({ camera, night, onToggleNight, onRefresh, refreshin
         <SlidersHorizontal size={18} aria-hidden />
       </button>
       <div id={bodyId} className={`${styles.controlsBody} ${styles.glass}`} hidden={collapsed}>
-        <button type="button" title="Vergrößern" aria-label="Vergrößern" onClick={camera.zoomIn} disabled={!camera.canZoomIn}><Plus size={18} aria-hidden /></button>
+        <button type="button" title="Vergrössern" aria-label="Vergrössern" onClick={camera.zoomIn} disabled={!camera.canZoomIn}><Plus size={18} aria-hidden /></button>
         <button type="button" title="Zoom zurücksetzen" aria-label={`Zoom zurücksetzen, aktuell ${Math.round(camera.zoom * 100)} Prozent`} onClick={camera.reset} className={styles.zoomValue}>{Math.round(camera.zoom * 100)}%</button>
         <button type="button" title="Verkleinern" aria-label="Verkleinern" onClick={camera.zoomOut} disabled={!camera.canZoomOut}><Minus size={18} aria-hidden /></button>
         <button type="button" title="Kamera zentrieren" aria-label="Kamera zentrieren" onClick={camera.recenter}><LocateFixed size={18} aria-hidden /></button>
@@ -247,7 +247,7 @@ export function MapSheet({ id, open, onClose, title, subtitle, icon, children, c
             {subtitle && <p>{subtitle}</p>}
           </div>
           <button type="button" className={styles.sheetButton} aria-expanded={!collapsed} aria-controls={bodyId} aria-label={collapsed ? `${title} ausklappen` : `${title} einklappen`} title={collapsed ? "Ausklappen" : "Einklappen"} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <ChevronUp size={18} aria-hidden /> : <ChevronDown size={18} aria-hidden />}</button>
-          <button type="button" className={styles.sheetButton} aria-label={`${title} schließen`} title="Schließen (Esc)" disabled={closeDisabled} onClick={onClose}><X size={18} aria-hidden /></button>
+          <button type="button" className={styles.sheetButton} aria-label={`${title} schliessen`} title="Schliessen (Esc)" disabled={closeDisabled} onClick={onClose}><X size={18} aria-hidden /></button>
         </div>
       </div>
       <div id={bodyId} className={styles.sheetBody} hidden={collapsed}>{children}</div>

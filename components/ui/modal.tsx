@@ -64,7 +64,7 @@ export function Modal({ open, onClose, title, description, children, footer, cla
             <h2 id={titleId} className="text-heading">{title}</h2>
             {description && <p id={descId} className="mt-1 text-small text-muted">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Schließen" className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-[var(--hover)] hover:text-[var(--ink)]"><X size={18} /></button>
+          <button type="button" onClick={onClose} aria-label="Schliessen" className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-[var(--hover)] hover:text-[var(--ink)]"><X size={18} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && <div className="flex flex-col-reverse gap-2 border-t border-[var(--line)] px-5 py-4 pb-[calc(1rem+var(--safe-bottom))] sm:flex-row sm:justify-end">{footer}</div>}
