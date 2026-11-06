@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/lib/toast";
 import { classInviteLink } from "@/lib/classes";
 import { formatDate } from "@/components/classes/shared";
-import { createInvite, createInvitesMany, listInvites, revokeInvite, type ClassInvitation, type DashboardClass } from "./api";
+import { createInvite, createInvites, listInvites, revokeInvite, type ClassInvitation, type DashboardClass } from "./api";
 import { INVITE_STATE_LABEL, MAX_INVITE_EMAILS, inviteMailto, inviteState, inviteUrl, parseEmails, type InviteState } from "./logic";
 import { QrCode } from "./qr-code";
 import { CopyButton, ErrorBanner, teacherError } from "./shared";
@@ -37,7 +37,7 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
     if (parsed.valid.length > MAX_INVITE_EMAILS) { setFormError(`Maximal ${MAX_INVITE_EMAILS} Adressen auf einmal (aktuell ${parsed.valid.length}).`); return; }
     setBusy("many");
     try {
-      const created = await createInvitesMany(cls.id, parsed.valid);
+      const created = await createInvites(cls.id, parsed.valid);
       setResults(created.map((c) => ({ email: c.email, url: inviteUrl(c.token, origin) })));
       setEmails(parsed.invalid.join("\n"));
       toast({ message: `${created.length} Einladungen erstellt.`, tone: "success" });

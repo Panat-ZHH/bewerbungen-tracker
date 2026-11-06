@@ -1,6 +1,6 @@
 // Pure helpers for the teacher screens (no React, no aliases at runtime) so they can be unit-tested with node --test.
 import type { ApplicationStatus } from "@/types";
-import type { ClassInvitation, TeacherStudent } from "@/lib/teacher-types-stub";
+import type { ClassInvitation, TeacherStudent } from "@/lib/teacher";
 import type { CsvColumn } from "@/lib/teacher-csv";
 
 export const MAX_INVITE_EMAILS = 60;

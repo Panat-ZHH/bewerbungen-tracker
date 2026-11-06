@@ -3,13 +3,12 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Archive, ArchiveRestore, RefreshCw, Trash2, UserMinus, UserPlus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { toast } from "@/lib/toast";
-import { addCoTeacher, deleteClass, listClassTeachers, regenerateClassCode, removeCoTeacher, renameClass, setClassArchived, type CoTeacher, type DashboardClass } from "./api";
+import { addCoTeacher, deleteClass, listCoTeachers, regenerateClassCode, removeCoTeacher, renameClass, setClassArchived, type CoTeacher, type DashboardClass } from "./api";
 import { teacherError } from "./shared";
 
 type Confirm = "" | "code" | "delete";
@@ -26,7 +25,7 @@ export function ClassSettingsPanel({ cls, onChanged }: { cls: DashboardClass; on
   const [coEmail, setCoEmail] = useState("");
   const [coError, setCoError] = useState("");
 
-  const loadTeachers = useCallback(() => { listClassTeachers(cls.id).then((t) => { setTeachers(t); setTeachersError(""); }).catch(() => { setTeachers([]); setTeachersError("Die Liste der Lehrpersonen ist gerade nicht verfügbar."); }); }, [cls.id]);
+  const loadTeachers = useCallback(() => { listCoTeachers(cls.id).then((t) => { setTeachers(t); setTeachersError(""); }).catch(() => { setTeachers([]); setTeachersError("Die Liste der Lehrpersonen ist gerade nicht verfügbar."); }); }, [cls.id]);
   useEffect(() => { if (cls.isOwner) loadTeachers(); }, [cls.isOwner, loadTeachers]);
 
   async function run(kind: string, action: () => Promise<void>, ok?: string) {
@@ -72,7 +71,7 @@ export function ClassSettingsPanel({ cls, onChanged }: { cls: DashboardClass; on
               <ul className="divide-y divide-[var(--line)]">{teachers.map((t) => (
                 <li key={t.teacherId} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
                   <div className="min-w-0"><p className="truncate text-sm font-semibold">{t.displayName || t.email}</p>{t.email && t.displayName && <p className="text-small truncate text-muted">{t.email}</p>}</div>
-                  {t.isOwner ? <Badge tone="brand">Besitz</Badge> : <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" icon={<UserMinus size={14} />} aria-label={`${t.displayName || t.email} als Co-Lehrperson entfernen`} onClick={() => run("rm" + t.teacherId, async () => { await removeCoTeacher(cls.id, t.teacherId); loadTeachers(); }, "Co-Lehrperson entfernt.")}>Entfernen</Button>}
+                  {<Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" icon={<UserMinus size={14} />} aria-label={`${t.displayName || t.email} als Co-Lehrperson entfernen`} onClick={() => run("rm" + t.teacherId, async () => { await removeCoTeacher(cls.id, t.teacherId); loadTeachers(); }, "Co-Lehrperson entfernt.")}>Entfernen</Button>}
                 </li>
               ))}</ul>
             )}

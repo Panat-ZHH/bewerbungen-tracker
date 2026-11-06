@@ -12,13 +12,14 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StatusBar, formatDate } from "@/components/classes/shared";
-import { getClassStudentTimeline, getTeacherClassStudents, type TeacherStudent, type TimelineEvent } from "./api";
+import { getStudentTimeline, getTeacherClassStudents, type TeacherStudent, type TimelineEvent } from "./api";
 import { ErrorBanner, relativeDays, teacherError } from "./shared";
 
+const KIND_LABEL: Record<string, string> = { created: "Erfasst", applied: "Beworben", updated: "Aktualisiert", deadline: "Frist" };
 type Group = { id: string; company: string; position: string; events: TimelineEvent[] };
 function group(events: TimelineEvent[]): Group[] {
   const map = new Map<string, Group>();
-  events.forEach((e, i) => { const id = e.applicationId ?? `x${i}`; const g = map.get(id) ?? { id, company: e.company, position: e.position, events: [] }; g.events.push(e); map.set(id, g); });
+  events.forEach((e, i) => { const id = e.applicationId || `x${i}`; const g = map.get(id) ?? { id, company: e.company ?? "Firma nicht freigegeben", position: e.position ?? "", events: [] }; g.events.push(e); map.set(id, g); });
   const time = (e: TimelineEvent) => (e.eventDate ? new Date(e.eventDate).getTime() : 0);
   const groups = [...map.values()]; groups.forEach((g) => g.events.sort((a, b) => time(a) - time(b)));
   return groups.sort((a, b) => time(b.events[b.events.length - 1]) - time(a.events[a.events.length - 1]));
@@ -27,16 +28,17 @@ function group(events: TimelineEvent[]): Group[] {
 export function StudentTimelineView({ classId, studentId }: { classId: string; studentId: string }) {
   const [student, setStudent] = useState<TeacherStudent | null>(null);
   const [events, setEvents] = useState<TimelineEvent[] | null>(null);
+  const [tlHidden, setTlHidden] = useState(false);
   const [error, setError] = useState("");
   const avatars = useAvatarUrls([studentId]);
   const load = useCallback(() => {
-    Promise.all([getTeacherClassStudents(classId), getClassStudentTimeline(classId, studentId)])
-      .then(([list, tl]) => { setStudent(list.find((s) => s.studentId === studentId) ?? null); setEvents(tl); setError(""); })
+    Promise.all([getTeacherClassStudents(classId), getStudentTimeline(classId, studentId)])
+      .then(([list, tl]) => { setStudent(list.find((s) => s.studentId === studentId) ?? null); setEvents(tl.events); setTlHidden(tl.hidden); setError(""); })
       .catch((e) => setError(teacherError(e)));
   }, [classId, studentId]);
   useEffect(() => { load(); }, [load]);
 
-  const hidden = (student?.hidden ?? false) || (events ?? []).some((e) => e.hidden);
+  const hidden = (student?.hidden ?? false) || tlHidden;
   const groups = useMemo(() => (hidden ? [] : group(events ?? [])), [events, hidden]);
 
   return (
@@ -57,7 +59,7 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
         <>
           <Card className="space-y-3 p-5">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="info">{student.interviews} Gespräche</Badge><Badge tone={student.offers ? "success" : "neutral"}>{student.offers} Zusagen</Badge>
+              <Badge tone="info">{student.interviews} {student.interviews === 1 ? "Gespräch" : "Gespräche"}</Badge><Badge tone={student.offers ? "success" : "neutral"}>{student.offers} {student.offers === 1 ? "Zusage" : "Zusagen"}</Badge>
               {student.placed && <Badge tone="success">Lehrstelle gefunden</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
             </div>
             <StatusBar counts={student.statusCounts} total={student.total} />
@@ -74,7 +76,7 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
                         {g.events.map((e, i) => (
                           <li key={i} className="relative">
                             <span className="absolute -left-[1.62rem] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--brand)] ring-4 ring-[var(--solid)]" aria-hidden />
-                            <div className="flex flex-wrap items-center gap-2"><StatusBadge status={e.status} /><span className="text-small tabular text-muted">{formatDate(e.eventDate ?? undefined)}</span></div>
+                            <div className="flex flex-wrap items-center gap-2"><span className="text-small font-semibold">{KIND_LABEL[e.kind] ?? "Aktualisiert"}</span>{e.status ? <StatusBadge status={e.status} /> : null}<span className="text-small tabular text-muted">{formatDate(e.eventDate ?? undefined)}</span></div>
                           </li>
                         ))}
                       </ol>
