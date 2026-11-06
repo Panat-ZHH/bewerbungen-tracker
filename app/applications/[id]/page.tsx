@@ -16,6 +16,7 @@ import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { statusHints } from "@/components/ui/status-badge";
+import { isSentStatus, schnupperResultLabels, showsDeadline, testResultLabels } from "@/lib/status";
 import type { Application, ApplicationStatus } from "@/types";
 
 const statuses = Object.entries(statusLabels) as [ApplicationStatus, string][];
@@ -45,7 +46,7 @@ export default function ApplicationDetailPage() {
     setError("");
     const previous = application.status;
     try {
-      const updated = await updateApplication(application.id, { status });
+      const updated = await updateApplication(application.id, { status, ...(isSentStatus(status) && !application.appliedAt ? { appliedAt: new Date().toISOString().slice(0, 10) } : {}) });
       if (updated) setApplication(updated);
       toast({
         message: `Stand geändert: ${statusLabels[status]}`,
@@ -132,12 +133,17 @@ export default function ApplicationDetailPage() {
           <p className="mt-4 text-sm text-muted" id="status-hint">{statusHints[application.status]}</p>
 
           <Card className="mt-6 max-w-3xl divide-y divide-[var(--line)] px-5 md:px-6">
-            {application.deadline && <DetailRow label="Bewerben bis" value={new Date(application.deadline).toLocaleDateString("de-CH")} badge={["saved", "preparing"].includes(application.status) ? deadlineInfo(application.deadline) : null} />}
+            {application.deadline && showsDeadline(application.status) && <DetailRow label="Bewerben bis" value={new Date(application.deadline).toLocaleDateString("de-CH")} badge={["saved", "preparing"].includes(application.status) ? deadlineInfo(application.deadline) : null} />}
+            {application.schnupperDate && <DetailRow label="Schnuppertermin" value={new Date(application.schnupperDate).toLocaleDateString("de-CH")} />}
+            {application.schnupperResult && <DetailRow label="Schnupperlehre" value={schnupperResultLabels[application.schnupperResult]} />}
+            {application.schnupperNotes && <div className="py-5"><h2 className="text-sm font-semibold">Notizen zum Schnuppern</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{application.schnupperNotes}</p></div>}
+            {application.testDate && <DetailRow label="Eignungstest" value={new Date(application.testDate).toLocaleDateString("de-CH")} />}
+            {application.testResult && <DetailRow label="Testergebnis" value={testResultLabels[application.testResult]} />}
             {application.source && <DetailRow label="Gefunden bei" value={application.source} />}
             {(application.salaryMin || application.salaryMax) && <DetailRow label="Lohn" value={`${application.salaryMin ?? "?"}–${application.salaryMax ?? "?"} ${application.currency ?? "CHF"}`} />}
             {application.notes && <div className="py-5"><h2 className="text-sm font-semibold">Deine Notizen</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{application.notes}</p></div>}
             {application.jobDescription && <div className="py-5"><h2 className="text-sm font-semibold">Zur Stelle</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{application.jobDescription}</p></div>}
-            {!application.deadline && !application.source && !application.salaryMin && !application.salaryMax && !application.notes && !application.jobDescription && <p className="py-5 text-sm text-muted">Noch keine weiteren Angaben. Du kannst sie jederzeit ergänzen.</p>}
+            {!(application.deadline && showsDeadline(application.status)) && !application.schnupperDate && !application.schnupperResult && !application.schnupperNotes && !application.testDate && !application.testResult && !application.source && !application.salaryMin && !application.salaryMax && !application.notes && !application.jobDescription && <p className="py-5 text-sm text-muted">Noch keine weiteren Angaben. Du kannst sie jederzeit ergänzen.</p>}
           </Card>
         </>
       )}

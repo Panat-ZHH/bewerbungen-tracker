@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import type { ApplicationStatus, StatusCounts } from "@/types";
+import { isPlacedFromCounts, schnupperCounts } from "@/lib/status";
 
 // Typed camelCase wrappers for the teacher-role RPCs (migration 20261107000000_teacher_role.sql, spec docs/teacher-contract.md).
 // Teachers never read tables directly; everything goes through security-definer RPCs.
@@ -39,7 +40,7 @@ export type DashboardTotals = { students: number; classes: number; applications:
 export type DashboardClass = { id: string; name: string; schoolYear: string; archived: boolean; isOwner: boolean; joinCode: string; students: number; applications: number; interviews: number; offers: number; placed: number; inactive: number; hidden: number };
 export type DashboardDeadline = { classId: string; className: string; studentId: string; studentName: string; company: string; position: string; deadline: string };
 export type TeacherDashboard = { totals: DashboardTotals; classes: DashboardClass[]; deadlines: DashboardDeadline[] };
-export type TeacherStudent = { studentId: string; displayName: string; avatarSeed: string; joinedAt: string; hidden: boolean; total: number; statusCounts: StatusCounts; interviews: number; offers: number; placed: boolean; lastActivity: string | null; inactive: boolean; lastNudgedAt: string | null };
+export type TeacherStudent = { studentId: string; displayName: string; avatarSeed: string; joinedAt: string; hidden: boolean; total: number; statusCounts: StatusCounts; interviews: number; offers: number; placed: boolean; /** Schnupperlehre planned or done (from the shared status counts). */ schnupper: number; lastActivity: string | null; inactive: boolean; lastNudgedAt: string | null };
 export type TimelineKind = "created" | "applied" | "updated" | "deadline";
 /** One shared event of one application. company/position are null if the student hides company names, status is null if the student hides stages. */
 export type TimelineEvent = { applicationId: string; company: string | null; position: string | null; status: ApplicationStatus | null; eventDate: string; kind: TimelineKind };
@@ -121,7 +122,7 @@ export async function addCoTeacher(classId: string, email: string): Promise<void
 export async function removeCoTeacher(classId: string, teacherId: string): Promise<void> { await call("class_remove_coteacher", { p_class_id: classId, p_teacher_id: teacherId }); }
 export async function listCoTeachers(classId: string): Promise<CoTeacher[]> { return (await call<Row[] | null>("class_coteachers", { p_class_id: classId }) ?? []).map((r) => ({ teacherId: String(r.teacher_id), displayName: String(r.display_name ?? ""), avatarSeed: String(r.avatar_seed ?? ""), email: str(r.email), addedAt: String(r.added_at) })); }
 export async function getTeacherDashboard(inactiveDays = 14): Promise<TeacherDashboard> { return dashboardFromJson(await call<Row | null>("teacher_dashboard", { p_inactive_days: inactiveDays })); }
-export async function getTeacherClassStudents(classId: string, inactiveDays = 14): Promise<TeacherStudent[]> { return (await call<Row[] | null>("teacher_class_students", { p_class_id: classId, p_inactive_days: inactiveDays }) ?? []).map((r) => ({ studentId: String(r.student_id), displayName: String(r.display_name ?? ""), avatarSeed: String(r.avatar_seed ?? ""), joinedAt: String(r.joined_at), hidden: Boolean(r.hidden), total: num(r.total), statusCounts: (r.status_counts ?? {}) as StatusCounts, interviews: num(r.interviews), offers: num(r.offers), placed: Boolean(r.placed), lastActivity: str(r.last_activity), inactive: Boolean(r.inactive), lastNudgedAt: str(r.last_nudged_at) })); }
+export async function getTeacherClassStudents(classId: string, inactiveDays = 14): Promise<TeacherStudent[]> { return (await call<Row[] | null>("teacher_class_students", { p_class_id: classId, p_inactive_days: inactiveDays }) ?? []).map((r) => ({ studentId: String(r.student_id), displayName: String(r.display_name ?? ""), avatarSeed: String(r.avatar_seed ?? ""), joinedAt: String(r.joined_at), hidden: Boolean(r.hidden), total: num(r.total), statusCounts: (r.status_counts ?? {}) as StatusCounts, interviews: num(r.interviews), offers: num(r.offers), placed: isPlacedFromCounts((r.status_counts ?? {}) as StatusCounts, Boolean(r.placed)), schnupper: schnupperCounts((r.status_counts ?? {}) as StatusCounts).schnupper, lastActivity: str(r.last_activity), inactive: Boolean(r.inactive), lastNudgedAt: str(r.last_nudged_at) })); }
 export async function getStudentTimeline(classId: string, studentId: string): Promise<StudentTimeline> {
   const rows = (await call<Row[] | null>("class_student_timeline", { p_class_id: classId, p_student_id: studentId })) ?? [];
   if (rows.some((r) => r.hidden)) return { hidden: true, events: [] };

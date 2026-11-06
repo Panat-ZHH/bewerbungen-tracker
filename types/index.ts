@@ -2,9 +2,13 @@ export type ApplicationStatus =
   | "saved"
   | "preparing"
   | "applied"
+  | "schnupper_planned"
+  | "schnupper_done"
+  | "aptitude_test"
   | "interview"
   | "final_interview"
   | "offer"
+  | "contract_signed"
   | "rejected"
   | "withdrawn";
 
@@ -39,6 +43,13 @@ export interface Application {
   cvType?: CVType;
   jobDescription?: string;
   notes?: string;
+  /** Schnupperlehre (trial day): date, result and own notes. Only used for the Schnupperlehre steps. */
+  schnupperDate?: string;
+  schnupperResult?: "positive" | "neutral" | "negative";
+  schnupperNotes?: string;
+  /** Eignungstest / Multicheck. */
+  testDate?: string;
+  testResult?: "pending" | "passed" | "failed";
 }
 
 export interface ApplicationEvent {

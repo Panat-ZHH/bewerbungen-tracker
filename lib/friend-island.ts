@@ -1,10 +1,11 @@
 import type { Application, ApplicationStatus } from "../types/index.ts";
+import { STATUS_ORDER } from "./status.ts";
 import { shopCatalog, type MapLayout, type OwnedMapItem, type ShopItemType } from "./map-shop.ts";
 
 /** Everything the read-only island view needs. Houses carry at most the company name (if the owner shares it) and the building status; no position, notes or any other application data. */
 export type FriendIsland = { userId: string; displayName: string; islands: number; companiesShared: boolean; applications: Application[]; items: OwnedMapItem[]; layouts: MapLayout[] };
 
-const statuses: readonly string[] = ["saved", "preparing", "applied", "interview", "final_interview", "offer", "rejected", "withdrawn"];
+const statuses: readonly string[] = STATUS_ORDER;
 const number = (value: unknown, fallback = 0) => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
 
 /** Neutral label for a house without a (shared) company name. */

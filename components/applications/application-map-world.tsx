@@ -343,11 +343,11 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     } else {
       roof(group, height + 0.32, roofColor);
       box(group, 0.7, height + 1.15, -0.55, 0.3, 0.9, 0.35, "#a1927c");
-      if (application.status === "final_interview" || application.status === "offer") {
+      if (application.status === "final_interview" || application.status === "offer" || application.status === "contract_signed") {
         cylinder(group, -0.8, height + 0.4, -0.8, 0.48, 0.5, 1.7, "#d8c99e");
         cylinder(group, -0.8, height + 1.55, -0.8, 0, 0.72, 0.8, roofColor);
       }
-      if (application.status === "offer") {
+      if (application.status === "offer" || application.status === "contract_signed") {
         cylinder(group, 0, height + 1.9, 0, 0.04, 0.04, 1.5, "#e9dcba");
         const flag = box(group, 0.4, height + 2.4, 0, 0.75, 0.4, 0.035, "#f4c450");
         animations.push((time) => { flag.rotation.y = Math.sin(time * 2) * 0.18; });

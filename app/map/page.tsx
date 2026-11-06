@@ -81,7 +81,7 @@ function ApplicationMap() {
   const visible = useMemo(() => applications.filter((application) => (status === "all" || application.status === status) && `${application.company} ${application.position} ${application.location ?? ""}`.toLocaleLowerCase("de").includes(search)), [applications, status, search]);
   const visibleIds = useMemo(() => visible.map(({ id }) => id), [visible]);
   const construction = applications.filter(({ status }) => buildingStages[status].workers).length;
-  const offers = applications.filter(({ status }) => status === "offer").length;
+  const offers = applications.filter(({ status }) => status === "offer" || status === "contract_signed").length;
   const selected = applications.find(({ id }) => id === selectedId);
 
   const emptyNotice = !loading && !applications.length && !error;

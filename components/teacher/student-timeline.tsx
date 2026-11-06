@@ -60,7 +60,7 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
           <Card className="space-y-3 p-5">
             <div className="flex flex-wrap items-center gap-2">
               <Badge tone="info">{student.interviews} {student.interviews === 1 ? "Gespräch" : "Gespräche"}</Badge><Badge tone={student.offers ? "success" : "neutral"}>{student.offers} {student.offers === 1 ? "Zusage" : "Zusagen"}</Badge>
-              {student.placed && <Badge tone="success">Lehrstelle gefunden</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
+              {student.schnupper > 0 && <Badge tone="info">{student.schnupper} Schnupperlehre{student.schnupper === 1 ? "" : "n"}</Badge>}{student.placed && <Badge tone="success">Lehrstelle gefunden</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
             </div>
             <StatusBar counts={student.statusCounts} total={student.total} />
           </Card>

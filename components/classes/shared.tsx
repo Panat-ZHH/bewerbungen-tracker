@@ -5,12 +5,13 @@ import { Check, Copy, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { classErrorCode, classInviteLink } from "@/lib/classes";
 import { statusLabels } from "@/lib/utils";
+import { STATUS_ORDER } from "@/lib/status";
 import { generalCause } from "@/lib/ux";
 import type { ApplicationStatus, StatusCounts } from "@/types";
 
-export const STATUS_ORDER: ApplicationStatus[] = ["saved", "preparing", "applied", "interview", "final_interview", "offer", "rejected", "withdrawn"];
+export { STATUS_ORDER } from "@/lib/status";
 export const STATUS_COLORS: Record<ApplicationStatus, string> = {
-  saved: "#a7a9b2", preparing: "#c7a14a", applied: "#4a90e2", interview: "#7a6be0", final_interview: "#5b4bc4", offer: "#2f9e62", rejected: "#d65a5a", withdrawn: "#c9c9d0",
+  saved: "#a7a9b2", preparing: "#c7a14a", applied: "#4a90e2", schnupper_planned: "#e0a458", schnupper_done: "#3bb0a6", aptitude_test: "#8aa4d6", interview: "#7a6be0", final_interview: "#5b4bc4", offer: "#2f9e62", contract_signed: "#1f7a49", rejected: "#d65a5a", withdrawn: "#c9c9d0",
 };
 
 export function errorMessage(reason: unknown): string {

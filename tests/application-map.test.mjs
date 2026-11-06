@@ -7,8 +7,8 @@ function application(id, status = "saved") {
 }
 
 test("all application statuses have a distinct building stage; early stages have workers", () => {
-  assert.deepEqual(Object.keys(buildingStages), ["saved", "preparing", "applied", "interview", "final_interview", "offer", "rejected", "withdrawn"]);
-  assert.equal(new Set(Object.values(buildingStages).map(({ label }) => label)).size, 8);
+  assert.deepEqual(Object.keys(buildingStages), ["saved", "preparing", "applied", "schnupper_planned", "schnupper_done", "aptitude_test", "interview", "final_interview", "offer", "contract_signed", "rejected", "withdrawn"]);
+  assert.equal(new Set(Object.values(buildingStages).map(({ label }) => label)).size, 12);
   assert.deepEqual(Object.entries(buildingStages).filter(([, stage]) => stage.workers).map(([status]) => status), ["saved", "preparing"]);
   assert.ok(buildingStages.interview.floors > buildingStages.applied.floors);
   assert.ok(buildingStages.final_interview.floors > buildingStages.interview.floors);
