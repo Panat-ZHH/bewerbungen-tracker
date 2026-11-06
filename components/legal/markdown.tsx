@@ -65,7 +65,7 @@ export function Markdown({ source }: { source: string }) {
       const rows: string[][] = [];
       while (i < lines.length && lines[i].trim().startsWith("|")) rows.push(splitRow(lines[i++]));
       blocks.push(
-        <div key={k++} className="legal-table"><table>
+        <div key={k++} className="legal-table" role="group" aria-label="Tabelle, seitlich scrollbar" tabIndex={0}><table>
           <thead><tr>{head.map((c, j) => <th key={j}>{inline(c)}</th>)}</tr></thead>
           <tbody>{rows.map((r, a) => <tr key={a}>{r.map((c, j) => <td key={j}>{inline(c)}</td>)}</tr>)}</tbody>
         </table></div>,

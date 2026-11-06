@@ -176,7 +176,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
                   title={label}
                   aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : label}
                   aria-current={selected ? "page" : undefined}
-                  className={`relative flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
+                  className={`relative flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-3 xl:gap-1.5 xl:px-2 2xl:gap-2 2xl:px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
                 >
                   <Icon size={16} strokeWidth={1.9} />
                   <span className="hidden xl:inline">{label}</span>
