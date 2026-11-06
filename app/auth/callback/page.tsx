@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BrandMark } from "@/components/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -47,7 +47,7 @@ export default function AuthCallbackPage() {
   return (
     <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-4 py-8">
       <div className="animate-rise w-full max-w-[420px] text-center">
-        <Image src="/logo.png" alt="WendApply" width={56} height={56} className="mx-auto rounded-[16px] bg-white p-1 shadow-[var(--shadow-md)]" priority />
+        <BrandMark size={56} radius={16} pad={4} white className="brand-mark-raised mx-auto" priority />
         {error ? (
           <div className="glass-surface mt-6 space-y-4 p-6">
             <StatusMessage tone="danger">{error}</StatusMessage>

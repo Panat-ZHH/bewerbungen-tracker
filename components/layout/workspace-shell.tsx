@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { BrandMark } from "@/components/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
@@ -116,7 +116,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   if (checkingSession || !user || !role) {
     return (
       <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
-        <Image src="/logo.png" alt="" width={48} height={48} className="logo-tile animate-pulse rounded-[14px] bg-[#f2f7ff]" priority />
+        <BrandMark size={48} radius={14} className="animate-pulse" priority />
         <div className="w-full max-w-[260px] space-y-2.5" role="status">
           <Skeleton className="h-3.5" />
           <Skeleton className="mx-auto h-3.5 w-2/3" />
@@ -145,9 +145,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
       <header className={`glass-bar sticky top-0 z-30 shrink-0 border-b ${fullscreen ? "max-md:hidden" : ""}`}>
         <div className="page-wrap flex h-[var(--nav-h)] items-center gap-3 md:gap-5">
           <Link href={home} className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
-            <span className="flex h-9 w-9 items-center justify-center logo-tile overflow-hidden rounded-[11px] bg-[#f2f7ff] shadow-[var(--shadow-xs)]">
-              <Image src="/logo.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" priority />
-            </span>
+            <BrandMark size={36} radius={11} priority />
             <span className="text-[15px] font-semibold tracking-[-.2px]">WendApply</span>
           </Link>
 
