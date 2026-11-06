@@ -44,7 +44,7 @@ test("listingSources deduplicates by url and mergeJobResults is idempotent", () 
 });
 
 test("statusLabels covers every status with German text and 'offer' reads Zusage", () => {
-  assert.deepEqual(Object.keys(statusLabels).sort(), ["applied", "final_interview", "interview", "offer", "preparing", "rejected", "saved", "withdrawn"]);
+  assert.deepEqual(Object.keys(statusLabels).sort(), ["applied", "aptitude_test", "contract_signed", "final_interview", "interview", "offer", "preparing", "rejected", "saved", "schnupper_done", "schnupper_planned", "withdrawn"]);
   assert.equal(statusLabels.offer, "Zusage");
   for (const label of Object.values(statusLabels)) assert.ok(label.length > 2);
   assert.equal(cn("p-2", false && "x", "p-4"), "p-4");

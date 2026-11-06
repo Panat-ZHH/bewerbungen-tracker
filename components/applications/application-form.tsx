@@ -11,6 +11,7 @@ import { friendlyMessage } from "@/lib/ux";
 import { toast } from "@/lib/toast";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { statusHints } from "@/components/ui/status-badge";
+import { isSchnupperStatus, isSentStatus, schnupperResultLabels, showsDeadline, testResultLabels } from "@/lib/status";
 import type { Application, ApplicationCategory, ApplicationStatus } from "@/types";
 
 const categories: { value: ApplicationCategory; label: string }[] = [
@@ -37,11 +38,17 @@ type FormValue = {
   status: ApplicationStatus;
   jobDescription: string;
   notes: string;
+  schnupperDate: string;
+  schnupperResult: string;
+  schnupperNotes: string;
+  testDate: string;
+  testResult: string;
 };
 
 const blankForm: FormValue = {
   company: "", position: "", location: "", jobUrl: "", source: "", category: "other",
   salaryMin: "", salaryMax: "", currency: "CHF", deadline: "", status: "saved", jobDescription: "", notes: "",
+  schnupperDate: "", schnupperResult: "", schnupperNotes: "", testDate: "", testResult: "",
 };
 
 function toForm(application?: Application): FormValue {
@@ -60,6 +67,11 @@ function toForm(application?: Application): FormValue {
     status: application.status,
     jobDescription: application.jobDescription ?? "",
     notes: application.notes ?? "",
+    schnupperDate: application.schnupperDate ?? "",
+    schnupperResult: application.schnupperResult ?? "",
+    schnupperNotes: application.schnupperNotes ?? "",
+    testDate: application.testDate ?? "",
+    testResult: application.testResult ?? "",
   };
 }
 
@@ -115,9 +127,14 @@ export function ApplicationForm({ application }: { application?: Application }) 
       ...form,
       salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
       salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
-      appliedAt: ["applied", "interview", "final_interview", "offer", "rejected"].includes(form.status)
+      appliedAt: isSentStatus(form.status)
         ? (application?.appliedAt ?? new Date().toISOString().slice(0, 10))
-        : undefined,
+        : application?.appliedAt,
+      schnupperDate: form.schnupperDate || undefined,
+      schnupperResult: (form.schnupperResult || undefined) as Application["schnupperResult"],
+      schnupperNotes: form.schnupperNotes.trim() || undefined,
+      testDate: form.testDate || undefined,
+      testResult: (form.testResult || undefined) as Application["testResult"],
     };
 
     try {
@@ -149,6 +166,29 @@ export function ApplicationForm({ application }: { application?: Application }) 
         <SelectField label="Was ist der Stand?" hint={statusHints[form.status]} value={form.status} onChange={(value) => update("status", value)} options={Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))} />
       </fieldset>
 
+      {isSchnupperStatus(form.status) && (
+        <fieldset className="mt-7 min-w-0 space-y-5 border-0 p-0">
+          <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Schnupperlehre</legend>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Schnupperdatum" {...bind("schnupperDate")} type="date" />
+            {form.status === "schnupper_done" && (
+              <SelectField label="Wie war es?" value={form.schnupperResult} onChange={(value) => update("schnupperResult", value)} options={[{ value: "", label: "Noch offen" }, ...Object.entries(schnupperResultLabels).map(([value, label]) => ({ value, label }))]} />
+            )}
+          </div>
+          <TextArea label="Notizen zum Schnuppern" value={form.schnupperNotes} onChange={(value) => update("schnupperNotes", value)} placeholder="Was hat dir gefallen? Welche Fragen hast du noch?" />
+        </fieldset>
+      )}
+
+      {form.status === "aptitude_test" && (
+        <fieldset className="mt-7 min-w-0 border-0 p-0">
+          <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Eignungstest / Multicheck</legend>
+          <div className="grid gap-5 sm:grid-cols-2">
+            <Field label="Testdatum" {...bind("testDate")} type="date" />
+            <SelectField label="Ergebnis" value={form.testResult} onChange={(value) => update("testResult", value)} options={[{ value: "", label: "Noch offen" }, ...Object.entries(testResultLabels).map(([value, label]) => ({ value, label }))]} />
+          </div>
+        </fieldset>
+      )}
+
       <details open={isEditing || optionalHasError || undefined} className="group mt-7 border-t border-[var(--line)] pt-2">
         <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-[var(--brand)] marker:hidden [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2"><Plus size={16} className="transition-transform group-open:rotate-45" /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
@@ -161,7 +201,7 @@ export function ApplicationForm({ application }: { application?: Application }) 
               <SelectField label="Berufsfeld" value={form.category} onChange={(value) => update("category", value)} options={categories} />
               <Field label="Link zur Stelle" {...bind("jobUrl")} placeholder="https://…" type="url" inputMode="url" />
               <Field label="Wo hast du die Stelle gefunden?" {...bind("source")} placeholder="Zum Beispiel: jobs.ch" />
-              <Field label="Bewerben bis" {...bind("deadline")} type="date" />
+              {showsDeadline(form.status) && <Field label="Bewerben bis" {...bind("deadline")} type="date" />}
             </div>
           </fieldset>
           <fieldset className="min-w-0 border-0 p-0">

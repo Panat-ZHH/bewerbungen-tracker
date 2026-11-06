@@ -12,11 +12,10 @@ import { deadlineInfo, friendlyMessage } from "@/lib/ux";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import type { Application, ApplicationStatus } from "@/types";
+import { isClosedStatus, isSentStatus, isConversationStatus, isPlacedStatus, isSchnupperStatus, showsDeadline } from "@/lib/status";
+import type { Application } from "@/types";
 
 
-const closed: ApplicationStatus[] = ["rejected", "withdrawn"];
-const sent: ApplicationStatus[] = ["applied", "interview", "final_interview", "offer"];
 const addLink = "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[image:var(--brand-gradient)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-brand)] transition hover:brightness-110 active:scale-[.98] sm:w-fit sm:shrink-0 sm:whitespace-nowrap";
 
 export default function DashboardPage() {
@@ -34,12 +33,13 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, [attempt]);
 
-  const activeCount = applications.filter(({ status }) => !closed.includes(status)).length;
-  const conversations = applications.filter(({ status }) => ["interview", "final_interview"].includes(status)).length;
-  const offers = applications.filter(({ status }) => status === "offer").length;
+  const activeCount = applications.filter(({ status }) => !isClosedStatus(status)).length;
+  const conversations = applications.filter(({ status }) => isConversationStatus(status)).length;
+  const schnuppern = applications.filter(({ status }) => isSchnupperStatus(status)).length;
+  const offers = applications.filter(({ status }) => isPlacedStatus(status)).length;
   const recent = [...applications].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
   const deadlines = applications
-    .filter(({ deadline, status }) => deadline && !closed.includes(status) && !sent.includes(status))
+    .filter(({ deadline, status }) => deadline && showsDeadline(status) && !isSentStatus(status) && !isClosedStatus(status))
     .sort((a, b) => (a.deadline ?? "").localeCompare(b.deadline ?? ""))
     .slice(0, 3);
 
@@ -61,7 +61,7 @@ export default function DashboardPage() {
       <section aria-label="Deine Zahlen" className="mt-8 grid grid-cols-3 gap-2.5 sm:gap-3">
         <Summary label="Bewerbungen" value={loading ? "–" : applications.length} detail="Insgesamt" />
         <Summary label="Offen" value={loading ? "–" : activeCount} detail="Noch in Arbeit" />
-        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={offers ? `${offers} ${offers === 1 ? "Zusage" : "Zusagen"}` : "Noch keine"} />
+        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={[offers ? `${offers} ${offers === 1 ? "Zusage" : "Zusagen"}` : "", schnuppern ? `${schnuppern} Schnupperlehre${schnuppern === 1 ? "" : "n"}` : ""].filter(Boolean).join(" · ") || "Noch keine"} />
       </section>
 
       <section className="mt-10">

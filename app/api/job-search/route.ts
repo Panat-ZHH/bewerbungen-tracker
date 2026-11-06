@@ -19,7 +19,7 @@ function readKnownResult(value: unknown): JobSearchResult {
   return { title: result.title, company: result.company, location: result.location, source: result.source, url: result.url, sources: result.sources, years: result.years, ...readEnrichment(result) };
 }
 
-const jobTypes = ["lehrstelle", "praktikum", "vollzeit", "teilzeit", "temporaer", "freelance", "other"];
+const jobTypes = ["lehrstelle", "schnupperlehre", "praktikum", "vollzeit", "teilzeit", "temporaer", "freelance", "other"];
 const educations = ["efz", "eba", "bm", "hf", "fh", "uni", "none"];
 const remotes = ["remote", "hybrid", "onsite"];
 const cantons = ["ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO", "BS", "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD", "VS", "NE", "GE", "JU"];

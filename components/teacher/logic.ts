@@ -34,15 +34,15 @@ export function inviteState(invite: Pick<ClassInvitation, "revoked" | "expiresAt
 }
 export const INVITE_STATE_LABEL: Record<InviteState, string> = { active: "Aktiv", revoked: "Widerrufen", expired: "Abgelaufen", used: "Aufgebraucht" };
 
-export type StudentFilter = "all" | "inactive" | "hidden" | "interview" | "offer" | "placed";
+export type StudentFilter = "all" | "inactive" | "hidden" | "interview" | "schnupper" | "offer" | "placed";
 export type StudentSort = "name" | "total" | "activity" | "joined";
 export const STUDENT_FILTERS: { value: StudentFilter; label: string }[] = [
   { value: "all", label: "Alle" }, { value: "inactive", label: "Inaktiv" }, { value: "hidden", label: "Teilt nicht" },
-  { value: "interview", label: "Mit Gespräch" }, { value: "offer", label: "Mit Zusage" }, { value: "placed", label: "Lehrstelle gefunden" },
+  { value: "interview", label: "Mit Gespräch" }, { value: "schnupper", label: "Mit Schnupperlehre" }, { value: "offer", label: "Mit Zusage" }, { value: "placed", label: "Lehrstelle gefunden" },
 ];
 export const studentMatches: Record<StudentFilter, (s: TeacherStudent) => boolean> = {
   all: () => true, inactive: (s) => !s.hidden && s.inactive, hidden: (s) => s.hidden,
-  interview: (s) => !s.hidden && s.interviews > 0, offer: (s) => !s.hidden && s.offers > 0, placed: (s) => !s.hidden && s.placed,
+  interview: (s) => !s.hidden && s.interviews > 0, schnupper: (s) => !s.hidden && s.schnupper > 0, offer: (s) => !s.hidden && s.offers > 0, placed: (s) => !s.hidden && s.placed,
 };
 
 export function filterStudents(students: TeacherStudent[], filter: StudentFilter, query: string): TeacherStudent[] {
@@ -73,6 +73,7 @@ export function studentCsvColumns(labels: Record<ApplicationStatus, string>): Cs
     { header: "Teilt Daten", value: (s) => (s.hidden ? "nein" : "ja") },
     { header: "Bewerbungen", value: (s) => (s.hidden ? "" : s.total) },
     { header: "Gespräche", value: (s) => (s.hidden ? "" : s.interviews) },
+    { header: "Schnupperlehren", value: (s) => (s.hidden ? "" : s.schnupper) },
     { header: "Zusagen", value: (s) => (s.hidden ? "" : s.offers) },
     { header: "Lehrstelle gefunden", value: (s) => (s.hidden ? "" : s.placed ? "ja" : "nein") },
     { header: "Inaktiv", value: (s) => (s.hidden ? "" : s.inactive ? "ja" : "nein") },

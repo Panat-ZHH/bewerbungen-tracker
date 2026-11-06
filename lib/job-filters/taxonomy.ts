@@ -24,7 +24,7 @@ export const FIELD_IDS = FIELDS.map((f) => f.id);
 export const fieldLabel = (id: string) => FIELDS.find((f) => f.id === id)?.label ?? id;
 
 export const JOB_TYPE_LABELS: Record<JobType, string> = {
-  lehrstelle: "Lehrstelle", praktikum: "Praktikum", vollzeit: "Vollzeit", teilzeit: "Teilzeit", temporaer: "Temporär", freelance: "Freelance / Mandat", other: "Andere",
+  lehrstelle: "Lehrstelle", schnupperlehre: "Schnupperlehre", praktikum: "Praktikum", vollzeit: "Vollzeit", teilzeit: "Teilzeit", temporaer: "Temporär", freelance: "Freelance / Mandat", other: "Andere",
 };
 export const EDUCATION_LABELS: Record<EducationLevel, string> = {
   efz: "EFZ (Lehre)", eba: "EBA (Attest)", bm: "Berufsmatura", hf: "Höhere Fachschule", fh: "Fachhochschule", uni: "Universität / ETH", none: "Keine Anforderung",
@@ -113,6 +113,7 @@ export function detectJobTypes(job: Source & Partial<JobMeta>): JobType[] {
   if (job.jobType) found.add(job.jobType);
   const t = text(job);
   if (/lehrstelle|\blehre\b|lehrling|\befz\b|\beba\b|ausbildung|berufslehre|apprenti|apprentissage|\bstift\b|lehrbeginn/i.test(t)) found.add("lehrstelle");
+  if (/schnupper|\bstage d.observation\b|\bstage d.essai\b/i.test(t)) found.add("schnupperlehre");
   if (/praktik|\bstage\b|stagiaire|internship|volontariat|\bintern\b/i.test(t)) found.add("praktikum");
   if (/teilzeit|part[- ]?time|temps partiel/i.test(t) || (job.workloadMax !== undefined && job.workloadMax < 100)) found.add("teilzeit");
   if (/vollzeit|full[- ]?time|temps plein|100\s*%/i.test(t) || (job.workloadMin === 100)) found.add("vollzeit");
@@ -127,7 +128,7 @@ export function classifyJob(job: Source & Partial<JobMeta>): JobMeta {
   const full = text(job);
   const out: JobMeta = {};
   const types = detectJobTypes(job);
-  out.jobType = types.includes("lehrstelle") ? "lehrstelle" : types.includes("praktikum") ? "praktikum" : types[0];
+  out.jobType = types.includes("schnupperlehre") ? "schnupperlehre" : types.includes("lehrstelle") ? "lehrstelle" : types.includes("praktikum") ? "praktikum" : types[0];
   const workload = parseWorkload(full);
   if (workload) { out.workloadMin = workload.min; out.workloadMax = workload.max; }
   out.education = parseEducation(full) ?? (out.jobType === "lehrstelle" ? "efz" : undefined);

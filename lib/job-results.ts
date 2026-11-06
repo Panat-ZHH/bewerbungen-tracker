@@ -8,7 +8,7 @@ export interface JobSearchResult {
   years?: string[];
   // optional enrichment, see lib/job-filters/types.ts JobMeta
   contract?: string;
-  jobType?: "lehrstelle" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
+  jobType?: "lehrstelle" | "schnupperlehre" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
   workloadMin?: number;
   workloadMax?: number;
   postedAt?: string;

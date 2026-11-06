@@ -165,6 +165,7 @@ export function parsePostedAt(text: string | undefined, now = new Date()): strin
 
 function jobTypeFromContract(contract: string | undefined, workload: { workloadMin?: number; workloadMax?: number }): JobSearchResult["jobType"] {
   const value = (contract ?? "").toLowerCase();
+  if (/schnupper/.test(value)) return "schnupperlehre";
   if (/lehrstelle|lehre|apprentissage/.test(value)) return "lehrstelle";
   if (/praktikum|stage|volontariat|internship/.test(value)) return "praktikum";
   if (/tempor|befrist|cdd|interim/.test(value)) return "temporaer";
