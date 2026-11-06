@@ -39,6 +39,21 @@ export function authMessage(reason: unknown): string {
   return "Das hat nicht geklappt. Bitte prüfe deine Angaben und versuch es noch einmal.";
 }
 
+/** German message for an OAuth return (?error=… / ?error_description=… from Supabase or Google), or null if there is no error. */
+export function oauthErrorMessage(params: URLSearchParams | string): string | null {
+  const q = typeof params === "string" ? new URLSearchParams(params.replace(/^[?#]/, "")) : params;
+  const error = q.get("error") ?? q.get("error_code");
+  if (!error) return null;
+  const text = `${error} ${q.get("error_code") ?? ""} ${q.get("error_description") ?? ""}`.toLowerCase();
+  if (text.includes("access_denied") && !text.includes("signup")) return "Die Anmeldung mit Google wurde abgebrochen. Du kannst es jederzeit noch einmal versuchen.";
+  if (text.includes("signup_disabled") || text.includes("signups not allowed")) return "Neue Konten sind gerade nicht möglich.";
+  if (text.includes("identity_already_exists") || text.includes("already linked")) return "Dieses Google-Konto ist bereits mit einem anderen Konto verknüpft.";
+  if (text.includes("email") && (text.includes("not confirmed") || text.includes("unverified"))) return "Deine Google-E-Mail-Adresse ist nicht bestätigt. Bestätige sie bei Google und versuch es noch einmal.";
+  if (text.includes("provider_disabled") || text.includes("not enabled")) return "Die Anmeldung mit Google ist gerade nicht verfügbar. Melde dich mit E-Mail und Passwort an.";
+  if (text.includes("bad_oauth") || text.includes("flow_state") || text.includes("code verifier") || text.includes("expired")) return "Die Anmeldung ist abgelaufen oder wurde in einem anderen Browser gestartet. Bitte versuch es noch einmal.";
+  return "Die Anmeldung mit Google hat nicht geklappt. Bitte versuch es noch einmal oder melde dich mit E-Mail und Passwort an.";
+}
+
 /** Rough password quality hint for sign-up (no blocking, just guidance). */
 export function passwordHint(password: string): { level: 0 | 1 | 2 | 3; label: string } {
   if (!password) return { level: 0, label: "" };

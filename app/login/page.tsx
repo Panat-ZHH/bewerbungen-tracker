@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
-import { authMessage, passwordHint, safeNextPath } from "@/lib/ux";
+import { authMessage, oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
 
 type AuthMode = "login" | "signup";
 type Role = "student" | "teacher";
@@ -37,6 +37,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    // Error handed over by /auth/callback (or by Supabase directly, in the query or the hash).
+    const params = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const message = oauthErrorMessage(params) ?? oauthErrorMessage(hash);
+    if (message) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
+      setError(message);
+      window.history.replaceState(null, "", params.get("next") ? `/login?next=${encodeURIComponent(params.get("next")!)}` : "/login");
+    }
     supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace(nextPath()); });
   }, [router]);
 
@@ -77,6 +86,18 @@ export default function LoginPage() {
       return;
     }
     router.replace(nextPath());
+  }
+
+  async function signInWithProvider(provider: "google") {
+    setError(""); setSuccess("");
+    setLoading(true);
+    try {
+      const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+      const redirectTo = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      if (oauthError) { setError(authMessage(oauthError)); setLoading(false); }
+      // On success the browser is redirected to the provider; the session is picked up on return.
+    } catch (reason) { setError(authMessage(reason)); setLoading(false); }
   }
 
   async function forgotPassword() {
@@ -146,6 +167,12 @@ export default function LoginPage() {
                 </div>
               </fieldset>
             )}
+
+            <button type="button" onClick={() => signInWithProvider("google")} disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[var(--field-border)] bg-white px-4 text-sm font-semibold text-[#1f1f1f] shadow-[var(--shadow-sm)] transition hover:bg-[#f7f7f8] active:scale-[.98] disabled:opacity-60">
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.1 5.5c4.3-4 6.8-9.9 6.8-16.9z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.1-5.5c-2 1.4-4.9 2.3-8.8 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+              Weiter mit Google
+            </button>
+            <div className="flex items-center gap-3 text-xs text-muted" aria-hidden><span className="h-px flex-1 bg-[var(--line)]" />oder mit E-Mail<span className="h-px flex-1 bg-[var(--line)]" /></div>
 
             <Field label="E-Mail-Adresse" htmlFor="email">
               <Input id="email" type="email" required autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" />

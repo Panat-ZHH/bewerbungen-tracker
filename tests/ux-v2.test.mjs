@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { authMessage, deadlineInfo, friendlyMessage, passwordHint, safeNextPath } from "../lib/ux.ts";
+import { authMessage, deadlineInfo, friendlyMessage, oauthErrorMessage, passwordHint, safeNextPath } from "../lib/ux.ts";
 
 test("friendlyMessage never leaks raw database text", () => {
   const msg = friendlyMessage(new Error("Database error: XX000 | secret"), "Die Bewerbung konnte nicht gespeichert werden.");
@@ -42,4 +42,14 @@ test("deadlineInfo wording and tone", () => {
 test("safeNextPath only allows same-site paths", () => {
   assert.equal(safeNextPath("/applications/1"), "/applications/1");
   for (const bad of ["//evil.com", "/\\evil", "https://evil.com", "/login", null, undefined, ""]) assert.equal(safeNextPath(bad), null);
+});
+
+test("oauthErrorMessage maps Supabase/Google return errors to German", () => {
+  assert.equal(oauthErrorMessage(""), null);
+  assert.equal(oauthErrorMessage("?code=abc&next=%2Fdashboard"), null);
+  assert.match(oauthErrorMessage("?error=access_denied&error_description=User+denied"), /abgebrochen/);
+  assert.match(oauthErrorMessage("#error=server_error&error_code=signup_disabled&error_description=Signups+not+allowed"), /Neue Konten/);
+  assert.match(oauthErrorMessage("error=server_error&error_code=identity_already_exists"), /bereits mit einem anderen Konto/);
+  assert.match(oauthErrorMessage("error=invalid_request&error_description=bad_oauth_state"), /abgelaufen/);
+  assert.match(oauthErrorMessage(new URLSearchParams("error=weird")), /Google hat nicht geklappt/);
 });
