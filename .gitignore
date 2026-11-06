@@ -5,3 +5,6 @@ node_modules
 tsconfig.tsbuildinfo
 .claude/worktrees/
 supabase/.temp/
+
+# Local Netlify folder
+.netlify
