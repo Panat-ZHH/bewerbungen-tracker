@@ -19,8 +19,9 @@ const fields: { key: keyof ProfileType; label: string; type?: string }[] = [
   { key: "email", label: "E-Mail", type: "email" },
   { key: "phone", label: "Telefon" },
   { key: "location", label: "Wohnort" },
-  { key: "website", label: "Webseite" },
-  { key: "linkedIn", label: "LinkedIn" },
+  { key: "school", label: "Schule" },
+  { key: "gradeLevel", label: "Klasse / Schulstufe" },
+  { key: "desiredProfession", label: "Wunschberuf" },
 ];
 
 export default function ProfilePage() {
@@ -62,7 +63,7 @@ export default function ProfilePage() {
           <Card className="animate-rise"><form onSubmit={submit} className="p-5 sm:p-7">
             <div className="grid gap-5 sm:grid-cols-2">
               {fields.map(({ key, label, type }) => (
-                <Field key={key} label={label} htmlFor={`profile-${key}`} className={key === "email" || key === "location" ? "sm:col-span-2" : ""}>
+                <Field key={key} label={label} htmlFor={`profile-${key}`} className={key === "email" || key === "location" || key === "desiredProfession" ? "sm:col-span-2" : ""}>
                   <Input id={`profile-${key}`} type={type ?? "text"} value={profile[key] ?? ""} onChange={(event) => setProfile({ ...profile, [key]: event.target.value })} />
                 </Field>
               ))}

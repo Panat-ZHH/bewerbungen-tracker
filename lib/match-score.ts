@@ -1,16 +1,23 @@
 import type { ApplicationCategory, CVType } from "@/types";
 
 const keywords: Record<ApplicationCategory, string[]> = {
-  software: ["software", "developer", "engineer", "frontend", "backend", "typescript", "javascript", "react", "coding", "data", "tech"],
-  sales: ["sales", "account", "customer", "revenue", "business development", "partnership", "commercial"],
-  business: ["business", "product", "operations", "strategy", "manager", "growth", "project"],
-  finance: ["finance", "financial", "analyst", "accounting", "risk", "investment", "controller"],
-  banking: ["bank", "banking", "wealth", "credit", "risk", "investment", "finance"],
-  consulting: ["consulting", "consultant", "strategy", "analyst", "transformation", "client"],
+  informatik: ["informatik", "software", "developer", "entwickl", "mediamatik", "web", "daten", "system", "netzwerk", "applikation"],
+  kaufmaennisch: ["kaufmann", "kauffrau", "büro", "sachbearbeit", "assistenz", "administration", "sekretariat", "personal"],
+  detailhandel: ["detailhandel", "verkauf", "verkäufer", "kundenberatung", "filiale", "kasse", "beratung"],
+  gesundheit: ["fage", "pflege", "gesundheit", "medizin", "praxis", "apotheke", "therapie", "dental", "mpa"],
+  soziales: ["fabe", "kinder", "kita", "betreuung", "sozial", "erziehung", "bildung", "pädagog"],
+  "handwerk-bau": ["maurer", "zimmermann", "schreiner", "maler", "gipser", "sanitär", "heizung", "dachdecker", "bau"],
+  "technik-industrie": ["polymechanik", "mechatronik", "elektro", "automatik", "konstrukteur", "produktion", "maschinen", "labor"],
+  "gastro-hotel": ["koch", "köchin", "restaurant", "hotel", "service", "gastro", "bäcker", "konditor", "metzger"],
+  logistik: ["logistik", "lager", "transport", "chauffeur", "spedition", "post", "zoll"],
+  "finanz-recht": ["bank", "finanz", "versicherung", "treuhand", "buchhaltung", "recht", "immobilien"],
+  "gestaltung-medien": ["grafik", "gestaltung", "design", "medien", "polygraf", "fotograf", "marketing", "kommunikation"],
+  natur: ["gärtner", "landwirt", "forst", "natur", "umwelt", "tier", "floristik"],
+  "sicherheit-oeffentlich": ["polizei", "sicherheit", "verwaltung", "gemeinde", "feuerwehr", "grenzwacht"],
   other: [],
 };
 
-const cvCategories: Record<CVType, ApplicationCategory[]> = { developer: ["software"], sales: ["sales", "business", "consulting"], finance: ["finance", "banking"], other: ["other"] };
+const cvCategories: Record<CVType, ApplicationCategory[]> = { developer: ["informatik"], sales: ["detailhandel", "kaufmaennisch"], finance: ["finanz-recht"], other: ["other"] };
 
 export function calculateMatchScore(input: { position: string; category: ApplicationCategory; cvType?: CVType; jobDescription?: string }) {
   const text = `${input.position} ${input.jobDescription ?? ""}`.toLowerCase();

@@ -26,7 +26,7 @@ const navigation: NavItem[] = [
   { label: "Suchen", href: "/search", icon: Search, keys: ["Suchen"] },
   { label: "Bewerbungen", href: "/applications", icon: BriefcaseBusiness, keys: ["Applications", "Bewerbungen"] },
   { label: "Map", href: "/map", icon: Map, keys: ["Map"] },
-  { label: "Lebensläufe", href: "/cvs", icon: FileText, keys: ["CVs", "Lebensläufe"] },
+  { label: "Dokumente", href: "/cvs", icon: FileText, keys: ["CVs", "Lebensläufe", "Dokumente"] },
   { label: "Auswertung", href: "/analytics", icon: BarChart3, keys: ["Analytics", "Analysen", "Auswertung"] },
   { label: "Freunde", href: "/friends", icon: Users, keys: ["Friends", "Freunde"] },
   { label: "Klassen", href: "/classes", icon: GraduationCap, keys: ["Classes", "Klassen"] },

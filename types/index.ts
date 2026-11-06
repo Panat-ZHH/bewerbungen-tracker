@@ -12,14 +12,24 @@ export type ApplicationStatus =
   | "rejected"
   | "withdrawn";
 
+/** The 13 Berufsfelder of the job search (lib/job-filters/taxonomy FIELDS) plus "other". */
 export type ApplicationCategory =
-  | "software"
-  | "sales"
-  | "business"
-  | "finance"
-  | "banking"
-  | "consulting"
+  | "informatik"
+  | "kaufmaennisch"
+  | "detailhandel"
+  | "gesundheit"
+  | "soziales"
+  | "handwerk-bau"
+  | "technik-industrie"
+  | "gastro-hotel"
+  | "logistik"
+  | "finanz-recht"
+  | "gestaltung-medien"
+  | "natur"
+  | "sicherheit-oeffentlich"
   | "other";
+
+export type DocumentKind = "lebenslauf" | "motivationsschreiben" | "zeugnisse" | "foto" | "sonstiges";
 
 export type CVType = "developer" | "sales" | "finance" | "other";
 
@@ -50,6 +60,8 @@ export interface Application {
   /** Eignungstest / Multicheck. */
   testDate?: string;
   testResult?: "pending" | "passed" | "failed";
+  contactName?: string;
+  contactInfo?: string;
 }
 
 export interface ApplicationEvent {
@@ -68,12 +80,16 @@ export interface Profile {
   location?: string;
   website?: string;
   linkedIn?: string;
+  school?: string;
+  gradeLevel?: string;
+  desiredProfession?: string;
 }
 
 export interface CV {
   id: string;
   name: string;
   type: CVType;
+  kind: DocumentKind;
   description: string;
   updatedAt: string;
   status: "Ready" | "Draft";
