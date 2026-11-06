@@ -18,6 +18,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createMockSupabase, makeApplication } from "./lib/mock-supabase.mjs";
+import { registerJobsearchFlows } from "./jobsearch-e2e.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = Object.fromEntries(process.argv.slice(2).filter((a) => a.startsWith("--")).map((a) => { const [k, v = "1"] = a.slice(2).split("="); return [k, v]; }));
@@ -418,6 +419,8 @@ flow("navigation", student({ apps: seedApps(3) }), async (t) => {
   }
   await t.shot("nav");
 });
+
+registerJobsearchFlows(flow, student); // scripts/jobsearch-e2e.mjs
 
 // ------------------------------------------------------------------------------------------------ map section (separate on purpose)
 // Selectors are aria-label / role / text based with fallbacks, because the map UI is being reworked (fullscreen layout, overlays).

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Lightbulb, Plus, SearchX, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,12 +32,24 @@ function tabOf(f: JobFilters): SearchTab {
 function serverQuery(state: JobSearchState): MultiSourceSearchInput {
   const praktikum = tabOf(state.filters) === "praktikum";
   const q = state.query.trim();
-  return { query: praktikum && !/praktik|stage/i.test(q) ? `Praktikum ${q}`.trim() : q, location: state.filters.location.trim(), kind: state.filters.kind };
+  const f = state.filters;
+  const filters: NonNullable<MultiSourceSearchInput["filters"]> = {};
+  if (f.postedWithin) filters.postedWithin = f.postedWithin;
+  if (f.radiusKm && f.location.trim()) filters.radiusKm = f.radiusKm;
+  if (f.cantons.length) filters.cantons = f.cantons;
+  return { query: praktikum && !/praktik|stage/i.test(q) ? `Praktikum ${q}`.trim() : q, location: f.location.trim(), kind: f.kind, ...(Object.keys(filters).length ? { filters } : {}) };
+}
+/** True when the current server-side filters are wider than what was searched (so loaded results may miss listings). */
+function serverWider(searched: MultiSourceSearchInput, current: MultiSourceSearchInput): boolean {
+  const a = searched.filters ?? {}; const b = current.filters ?? {};
+  if (a.postedWithin && (!b.postedWithin || b.postedWithin > a.postedWithin)) return true;
+  if (a.radiusKm && (!b.radiusKm || b.radiusKm > a.radiusKm)) return true;
+  if (a.cantons?.length && (!b.cantons?.length || b.cantons.some((c) => !a.cantons!.includes(c)))) return true;
+  return false;
 }
 
 export function JobSearchView() {
-  const router = useRouter();
-  const pathname = usePathname();
+    const pathname = usePathname();
   const params = useSearchParams();
   const initial = useMemo(() => paramsToState(new URLSearchParams(params.toString())), []); // eslint-disable-line react-hooks/exhaustive-deps
   const [state, setState] = useState<JobSearchState>(initial);
@@ -70,8 +82,9 @@ export function JobSearchView() {
     const next = stateToParams(state).toString();
     if (next === lastUrl.current) return;
     lastUrl.current = next;
-    router.replace(next ? `${pathname}?${next}` : pathname, { scroll: false });
-  }, [state, pathname, router]);
+    // native History API: Next syncs it with useSearchParams, without a server round trip per keystroke/filter
+    window.history.replaceState(window.history.state, "", next ? `${pathname}?${next}` : pathname);
+  }, [state, pathname]);
 
   // keyboard: "/" focuses search
   useEffect(() => {
@@ -120,6 +133,8 @@ export function JobSearchView() {
     autoRan.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-off search for a shared link
     if (initial.query.trim().length >= 2) void runSearch(initial);
+    // strict mode re-runs effects after aborting the first request: allow the second run to search again
+    return () => { autoRan.current = false; };
   }, [initial, runSearch]);
 
   const loadMore = useCallback(async () => {
@@ -181,7 +196,7 @@ export function JobSearchView() {
   const clearFilters = () => setState((s) => ({ ...s, filters: { ...emptyFilters(s.filters.kind), location: s.filters.location } }));
   const filterCount = activeFilterCount(state.filters);
   const canSavePreset = state.query.trim().length > 0 || filterCount > 0;
-  const serverDirty = searched && (searched.location !== state.filters.location.trim() || searched.kind !== state.filters.kind);
+  const serverDirty = searched && (searched.location !== state.filters.location.trim() || searched.kind !== state.filters.kind || serverWider(searched, serverQuery(state)));
 
   const panel = (prefix: string) => <FilterPanel idPrefix={prefix} filters={state.filters} onChange={patchFilters} facets={facets} companies={companies} />;
 
@@ -196,7 +211,7 @@ export function JobSearchView() {
       <div className="mt-6 grid gap-6 md:grid-cols-[17rem_minmax(0,1fr)] lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside aria-label="Filter" className="hidden md:block">
           <Card className="sticky top-[84px] max-h-[calc(100dvh-110px)] overflow-y-auto p-5">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-heading">Filter</h2>{filterCount > 0 && <button type="button" onClick={clearFilters} className="text-[13px] font-semibold text-muted hover:text-[var(--ink)] hover:underline">Zurücksetzen</button>}</div>
+            <div className="mb-4 flex items-center justify-between"><h2 className="text-heading">Filter</h2>{filterCount > 0 && <button type="button" onClick={clearFilters} className="inline-flex min-h-9 items-center px-1 text-[13px] font-semibold text-muted hover:text-[var(--ink)] hover:underline">Zurücksetzen</button>}</div>
             {panel("d")}
           </Card>
         </aside>
@@ -212,7 +227,7 @@ export function JobSearchView() {
 
           {error && <StatusMessage tone="danger" className="mt-4">{error}</StatusMessage>}
           {notice && <StatusMessage tone="info" className="mt-4">{notice}</StatusMessage>}
-          {serverDirty && !loading && <StatusMessage tone="info" className="mt-4">Ort oder Art wurde geändert. <button type="button" className="font-semibold underline" onClick={() => void runSearch(state)}>Jetzt neu suchen</button></StatusMessage>}
+          {serverDirty && !loading && <StatusMessage tone="info" className="mt-4">Suchbereich wurde geändert. <button type="button" className="font-semibold underline" onClick={() => void runSearch(state)}>Jetzt neu suchen</button></StatusMessage>}
 
           {loading && <div role="status" aria-live="polite" className="mt-5 space-y-3"><p className="text-body text-muted">Passende Anzeigen werden gesucht …</p>{[0, 1, 2, 3].map((i) => <Card key={i} className="space-y-3 p-5" aria-hidden><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-1/2" /></Card>)}</div>}
 
