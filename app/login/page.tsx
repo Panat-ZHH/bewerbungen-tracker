@@ -40,9 +40,14 @@ export default function LoginPage() {
     // Error handed over by /auth/callback (or by Supabase directly, in the query or the hash).
     const params = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    if (params.get("deleted") === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
+      setSuccess("Dein Konto und alle deine Daten wurden gelöscht. Danke, dass du WendApply genutzt hast.");
+      window.history.replaceState(null, "", "/login");
+      return;
+    }
     const message = oauthErrorMessage(params) ?? oauthErrorMessage(hash);
     if (message) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
       setError(message);
       window.history.replaceState(null, "", params.get("next") ? `/login?next=${encodeURIComponent(params.get("next")!)}` : "/login");
     }
