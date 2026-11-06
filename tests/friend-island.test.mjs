@@ -57,7 +57,7 @@ test("friend island view imports no mutation API and no shop/edit hook", async (
     assert.doesNotMatch(source, /@\/lib\/storage|lib\/storage|useMapShop|map-shop"|MapPlacementTools|MapShop\b|islands-storage|use-islands|unlockIsland|moveMapObject|placeMapItem|buyMapItem|\.insert\(|\.update\(|\.upsert\(|\.delete\(/);
   }
   assert.match(lib, /rpc\("map_friend_island"/);
-  assert.deepEqual([...lib.matchAll(/\.rpc\("(\w+)"/g)].map((m) => m[1]), ["map_friend_island", "social_get_share_companies", "social_set_share_companies"]);
+  assert.deepEqual([...lib.matchAll(/\.rpc\("(\w+)"/g)].map((m) => m[1]), ["map_friend_island", "social_get_share_companies", "social_set_share_companies", "social_get_share_outcomes", "social_set_share_outcomes"]);
 });
 
 test("migration: read-only function checks accepted friendship, no write policies/grants, hides private columns", async () => {
