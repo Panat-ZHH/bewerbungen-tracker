@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { clearRoleCache } from "@/lib/role";
 import { parsePrefill, searchPrefill, type OnboardingAnswers, type SearchPrefill } from "@/lib/onboarding-core";
 
 export * from "@/lib/onboarding-core";
@@ -18,6 +19,7 @@ export async function saveOnboarding(a: OnboardingAnswers, complete: boolean): P
     p_canton: a.canton, p_place: a.place, p_start_year: a.startYear, p_complete: complete,
   });
   if (error) throw error;
+  clearRoleCache();
   storePrefill(searchPrefill(a));
   if (complete) await supabase.auth.updateUser({ data: { student_onboarded: true } });
 }

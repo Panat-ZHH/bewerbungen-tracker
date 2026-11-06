@@ -15,6 +15,7 @@ import { NoticeBadge } from "@/components/classes/notice-badge";
 import { badgeLabel } from "@/lib/friend-requests";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
@@ -62,6 +63,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const myAvatar = useMyAvatar(Boolean(user));
   const [role, setRole] = useState<UserRole | null>(null);
   const [inClass, setInClass] = useState(false);
+  const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -87,8 +89,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
     if (!user) return;
     if (needsRoleChoice(user)) { router.replace(rolePickerHref(pathname)); return; }
     let alive = true;
-    loadMyRole(user).then(({ role: resolved }) => {
+    loadMyRole(user).then(({ role: resolved, displayName: name }) => {
       if (!alive) return;
+      setProfileName(name);
       const target = guardRedirect(resolved, pathname ?? "/");
       if (target) router.replace(target); else setRole(resolved);
     });
@@ -138,7 +141,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
     );
   }
 
-  const displayName = (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
+  const displayName = (isPlaceholderName(profileName, user.email) ? undefined : profileName) ?? (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
   const isTeacher = role === "teacher";
   const items = isTeacher ? teacherNavigation : navigation;
   const accountItems: NavItem[] = isTeacher ? [{ ...accountLinks[0], keys: [...accountLinks[0].keys] }, { ...accountLinks[1], keys: [...accountLinks[1].keys] }] : accountLinks;
