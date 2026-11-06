@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarLinks } from "@/components/reminders/calendar-links";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -130,6 +131,8 @@ export default function ApplicationDetailPage() {
           </div>
 
           <p className="mt-4 text-sm text-muted" id="status-hint">{statusHints[application.status]}</p>
+
+          <CalendarLinks application={application} />
 
           <Card className="mt-6 max-w-3xl divide-y divide-[var(--line)] px-5 md:px-6">
             {application.deadline && <DetailRow label="Bewerben bis" value={new Date(application.deadline).toLocaleDateString("de-CH")} badge={["saved", "preparing"].includes(application.status) ? deadlineInfo(application.deadline) : null} />}
