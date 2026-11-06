@@ -12,6 +12,8 @@ import { oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
 import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { pendingInvitePath } from "@/components/friends/shared";
 import { resolveLanding } from "@/lib/role";
+import { InviteBanner } from "@/components/onboarding/invite-banner";
+import { LoginValueProp } from "@/components/onboarding/login-value-prop";
 
 type AuthMode = "login" | "signup";
 type Role = "student" | "teacher";
@@ -139,7 +141,7 @@ export default function LoginPage() {
           <span className="text-lg font-semibold tracking-[-.02em]">WendApply</span>
         </div>
         <div className="relative max-w-md">
-          <h2 className="text-display">Bewerbungen einfach im Blick.</h2>
+          <h2 className="text-display">Finde deine Lehrstelle und behalte jede Bewerbung im Blick.</h2>
           <ul className="mt-8 space-y-4">
             {highlights.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3 text-[15px] text-white/90">
@@ -154,6 +156,8 @@ export default function LoginPage() {
 
       <section className="flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6 sm:py-10">
         <div className="animate-rise w-full max-w-[420px]">
+          <LoginValueProp />
+          <InviteBanner />
           <div className="mb-6 text-center sm:mb-7">
             <BrandMark size={56} radius={16} pad={4} white className="brand-mark-raised mx-auto lg:hidden" priority />
             <h1 className="text-title mt-5 lg:mt-0">{isSignup ? "Konto erstellen" : "Schön, dass du da bist."}</h1>

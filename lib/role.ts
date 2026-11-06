@@ -8,6 +8,7 @@ export const TEACHER_HOME = "/teacher";
 export const STUDENT_HOME = "/dashboard";
 export const ROLE_PICKER_PATH = "/auth/role";
 export const ONBOARDING_PATH = "/teacher/onboarding";
+export const STUDENT_ONBOARDING_PATH = "/onboarding";
 
 /** Routes that only make sense for students. Teachers are sent to /teacher. */
 const STUDENT_ONLY = ["/dashboard", "/applications", "/map", "/cvs", "/search", "/analytics"];
@@ -37,6 +38,9 @@ export function hasExplicitRole(meta: Record<string, unknown> | null | undefined
   return meta?.role === "student" || meta?.role === "teacher" || meta?.role_confirmed === true;
 }
 export function needsRoleChoice(user: Pick<User, "user_metadata"> | null | undefined): boolean { return !!user && !hasExplicitRole(user.user_metadata); }
+export function studentOnboarded(meta: Record<string, unknown> | null | undefined): boolean { return meta?.student_onboarded === true; }
+/** `?next=` aware path to the student onboarding (it forwards to `next`, or the dashboard, when done / skipped). */
+export function studentOnboardingHref(next?: string | null) { const safe = safeNextPath(next); return safe && safe !== "/" ? `${STUDENT_ONBOARDING_PATH}?next=${encodeURIComponent(safe)}` : STUDENT_ONBOARDING_PATH; }
 export function teacherOnboarded(meta: Record<string, unknown> | null | undefined): boolean { return meta?.teacher_onboarded === true; }
 
 /** `?next=` aware path to the role picker. */
@@ -85,5 +89,6 @@ export async function resolveLanding(next?: string | null): Promise<string> {
   if (needsRoleChoice(user)) return rolePickerHref(next);
   const { role } = await loadMyRole(user);
   if (role === "teacher" && !teacherOnboarded(user.user_metadata) && !safeNextPath(next)?.startsWith("/classes/join")) return TEACHER_HOME;
+  if (role === "student" && !studentOnboarded(user.user_metadata)) return studentOnboardingHref(next);
   return landingPath(role, next);
 }

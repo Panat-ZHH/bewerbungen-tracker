@@ -58,7 +58,9 @@ test("security definer functions pin search_path and are not executable by anon"
   assert.ok(rows.length > 10, "expected many RPCs");
   const noPath = rows.filter((r) => !(r.proconfig ?? []).some((c) => c.startsWith("search_path="))).map((r) => r.proname);
   assert.deepEqual(noPath, [], `security definer without search_path: ${noPath.join(", ")}`);
-  const anon = rows.filter((r) => r.anon_exec).map((r) => r.proname);
+  // Deliberately public: invite_context returns only teacher name + class name for a valid code (login-page invitation banner).
+  const PUBLIC_RPCS = ["invite_context"];
+  const anon = rows.filter((r) => r.anon_exec && !PUBLIC_RPCS.includes(r.proname)).map((r) => r.proname);
   assert.deepEqual(anon, [], `anon may execute: ${anon.join(", ")}`);
 });
 

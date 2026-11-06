@@ -22,6 +22,7 @@ import { FilterPanel } from "./filter-panel";
 import { PresetMenu } from "./preset-menu";
 import { ResultCard } from "./result-card";
 import { SearchBar, type SearchBarHandle, type SearchTab } from "./search-bar";
+import { readPrefill } from "@/lib/onboarding";
 import { activeFilterCount, addRecent, applyFilters, clearRecent, companyOptions, computeFacets, deletePreset, emptyFilters, loadPresets, loadRecent, paramsToState, rankJobs, savePreset, sortJobs, SORT_LABELS, stateToParams, type EnrichedJob, type JobFilters, type JobPreset, type JobSearchState, type JobSort } from "./engine";
 
 const PAGE_STEP = 20;
@@ -75,6 +76,14 @@ export function JobSearchView() {
   // localStorage is only readable after hydration
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setRecent(loadRecent()); setPresets(loadPresets()); }, []);
+  // Onboarding answers prefill an empty search (a search in the URL always wins).
+  useEffect(() => {
+    if (params.toString()) return;
+    const prefill = readPrefill();
+    if (!prefill) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setState((s) => ({ ...s, query: prefill.query, filters: { ...s.filters, location: prefill.location, cantons: prefill.cantons, ...(prefill.startYear ? { startYear: prefill.startYear } : {}) } }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- only on first mount
   useEffect(() => () => requestRef.current?.abort(), []);
 
   // URL sync (shareable): state -> URL
