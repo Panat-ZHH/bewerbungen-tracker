@@ -12,8 +12,8 @@ const never = ["Deine Notizen", "Gehaltsangaben", "Stellenbeschreibungen", "Lebe
 export function PrivacyPanel({ variant, teacherName }: { variant: "class" | "friends"; teacherName?: string }) {
   const [info, setInfo] = useState<VisibilityInfo | null>(null);
   useEffect(() => { if (variant !== "class") return; let alive = true; getVisibilityInfo().then((v) => { if (alive && v.teacherSees.length && v.teacherNeverSees.length) setInfo(v); }).catch(() => {}); return () => { alive = false; }; }, [variant]);
-  const sees = info ? info.teacherSees : variant === "class" ? shared : ["Anzahl deiner Bewerbungen", "Wie viele davon in welchem Status sind", "Deinen Fortschritt auf der Karte", "Firmennamen auf der Karte (abschaltbar)"];
-  const never_ = info ? info.teacherNeverSees : variant === "class" ? never : ["Positionen und Stellenlinks", "Fristen", ...never.slice(0, 4)];
+  const sees = info ? info.teacherSees : variant === "class" ? shared : ["Anzahl deiner Bewerbungen", "Wie viele davon in welchem Status sind", "Deinen Fortschritt auf der Karte"];
+  const never_ = info ? info.teacherNeverSees : variant === "class" ? never : ["Zusagen und Absagen (ausser du schaltest das ein)", "Firmennamen (ausser du schaltest das ein)", "Positionen und Stellenlinks", "Fristen", ...never.slice(0, 4)];
   const who = variant === "class" ? (teacherName ? teacherName : "deine Lehrperson") : "deine Freunde";
   const verb = variant === "class" ? "sieht" : "sehen";
   return (

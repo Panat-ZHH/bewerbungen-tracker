@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { EyeOff, MapPin, Trash2, UserMinus } from "lucide-react";
+import { EyeOff, Trash2, UserMinus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useAvatarUrls } from "@/components/ui/use-avatars";
 import { Badge } from "@/components/ui/badge";
@@ -63,7 +63,6 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
                       {counts.map((s) => <Badge key={s} tone={tones[s] ?? "neutral"}>{act.statusCounts?.[s]} {statusLabels[s]}</Badge>)}
                       {counts.length === 0 && <span className="text-small text-muted">Noch nichts zu zeigen.</span>}
                     </div>
-                    <p className="mt-2 flex items-center gap-1.5 text-small text-muted"><MapPin size={13} aria-hidden /><span className="tabular">{act.mapPointsEarned ?? 0}</span> Map-Punkte, <span className="tabular">{act.mapItems ?? 0}</span> Map-Items</p>
                   </div>
                 )}
               </Card>

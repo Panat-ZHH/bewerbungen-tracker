@@ -3,7 +3,7 @@ import { STATUS_ORDER } from "./status.ts";
 import { shopCatalog, type MapLayout, type OwnedMapItem, type ShopItemType } from "./map-shop.ts";
 
 /** Everything the read-only island view needs. Houses carry at most the company name (if the owner shares it) and the building status; no position, notes or any other application data. */
-export type FriendIsland = { userId: string; displayName: string; islands: number; companiesShared: boolean; applications: Application[]; items: OwnedMapItem[]; layouts: MapLayout[] };
+export type FriendIsland = { userId: string; displayName: string; islands: number; companiesShared: boolean; outcomesShared: boolean; applications: Application[]; items: OwnedMapItem[]; layouts: MapLayout[] };
 
 const statuses: readonly string[] = STATUS_ORDER;
 const number = (value: unknown, fallback = 0) => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
@@ -39,7 +39,7 @@ export function parseFriendIsland(data: unknown): FriendIsland {
     const entry = row as Record<string, unknown> | null;
     return entry && typeof entry.id === "string" && typeof entry.x === "number" && typeof entry.z === "number" ? [{ id: entry.id, x: entry.x, z: entry.z, rotation: number(entry.rotation) }] : [];
   });
-  return { userId: String(raw.userId ?? ""), displayName: String(raw.displayName ?? ""), islands: Math.max(1, Math.min(99, Math.floor(number(raw.islands, 1)))), companiesShared: raw.companiesShared !== false, applications, items, layouts };
+  return { userId: String(raw.userId ?? ""), displayName: String(raw.displayName ?? ""), islands: Math.max(1, Math.min(99, Math.floor(number(raw.islands, 1)))), companiesShared: raw.companiesShared === true, outcomesShared: raw.outcomesShared === true, applications, items, layouts };
 }
 
 /** Dev/test data for `/friends/mock-*` when the app runs without a real Supabase project (dummy env vars). */
@@ -77,17 +77,32 @@ export function friendIslandError(reason: unknown) {
   return "Insel konnte nicht geladen werden";
 }
 
-/** Own switch: may friends see the company names on my island? (Default on.) */
+/** Own switch: may friends see the company names on my island? (Default off.) */
 export async function getShareCompanies(): Promise<boolean> {
   const { supabase } = await import("./supabase.ts");
   const { data, error } = await supabase.rpc("social_get_share_companies");
   if (error) throw Object.assign(new Error(error.message), { code: error.code });
-  return data !== false;
+  return data === true;
 }
 
 export async function setShareCompanies(share: boolean): Promise<boolean> {
   const { supabase } = await import("./supabase.ts");
   const { data, error } = await supabase.rpc("social_set_share_companies", { p_share: share });
+  if (error) throw Object.assign(new Error(error.message), { code: error.code });
+  return data === true;
+}
+
+/** Own switch: may friends see my Zusagen/Absagen (building stage and counts)? Default off; masked on the server otherwise. */
+export async function getShareOutcomes(): Promise<boolean> {
+  const { supabase } = await import("./supabase.ts");
+  const { data, error } = await supabase.rpc("social_get_share_outcomes");
+  if (error) throw Object.assign(new Error(error.message), { code: error.code });
+  return data === true;
+}
+
+export async function setShareOutcomes(share: boolean): Promise<boolean> {
+  const { supabase } = await import("./supabase.ts");
+  const { data, error } = await supabase.rpc("social_set_share_outcomes", { p_share: share });
   if (error) throw Object.assign(new Error(error.message), { code: error.code });
   return data === true;
 }
