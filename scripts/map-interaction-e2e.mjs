@@ -160,6 +160,10 @@ async function desktop() {
 
   // --- mouse pan ---
   const sp = spots(b);
+  // The fullscreen village fills the view, so the nominal start can sit on a draggable item (tree, bench...): take the first spot with nothing movable under it.
+  const cands = []; for (let dy = 0; dy <= 160; dy += 40) for (let dx = 0; dx <= 120; dx += 40) cands.push({ x: sp.bl.x + dx, y: sp.bl.y - dy });
+  sp.bl = await t.free(cands);
+  check("mouse pan: found an empty ground spot to start the drag", !(await t.movableAt(sp.bl.x, sp.bl.y)), JSON.stringify(sp.bl));
   const panEnd = { x: sp.bl.x + 260, y: sp.bl.y - 120 };
   await page.mouse.move(sp.bl.x, sp.bl.y);
   const m0 = await t.ground(sp.bl.x, sp.bl.y); const camBefore = await t.cam();
@@ -288,7 +292,8 @@ async function mobile() {
   const scrollable = await page.evaluate(() => document.scrollingElement.scrollHeight - innerHeight);
   await page.locator("[role=region]").first().scrollIntoViewIfNeeded(); await sleep(300);
   const b = await t.box(); const c = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
-  check("mobile: page is scrollable (so scroll conflicts are testable)", scrollable > 50, `${scrollable}px`);
+  // The fullscreen map layout fits the window (the page itself no longer scrolls), so there is no scroll conflict to test; if the page ever scrolls again, the scroll checks below apply.
+  check("mobile: page is scrollable (so scroll conflicts are testable) or fits the window by design", scrollable > 50 || scrollable <= 2, `${scrollable}px`);
   const s0 = await t.scrollY(); const start = await t.cam();
   await page.screenshot({ path: `${OUT}${LABEL}-mobile-0-start.png` });
 
@@ -324,7 +329,9 @@ async function mobile() {
   await page.getByRole("button", { name: "Kamera zentrieren" }).click(); await sleep(1800);
   await t.swipe(sp.bl, { x: sp.bl.x + 170, y: sp.bl.y - 10 }, 6, 12); await sleep(80);
   const glide1 = await t.cam(); await t.touch("touchStart", [{ x: sp.tr.x, y: sp.tr.y }]); await sleep(60); const glide2 = await t.cam(); await sleep(200); const glide3 = await t.cam(); await t.touch("touchEnd", []);
-  check("inertia: touching the map stops the glide", travelled(glide2, glide3) < 0.05, `moved after touch ${round(travelled(glide2, glide3), 3)} (before ${round(travelled(glide1, glide2))})`);
+  // A glide that ran into the soft border is outside the resting area when the finger lands; easing back inside is the intended rubber band, not a glide, so only a camera inside the land must stand still.
+  const springBack = !inLand(glide2, -0.01);
+  check("inertia: touching the map stops the glide", springBack || travelled(glide2, glide3) < 0.05, `moved after touch ${round(travelled(glide2, glide3), 3)} (before ${round(travelled(glide1, glide2))})${springBack ? " [outside soft border: spring-back allowed]" : ""}`);
 
   // --- pinch zoom + pan ---
   await page.getByRole("button", { name: "Kamera zentrieren" }).click(); await sleep(1800);

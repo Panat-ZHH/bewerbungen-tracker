@@ -98,3 +98,16 @@ The improvement is mostly the skipped shadow pass and the removed per-frame Reac
 * Keyboard: the arrow keys still nudge items (unchanged); there is no keyboard camera movement.
 * Not done: edge auto-pan while dragging an item near the border of the view.
 
+
+## Smoke run 2026-11-06
+
+Run against branch `map-smoke` (= main at `a612244`), `next dev --webpack`, headless Chrome with SwiftShader, quiet machine (load ~2). The earlier run was 44/47. Reproduced the same 3 failures; **none is an app bug**, all three come from the test script no longer matching the fullscreen map layout:
+
+| Failing check | Cause | Verdict | Fix (script only) |
+|---|---|---|---|
+| `mouse pan: camera moved (no item drag started)` and `mouse pan: grabbed ground point follows the cursor` | The village now fills the whole view, so the fixed start spot (bottom left, 28/430) lies on a draggable item (`movableAt` = true). The press correctly starts an item drag, not a pan. | test issue | Pick the first spot of a small grid with nothing movable under it, plus a new check that such a spot was found. |
+| `mobile: page is scrollable` (0 px) | The fullscreen map layout fits the window, the page no longer scrolls, so there is no scroll conflict to provoke. The "page does not scroll" checks still hold. | obsolete premise | Accept "scrollable or fits the window by design" (the scroll checks stay). |
+
+One more, flaky: `inertia: touching the map stops the glide` failed once (moved 0.208 after the touch, 6.55 before). The flick had glided into the soft border, and `halt()` then eases the camera back inside the bounds, which is the intended rubber band and not a glide. It passed in the 2 following runs. The check is now strict only when the camera is inside the resting area at the touch, and allows the spring-back otherwise.
+
+Results (48 checks now, one was added): run 1 47/48 (the flake above), runs 2 and 3 48/48 with the script before the inertia tweak, then 3 consecutive runs 48/48 with the final script. No console errors in any run. `npx tsc --noEmit` clean, `npm run lint` 0 errors (4 old warnings), `npm test` 146/146. No app code changed.
