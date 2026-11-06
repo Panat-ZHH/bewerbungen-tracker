@@ -8,11 +8,13 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getClassStudentApplications, removeClassStudent } from "@/lib/classes";
+import { shownName } from "@/lib/profile-names";
 import { statusLabels } from "@/lib/utils";
 import type { ClassStudentApplication, ClassStudentOverview } from "@/types";
+import { AliasEditor } from "./alias-editor";
 import { STATUS_COLORS, errorMessage, formatDate } from "./shared";
 
-export function StudentDrilldown({ classId, student, onClose, onRemoved }: { classId: string; student: ClassStudentOverview | null; onClose: () => void; onRemoved: () => void }) {
+export function StudentDrilldown({ classId, student, alias, onAlias, onClose, onRemoved }: { classId: string; student: ClassStudentOverview | null; alias?: string; onAlias?: (alias: string) => void; onClose: () => void; onRemoved: () => void }) {
   const [state, setState] = useState<{ id: string; apps?: ClassStudentApplication[]; hidden?: boolean; error?: string } | null>(null);
   const studentId = student?.studentId;
   const [confirming, setConfirming] = useState(false);
@@ -37,7 +39,7 @@ export function StudentDrilldown({ classId, student, onClose, onRemoved }: { cla
   const sorted = [...(current?.apps ?? [])].sort((a, b) => (b.appliedAt ?? b.createdAt).localeCompare(a.appliedAt ?? a.createdAt));
 
   return (
-    <Modal open={!!student} onClose={() => { setConfirming(false); setRemoveError(""); onClose(); }} title={student ? student.displayName : ""} description="Bewerbungen (ohne Notizen, Gehalt und Lebensläufe)">
+    <Modal open={!!student} onClose={() => { setConfirming(false); setRemoveError(""); onClose(); }} title={student ? shownName({ alias, displayName: student.displayName }) : ""} description="Bewerbungen (ohne Notizen, Gehalt und Lebensläufe)">
       {!current && <div className="space-y-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-14 rounded-[var(--radius-md)]" />)}</div>}
       {current?.error && <p role="alert" className="text-small text-[var(--danger-fg)]">{current.error}</p>}
       {current?.hidden && <EmptyState icon={<EyeOff size={24} />} title="Teilt keine Daten" description="Diese Person hat die Freigabe für die Klasse deaktiviert." />}
@@ -55,6 +57,7 @@ export function StudentDrilldown({ classId, student, onClose, onRemoved }: { cla
           ))}
         </ul>
       )}
+      {student && onAlias && <div className="mt-5 border-t border-[var(--line)] pt-4"><AliasEditor key={student.studentId} classId={classId} studentId={student.studentId} realName={shownName({ displayName: student.displayName })} alias={alias} onSaved={onAlias} /></div>}
       <div className="mt-5 border-t border-[var(--line)] pt-4">
         {confirming ? (
           <div className="space-y-2">

@@ -55,6 +55,8 @@ async function seedData({ database, as, rpc, admin }) {
   await app("s2a", ids.s2, "Verborgen AG", "offer", { applied: day(-2), created: day(-2) });
   await app("s3a", ids.s3, "Cem Firma", "final_interview", { applied: day(-2), created: day(-3) });
   await app("s4a", ids.s4, "Dina Firma", "preparing", { deadline: day(10), created: day(-60), updated: day(-60) });
+  // Sharing starts OFF unless the student is 16+ (migration 20261109030000); the seeded students are 16+ so existing expectations hold.
+  await database.exec("update public.user_roles set under_16 = false");
   await as(ids.owner);
   const [cls] = await rpc("select * from public.class_create('10a', '2026/27')");
   const [cls2] = await rpc("select * from public.class_create('10b', '2026/27')");
