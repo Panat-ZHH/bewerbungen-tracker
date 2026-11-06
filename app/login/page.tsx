@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { authMessage, oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
+import { pendingInvitePath } from "@/components/friends/shared";
+import { resolveLanding } from "@/lib/role";
 
 type AuthMode = "login" | "signup";
 type Role = "student" | "teacher";
@@ -46,8 +48,14 @@ export default function LoginPage() {
       setError(message);
       window.history.replaceState(null, "", params.get("next") ? `/login?next=${encodeURIComponent(params.get("next")!)}` : "/login");
     }
-    supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace(nextPath()); });
-  }, [router]);
+    supabase.auth.getUser().then(({ data }) => { if (data.user) goHome(); });
+  }, [router]); // eslint-disable-line react-hooks/exhaustive-deps -- goHome only uses router
+
+  /** Role-aware landing: teacher -> /teacher, student -> /dashboard (or the safe ?next= / a waiting class invite). */
+  async function goHome() {
+    const requested = new URLSearchParams(window.location.search).get("next");
+    router.replace(await resolveLanding(safeNextPath(requested) ?? pendingInvitePath()));
+  }
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -85,7 +93,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.replace(nextPath());
+    await goHome();
   }
 
   async function signInWithProvider(provider: "google") {
@@ -206,7 +214,3 @@ export default function LoginPage() {
   );
 }
 
-/** Where to go after login: a safe same-site path from ?next=, else the dashboard. */
-function nextPath() {
-  return safeNextPath(new URLSearchParams(window.location.search).get("next")) ?? "/dashboard";
-}

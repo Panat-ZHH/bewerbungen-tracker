@@ -4,8 +4,8 @@ import type { ApplicationCategory, ApplicationStatus, ClassDeadline, ClassMember
 function databaseError(error: { code?: string; message?: string; details?: string | null; hint?: string | null }) { const parts = [error.code, error.message, error.details, error.hint].filter(Boolean); return Object.assign(new Error(`Database error: ${parts.join(" | ")}`), { code: error.code }); }
 
 /** Stable error codes raised by the RPCs (found in Error.message). FORBIDDEN = wrong role or not your class. */
-export type ClassErrorCode = "AUTH_REQUIRED" | "FORBIDDEN" | "NOT_FOUND" | "CLASS_NOT_FOUND" | "INVALID_NAME" | "INVALID_REQUEST";
-export function classErrorCode(reason: unknown): ClassErrorCode | undefined { const message = reason instanceof Error ? reason.message : String(reason ?? ""); return (["AUTH_REQUIRED", "FORBIDDEN", "CLASS_NOT_FOUND", "NOT_FOUND", "INVALID_NAME", "INVALID_REQUEST"] as const).find((code) => message.includes(code)); }
+export type ClassErrorCode = "AUTH_REQUIRED" | "FORBIDDEN" | "NOT_FOUND" | "CLASS_NOT_FOUND" | "INVALID_NAME" | "INVALID_REQUEST" | "EXPIRED" | "REVOKED" | "USED_UP" | "INVALID" | "RATE_LIMITED";
+export function classErrorCode(reason: unknown): ClassErrorCode | undefined { const message = reason instanceof Error ? reason.message : String(reason ?? ""); return (["AUTH_REQUIRED", "FORBIDDEN", "CLASS_NOT_FOUND", "NOT_FOUND", "INVALID_NAME", "INVALID_REQUEST", "EXPIRED", "REVOKED", "USED_UP", "RATE_LIMITED", "INVALID"] as const).find((code) => message.includes(code)); }
 
 type ClassRow = { id: string; name: string; school_year: string; join_code: string; created_at: string; member_count?: number };
 function classFromRow(row: ClassRow): SchoolClass { return { id: row.id, name: row.name, schoolYear: row.school_year, joinCode: row.join_code, createdAt: row.created_at, memberCount: row.member_count ?? 0 }; }
@@ -33,3 +33,28 @@ export async function deleteClass(classId: string): Promise<void> { const { erro
 export async function removeClassStudent(classId: string, studentId: string): Promise<void> { const { error } = await supabase.rpc("class_remove_student", { p_class_id: classId, p_student_id: studentId }); if (error) throw databaseError(error); }
 export async function regenerateClassCode(classId: string): Promise<string> { const { data, error } = await supabase.rpc("class_regenerate_code", { p_class_id: classId }); if (error) throw databaseError(error); return data as string; }
 export function classInviteLink(code: string, origin = typeof window !== "undefined" ? window.location.origin : ""): string { return `${origin}/classes/join/${encodeURIComponent(code)}`; }
+
+// ---- Teacher role, student side (migration 20261107000000_teacher_role.sql; contract in docs/teacher-contract.md) ----
+/** Short codes are 8 chars; invitation tokens are >= 22 url-safe chars (case sensitive). */
+export function isInviteToken(value: string): boolean { return value.length >= 22 && /^[A-Za-z0-9_-]+$/.test(value); }
+
+export type InvitePreview = ClassPreview & { valid: boolean; reason: "EXPIRED" | "REVOKED" | "USED_UP" | "INVALID" | null };
+type PreviewRow = { class_id: string | null; name: string | null; school_year: string | null; teacher_name: string | null; member_count: number | null; already_member: boolean | null; valid?: boolean; reason?: string | null };
+export async function previewInvite(token: string): Promise<InvitePreview> { const { data, error } = await supabase.rpc("class_invite_preview", { p_token: token }); if (error) throw databaseError(error); const row = (data as PreviewRow[] | null)?.[0]; if (!row) return { classId: "", name: "", schoolYear: "", teacherName: "", memberCount: 0, alreadyMember: false, valid: false, reason: "INVALID" }; return { classId: row.class_id ?? "", name: row.name ?? "", schoolYear: row.school_year ?? "", teacherName: row.teacher_name ?? "", memberCount: row.member_count ?? 0, alreadyMember: !!row.already_member, valid: row.valid !== false, reason: (row.reason as InvitePreview["reason"]) ?? null }; }
+export async function acceptInvite(token: string): Promise<ClassMembership> { const { data, error } = await supabase.rpc("class_invite_accept", { p_token: token }); if (error) throw databaseError(error); return membershipFromRow((data as MembershipRow[])[0]); }
+
+export type ClassMembershipV2 = ClassMembership & { shareCompanies: boolean; lastNudgeAt?: string; announcementsCount: number };
+type MembershipRowV2 = MembershipRow & { share_companies?: boolean | null; last_nudge_at?: string | null; announcements_count?: number | null };
+export async function getMyClassMembershipsV2(): Promise<ClassMembershipV2[]> { const { data, error } = await supabase.rpc("class_my_classes"); if (error) throw databaseError(error); return ((data ?? []) as MembershipRowV2[]).map((row) => ({ ...membershipFromRow(row), shareCompanies: row.share_companies !== false, lastNudgeAt: row.last_nudge_at ?? undefined, announcementsCount: row.announcements_count ?? 0 })); }
+/** share = master switch (false: teacher sees only the name). companies = company names and positions. */
+export async function setClassSharingV2(classId: string, share: boolean, companies: boolean): Promise<void> { const { error } = await supabase.rpc("class_set_sharing_v2", { p_class_id: classId, p_share: share, p_companies: companies }); if (error) throw databaseError(error); }
+
+export type VisibilityInfo = { teacherSees: string[]; teacherNeverSees: string[] };
+export async function getVisibilityInfo(): Promise<VisibilityInfo> { const { data, error } = await supabase.rpc("class_visibility_info"); if (error) throw databaseError(error); const v = (Array.isArray(data) ? data[0] : data) as { teacher_sees?: string[]; teacher_never_sees?: string[] } | null; return { teacherSees: v?.teacher_sees ?? [], teacherNeverSees: v?.teacher_never_sees ?? [] }; }
+
+export type ClassAnnouncement = { id: string; text: string; createdAt: string; authorName: string };
+export async function listClassAnnouncements(classId: string): Promise<ClassAnnouncement[]> { const { data, error } = await supabase.rpc("class_announcement_list", { p_class_id: classId }); if (error) throw databaseError(error); return ((data ?? []) as { id: string; text: string; created_at: string; author_name: string }[]).map((row) => ({ id: row.id, text: row.text, createdAt: row.created_at, authorName: row.author_name })); }
+
+export type MyNotification = { id: string; kind: string; classId?: string; className?: string; message: string; createdAt: string; read: boolean };
+export async function listMyNotifications(): Promise<MyNotification[]> { const { data, error } = await supabase.rpc("my_notifications"); if (error) throw databaseError(error); return ((data ?? []) as { id: string; kind: string; class_id: string | null; class_name: string | null; message: string | null; created_at: string; read: boolean }[]).map((row) => ({ id: row.id, kind: row.kind, classId: row.class_id ?? undefined, className: row.class_name ?? undefined, message: row.message ?? "", createdAt: row.created_at, read: row.read })); }
+export async function markNotificationRead(id: string): Promise<void> { const { error } = await supabase.rpc("mark_notification_read", { p_id: id }); if (error) throw databaseError(error); }

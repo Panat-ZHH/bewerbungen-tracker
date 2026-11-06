@@ -11,12 +11,16 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
-import { type ClassPreview, joinClass, previewClass } from "@/lib/classes";
+import { acceptInvite, isInviteToken, joinClass, previewClass, previewInvite, type ClassPreview } from "@/lib/classes";
 import { getMySocialProfile } from "@/lib/social";
 import { supabase } from "@/lib/supabase";
 
+type Loaded = (ClassPreview & { valid: boolean; reason: string | null }) | null;
+
+/** Invitation links carry either a token (>= 22 url-safe chars, case sensitive) or the short class code. */
 function JoinContent({ code }: { code: string }) {
-  const [preview, setPreview] = useState<ClassPreview | null | undefined>(undefined);
+  const token = isInviteToken(code);
+  const [preview, setPreview] = useState<Loaded | undefined>(undefined);
   const [isTeacher, setIsTeacher] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,18 +28,20 @@ function JoinContent({ code }: { code: string }) {
 
   useEffect(() => {
     let alive = true;
-    Promise.all([previewClass(code).catch((e) => { if (alive) setError(errorMessage(e)); return null; }), getMySocialProfile().catch(() => null)])
+    const lookup = token ? previewInvite(code) : previewClass(code.toUpperCase()).then((p) => ({ ...p, valid: true, reason: null }));
+    Promise.all([lookup.catch((e) => { if (alive) setError(errorMessage(e)); return null; }), getMySocialProfile().catch(() => null)])
       .then(([found, me]) => { if (!alive) return; setPreview(found); setIsTeacher(me?.role === "teacher"); });
     return () => { alive = false; };
-  }, [code]);
+  }, [code, token]);
 
   async function join() {
     setBusy(true); setError("");
-    try { await joinClass(code); clearPendingInvite(); setJoined(true); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
+    try { await (token ? acceptInvite(code) : joinClass(code.toUpperCase())); clearPendingInvite(); setJoined(true); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
   }
 
   if (preview === undefined) return <Card className="mx-auto max-w-md p-6" aria-busy="true"><Skeleton className="mx-auto h-16 w-16 rounded-full" /><Skeleton className="mx-auto mt-4 h-6 w-1/2" /><Skeleton className="mt-6 h-11" /></Card>;
-  if (!preview) return <EmptyState className="mx-auto max-w-md" title="Klassencode nicht gefunden" description={error || "Dieser Link ist nicht mehr gültig. Frag deine Lehrperson nach einem neuen Link."} action={<ButtonLink href="/classes" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
+  const invalidReason = preview && !preview.valid ? errorMessage(new Error(preview.reason ?? "INVALID")) : "";
+  if (!preview || (!preview.valid && !preview.alreadyMember)) return <EmptyState className="mx-auto max-w-md" title={token ? "Einladung nicht gültig" : "Klassencode nicht gefunden"} description={invalidReason || error || "Dieser Link ist nicht mehr gültig. Frag deine Lehrperson nach einem neuen Link."} action={<ButtonLink href="/classes" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
 
   return (
     <Card className="animate-rise mx-auto max-w-md space-y-5 p-6 text-center sm:p-8">
@@ -67,7 +73,7 @@ function JoinContent({ code }: { code: string }) {
 export default function ClassJoinPage() {
   const router = useRouter();
   const params = useParams<{ code: string }>();
-  const code = decodeURIComponent(String(params.code ?? "")).trim().toUpperCase();
+  const code = decodeURIComponent(String(params.code ?? "")).trim();
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
@@ -75,7 +81,7 @@ export default function ClassJoinPage() {
     supabase.auth.getUser().then(({ data }) => {
       if (!alive) return;
       if (data.user) setSignedIn(true);
-      else { storePendingInvite(code, "class"); router.replace("/login"); }
+      else { storePendingInvite(code, "class"); router.replace(`/login?next=${encodeURIComponent(`/classes/join/${encodeURIComponent(code)}`)}`); }
     });
     return () => { alive = false; };
   }, [code, router]);
