@@ -90,7 +90,7 @@ function ApplicationMap() {
 
   return (
     <>
-      <h1 className="sr-only">Map – Dein Bewerbungsdorf</h1>
+      <h1 className="sr-only">Dein Bewerbungsdorf</h1>
       <MapFullscreen
         label="Bewerbungsmap"
         busy={loading}
