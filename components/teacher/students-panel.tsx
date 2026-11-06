@@ -14,6 +14,8 @@ import { Modal } from "@/components/ui/modal";
 import { Segmented } from "@/components/ui/tabs";
 import { toast } from "@/lib/toast";
 import { downloadCsv, toCsv } from "@/lib/teacher-csv";
+import { applicationCsvColumns, buildApplicationCsvLines, studentLabel } from "@/lib/teacher-extras";
+import { exportClassApplications } from "@/lib/teacher-more";
 import { statusLabels } from "@/lib/utils";
 import { StatusBar, formatDate } from "@/components/classes/shared";
 import { nudgeStudent, removeClassStudent, teacherErrorCode, type DashboardClass, type TeacherStudent } from "./api";
@@ -52,6 +54,18 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
     toast({ message: `${rows.length} Zeilen exportiert.`, tone: "success" });
   }
 
+  /** One line per application (consented fields only) plus one line for every student without data. The server logs the export for each student. */
+  async function exportApplications() {
+    setBusy(true);
+    try {
+      const data = await exportClassApplications(cls.id);
+      const lines = buildApplicationCsvLines(rows, data, (status) => (statusLabels as Record<string, string>)[status]);
+      const stamp = new Date().toISOString().slice(0, 10);
+      downloadCsv(`${cls.name.replace(/[^\p{L}\p{N}]+/gu, "-")}-Bewerbungen-${stamp}.csv`, toCsv(lines, applicationCsvColumns));
+      toast({ message: `${lines.length} Zeilen exportiert. Die Schülerinnen und Schüler sehen den Export in ihrem Protokoll.`, tone: "success" });
+    } catch (e) { toast({ message: teacherError(e), tone: "danger" }); } finally { setBusy(false); }
+  }
+
   async function sendNudges() {
     if (!nudge) return;
     setBusy(true); setNudgeError("");
@@ -70,7 +84,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
   async function confirmRemove() {
     if (!removing) return;
     setBusy(true); setRemoveError("");
-    try { await removeClassStudent(cls.id, removing.studentId); toast({ message: `${removing.displayName} wurde aus der Klasse entfernt.`, tone: "success" }); setRemoving(null); onChanged(); }
+    try { await removeClassStudent(cls.id, removing.studentId); toast({ message: `${studentLabel(removing.displayName)} wurde aus der Klasse entfernt.`, tone: "success" }); setRemoving(null); onChanged(); }
     catch (e) { setRemoveError(teacherError(e)); } finally { setBusy(false); }
   }
 
@@ -89,7 +103,8 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
           </label>
           <div className="flex gap-2 sm:ml-auto">
             <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<BellRing size={15} />} disabled={nudgeable.length === 0} onClick={() => { setNudge(nudgeable); setNudgeError(""); }}>Inaktive erinnern ({nudgeable.length})</Button>
-            <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Download size={15} />} disabled={rows.length === 0} onClick={exportCsv}>CSV</Button>
+            <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Download size={15} />} disabled={rows.length === 0} onClick={exportCsv}>CSV Übersicht</Button>
+            <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Download size={15} />} disabled={rows.length === 0 || busy} onClick={() => void exportApplications()}>CSV Bewerbungen</Button>
           </div>
         </div>
         <Segmented className="[&_button]:min-h-11" label="Filter" value={filter} onChange={setFilter} options={STUDENT_FILTERS.map((f) => ({ ...f, count: counts[f.value] }))} />
@@ -101,14 +116,14 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         {rows.map((s) => (
           <li key={s.studentId} className="panel space-y-3 rounded-[var(--radius-lg)] p-4">
             <Link href={`/teacher/classes/${cls.id}/students/${s.studentId}`} className="flex min-h-11 items-center gap-3">
-              <Avatar name={s.displayName} src={avatars[s.studentId]} size="sm" />
-              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{s.displayName}</p><p className="text-small tabular text-muted">{s.hidden ? "Teilt keine Daten" : `${s.total} Bewerbungen · ${relativeDays(s.lastActivity)}`}</p></div>
+              <Avatar name={studentLabel(s.displayName)} src={avatars[s.studentId]} size="sm" />
+              <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{studentLabel(s.displayName)}</p><p className="text-small tabular text-muted">{s.hidden ? "Teilt keine Daten" : `${s.total} Bewerbungen · ${relativeDays(s.lastActivity)}`}</p></div>
             </Link>
             {!s.hidden && <StatusBar counts={s.statusCounts} total={s.total} />}
             <StatusBadges s={s} />
             <div className="flex flex-wrap gap-2">
               {s.inactive && <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" icon={<BellRing size={14} />} disabled={!canNudge(s)} onClick={() => { setNudge([s]); setNudgeError(""); }}>{canNudge(s) ? "Erinnern" : "Kürzlich erinnert"}</Button>}
-              <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" icon={<Trash2 size={14} />} aria-label={`${s.displayName} aus der Klasse entfernen`} onClick={() => { setRemoving(s); setRemoveError(""); }}>Entfernen</Button>
+              <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" icon={<Trash2 size={14} />} aria-label={`${studentLabel(s.displayName)} aus der Klasse entfernen`} onClick={() => { setRemoving(s); setRemoveError(""); }}>Entfernen</Button>
             </div>
           </li>
         ))}
@@ -124,14 +139,14 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
           <tbody>
             {rows.map((s) => (
               <tr key={s.studentId} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
-                <td className="px-4 py-3"><Link href={`/teacher/classes/${cls.id}/students/${s.studentId}`} className="flex min-h-11 items-center gap-3 font-semibold hover:underline"><Avatar name={s.displayName} src={avatars[s.studentId]} size="sm" /><span className="truncate">{s.displayName}</span></Link></td>
+                <td className="px-4 py-3"><Link href={`/teacher/classes/${cls.id}/students/${s.studentId}`} className="flex min-h-11 items-center gap-3 font-semibold hover:underline"><Avatar name={studentLabel(s.displayName)} src={avatars[s.studentId]} size="sm" /><span className="truncate">{studentLabel(s.displayName)}</span></Link></td>
                 <td className="tabular px-3 py-3 text-right">{s.hidden ? "–" : s.total}</td><td className="tabular px-3 py-3 text-right">{s.hidden ? "–" : s.interviews}</td><td className="tabular px-3 py-3 text-right">{s.hidden ? "–" : s.offers}</td>
                 <td className="px-3 py-3">{s.hidden ? <span className="text-small text-muted">Nicht sichtbar</span> : <StatusBar counts={s.statusCounts} total={s.total} />}</td>
                 <td className="px-3 py-3 whitespace-nowrap text-muted">{s.hidden ? "–" : <span title={formatDate(s.lastActivity ?? undefined)}>{relativeDays(s.lastActivity)}</span>}</td>
                 <td className="px-3 py-3"><StatusBadges s={s} /></td>
                 <td className="px-3 py-3"><div className="flex justify-end gap-1">
                   {s.inactive && <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" icon={<BellRing size={14} />} disabled={!canNudge(s)} title={canNudge(s) ? "Erinnerung senden" : "Wurde in den letzten 3 Tagen schon erinnert"} onClick={() => { setNudge([s]); setNudgeError(""); }}>{canNudge(s) ? "Erinnern" : "Erinnert"}</Button>}
-                  <Button size="sm" variant="ghost" className="min-h-11 min-w-11 sm:min-h-11" aria-label={`${s.displayName} aus der Klasse entfernen`} onClick={() => { setRemoving(s); setRemoveError(""); }}><Trash2 size={15} /></Button>
+                  <Button size="sm" variant="ghost" className="min-h-11 min-w-11 sm:min-h-11" aria-label={`${studentLabel(s.displayName)} aus der Klasse entfernen`} onClick={() => { setRemoving(s); setRemoveError(""); }}><Trash2 size={15} /></Button>
                 </div></td>
               </tr>
             ))}
@@ -139,7 +154,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         </table>
       </Card>
 
-      <Modal open={!!nudge} onClose={() => setNudge(null)} title={nudge && nudge.length > 1 ? `${nudge.length} inaktive Schüler erinnern` : "Erinnerung senden"} description={nudge && nudge.length === 1 ? `${nudge[0].displayName} erhält eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich.` : "Alle erhalten eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich."}>
+      <Modal open={!!nudge} onClose={() => setNudge(null)} title={nudge && nudge.length > 1 ? `${nudge.length} inaktive Schüler erinnern` : "Erinnerung senden"} description={nudge && nudge.length === 1 ? `${studentLabel(nudge[0].displayName)} erhält eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich.` : "Alle erhalten eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich."}>
         <div className="space-y-4">
           <Field label="Eigene Nachricht (optional)" htmlFor="nudge-msg" hint={`${message.length}/200 Zeichen`}><Textarea id="nudge-msg" data-autofocus className="text-base! sm:text-base!" rows={3} maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Wie läuft die Suche? Brauchst du Hilfe beim Lebenslauf?" /></Field>
           {nudgeError && <p role="alert" className="text-small text-[var(--danger-fg)]">{nudgeError}</p>}
@@ -147,7 +162,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         </div>
       </Modal>
 
-      <Modal open={!!removing} onClose={() => setRemoving(null)} title="Aus der Klasse entfernen?" description={removing ? `${removing.displayName} wird aus der Klasse "${cls.name}" entfernt. Die Bewerbungen der Person bleiben unverändert. Mit einem neuen Einladungslink kann sie wieder beitreten.` : undefined}>
+      <Modal open={!!removing} onClose={() => setRemoving(null)} title="Aus der Klasse entfernen?" description={removing ? `${studentLabel(removing.displayName)} wird aus der Klasse "${cls.name}" entfernt. Die Bewerbungen der Person bleiben unverändert. Mit einem neuen Einladungslink kann sie wieder beitreten.` : undefined}>
         <div className="space-y-4">
           {removeError && <p role="alert" className="text-small text-[var(--danger-fg)]">{removeError}</p>}
           <div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" data-autofocus onClick={() => setRemoving(null)}>Abbrechen</Button><Button variant="danger" loading={busy} onClick={confirmRemove}>Entfernen</Button></div>

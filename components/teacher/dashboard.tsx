@@ -13,6 +13,8 @@ import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile } from "@/components/ui/stat-tile";
+import { dashboardMode } from "@/lib/teacher-extras";
+import { AttentionPanel } from "./attention-panel";
 import { Segmented } from "@/components/ui/tabs";
 import { createClass, getTeacherDashboard, type TeacherDashboard } from "./api";
 import { ErrorBanner, teacherError } from "./shared";
@@ -45,6 +47,8 @@ export function TeacherDashboardView() {
   }
 
   const t = data?.totals;
+  const mode = data && t ? dashboardMode(t, data.classes.filter((c) => !c.archived).length) : "normal";
+  const firstClass = (data?.classes ?? []).find((c) => !c.archived);
   return (
     <div className="space-y-6 pb-safe">
       <PageHeader eyebrow="Lehrperson" title="Übersicht" description="So weit sind deine Klassen mit der Lehrstellensuche. Es zählen nur Schülerinnen und Schüler, die ihre Daten teilen." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
@@ -52,7 +56,20 @@ export function TeacherDashboardView() {
       {!data && !error && <div className="space-y-4"><div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div><div className="grid gap-4 md:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-44 rounded-[var(--radius-lg)]" />)}</div></div>}
       {data && t && (
         <>
-          <section aria-label="Kennzahlen" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+          {mode === "no-students" && firstClass && (
+            <EmptyState icon={<Users size={26} />} title="Noch niemand in deinen Klassen" description="Sobald sich Schülerinnen und Schüler mit dem Code oder Link anmelden, siehst du hier ihren Fortschritt. Nächster Schritt: die Klasse einladen." action={<Link href={`/teacher/classes/${firstClass.id}?tab=invite`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--brand-gradient)] px-5 font-semibold text-white">Klasse «{firstClass.name}» einladen</Link>} />
+          )}
+          {mode === "no-applications" && (
+            <section aria-label="Kennzahlen" className="space-y-3">
+              <div className="grid grid-cols-2 gap-3 md:max-w-xl">
+                <StatTile label="Schüler" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
+                <StatTile label="Bewerbungen" value={t.applications} icon={<BriefcaseBusiness size={16} />} trend="Noch keine geteilt" />
+              </div>
+              <Card className="text-small p-4 text-muted">Noch hat niemand eine Bewerbung erfasst oder geteilt. Die Kennzahlen erscheinen, sobald die ersten Bewerbungen da sind. Du kannst die Klasse mit einer Mitteilung ans Starten erinnern.</Card>
+            </section>
+          )}
+          {mode === "normal" && (
+          <section aria-label="Kennzahlen" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
             <StatTile label="Schüler" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
             <StatTile label="Bewerbungen" value={t.applications} icon={<BriefcaseBusiness size={16} />} />
             <StatTile label="Gespräche" value={t.interviews} icon={<MessageSquare size={16} />} />
@@ -60,6 +77,9 @@ export function TeacherDashboardView() {
             <StatTile label="Lehrstelle gefunden" value={t.placed} icon={<Home size={16} />} tone="success" trend={t.students ? `${Math.round((t.placed / t.students) * 100)} % der Schüler` : undefined} />
             <StatTile label="Inaktiv" value={t.inactive} icon={<UserX size={16} />} tone={t.inactive ? "danger" : "neutral"} trend={t.inactive ? "seit 14+ Tagen ohne Aktivität" : "Alle sind aktiv"} />
           </section>
+          )}
+
+          {mode !== "no-class" && mode !== "no-students" && <AttentionPanel />}
 
           <section className="space-y-3" aria-label="Klassen">
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -76,7 +96,7 @@ export function TeacherDashboardView() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="text-heading truncate">{c.name}</h3>
-                          <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}{c.students} {c.students === 1 ? "Schüler" : "Schüler"}{!c.isOwner && " · Co-Lehrperson"}</p>
+                          <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}{c.students} {c.students === 1 ? "Schülerin/Schüler" : "Schülerinnen und Schüler"}{!c.isOwner && " · Co-Lehrperson"}</p>
                         </div>
                         <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
                       </div>

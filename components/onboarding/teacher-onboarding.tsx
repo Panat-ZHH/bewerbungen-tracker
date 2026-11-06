@@ -5,25 +5,22 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, GraduationCap } from "lucide-react";
 import { CodeActions, errorMessage } from "@/components/classes/shared";
-import { RoleCards } from "@/components/onboarding/role-cards";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { createClass } from "@/lib/classes";
-import { chooseRole, clearRoleCache, markTeacherOnboarded, STUDENT_HOME, TEACHER_HOME } from "@/lib/role";
+import { clearRoleCache, markTeacherOnboarded, TEACHER_HOME } from "@/lib/role";
 import { getMySocialProfile, updateMySocialProfile } from "@/lib/social";
-import { supabase } from "@/lib/supabase";
-import type { SchoolClass, UserRole } from "@/types";
+import type { SchoolClass } from "@/types";
 
-const STEPS = ["Rolle", "Name", "Erste Klasse"];
+const STEPS = ["Name", "Erste Klasse"];
 
 function schoolYearDefault() { const now = new Date(); const start = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1; return `${start}/${String(start + 1).slice(2)}`; }
 
-/** First login of a teacher: confirm role, set display name, create the first class. Every step can be skipped; the flag is stored in the auth metadata. */
+/** First login of a teacher (the role was already chosen at sign-up or in the role picker and is not asked again): set display name, create the first class. Every step can be skipped; the flag is stored in the auth metadata. */
 export function TeacherOnboarding() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const [role, setRole] = useState<UserRole>("teacher");
   const [name, setName] = useState("");
   const [className, setClassName] = useState("");
   const [year, setYear] = useState(schoolYearDefault());
@@ -36,11 +33,7 @@ export function TeacherOnboarding() {
   async function finish(path = TEACHER_HOME) { await markTeacherOnboarded().catch(() => {}); clearRoleCache(); router.replace(path); }
   async function run(action: () => Promise<void>) { setBusy(true); setError(""); try { await action(); } catch (reason) { setError(errorMessage(reason)); } finally { setBusy(false); } }
 
-  const confirmRole = () => run(async () => {
-    if (role === "student") { const { data } = await supabase.auth.getUser(); if (data.user) await chooseRole(data.user, "student"); router.replace(STUDENT_HOME); return; }
-    setStep(1);
-  });
-  const saveName = (event: FormEvent) => { event.preventDefault(); void run(async () => { if (name.trim()) await updateMySocialProfile({ displayName: name.trim() }); clearRoleCache(); setStep(2); }); };
+  const saveName = (event: FormEvent) => { event.preventDefault(); void run(async () => { if (name.trim()) await updateMySocialProfile({ displayName: name.trim() }); clearRoleCache(); setStep(1); }); };
   const makeClass = (event: FormEvent) => { event.preventDefault(); if (!className.trim()) { setError("Bitte gib deiner Klasse einen Namen."); return; } void run(async () => { setCreated(await createClass(className.trim(), year.trim())); }); };
 
   return (
@@ -61,14 +54,6 @@ export function TeacherOnboarding() {
           {error && <StatusMessage tone="danger">{error}</StatusMessage>}
 
           {step === 0 && (
-            <>
-              <div className="text-center"><h1 className="text-title">Willkommen bei WendApply</h1><p className="mt-2 text-sm text-muted">Bestätige kurz, wie du die App nutzt.</p></div>
-              <RoleCards value={role} onChange={setRole} disabled={busy} />
-              <Button full size="lg" loading={busy} onClick={confirmRole} icon={undefined}>Weiter</Button>
-            </>
-          )}
-
-          {step === 1 && (
             <form onSubmit={saveName} className="space-y-5">
               <div className="text-center"><h1 className="text-title">Wie sollen dich deine Klassen nennen?</h1><p className="mt-2 text-sm text-muted">Dieser Name ist für deine Schüler:innen sichtbar, zum Beispiel „Frau Keller“.</p></div>
               <Field label="Anzeigename" htmlFor="display-name"><Input id="display-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" data-autofocus /></Field>
@@ -76,7 +61,7 @@ export function TeacherOnboarding() {
             </form>
           )}
 
-          {step === 2 && !created && (
+          {step === 1 && !created && (
             <form onSubmit={makeClass} className="space-y-5">
               <div className="text-center"><h1 className="text-title">Deine erste Klasse</h1><p className="mt-2 text-sm text-muted">Danach lädst du deine Schüler:innen per Link oder Code ein. Du kannst weitere Klassen jederzeit hinzufügen.</p></div>
               <Field label="Klassenname" htmlFor="class-name"><Input id="class-name" value={className} onChange={(e) => setClassName(e.target.value)} placeholder="z. B. Informatik 4a" maxLength={60} data-autofocus /></Field>
@@ -86,7 +71,7 @@ export function TeacherOnboarding() {
             </form>
           )}
 
-          {step === 2 && created && (
+          {step === 1 && created && (
             <div className="space-y-5 text-center">
               <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--success-bg)] text-[var(--success-fg)]"><Check size={28} /></span>
               <div><h1 className="text-title">„{created.name}“ ist bereit</h1><p className="mt-2 text-sm text-muted">Gib diesen Code an deine Schüler:innen weiter. Sie entscheiden selbst, was sie mit dir teilen.</p></div>

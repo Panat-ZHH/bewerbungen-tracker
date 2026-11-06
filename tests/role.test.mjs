@@ -17,9 +17,16 @@ test("guardRedirect blocks students from /teacher/** only", () => {
   assert.equal(role.guardRedirect("student", "/classes/join/ABC"), null);
 });
 
+test("teachers get the old class detail page redirected into /teacher", () => {
+  assert.equal(role.guardRedirect("teacher", "/classes/c1"), "/teacher/classes/c1");
+  assert.equal(role.guardRedirect("teacher", "/classes/join"), null);
+  assert.equal(role.guardRedirect("student", "/classes"), null);
+  assert.equal(role.guardRedirect("student", "/classes/c1"), null);
+});
+
 test("guardRedirect keeps teachers off student-only pages", () => {
-  for (const path of ["/dashboard", "/applications", "/applications/new", "/applications/x1", "/map", "/cvs", "/search", "/analytics"]) assert.equal(role.guardRedirect("teacher", path), "/teacher", path);
-  for (const path of ["/teacher", "/teacher/classes/1", "/classes", "/classes/c1", "/settings", "/profile"]) assert.equal(role.guardRedirect("teacher", path), null, path);
+  for (const path of ["/dashboard", "/applications", "/applications/new", "/applications/x1", "/map", "/cvs", "/search", "/analytics", "/friends", "/classes", "/classes/"]) assert.equal(role.guardRedirect("teacher", path), "/teacher", path);
+  for (const path of ["/teacher", "/teacher/classes/1", "/classes/join/ABC", "/settings", "/profile"]) assert.equal(role.guardRedirect("teacher", path), null, path);
   assert.equal(role.guardRedirect("teacher", "/map?x=1#a"), "/teacher");
 });
 
@@ -27,7 +34,7 @@ test("landingPath honours a safe next only if the role may open it", () => {
   assert.equal(role.landingPath("student", "/classes/join/ABC"), "/classes/join/ABC");
   assert.equal(role.landingPath("student", "/teacher"), "/dashboard");
   assert.equal(role.landingPath("teacher", "/applications"), "/teacher");
-  assert.equal(role.landingPath("teacher", "/classes"), "/classes");
+  assert.equal(role.landingPath("teacher", "/classes"), "/teacher");
   assert.equal(role.landingPath("teacher", null), "/teacher");
   assert.equal(role.landingPath("student", "//evil.example"), "/dashboard");
   assert.equal(role.landingPath("student", "https://evil.example"), "/dashboard");

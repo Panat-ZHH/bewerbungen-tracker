@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, EyeOff, Lock, ShieldCheck } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useAvatarUrls } from "@/components/ui/use-avatars";
@@ -10,48 +10,50 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { StatusBar, formatDate } from "@/components/classes/shared";
-import { getStudentTimeline, getTeacherClassStudents, type TeacherStudent, type TimelineEvent } from "./api";
+import { StatusBar } from "@/components/classes/shared";
+import { buildApplicationCards, formatDateCh, studentLabel, todayIso, type ApplicationCard, type DeadlineState } from "@/lib/teacher-extras";
+import { getStudentApplications, logStudentView } from "@/lib/teacher-more";
+import { statusLabels } from "@/lib/utils";
+import { getTeacherClassStudents, type TeacherStudent } from "./api";
 import { ErrorBanner, relativeDays, teacherError } from "./shared";
 
-const KIND_LABEL: Record<string, string> = { created: "Erfasst", applied: "Beworben", updated: "Aktualisiert", deadline: "Frist" };
-type Group = { id: string; company: string; position: string; events: TimelineEvent[] };
-function group(events: TimelineEvent[]): Group[] {
-  const map = new Map<string, Group>();
-  events.forEach((e, i) => { const id = e.applicationId || `x${i}`; const g = map.get(id) ?? { id, company: e.company ?? "Firma nicht freigegeben", position: e.position ?? "", events: [] }; g.events.push(e); map.set(id, g); });
-  const time = (e: TimelineEvent) => (e.eventDate ? new Date(e.eventDate).getTime() : 0);
-  const groups = [...map.values()]; groups.forEach((g) => g.events.sort((a, b) => time(a) - time(b)));
-  return groups.sort((a, b) => time(b.events[b.events.length - 1]) - time(a.events[a.events.length - 1]));
-}
+const DEADLINE_TEXT: Record<DeadlineState, string> = { done: "erledigt", open: "offen", overdue: "überfällig" };
+const DEADLINE_TONE: Record<DeadlineState, "success" | "info" | "danger"> = { done: "success", open: "info", overdue: "danger" };
 
 export function StudentTimelineView({ classId, studentId }: { classId: string; studentId: string }) {
   const [student, setStudent] = useState<TeacherStudent | null>(null);
-  const [events, setEvents] = useState<TimelineEvent[] | null>(null);
+  const [cards, setCards] = useState<ApplicationCard[] | null>(null);
   const [tlHidden, setTlHidden] = useState(false);
   const [error, setError] = useState("");
   const avatars = useAvatarUrls([studentId]);
   const load = useCallback(() => {
-    Promise.all([getTeacherClassStudents(classId), getStudentTimeline(classId, studentId)])
-      .then(([list, tl]) => { setStudent(list.find((s) => s.studentId === studentId) ?? null); setEvents(tl.events); setTlHidden(tl.hidden); setError(""); })
+    Promise.all([getTeacherClassStudents(classId), getStudentApplications(classId, studentId)])
+      .then(([list, apps]) => {
+        setStudent(list.find((s) => s.studentId === studentId) ?? null);
+        setCards(buildApplicationCards(apps.applications, todayIso(), (status) => (statusLabels as Record<string, string>)[status]));
+        setTlHidden(apps.hidden); setError("");
+        // Audit trail: the student can see that a teacher looked at their profile (once per day and teacher).
+        void logStudentView(classId, studentId).catch(() => undefined);
+      })
       .catch((e) => setError(teacherError(e)));
   }, [classId, studentId]);
   useEffect(() => { load(); }, [load]);
 
   const hidden = (student?.hidden ?? false) || tlHidden;
-  const groups = useMemo(() => (hidden ? [] : group(events ?? [])), [events, hidden]);
+  const events = cards;
+  const name = studentLabel(student?.displayName);
 
   return (
     <div className="space-y-6 pb-safe">
       <Link href={`/teacher/classes/${classId}`} className="text-small inline-flex min-h-11 items-center gap-1.5 text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} aria-hidden /> Zurück zur Klasse</Link>
-      <PageHeader eyebrow="Schülerprofil" title={<span className="flex items-center gap-3"><Avatar name={student?.displayName} src={avatars[studentId]} size="md" />{student?.displayName ?? "Schüler"}</span>} description={student && !hidden ? `${student.total} Bewerbungen · letzte Aktivität: ${relativeDays(student.lastActivity).toLowerCase()}` : undefined} />
+      <PageHeader eyebrow="Schülerprofil" title={<span className="flex items-center gap-3"><Avatar name={student?.displayName || name} src={avatars[studentId]} size="md" />{student ? name : "Schülerprofil"}</span>} description={student && !hidden ? `${student.total} ${student.total === 1 ? "Bewerbung" : "Bewerbungen"} · letzte Aktivität: ${relativeDays(student.lastActivity).toLowerCase()}` : undefined} />
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!events && !error && <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
 
       {events && hidden && (
         <Card className="flex gap-4 p-5" role="status">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--neutral-bg)] text-muted"><EyeOff size={20} aria-hidden /></span>
-          <div className="space-y-1"><h2 className="text-heading">Diese Person teilt keine Bewerbungsdaten</h2><p className="text-body text-muted">{student?.displayName ?? "Die Person"} hat die Freigabe für diese Klasse ausgeschaltet. Du siehst nur den Namen. Die Einstellung liegt bei der Schülerin oder dem Schüler und kann jederzeit geändert werden. Ein persönliches Gespräch ist der beste Weg, um nachzufragen.</p></div>
+          <div className="space-y-1"><h2 className="text-heading">Diese Person teilt keine Bewerbungsdaten</h2><p className="text-body text-muted">{student ? name : "Die Person"} hat die Freigabe für diese Klasse ausgeschaltet. Du siehst nur den Namen. Die Einstellung liegt bei der Schülerin oder dem Schüler und kann jederzeit geändert werden. Ein persönliches Gespräch ist der beste Weg, um nachzufragen.</p></div>
         </Card>
       )}
 
@@ -64,19 +66,23 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
             </div>
             <StatusBar counts={student.statusCounts} total={student.total} />
           </Card>
-          {groups.length === 0
+          {cards && cards.length === 0
             ? <EmptyState icon={<ShieldCheck size={24} />} title="Noch keine geteilten Bewerbungen" description="Sobald die Person Bewerbungen erfasst, erscheint hier der Verlauf." />
             : (
-              <ol className="space-y-4" aria-label="Verlauf der Bewerbungen">
-                {groups.map((g) => (
-                  <li key={g.id}>
+              <ol className="space-y-4" aria-label="Bewerbungen">
+                {cards?.map((c) => (
+                  <li key={c.id}>
                     <Card className="space-y-3 p-5">
-                      <div className="min-w-0"><h2 className="text-heading truncate">{g.company}</h2>{g.position && <p className="text-small truncate text-muted">{g.position}</p>}</div>
-                      <ol className="relative space-y-3 border-l-2 border-[var(--line)] pl-5">
-                        {g.events.map((e, i) => (
-                          <li key={i} className="relative">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div className="min-w-0"><h2 className="text-heading truncate">{c.company}</h2>{c.position && <p className="text-small truncate text-muted">{c.position}</p>}</div>
+                        {c.statusLabel && <Badge tone={c.waiting ? "warning" : "info"}>{c.statusLabel}</Badge>}
+                      </div>
+                      {c.age && <p className={`text-sm font-medium ${c.waiting ? "text-[var(--warning-fg)]" : ""}`}>{c.age}</p>}
+                      <ol className="relative space-y-3 border-l-2 border-[var(--line)] pl-5" aria-label={`Stationen ${c.company}`}>
+                        {c.stages.map((st, i) => (
+                          <li key={`${st.key}-${i}`} className="relative">
                             <span className="absolute -left-[1.62rem] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--brand)] ring-4 ring-[var(--solid)]" aria-hidden />
-                            <div className="flex flex-wrap items-center gap-2"><span className="text-small font-semibold">{KIND_LABEL[e.kind] ?? "Aktualisiert"}</span>{e.status ? <StatusBadge status={e.status} /> : null}<span className="text-small tabular text-muted">{formatDate(e.eventDate ?? undefined)}</span></div>
+                            <div className="flex flex-wrap items-center gap-2"><span className="text-small font-semibold">{st.label}</span>{st.deadlineState && <Badge tone={DEADLINE_TONE[st.deadlineState]}>{DEADLINE_TEXT[st.deadlineState]}</Badge>}<span className="text-small tabular text-muted">{formatDateCh(st.date)}</span></div>
                           </li>
                         ))}
                       </ol>

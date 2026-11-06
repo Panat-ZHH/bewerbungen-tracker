@@ -7,7 +7,7 @@ import { StudentTimelineView } from "@/components/teacher/student-timeline";
 export default function Page() {
   const { id, studentId } = useParams<{ id: string; studentId: string }>();
   return (
-    <WorkspaceShell active="Klassen">
+    <WorkspaceShell active="Übersicht">
       <StudentTimelineView classId={id} studentId={studentId} />
     </WorkspaceShell>
   );
