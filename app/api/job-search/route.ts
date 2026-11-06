@@ -5,6 +5,9 @@ import { originalSourceName, type JobSearchResult } from "@/lib/job-results";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+// Popular professions change slowly: keep their first page longer (shared by all users, no personal data in the key).
+const POPULAR = /^(informatiker|kaufmann|kauffrau|detailhandel|fachmann gesundheit|fage|fabe|polymechaniker|elektroinstallateur|logistiker|koch|maurer|zeichner|mediamatiker|automobil|schreiner|med\.? praxis|dentalassistent|landwirt|gaertner|gärtner|maler|sanitär|sanitaer|coiffeur|metzger|baecker|bäcker)/i;
+const POPULAR_TTL = 15 * 60000;
 const searchLimits = new Map<string, { startedAt: number; count: number }>();
 const headers = { "Cache-Control": "no-store" };
 
@@ -47,6 +50,8 @@ function readEnrichment(result: JobSearchResult): Partial<JobSearchResult> {
   if (date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid enrichment");
   const start = text(result.startDate, 10);
   if (start !== undefined && !/^\d{4}(-\d{2}-\d{2})?$/.test(start)) throw new Error("Invalid enrichment");
+  const deadline = text(result.deadline, 10);
+  if (deadline !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) throw new Error("Invalid enrichment");
   const canton = text(result.canton, 2);
   if (canton !== undefined && !cantons.includes(canton)) throw new Error("Invalid enrichment");
   const entries = {
@@ -55,6 +60,7 @@ function readEnrichment(result: JobSearchResult): Partial<JobSearchResult> {
     education: oneOf<NonNullable<JobSearchResult["education"]>>(result.education, educations), language: text(result.language, 5),
     remote: oneOf<NonNullable<JobSearchResult["remote"]>>(result.remote, remotes), salaryMin: number(result.salaryMin, 0, 10000000),
     salaryMax: number(result.salaryMax, 0, 10000000), field: text(result.field, 60), snippet: text(result.snippet, 600),
+    deadline: deadline, transit: text(result.transit, 100), schnupperlehre: typeof result.schnupperlehre === "boolean" ? result.schnupperlehre : undefined,
   };
   return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined));
 }
@@ -140,7 +146,7 @@ export async function POST(request: Request) {
   searchLimits.set(data.user.id, { ...limit, count: limit.count + 1 });
 
   try {
-    const batch = await searchMultipleSourcesCached(input);
+    const batch = await searchMultipleSourcesCached(input, !input.cursor && POPULAR.test(input.query) ? POPULAR_TTL : 60000);
     return Response.json({ ...batch, searchedAt: new Date().toISOString(), query: input.query, location: input.location, kind: input.kind, filters: input.filters ?? null }, { headers });
   } catch (cause) {
     return Response.json({ error: cause instanceof Error ? cause.message : "Die Quelle antwortet gerade nicht. Versuch es später erneut." }, { status: 502, headers });

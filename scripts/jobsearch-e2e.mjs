@@ -21,7 +21,7 @@ export function registerJobsearchFlows(flow, student) {
       const dialog = page.getByRole("dialog", { name: "Filter" });
       await dialog.waitFor();
       await fn(dialog);
-      await dialog.getByRole("button", { name: /Treffer anzeigen/ }).click();
+      await dialog.getByRole("button", { name: /Fertig|Treffer anzeigen/ }).click();
       await dialog.waitFor({ state: "hidden" });
     };
 
@@ -137,7 +137,7 @@ export function registerJobsearchFlows(flow, student) {
     await t.shot("empty");
     t.expect(/HTTP 500/, /Failed to load resource/, /error/i);
     await search("fehler");
-    t.check("error state shows the server message", await t.text(/Stellenbörsen sind gerade nicht erreichbar/));
+    t.check("error state is a soft message with retry", await t.text(/Stellenbörsen brauchen gerade etwas länger/) && await page.getByRole("button", { name: "Nochmals versuchen" }).isVisible());
     await t.shot("error");
     await search("Kaufmann");
     t.check("search recovers after an error", await cards().first().waitFor().then(() => true, () => false));
