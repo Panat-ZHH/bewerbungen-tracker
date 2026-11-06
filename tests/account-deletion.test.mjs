@@ -159,9 +159,9 @@ test("migration: every foreign key to auth.users cascades or nulls", async () =>
 });
 
 test("migration: a non-cascading FK added later (teacher tables) is repaired by re-running the migration", async () => {
-  const db = await migrated(`create table public.class_announcements (id serial primary key, author_id uuid not null references auth.users(id), created_by uuid references auth.users(id)); alter table public.class_announcements enable row level security;`);
+  const db = await migrated(`create table public.late_fk_probe (id serial primary key, author_id uuid not null references auth.users(id), created_by uuid references auth.users(id)); alter table public.late_fk_probe enable row level security;`);
   await db.exec(await readFile(new URL("20261108000000_account_deletion.sql", dir), "utf8"));
-  const rows = (await db.query(`select a.attname, c.confdeltype from pg_constraint c join pg_attribute a on a.attrelid=c.conrelid and a.attnum=any(c.conkey) where c.conrelid='public.class_announcements'::regclass and c.contype='f'`)).rows;
+  const rows = (await db.query(`select a.attname, c.confdeltype from pg_constraint c join pg_attribute a on a.attrelid=c.conrelid and a.attnum=any(c.conkey) where c.conrelid='public.late_fk_probe'::regclass and c.contype='f'`)).rows;
   assert.deepEqual(Object.fromEntries(rows.map((r) => [r.attname, r.confdeltype])), { author_id: "c", created_by: "n" });
 });
 
@@ -202,7 +202,7 @@ test("SQL: deleting a teacher removes the class, students keep their own data", 
 });
 
 test("SQL: a class with a co-teacher is handed over instead of deleted", async () => {
-  const db = await migrated(`create table public.class_teachers (class_id uuid references public.classes(id) on delete cascade, teacher_id uuid references auth.users(id) on delete cascade, added_at timestamptz default now(), primary key (class_id, teacher_id)); alter table public.class_teachers enable row level security;`);
+  const db = await migrated(`create table if not exists public.class_teachers (class_id uuid references public.classes(id) on delete cascade, teacher_id uuid references auth.users(id) on delete cascade, added_at timestamptz default now(), primary key (class_id, teacher_id)); alter table public.class_teachers enable row level security;`);
   await seed(db);
   await db.query("insert into public.class_teachers(class_id, teacher_id) values ('10000000-0000-4000-8000-000000000001', $1)", [U.co]);
   const prep = (await db.query("select public.account_delete_prepare($1) r", [U.teacher])).rows[0].r;
@@ -229,4 +229,29 @@ test("SQL: account_delete_summary counts only the caller's data; admin functions
   await assert.rejects(() => db.query("select public.account_data_report($1)", [U.student]), /permission denied/);
   await as(db, null);
   await assert.rejects(() => db.query("select public.account_delete_summary()"), /FORBIDDEN/);
+});
+
+// ---- settings UX helpers ----
+test("withSupport appends the support address; password change validation is German", () => {
+  assert.match(lib.withSupport("Das hat nicht geklappt."), /info\.wendico@gmail\.com\.$/);
+  assert.equal(lib.passwordChangeProblem("", "abcdefgh", "abcdefgh"), "Bitte gib dein aktuelles Passwort ein.");
+  assert.match(lib.passwordChangeProblem("old", "short", "short"), /mindestens 8/);
+  assert.match(lib.passwordChangeProblem("samesame", "samesame", "samesame"), /unterscheiden/);
+  assert.match(lib.passwordChangeProblem("oldpassword", "newpassword", "other"), /stimmen nicht/);
+  assert.equal(lib.passwordChangeProblem("oldpassword", "newpassword", "newpassword"), null);
+});
+
+test("settings page: separated sections, notification slot, support text, scroll into view", async () => {
+  const { readFile: rf } = await import("node:fs/promises");
+  const page = await rf(new URL("../app/settings/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /Meine Daten löschen/);
+  assert.match(page, /Dein Konto/);
+  assert.match(page, /<NotificationSettings \/>/);
+  assert.match(page, /<PasswordChangeCard \/>/);
+  assert.match(page, /scrollIntoView/);
+  const slot = await rf(new URL("../components/settings/notification-slot.tsx", import.meta.url), "utf8");
+  assert.match(slot, /export function NotificationSettings\(\)/);
+  const del = await rf(new URL("../components/settings/delete-account.tsx", import.meta.url), "utf8");
+  assert.match(del, /withSupport/);
+  assert.match(del, /scrollIntoView/);
 });

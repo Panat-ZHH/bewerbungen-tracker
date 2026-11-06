@@ -126,6 +126,39 @@ try {
     }
   }
 
+  // ---- settings page: sections, notification slot, password change (own throwaway user) ----
+  const pwUser = await mkUser("pw", "student");
+  {
+    const sctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+    const sp = await sctx.newPage();
+    await login(sp, pwUser);
+    await sp.goto(`${base}/settings`);
+    await sp.getByTestId("section-data").waitFor({ timeout: 20000 });
+    check(await sp.getByTestId("section-account").isVisible() && await sp.getByRole("heading", { name: "Meine Daten löschen" }).isVisible() && await sp.getByRole("heading", { name: "Konto löschen" }).isVisible(), "settings separates 'Meine Daten löschen' from 'Konto löschen'");
+    check(await sp.getByTestId("notification-settings").isVisible(), "notification slot is rendered");
+    const card = sp.getByTestId("password-card");
+    await card.waitFor({ timeout: 15000 });
+    await card.getByLabel("Aktuelles Passwort").fill(PASSWORD);
+    await card.getByLabel("Neues Passwort", { exact: true }).fill("kurz");
+    await card.getByLabel("Neues Passwort wiederholen").fill("kurz");
+    await card.getByRole("button", { name: "Passwort ändern" }).click();
+    check(await card.getByText(/mindestens 8 Zeichen/).isVisible(), "password change: too-short password rejected in German");
+    await card.getByLabel("Aktuelles Passwort").fill("falsch-falsch-1");
+    await card.getByLabel("Neues Passwort", { exact: true }).fill(PASSWORD + "2");
+    await card.getByLabel("Neues Passwort wiederholen").fill(PASSWORD + "2");
+    await card.getByRole("button", { name: "Passwort ändern" }).click();
+    await card.getByText("Das aktuelle Passwort stimmt nicht.").waitFor({ timeout: 15000 });
+    check(true, "password change: wrong current password rejected");
+    await card.getByLabel("Aktuelles Passwort").fill(PASSWORD);
+    await card.getByRole("button", { name: "Passwort ändern" }).click();
+    await card.getByText("Dein Passwort wurde geändert.").waitFor({ timeout: 15000 });
+    const relog = await createClient(URL_, ANON, { auth: { persistSession: false } }).auth.signInWithPassword({ email: pwUser.email, password: PASSWORD + "2" });
+    check(!relog.error, "password change: new password works for sign-in", relog.error?.message);
+    if (shots) await sp.screenshot({ path: join(shots, "settings-desktop.png"), fullPage: true });
+    await axeCheck(sp, "settings page");
+    await sctx.close();
+  }
+
   // ---- real deletion: student (password) ----
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
   const page = await ctx.newPage();

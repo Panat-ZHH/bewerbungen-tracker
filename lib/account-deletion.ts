@@ -71,3 +71,21 @@ export function teacherWarning(s: AccountSummary | null): string | null {
   const students = s.students_in_owned_classes;
   return `Du leitest ${classes}${students ? ` mit ${students} ${students === 1 ? "Schüler:in" : "Schüler:innen"}` : ""}. Hat eine Klasse eine Co-Lehrperson, geht sie an diese über. Sonst wird die Klasse gelöscht: Einladungscodes werden ungültig und die Schüler:innen werden aus der Klasse entfernt. Ihre eigenen Bewerbungen und Daten bleiben unverändert erhalten.`;
 }
+
+export const SUPPORT_EMAIL = "info.wendico@gmail.com";
+
+/** Failure texts always tell the user where to turn if retrying does not help. */
+export function withSupport(message: string): string {
+  return `${message.trim()} Wenn es weiterhin nicht klappt, schreib uns an ${SUPPORT_EMAIL}.`;
+}
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+/** German validation message for the "Passwort ändern" form, or null when the input is fine. */
+export function passwordChangeProblem(current: string, next: string, repeat: string): string | null {
+  if (!current) return "Bitte gib dein aktuelles Passwort ein.";
+  if (next.length < MIN_PASSWORD_LENGTH) return `Das neue Passwort braucht mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`;
+  if (next === current) return "Das neue Passwort muss sich vom aktuellen unterscheiden.";
+  if (next !== repeat) return "Die beiden neuen Passwörter stimmen nicht überein.";
+  return null;
+}
