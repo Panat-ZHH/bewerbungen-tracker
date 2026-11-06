@@ -15,9 +15,9 @@ All 192 page captures loaded without page errors and without horizontal overflow
 | 4 | Low | Dashboard, 320 | Stat labels truncated ("Bewerbu…"), "Noch in Arbeit" truncated, "Alle ansehen" wrapped | Fixed (tighter label, 2-line detail, no-wrap link) |
 | 5 | Low | Dashboard, 768 | "Bewerbung hinzufügen" wrapped to two lines | Fixed (no-wrap) |
 | 6 | Low | Bottom tab bar, 320 | "Bewerbungen" truncated to "Bewerbun…" | Fixed (9.5px label below 340px) |
-| 7 | Low | Detail status select, 320 | "In Vorbereitung" still cut off in the select ("In Vorberei") | Open (select shares the row with "Ändern" and trash) |
-| 8 | Low | Map shop sheet, landscape 844x390 | Sheet header + balance take most of the card, only a sliver of items visible before scrolling | Open (design call; scrolls fine) |
-| 9 | Info | Stat labels at 320 | "Bewerbungen" still ellipsised in the stat card on the smallest phones | Open (10.5px, fits 330px+) |
+| 7 | Low | Detail status select, 320 | "In Vorbereitung" still cut off in the select ("In Vorberei") | Fixed (select gets its own full-width row below 480px; measured at 320: full "In Vorbereitung" visible) |
+| 8 | Low | Map shop sheet, landscape 844x390 | Sheet header + balance take most of the card, only a sliver of items visible before scrolling | Fixed (landscape short viewports: one compact row per item, redundant header/balance row hidden, sheet no longer capped to 45dvh; measured at 844x390: two full item rows visible) |
+| 9 | Info | Stat labels at 320 | "Bewerbungen" still ellipsised in the stat card on the smallest phones | Fixed (10px label, tracking-tighter, 10px card padding below 360px; measured at 320: no truncation) |
 | 10 | Info | Dev only | Next dev "N" badge overlaps map bottom-left and the tab bar's "Start" in screenshots | Not an app issue (dev indicator) |
 
 Checked and fine: overlap and clipping on all map states, overlays leave the map centre free, bottom sheets stay above the tab bar, safe-area/tab bar placement, contrast in dark mode (apart from #1), touch targets (44px checks in map-layout e2e), friend island layout, empty states, German copy (no typos found).

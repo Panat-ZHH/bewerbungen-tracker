@@ -119,9 +119,9 @@ export default function ApplicationDetailPage() {
                 {application.jobUrl && <a href={application.jobUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center text-[var(--brand)] hover:underline"><ExternalLink size={14} className="mr-1 inline" />Stellenanzeige öffnen</a>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <label className="sr-only" htmlFor="application-status">Stand der Bewerbung</label>
-              <select id="application-status" aria-describedby="status-hint" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 min-[360px]:px-4 text-base text-[var(--ink)] pointer-fine:text-sm font-medium outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15 sm:flex-none">
+              <select id="application-status" aria-describedby="status-hint" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 basis-full flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 min-[360px]:px-4 text-base text-[var(--ink)] pointer-fine:text-sm font-medium outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15 min-[480px]:basis-auto sm:flex-none">
                 {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <Button variant="secondary" onClick={() => setEditing(true)} className="min-h-11 sm:min-h-11"><Pencil size={15} /> Ändern</Button>

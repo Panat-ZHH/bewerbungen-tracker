@@ -95,3 +95,18 @@
 @media (max-width: 767px) { .placementTools strong { flex-basis: 100%; } }
 @media (min-width: 640px) { .shopGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .unavailable { position: absolute; left: 12px; right: 12px; top: 50%; transform: translateY(-50%); max-width: 420px; margin: 0 auto; border-radius: var(--radius-xl); background: var(--sheet-bg); border: 1px solid var(--glass-border); text-align: center; pointer-events: auto; }
+
+/* Landscape phones: compact shop header so at least two item rows stay visible. */
+@media (max-height: 480px) and (min-width: 480px) {
+  /* the sheet title row already shows the balance, so the extra heading/balance row goes */
+  .shopHeading { display: none; }
+  .shopNotice { min-height: 0; margin: 4px 0; }
+  .shopNotice:empty { display: none; }
+  .shopGrid { grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 4px; }
+  /* one compact row per item: art | name + price | buy button */
+  .shopItem { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; grid-template-areas: "art name btn" "art price btn"; align-items: center; column-gap: 10px; padding-right: 10px; }
+  .shopArt { grid-area: art; height: 64px; border-bottom: 0; border-right: 1px solid #d5dece; }
+  .shopItem h3 { grid-area: name; margin: 0; align-self: end; font-size: 13px; }
+  .price { grid-area: price; margin: 0; align-self: start; }
+  .shopItem button { grid-area: btn; width: auto; min-height: 44px; margin: 10px 0; padding: 0 14px; }
+}
