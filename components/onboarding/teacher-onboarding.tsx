@@ -1,5 +1,6 @@
 "use client";
 
+import { isPlaceholderName } from "@/lib/profile-name-utils";
 import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
@@ -28,7 +29,7 @@ export function TeacherOnboarding() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => { getMySocialProfile().then((p) => setName(p.displayName)).catch(() => {}); }, []);
+  useEffect(() => { getMySocialProfile().then((p) => setName((current) => current || (isPlaceholderName(p.displayName) ? "" : p.displayName))).catch(() => {}); }, []);
 
   async function finish(path = TEACHER_HOME) { await markTeacherOnboarded().catch(() => {}); clearRoleCache(); router.replace(path); }
   async function run(action: () => Promise<void>) { setBusy(true); setError(""); try { await action(); } catch (reason) { setError(errorMessage(reason)); } finally { setBusy(false); } }
