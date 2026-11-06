@@ -138,10 +138,10 @@ const flow = (name, mock, run, opts = {}) => flows.push({ name, mock, run, secti
 flow("login", () => ({ authed: false }), async (t) => {
   const { page } = t;
   await t.visit("/login");
-  t.check("login: headline and form visible", await t.text(/Schön, dass du da bist/) && await page.getByLabel("E-Mail-Adresse").isVisible() && await page.getByLabel("Passwort").first().isVisible());
+  t.check("login: headline and form visible", await t.text(/Schön, dass du da bist/) && await page.getByLabel("E-Mail-Adresse").isVisible() && await page.getByLabel("Passwort", { exact: true }).isVisible());
   await t.shot("form");
   await page.getByLabel("E-Mail-Adresse").fill("lena@beispiel.ch");
-  await page.getByLabel("Passwort").first().fill("falsch");
+  await page.getByLabel("Passwort", { exact: true }).fill("falsch");
   t.expect(/Failed to load resource|status of 400/);
   await page.getByRole("button", { name: "Anmelden" }).click();
   const alert = page.getByRole("alert").first();
@@ -150,7 +150,7 @@ flow("login", () => ({ authed: false }), async (t) => {
   await t.clean("login after failed attempt");
   await page.getByRole("button", { name: "Konto erstellen" }).click();
   t.check("signup: role choice offered", await page.getByText("Schüler:in").first().isVisible() && await page.getByText("Lehrperson").first().isVisible());
-  const passwords = page.getByLabel(/Passwort/);
+  const passwords = page.locator("input#password, input#confirm-password");
   if (await passwords.count() >= 2) {
     await page.getByLabel("E-Mail-Adresse").fill("neu@beispiel.ch");
     await passwords.nth(0).fill("geheim123"); await passwords.nth(1).fill("anders456");
@@ -166,7 +166,7 @@ flow("login", () => ({ authed: false }), async (t) => {
   // successful sign-in
   await t.visit("/login");
   await page.getByLabel("E-Mail-Adresse").fill("lena@beispiel.ch");
-  await page.getByLabel("Passwort").first().fill("richtig123");
+  await page.getByLabel("Passwort", { exact: true }).fill("richtig123");
   await page.getByRole("button", { name: "Anmelden" }).click();
   await page.waitForURL(/\/dashboard/, { timeout: 30000, caret: "initial" }).catch(() => undefined);
   t.check("valid sign-in lands on the dashboard", /\/dashboard/.test(page.url()), page.url());
@@ -176,7 +176,7 @@ const base = (t) => t.base;
 flow("onboarding-empty", student(), async (t) => {
   const { page } = t;
   await t.visit("/dashboard");
-  t.check("empty dashboard shows the first-application call to action", await t.text(/Hier ist Platz für deine erste Bewerbung/));
+  t.check("empty dashboard shows the first-application call to action", await t.text(/Willkommen! So startest du in drei Schritten/));
   await t.shot("dashboard");
   await page.getByRole("link", { name: "Erste Bewerbung eintragen" }).click();
   await page.waitForURL(/\/applications\/new/);
@@ -191,7 +191,7 @@ flow("application-crud", student(), async (t) => {
   const { page, mock } = t;
   await t.visit("/applications/new");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
-  t.check("empty form is rejected with a clear message", await t.text(/Bitte prüfe die markierten Felder/, 5000));
+  t.check("empty form is rejected with a clear message", await t.text(/Felder? brauchen noch deine Aufmerksamkeit|Bitte gib die Firma an/, 5000));
   await page.getByLabel(/^Firma/).fill("Migros");
   await page.getByLabel(/^Welche Stelle/).fill("Mediamatiker:in");
   await page.getByLabel("Was ist der Stand?").selectOption("applied");
@@ -230,7 +230,7 @@ flow("application-crud", student(), async (t) => {
   t.check("cancel keeps the Bewerbung", mock.state.apps.length === 1);
   await page.getByRole("button", { name: "Bewerbung löschen" }).click();
   await t.shot("delete-dialog");
-  await page.getByRole("button", { name: "Endgültig löschen" }).click();
+  await page.getByRole("button", { name: "Löschen", exact: true }).click();
   await page.waitForURL(/\/applications$/, { timeout: 20000 }).catch(() => undefined);
   await t.settle();
   t.check("delete removes the Bewerbung", mock.state.apps.length === 0);
@@ -318,7 +318,7 @@ flow("settings-theme", student({ apps: seedApps(2) }), async (t) => {
   await t.settle(500);
   t.check("choosing Hell switches back", !(await dark()));
   await page.getByRole("button", { name: "Herunterladen" }).click();
-  t.check("data export reports success", await t.text(/Deine Daten wurden heruntergeladen/, 8000));
+  t.check("data export reports success", await t.text(/Deine Daten wurden als Datei/, 8000));
 });
 
 flow("friends", student(), async (t) => {
@@ -440,11 +440,12 @@ flow("map", () => ({ role: "student", apps: seedApps(8), unlocked: 2 }), async (
   await click(/^Zoom zurücksetzen/);
 
   // islands
-  const island2 = page.getByRole("button", { name: /Ostinsel/ }).first();
+  let island2 = page.getByRole("button", { name: /Ostinsel/ }).first();
+  if (!(await island2.count())) { await page.getByRole("button", { name: /Heimatinsel/ }).first().click().catch(() => undefined); await page.waitForTimeout(400); island2 = page.getByRole("button", { name: /Ostinsel/ }).first(); }
   t.check("island switcher lists Heimatinsel and Ostinsel", await page.getByRole("button", { name: /Heimatinsel/ }).count() > 0 && await island2.count() > 0);
 
   // shop: buy a tree
-  if (t.mobile) await click(/^Shop/);
+  await click(/^Shop/); await page.waitForTimeout(500);
   const buy = page.getByRole("button", { name: /Zierbaum kaufen/ }).locator("visible=true").first();
   if (!(await buy.count())) { t.skip("shop buy / place / drag", "no 'Zierbaum kaufen' button (shop UI changed?)"); return; }
   const before = mock.state.shop.balance;

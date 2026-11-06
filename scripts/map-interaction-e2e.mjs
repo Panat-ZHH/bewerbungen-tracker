@@ -115,7 +115,9 @@ async function setup(vp, touch) {
 }
 
 // Empty ground (nothing draggable): the corners of the map view are water / void, so a press there is a camera gesture, not an item drag.
-const spots = (b) => ({ bl: { x: b.x + 28, y: b.y + b.height - 28 }, tr: { x: b.x + b.width - 28, y: b.y + 28 }, tl: { x: b.x + 28, y: b.y + 28 }, br: { x: b.x + b.width - 28, y: b.y + b.height - 28 } });
+// The fullscreen layout floats glass overlays (top bar, dock, zoom column) over the canvas: keep drag starts clear of them.
+const TOP = 110, BOTTOM = 120, SIDE = 28;
+const spots = (b) => ({ bl: { x: b.x + SIDE, y: b.y + b.height - BOTTOM }, tr: { x: b.x + b.width - SIDE - 70, y: b.y + TOP }, tl: { x: b.x + SIDE, y: b.y + TOP }, br: { x: b.x + b.width - SIDE - 70, y: b.y + b.height - BOTTOM } });
 
 async function desktop() {
   const t = await setup({ w: 900, h: 640 }, false);
@@ -258,6 +260,7 @@ async function placement() {
   // Hovering/clicking while placing must not rebuild the scene.
   const t = await setup({ w: 900, h: 640 }, false);
   const { page } = t;
+  await page.getByRole("button", { name: /^Shop/ }).first().click(); await sleep(600);
   await page.getByRole("button", { name: /Zierbaum kaufen/ }).click(); await sleep(1200);
   const b = await t.box(); const sp = spots(b);
   // first click starts the placement (empty ground at the top of the view)

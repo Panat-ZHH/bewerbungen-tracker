@@ -52,7 +52,7 @@ export function FriendIslandView({ friendId }: { friendId: string }) {
         busy={loading}
         map={island ? (
           <Suspense fallback={<div className={styles.loading} role="status">Insel wird aufgebaut ...</div>}>
-            <ApplicationMapWorld readOnly applications={island.applications} visibleIds={visibleIds} selectedId={null} night={night} zoom={camera.zoom} center={camera.center} onZoomChange={camera.setZoom} onSelect={noop} shopItems={island.items} layouts={island.layouts} selectedShopItemId={null} placement={null} onSelectShopItem={noop} onPlacePosition={noop} drag={lockedDrag} islandCount={island.islands} islandFocus={focus} />
+            <ApplicationMapWorld readOnly applications={island.applications} visibleIds={visibleIds} selectedId={null} night={night} zoom={camera.zoom} center={camera.center} onZoomChange={camera.setZoom} onCameraApi={camera.onCameraApi} onSelect={noop} shopItems={island.items} layouts={island.layouts} selectedShopItemId={null} placement={null} onSelectShopItem={noop} onPlacePosition={noop} drag={lockedDrag} islandCount={island.islands} islandFocus={focus} />
           </Suspense>
         ) : error ? <div className={styles.loading} /> : <div className={styles.loading} role="status" aria-label="Insel wird geladen">Insel wird geladen ...</div>}
       >

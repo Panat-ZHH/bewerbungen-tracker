@@ -88,6 +88,19 @@ export function MapTopBar({ left, right }: { left: ReactNode; right?: ReactNode 
   const open = stored ?? "none";
   const toggle = useCallback((id: string) => setStored(open === id ? "none" : id), [open, setStored]);
   const close = useCallback(() => setStored("none"), [setStored]);
+  // Esc closes an open chip panel from anywhere in the stage (sheets handle their own Esc and run later on the same key press only if no panel was open).
+  useEffect(() => {
+    if (open === "none") return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key !== "Escape" || event.defaultPrevented) return;
+      const active = document.activeElement;
+      if (active instanceof HTMLElement && (active.closest("dialog") || (!active.closest("[data-map-fullscreen]") && active !== document.body))) return;
+      event.preventDefault();
+      close();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, close]);
   return (
     <PanelContext.Provider value={{ open, toggle, close }}>
       <div className={styles.top}>
