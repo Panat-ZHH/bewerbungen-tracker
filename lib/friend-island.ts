@@ -25,7 +25,7 @@ export function parseFriendIsland(data: unknown): FriendIsland {
   const valid = rows.filter((row): row is Record<string, unknown> => Boolean(row) && typeof (row as Record<string, unknown>).id === "string" && statuses.includes(String((row as Record<string, unknown>).status)));
   const applications: Application[] = valid.map((entry, index) => {
     const created = typeof entry.createdAt === "string" ? entry.createdAt : "";
-    return { id: entry.id as string, company: cleanCompany(entry.company) ?? houseLabel(index), position: "", category: "software", status: entry.status as ApplicationStatus, createdAt: created, updatedAt: created };
+    return { id: entry.id as string, company: cleanCompany(entry.company) ?? houseLabel(index), position: "", category: "other", status: entry.status as ApplicationStatus, createdAt: created, updatedAt: created };
   });
   const itemRows: unknown[] = Array.isArray(raw.items) ? raw.items : [];
   const items = itemRows.flatMap((row): OwnedMapItem[] => {

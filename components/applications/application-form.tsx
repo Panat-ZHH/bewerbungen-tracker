@@ -11,17 +11,8 @@ import { friendlyMessage } from "@/lib/ux";
 import { toast } from "@/lib/toast";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { statusHints } from "@/components/ui/status-badge";
+import { CATEGORY_OPTIONS } from "@/lib/categories";
 import type { Application, ApplicationCategory, ApplicationStatus } from "@/types";
-
-const categories: { value: ApplicationCategory; label: string }[] = [
-  { value: "software", label: "Software" },
-  { value: "sales", label: "Vertrieb" },
-  { value: "business", label: "Wirtschaft" },
-  { value: "finance", label: "Finanzen" },
-  { value: "banking", label: "Bank" },
-  { value: "consulting", label: "Beratung" },
-  { value: "other", label: "Anderes" },
-];
 
 type FormValue = {
   company: string;
@@ -30,18 +21,17 @@ type FormValue = {
   jobUrl: string;
   source: string;
   category: ApplicationCategory;
-  salaryMin: string;
-  salaryMax: string;
-  currency: string;
   deadline: string;
   status: ApplicationStatus;
   jobDescription: string;
   notes: string;
+  contactName: string;
+  contactInfo: string;
 };
 
 const blankForm: FormValue = {
   company: "", position: "", location: "", jobUrl: "", source: "", category: "other",
-  salaryMin: "", salaryMax: "", currency: "CHF", deadline: "", status: "saved", jobDescription: "", notes: "",
+  deadline: "", status: "saved", jobDescription: "", notes: "", contactName: "", contactInfo: "",
 };
 
 function toForm(application?: Application): FormValue {
@@ -53,13 +43,12 @@ function toForm(application?: Application): FormValue {
     jobUrl: application.jobUrl ?? "",
     source: application.source ?? "",
     category: application.category,
-    salaryMin: application.salaryMin?.toString() ?? "",
-    salaryMax: application.salaryMax?.toString() ?? "",
-    currency: application.currency ?? "CHF",
     deadline: application.deadline ?? "",
     status: application.status,
     jobDescription: application.jobDescription ?? "",
     notes: application.notes ?? "",
+    contactName: application.contactName ?? "",
+    contactInfo: application.contactInfo ?? "",
   };
 }
 
@@ -70,9 +59,6 @@ function validate(form: FormValue): Errors {
   if (!form.company.trim()) errors.company = "Bitte gib die Firma an.";
   if (!form.position.trim()) errors.position = "Bitte gib die Stelle an.";
   if (form.jobUrl.trim() && !/^https?:\/\/\S+\.\S+/i.test(form.jobUrl.trim())) errors.jobUrl = "Der Link sollte mit https:// beginnen.";
-  if (form.salaryMin && Number(form.salaryMin) < 0) errors.salaryMin = "Der Lohn kann nicht negativ sein.";
-  if (form.salaryMax && Number(form.salaryMax) < 0) errors.salaryMax = "Der Lohn kann nicht negativ sein.";
-  if (form.salaryMin && form.salaryMax && Number(form.salaryMin) > Number(form.salaryMax)) errors.salaryMax = "Der Höchstlohn liegt unter dem Mindestlohn.";
   return errors;
 }
 
@@ -86,7 +72,7 @@ export function ApplicationForm({ application }: { application?: Application }) 
   const isEditing = Boolean(application);
   const errors = validate(form);
   const shown = (key: keyof FormValue) => (submitted || touched[key] ? errors[key] : undefined);
-  const optionalHasError = submitted && (["jobUrl", "salaryMin", "salaryMax"] as const).some((key) => errors[key]);
+  const optionalHasError = submitted && (["jobUrl"] as const).some((key) => errors[key]);
 
   function update<K extends keyof FormValue>(key: K, value: FormValue[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -113,8 +99,6 @@ export function ApplicationForm({ application }: { application?: Application }) 
     setError("");
     const payload = {
       ...form,
-      salaryMin: form.salaryMin ? Number(form.salaryMin) : undefined,
-      salaryMax: form.salaryMax ? Number(form.salaryMax) : undefined,
       appliedAt: ["applied", "interview", "final_interview", "offer", "rejected"].includes(form.status)
         ? (application?.appliedAt ?? new Date().toISOString().slice(0, 10))
         : undefined,
@@ -158,18 +142,17 @@ export function ApplicationForm({ application }: { application?: Application }) 
             <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Die Stelle</legend>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Ort" {...bind("location")} placeholder="Zürich oder von zu Hause" />
-              <SelectField label="Berufsfeld" value={form.category} onChange={(value) => update("category", value)} options={categories} />
+              <SelectField label="Berufsfeld (Suchkategorie)" value={form.category} onChange={(value) => update("category", value)} options={CATEGORY_OPTIONS} />
               <Field label="Link zur Stelle" {...bind("jobUrl")} placeholder="https://…" type="url" inputMode="url" />
               <Field label="Wo hast du die Stelle gefunden?" {...bind("source")} placeholder="Zum Beispiel: jobs.ch" />
               <Field label="Bewerben bis" {...bind("deadline")} type="date" />
             </div>
           </fieldset>
           <fieldset className="min-w-0 border-0 p-0">
-            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Lohn</legend>
-            <div className="grid gap-5 sm:grid-cols-3">
-              <Field label="Mindestlohn pro Jahr" {...bind("salaryMin")} type="number" inputMode="numeric" placeholder="65000" />
-              <Field label="Höchstlohn pro Jahr" {...bind("salaryMax")} type="number" inputMode="numeric" placeholder="80000" />
-              <Field label="Währung" {...bind("currency")} placeholder="CHF" />
+            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Kontakt in der Firma</legend>
+            <div className="grid gap-5 sm:grid-cols-2">
+              <Field label="Ansprechperson" {...bind("contactName")} placeholder="Zum Beispiel: Frau Meier" autoComplete="off" />
+              <Field label="E-Mail oder Telefon" {...bind("contactInfo")} placeholder="lehrstellen@firma.ch" autoComplete="off" />
             </div>
           </fieldset>
           <fieldset className="min-w-0 border-0 p-0">
