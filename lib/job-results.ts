@@ -64,6 +64,8 @@ export function listingSources(result: JobSearchResult) {
   return [...links.values()];
 }
 
+const enrichmentKeys = ["contract", "jobType", "workloadMin", "workloadMax", "postedAt", "startDate", "canton", "education", "language", "remote", "salaryMin", "salaryMax", "field", "snippet"];
+
 export function mergeJobResults(existing: JobSearchResult[], incoming: JobSearchResult[]): JobSearchResult[] {
   const merged = existing.map((result) => ({ ...result, sources: listingSources(result), years: listingYears(result) }));
   for (const result of incoming) {
@@ -83,7 +85,8 @@ export function mergeJobResults(existing: JobSearchResult[], incoming: JobSearch
     } else {
       const current = merged[index];
       const sources = new Map([...listingSources(current), ...links].map((source) => [source.url, source]));
-      merged[index] = { ...current, company: current.company || result.company, location: current.location || result.location, sources: [...sources.values()], years: [...new Set([...listingYears(current), ...listingYears(result)])].sort() };
+      const extras = Object.fromEntries(Object.entries(result).filter(([key, value]) => enrichmentKeys.includes(key) && value !== undefined && (current as Record<string, unknown>)[key] === undefined));
+      merged[index] = { ...extras, ...current, company: current.company || result.company, location: current.location || result.location, sources: [...sources.values()], years: [...new Set([...listingYears(current), ...listingYears(result)])].sort() };
     }
   }
   return merged;

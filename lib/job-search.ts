@@ -6,10 +6,19 @@ export type { JobSearchResult } from "./job-results.ts";
 
 export type SearchKind = "job" | "apprenticeship";
 
+/** Optional filters forwarded to the sources where they are supported (verified: jobs.ch `publication-date`, `employment-type=1` = Temporär). */
+export interface ServerJobFilters {
+  postedWithin?: 1 | 3 | 7 | 14 | 30;
+  jobTypes?: string[];
+  radiusKm?: number;
+  cantons?: string[];
+}
+
 export interface JobSearchInput {
   query: string;
   location: string;
   kind: SearchKind;
+  filters?: ServerJobFilters;
   cursor?: { page: number; offset: number };
   excludedUrls?: string[];
 }
@@ -26,13 +35,15 @@ export type SourceCursors = Record<JobSource, { page: number; offset: number } |
 export interface MultiSourceSearchInput extends Omit<JobSearchInput, "cursor"> {
   cursor?: SourceCursors;
   knownResults?: JobSearchResult[];
+  /** results per request, 10..60 (default 25) */
+  pageSize?: number;
 }
 
 export interface MultiSourceSearchBatch {
   results: JobSearchResult[];
   updates: JobSearchResult[];
   nextCursor: SourceCursors | null;
-  sources: { name: string; status: "ok" | "unavailable" | "exhausted"; count: number }[];
+  sources: { name: string; status: "ok" | "unavailable" | "exhausted"; count: number; message?: string }[];
   warning?: string;
 }
 
@@ -64,17 +75,29 @@ async function checkRobots(url: URL, signal?: AbortSignal) {
   if (robots.isAllowed(url.href, userAgent) === false) throw new Error("Diese Quelle erlaubt den automatischen Abruf dieser Suche nicht.");
 }
 
+const transientStatuses = new Set([429, 500, 502, 503, 504]);
+
+/** One retry for network errors and transient 5xx/429 answers; robots and redirects are handled by the caller. */
+async function fetchWithRetry(url: URL, signal?: AbortSignal): Promise<Response> {
+  const attempt = () => fetch(url, { headers: { "User-Agent": userAgent, Accept: "text/html" }, signal: requestSignal(12000, signal), cache: "no-store", redirect: "manual" });
+  let response: Response | undefined;
+  try {
+    response = await attempt();
+    if (!transientStatuses.has(response.status)) return response;
+    await response.body?.cancel();
+  } catch (cause) {
+    if (signal?.aborted) throw cause;
+  }
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  return attempt();
+}
+
 async function getPublicHtml(url: URL, signal?: AbortSignal): Promise<string> {
   let current = url;
   let response: Response | undefined;
   for (let redirects = 0; redirects <= 3; redirects++) {
     await checkRobots(current, signal);
-    response = await fetch(current, {
-      headers: { "User-Agent": userAgent, Accept: "text/html" },
-      signal: requestSignal(12000, signal),
-      cache: "no-store",
-      redirect: "manual",
-    });
+    response = await fetchWithRetry(current, signal);
     if (![301, 302, 303, 307, 308].includes(response.status)) break;
     const location = response.headers.get("location");
     await response.body?.cancel();
@@ -103,7 +126,72 @@ async function getPublicHtml(url: URL, signal?: AbortSignal): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-export function parseJobsHtml(html: string, source: "jobs" | "jobup" = "jobs", onlyApprenticeships = false): JobSearchResult[] {
+const cantonCodes = new Set(["ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO", "BS", "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD", "VS", "NE", "GE", "JU"]);
+
+function compact<T extends object>(value: T): T {
+  return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== "")) as T;
+}
+
+export function cantonFromText(text: string | undefined): string | undefined {
+  const code = text?.match(/(?:^|[\s,(/-])([A-Z]{2})\)?\s*$/)?.[1];
+  return code && cantonCodes.has(code) ? code : undefined;
+}
+
+export function parseWorkload(text: string | undefined): { workloadMin?: number; workloadMax?: number } {
+  const numbers = [...(text ?? "").matchAll(/(\d{1,3})\s*%?/g)].map((match) => Number(match[1])).filter((value) => value >= 1 && value <= 100);
+  if (!numbers.length || !/%/.test(text ?? "")) return {};
+  return { workloadMin: Math.min(...numbers), workloadMax: Math.max(...numbers) };
+}
+
+function isoDay(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/** "Heute", "Gestern", "Vor 2 Tagen", "Letzte Woche", "Il y a 3 jours" ... -> ISO date (day precision), undefined when not a date. */
+export function parsePostedAt(text: string | undefined, now = new Date()): string | undefined {
+  const value = text?.trim().toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+  if (!value) return undefined;
+  const ago = (days: number) => isoDay(new Date(now.getTime() - days * 86400000));
+  if (/^(heute|aujourd'?hui|neu|nouveau|vor .*(minute|stunde)|il y a .*(minute|heure))/.test(value)) return ago(0);
+  if (/^(gestern|hier)$/.test(value)) return ago(1);
+  if (/^(letzte woche|la semaine derniere|vor einer woche|il y a une semaine)$/.test(value)) return ago(7);
+  if (/^(letzten monat|letzter monat|vor einem monat|le mois dernier|il y a un mois)$/.test(value)) return ago(30);
+  const match = value.match(/^(?:vor|il y a)\s+(\d+)\s+(tag|woche|monat|jour|semaine|mois)/);
+  if (match) return ago(Number(match[1]) * (/^(tag|jour)/.test(match[2]) ? 1 : /^(woche|semaine)/.test(match[2]) ? 7 : 30));
+  const dated = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if (dated) return `${dated[3]}-${dated[2].padStart(2, "0")}-${dated[1].padStart(2, "0")}`;
+  return undefined;
+}
+
+function jobTypeFromContract(contract: string | undefined, workload: { workloadMin?: number; workloadMax?: number }): JobSearchResult["jobType"] {
+  const value = (contract ?? "").toLowerCase();
+  if (/lehrstelle|lehre|apprentissage/.test(value)) return "lehrstelle";
+  if (/praktikum|stage|volontariat|internship/.test(value)) return "praktikum";
+  if (/tempor|befrist|cdd|interim/.test(value)) return "temporaer";
+  if (/freelance|freie|mandat|indep/.test(value)) return "freelance";
+  if (/festanstellung|unbefristet|cdi|employ/.test(value)) {
+    if (workload.workloadMax === undefined) return undefined;
+    return workload.workloadMax < 100 ? "teilzeit" : "vollzeit";
+  }
+  return value ? "other" : undefined;
+}
+
+export function parseSalary(text: string | undefined): { salaryMin?: number; salaryMax?: number } {
+  const numbers = [...(text ?? "").matchAll(/\d{1,3}(?:['’.,]\d{3})+|\d{5,6}/g)].map((match) => Number(match[0].replace(/\D/g, ""))).filter((value) => value >= 20000 && value <= 1000000);
+  return numbers.length ? { salaryMin: Math.min(...numbers), salaryMax: Math.max(...numbers) } : {};
+}
+
+function titleMeta(title: string, now: Date): Pick<JobSearchResult, "education" | "startDate" | "remote"> {
+  const year = title.match(/\b(20[2-3]\d)\b/)?.[1];
+  const currentYear = now.getFullYear();
+  return {
+    education: /\bEFZ\b/.test(title) ? "efz" : /\bEBA\b/.test(title) ? "eba" : undefined,
+    startDate: year && Number(year) >= currentYear ? year : undefined,
+    remote: /home\s?-?office|remote|télétravail|telearbeit/i.test(title) ? "hybrid" : undefined,
+  };
+}
+
+export function parseJobsHtml(html: string, source: "jobs" | "jobup" = "jobs", onlyApprenticeships = false, now = new Date()): JobSearchResult[] {
   const document = load(html);
   const results = new Map<string, JobSearchResult>();
   const origin = source === "jobs" ? "https://www.jobs.ch" : "https://www.jobup.ch";
@@ -116,11 +204,19 @@ export function parseJobsHtml(html: string, source: "jobs" | "jobup" = "jobs", o
     const url = new URL(href, origin);
     if (url.origin !== origin || !detailPattern.test(url.pathname)) return;
     const card = link.closest('[data-cy="serp-item"]');
-    const place = card.find("span").filter((_index, span) => ["Arbeitsort:", "Lieu de travail:"].includes(document(span).text().trim())).first().siblings("p").text().trim();
-    const contract = card.find("span").filter((_index, span) => ["Vertragsart:", "Type de contrat:"].includes(document(span).text().trim())).first().siblings("p").text().trim();
+    const labelled = (labels: string[]) => card.find("span").filter((_index, span) => labels.includes(document(span).text().trim())).first().siblings("p").text().trim();
+    const place = labelled(["Arbeitsort:", "Lieu de travail:"]);
+    const contract = labelled(["Vertragsart:", "Type de contrat:"]);
+    const workload = parseWorkload(labelled(["Pensum:", "Taux d'activité:", "Taux d’activité:"]));
+    const salary = parseSalary(labelled(["Lohn:", "Salaire:"]));
+    const postedAt = parsePostedAt(card.find('[data-cy^="serp-item-"] p').first().text(), now);
     if (onlyApprenticeships && !/^(Lehrstelle|Lehre|Apprentissage)$/i.test(contract)) return;
     const company = card.find("p.fw_bold").last().text().trim();
-    results.set(url.href, { title, company: company || undefined, location: place || undefined, url: url.href, source: sourceNames[source] });
+    results.set(url.href, compact({
+      title, company: company || undefined, location: place || undefined, url: url.href, source: sourceNames[source],
+      contract: contract || undefined, jobType: jobTypeFromContract(contract, workload), ...workload, ...salary, postedAt,
+      canton: cantonFromText(place), ...titleMeta(title, now),
+    }));
   });
   return [...results.values()];
 }
@@ -166,7 +262,7 @@ async function searchSourceBatch(input: JobSearchInput, source: JobSource, limit
       if (!results.size) throw cause;
       return { results: [...results.values()], nextCursor: cursor, warning: "Weitere Anzeigen konnten gerade nicht geladen werden. Mit Mehr laden kannst du es erneut versuchen." };
     }
-    const allEntries = source === "yousty" ? parseYoustyHtml(html) : parseJobsHtml(html, source);
+    const allEntries = source === "yousty" ? parseYoustyHtml(html, youstyCanton(url)) : parseJobsHtml(html, source);
     const allowed = source !== "yousty" && input.kind === "apprenticeship" ? new Set(parseJobsHtml(html, source, true).map((result) => result.url)) : null;
     const entries = allEntries;
     const document = load(html);
@@ -196,11 +292,19 @@ async function searchSourceBatch(input: JobSearchInput, source: JobSource, limit
   return { results: [...results.values()], nextCursor: cursor };
 }
 
+/** Yousty list URLs look like /de-CH/lehrstellen/ZH/Zuerich/<slug>; the path carries the canton. */
+export function youstyCanton(url: URL): string | undefined {
+  const code = url.pathname.match(/^\/de-CH\/lehrstellen\/([A-Z]{2})\//)?.[1];
+  return code && cantonCodes.has(code) ? code : undefined;
+}
+
 async function getSearchUrl(input: JobSearchInput, source: JobSource, signal?: AbortSignal): Promise<URL> {
   if (source === "yousty") return getApprenticeshipUrl(input, signal);
   const url = new URL(source === "jobs" ? "https://www.jobs.ch/de/stellenangebote/" : "https://www.jobup.ch/fr/emplois/");
   url.searchParams.set("term", input.kind === "apprenticeship" ? `${input.query} Lehrstelle` : input.query);
   if (input.location) url.searchParams.set("location", input.location);
+  if (input.filters?.postedWithin) url.searchParams.set("publication-date", String(input.filters.postedWithin));
+  if (input.filters?.jobTypes?.length === 1 && input.filters.jobTypes[0] === "temporaer") url.searchParams.set("employment-type", "1");
   return url;
 }
 
@@ -212,18 +316,19 @@ export async function searchMultipleSources(input: MultiSourceSearchInput): Prom
   const known = mergeJobResults([], input.knownResults ?? []);
   let merged = known;
   const failed = new Set<JobSource>();
-  const statuses = new Map<JobSource, { name: string; status: "ok" | "unavailable" | "exhausted"; count: number }>();
+  const statuses = new Map<JobSource, { name: string; status: "ok" | "unavailable" | "exhausted"; count: number; message?: string }>();
   for (const source of enabled) statuses.set(source, { name: sourceNames[source], status: cursors[source] ? "ok" : "exhausted", count: 0 });
   const warnings: string[] = [];
   const signal = AbortSignal.timeout(45000);
   let succeeded = false;
+  const pageSize = Number.isInteger(input.pageSize) ? Math.min(60, Math.max(10, input.pageSize!)) : 25;
   for (let round = 0; round < 4; round++) {
-    const remaining = 25 - (merged.length - known.length);
+    const remaining = pageSize - (merged.length - known.length);
     const active = enabled.filter((source) => cursors[source] && !failed.has(source)).slice(0, remaining);
     if (remaining <= 0 || !active.length) break;
     const excludedUrls = [...new Set([...(input.excludedUrls ?? []), ...merged.flatMap((result) => listingSources(result).map((source) => source.url))])];
     const batches = await Promise.allSettled(active.map((source, index) => searchSourceBatch(
-      { query: input.query, location: input.location, kind: input.kind, cursor: cursors[source]!, excludedUrls },
+      { query: input.query, location: input.location, kind: input.kind, filters: input.filters, cursor: cursors[source]!, excludedUrls },
       source,
       Math.floor(remaining / active.length) + (index < remaining % active.length ? 1 : 0),
       signal,
@@ -232,15 +337,16 @@ export async function searchMultipleSources(input: MultiSourceSearchInput): Prom
       const source = active[index];
       if (batch.status === "rejected") {
         failed.add(source);
-        statuses.set(source, { name: sourceNames[source], status: "unavailable", count: 0 });
-        warnings.push(`${sourceNames[source]}: ${batch.reason instanceof Error ? batch.reason.message : "Quelle nicht erreichbar."}`);
+        const message = batch.reason instanceof Error ? batch.reason.message : "Quelle nicht erreichbar.";
+        statuses.set(source, { name: sourceNames[source], status: "unavailable", count: 0, message });
+        warnings.push(`${sourceNames[source]}: ${message}`);
         continue;
       }
       succeeded = true;
       merged = mergeJobResults(merged, batch.value.results);
       cursors[source] = batch.value.nextCursor;
       const count = statuses.get(source)!.count + batch.value.results.length;
-      statuses.set(source, { name: sourceNames[source], status: batch.value.warning ? "unavailable" : cursors[source] ? "ok" : "exhausted", count });
+      statuses.set(source, { name: sourceNames[source], status: batch.value.warning ? "unavailable" : cursors[source] ? "ok" : "exhausted", count, message: batch.value.warning });
       if (batch.value.warning) {
         warnings.push(`${sourceNames[source]}: ${batch.value.warning}`);
         failed.add(source);
@@ -261,6 +367,23 @@ function normalize(value: string) {
   return value.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+const professionAliases: Record<string, string> = {
+  informatik: "informatiker", ict: "informatiker", it: "informatiker", kv: "kaufmann", kauffrau: "kaufmann", kaufleute: "kaufmann", "kaufmann kauffrau": "kaufmann",
+  fage: "fachmann gesundheit", "fachfrau gesundheit": "fachmann gesundheit", detailhandel: "detailhandelsfachmann", koch: "koch", koechin: "koch", schreinerin: "schreiner",
+  polymechanikerin: "polymechaniker", elektronikerin: "elektroniker", mediamatikerin: "mediamatiker", informatikerin: "informatiker",
+};
+
+/** Local fallback for the shared query expansion: strips filler words (Lehrstelle, EFZ, m/w/d ...) and maps common aliases. First entry is always the original. */
+export function queryVariants(query: string): string[] {
+  const original = query.trim();
+  const stripped = normalize(original.replace(/\((?:[mwfd]\/?)+\)/gi, " ").replace(/[/:]in\b/gi, ""))
+    .split(" ").filter((word) => word && !["lehrstelle", "lehrstellen", "lehre", "ausbildung", "als", "zum", "zur", "efz", "eba", "stift", "praktikum", "stage", "m", "w", "d", "f"].includes(word)).join(" ");
+  const variants = [original];
+  if (stripped) variants.push(stripped);
+  for (const candidate of [stripped, normalize(original)]) if (professionAliases[candidate]) variants.push(professionAliases[candidate]);
+  return [...new Set(variants)];
+}
+
 export function findProfessionSlug(html: string, query: string): string | undefined {
   const document = load(html);
   const terms = normalize(query).split(" ");
@@ -274,7 +397,7 @@ export function findProfessionSlug(html: string, query: string): string | undefi
   return [...candidates].sort((first, second) => first.length - second.length)[0];
 }
 
-export function parseYoustyHtml(html: string): JobSearchResult[] {
+export function parseYoustyHtml(html: string, defaultCanton?: string, now = new Date()): JobSearchResult[] {
   const document = load(html);
   const results = new Map<string, JobSearchResult>();
   document('.title_and_location a[href*="/lehrstellen/profile/"]').each((_index, element) => {
@@ -285,14 +408,18 @@ export function parseYoustyHtml(html: string): JobSearchResult[] {
     const url = new URL(href, "https://www.yousty.ch");
     if (url.origin !== "https://www.yousty.ch" || !/^\/de-CH\/lehrstellen\/profile\/\d+-[a-z0-9-]+$/.test(url.pathname)) return;
     const details = link.find(".company-info strong");
-    results.set(url.href, { title, company: details.eq(0).text().trim() || undefined, location: details.eq(1).text().trim() || undefined, url: url.href, source: "Yousty" });
+    const location = details.eq(1).text().trim();
+    results.set(url.href, compact({
+      title, company: details.eq(0).text().trim() || undefined, location: location || undefined, url: url.href, source: "Yousty",
+      contract: "Lehrstelle", jobType: "lehrstelle" as const, canton: cantonFromText(location) ?? defaultCanton, ...titleMeta(title, now),
+    }));
   });
   return [...results.values()];
 }
 
 async function getApprenticeshipUrl(input: JobSearchInput, signal?: AbortSignal): Promise<URL> {
   const catalog = await getPublicHtml(new URL("https://www.yousty.ch/de-CH/lehrstellen/berufe"), signal);
-  const slug = findProfessionSlug(catalog, input.query);
+  const slug = queryVariants(input.query).map((variant) => findProfessionSlug(catalog, variant)).find(Boolean);
   if (!slug) throw new Error("Dieser Lehrberuf wurde nicht gefunden. Nutze einen genauen Beruf, zum Beispiel Informatiker oder Kaufmann.");
   let prefix = "/de-CH/lehrstellen";
   if (input.location) {
@@ -308,4 +435,24 @@ async function getApprenticeshipUrl(input: JobSearchInput, signal?: AbortSignal)
     prefix = resolved.pathname;
   }
   return new URL(`${prefix}/${slug}`, "https://www.yousty.ch");
+}
+
+const searchCache = new Map<string, { expires: number; value: MultiSourceSearchBatch }>();
+
+export function clearSearchCache() {
+  searchCache.clear();
+}
+
+/** Identical searches (same query, filters, cursor, known results) within 60 s are answered from memory so paging back and forth does not hit the sources again. */
+export async function searchMultipleSourcesCached(input: MultiSourceSearchInput, ttl = 60000, now = Date.now()): Promise<MultiSourceSearchBatch> {
+  const key = JSON.stringify([input.query.toLowerCase(), input.location.toLowerCase(), input.kind, input.filters ?? null, input.cursor ?? null, input.pageSize ?? null, [...(input.excludedUrls ?? [])].sort(), (input.knownResults ?? []).map((result) => result.url)]);
+  for (const [cacheKey, entry] of searchCache) if (entry.expires <= now) searchCache.delete(cacheKey);
+  const hit = searchCache.get(key);
+  if (hit) return structuredClone(hit.value);
+  const value = await searchMultipleSources(input);
+  if (!value.warning) {
+    if (searchCache.size >= 100) searchCache.delete(searchCache.keys().next().value!);
+    searchCache.set(key, { expires: now + ttl, value: structuredClone(value) });
+  }
+  return value;
 }
