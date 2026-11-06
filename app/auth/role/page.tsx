@@ -7,7 +7,7 @@ import { RoleCards } from "@/components/onboarding/role-cards";
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
-import { chooseRole, landingPath, needsRoleChoice, TEACHER_HOME } from "@/lib/role";
+import { chooseRole, landingPath, needsRoleChoice, studentOnboardingHref, TEACHER_HOME } from "@/lib/role";
 import { authMessage, safeNextPath } from "@/lib/ux";
 import type { UserRole } from "@/types";
 
@@ -39,7 +39,7 @@ export default function ChooseRolePage() {
       const { data } = await supabase.auth.getUser();
       if (!data.user) { router.replace("/login"); return; }
       const effective = await chooseRole(data.user, role);
-      router.replace(effective === "teacher" ? TEACHER_HOME : landingPath("student", next()));
+      router.replace(effective === "teacher" ? TEACHER_HOME : studentOnboardingHref(next()));
     } catch (reason) { setError(authMessage(reason)); setBusy(false); }
   }
 
