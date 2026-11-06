@@ -44,7 +44,7 @@ test("parsers preserve all source entries so batch cursors do not skip the remai
 });
 
 test("apprenticeship parser uses title field and not year chips", () => {
-  assert.deepEqual(parseYoustyHtml(apprenticeshipCard + `<a href="/de-CH/lehrstellen/profile/124-informatiker-ubs">2027</a>`), [{ title: "Informatiker EFZ", company: "UBS", location: "Zürich", url: "https://www.yousty.ch/de-CH/lehrstellen/profile/124-informatiker-ubs", source: "Yousty" }]);
+  assert.deepEqual(parseYoustyHtml(apprenticeshipCard + `<a href="/de-CH/lehrstellen/profile/124-informatiker-ubs">2027</a>`), [{ title: "Informatiker EFZ", company: "UBS", location: "Zürich", url: "https://www.yousty.ch/de-CH/lehrstellen/profile/124-informatiker-ubs", source: "Yousty", contract: "Lehrstelle", jobType: "lehrstelle", education: "efz" }]);
 });
 
 test("profession matching resolves general and specific user searches", () => {

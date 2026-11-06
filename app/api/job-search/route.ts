@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { searchMultipleSources, type JobSource, type MultiSourceSearchInput } from "@/lib/job-search";
+import { searchMultipleSourcesCached, type JobSource, type MultiSourceSearchInput, type ServerJobFilters } from "@/lib/job-search";
 import { originalSourceName, type JobSearchResult } from "@/lib/job-results";
 
 export const runtime = "nodejs";
@@ -16,7 +16,71 @@ function readKnownResult(value: unknown): JobSearchResult {
   if (result.location !== undefined && (typeof result.location !== "string" || result.location.length > 300)) throw new Error("Invalid location");
   if (result.sources !== undefined && (!Array.isArray(result.sources) || result.sources.length > 20 || result.sources.some((source) => !source || typeof source.url !== "string" || source.url.length > 512 || originalSourceName(source.url) !== source.name))) throw new Error("Invalid sources");
   if (result.years !== undefined && (!Array.isArray(result.years) || result.years.length > 10 || result.years.some((year) => typeof year !== "string" || !/^20\d{2}$/.test(year)))) throw new Error("Invalid years");
-  return { title: result.title, company: result.company, location: result.location, source: result.source, url: result.url, sources: result.sources, years: result.years };
+  return { title: result.title, company: result.company, location: result.location, source: result.source, url: result.url, sources: result.sources, years: result.years, ...readEnrichment(result) };
+}
+
+const jobTypes = ["lehrstelle", "praktikum", "vollzeit", "teilzeit", "temporaer", "freelance", "other"];
+const educations = ["efz", "eba", "bm", "hf", "fh", "uni", "none"];
+const remotes = ["remote", "hybrid", "onsite"];
+const cantons = ["ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO", "BS", "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD", "VS", "NE", "GE", "JU"];
+
+function text(value: unknown, max: number): string | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || value.length > max) throw new Error("Invalid enrichment");
+  return value;
+}
+
+function number(value: unknown, min: number, max: number): number | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) throw new Error("Invalid enrichment");
+  return value;
+}
+
+function oneOf<T extends string>(value: unknown, allowed: string[]): T | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !allowed.includes(value)) throw new Error("Invalid enrichment");
+  return value as T;
+}
+
+function readEnrichment(result: JobSearchResult): Partial<JobSearchResult> {
+  const date = text(result.postedAt, 10);
+  if (date !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Invalid enrichment");
+  const start = text(result.startDate, 10);
+  if (start !== undefined && !/^\d{4}(-\d{2}-\d{2})?$/.test(start)) throw new Error("Invalid enrichment");
+  const canton = text(result.canton, 2);
+  if (canton !== undefined && !cantons.includes(canton)) throw new Error("Invalid enrichment");
+  const entries = {
+    contract: text(result.contract, 100), jobType: oneOf<NonNullable<JobSearchResult["jobType"]>>(result.jobType, jobTypes),
+    workloadMin: number(result.workloadMin, 0, 100), workloadMax: number(result.workloadMax, 0, 100), postedAt: date, startDate: start, canton,
+    education: oneOf<NonNullable<JobSearchResult["education"]>>(result.education, educations), language: text(result.language, 5),
+    remote: oneOf<NonNullable<JobSearchResult["remote"]>>(result.remote, remotes), salaryMin: number(result.salaryMin, 0, 10000000),
+    salaryMax: number(result.salaryMax, 0, 10000000), field: text(result.field, 60), snippet: text(result.snippet, 600),
+  };
+  return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined));
+}
+
+function readFilters(value: unknown): ServerJobFilters | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid filters");
+  const raw = value as Record<string, unknown>;
+  const filters: ServerJobFilters = {};
+  if (raw.postedWithin !== undefined) {
+    if (![1, 3, 7, 14, 30].includes(raw.postedWithin as number)) throw new Error("Invalid filters");
+    filters.postedWithin = raw.postedWithin as ServerJobFilters["postedWithin"];
+  }
+  if (raw.radiusKm !== undefined) {
+    if (![5, 10, 20, 30, 50, 100].includes(raw.radiusKm as number)) throw new Error("Invalid filters");
+    filters.radiusKm = raw.radiusKm as number;
+  }
+  if (raw.jobTypes !== undefined) {
+    if (!Array.isArray(raw.jobTypes) || raw.jobTypes.length > 7 || raw.jobTypes.some((type) => !jobTypes.includes(type))) throw new Error("Invalid filters");
+    filters.jobTypes = raw.jobTypes;
+  }
+  if (raw.cantons !== undefined) {
+    if (!Array.isArray(raw.cantons) || raw.cantons.length > 26 || raw.cantons.some((code) => !cantons.includes(code))) throw new Error("Invalid filters");
+    filters.cantons = raw.cantons;
+  }
+  return Object.keys(filters).length ? filters : undefined;
 }
 
 export async function POST(request: Request) {
@@ -37,6 +101,11 @@ export async function POST(request: Request) {
     if (typeof value.query !== "string" || typeof value.location !== "string" || !["job", "apprenticeship"].includes(value.kind)) throw new Error("Invalid input");
     input = { query: value.query.trim(), location: value.location.trim(), kind: value.kind };
     if (input.query.length < 2 || input.query.length > 80 || input.location.length > 80) throw new Error("Invalid length");
+    input.filters = readFilters(value.filters);
+    if (value.pageSize !== undefined) {
+      if (!Number.isInteger(value.pageSize) || value.pageSize < 10 || value.pageSize > 60) throw new Error("Invalid page size");
+      input.pageSize = value.pageSize;
+    }
     if (value.cursor !== undefined) {
       if (!value.cursor || typeof value.cursor !== "object" || Object.keys(value.cursor).some((key) => !["yousty", "jobs", "jobup"].includes(key))) throw new Error("Invalid cursor");
       input.cursor = { yousty: null, jobs: null, jobup: null };
@@ -71,8 +140,8 @@ export async function POST(request: Request) {
   searchLimits.set(data.user.id, { ...limit, count: limit.count + 1 });
 
   try {
-    const batch = await searchMultipleSources(input);
-    return Response.json({ ...batch, searchedAt: new Date().toISOString(), query: input.query, location: input.location, kind: input.kind }, { headers });
+    const batch = await searchMultipleSourcesCached(input);
+    return Response.json({ ...batch, searchedAt: new Date().toISOString(), query: input.query, location: input.location, kind: input.kind, filters: input.filters ?? null }, { headers });
   } catch (cause) {
     return Response.json({ error: cause instanceof Error ? cause.message : "Die Quelle antwortet gerade nicht. Versuch es später erneut." }, { status: 502, headers });
   }
