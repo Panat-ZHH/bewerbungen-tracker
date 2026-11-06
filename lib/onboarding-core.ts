@@ -65,6 +65,8 @@ export function parsePrefill(raw: string | null): SearchPrefill | null {
 
 /** Short German sentence for the invite banner on the login page. */
 export function inviteSentence(teacherName: string, className: string): string {
-  const teacher = teacherName.trim() || "deiner Lehrperson";
+  // A teacher who never set a name has the e-mail local part as display name ("m.keller82"): never show that to a stranger.
+  const raw = teacherName.trim();
+  const teacher = !raw || (!/\s/.test(raw) && /[._\-\d@]/.test(raw)) ? "deiner Lehrperson" : raw;
   return `Du wurdest von ${teacher} in Klasse ${className.trim()} eingeladen`;
 }
