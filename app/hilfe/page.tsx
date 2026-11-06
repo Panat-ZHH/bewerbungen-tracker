@@ -4,7 +4,7 @@ import { Faq, type FaqItem } from "@/components/public/faq";
 import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
 
 export const metadata: Metadata = {
-  title: "Hilfe und häufige Fragen | WendApply",
+  title: "Hilfe und häufige Fragen",
   description: "Antworten zu WendApply: Erste Schritte für Schülerinnen, Schüler und Lehrpersonen, Datenschutz und Probleme beim Login.",
   alternates: { canonical: "/hilfe" },
   openGraph: { title: "Hilfe und häufige Fragen | WendApply", type: "website", locale: "de_CH", siteName: "WendApply" },

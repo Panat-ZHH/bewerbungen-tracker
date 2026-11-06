@@ -5,7 +5,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
 
 export const metadata: Metadata = {
-  title: "Kontakt | WendApply",
+  title: "Kontakt",
   description: "So erreichen Sie das WendApply-Team: Fragen, Feedback und Pilot-Anfragen für Schulen per E-Mail.",
   alternates: { canonical: "/kontakt" },
   openGraph: { title: "Kontakt | WendApply", type: "website", locale: "de_CH", siteName: "WendApply" },

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CONTACT_EMAIL, TextPage, Todo } from "@/components/public/public-shell";
 
 export const metadata: Metadata = {
-  title: "Impressum | WendApply",
+  title: "Impressum",
   description: "Impressum von WendApply, einem Angebot von Wendico, Kleinandelfingen.",
   alternates: { canonical: "/impressum" },
   openGraph: { title: "Impressum | WendApply", type: "website", locale: "de_CH", siteName: "WendApply" },
