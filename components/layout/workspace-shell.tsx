@@ -93,7 +93,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   if (checkingSession || !user) {
     return (
       <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
-        <Image src="/logo.png" alt="" width={48} height={48} className="animate-pulse rounded-[14px]" priority />
+        <Image src="/logo.png" alt="" width={48} height={48} className="logo-tile animate-pulse rounded-[14px] bg-[#f2f7ff]" priority />
         <div className="w-full max-w-[260px] space-y-2.5" role="status">
           <Skeleton className="h-3.5" />
           <Skeleton className="mx-auto h-3.5 w-2/3" />
@@ -115,7 +115,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
       <header className={`glass-bar sticky top-0 z-30 shrink-0 border-b ${fullscreen ? "max-md:hidden" : ""}`}>
         <div className="page-wrap flex h-[var(--nav-h)] items-center gap-3 md:gap-5">
           <Link href="/dashboard" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
-            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-[11px] bg-[#f2f7ff] shadow-[var(--shadow-xs)]">
+            <span className="flex h-9 w-9 items-center justify-center logo-tile overflow-hidden rounded-[11px] bg-[#f2f7ff] shadow-[var(--shadow-xs)]">
               <Image src="/logo.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" priority />
             </span>
             <span className="text-[15px] font-semibold tracking-[-.2px]">WendApply</span>
@@ -168,9 +168,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
             const selected = keys.includes(active);
             return (
               <li key={href} className="min-w-0 flex-1">
-                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
+                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] max-[340px]:text-[9.5px] font-medium tracking-tight transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
                   <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${selected ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.2 : 1.8} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
-                  <span className="max-w-full truncate">{label}</span>
+                  <span className="max-w-full truncate max-[340px]:text-[9.5px]">{label}</span>
                 </Link>
               </li>
             );

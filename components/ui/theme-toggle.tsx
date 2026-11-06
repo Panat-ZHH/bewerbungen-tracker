@@ -45,9 +45,9 @@ export function ThemeToggle() {
       value={choice}
       onChange={change}
       options={[
-        { value: "light", label: "Hell", icon: <Sun size={14} /> },
-        { value: "dark", label: "Dunkel", icon: <Moon size={14} /> },
-        { value: "system", label: "Automatisch", icon: <Monitor size={14} /> },
+        { value: "light", label: "Hell", icon: <span className="hidden min-[400px]:inline-flex"><Sun size={14} /></span> },
+        { value: "dark", label: "Dunkel", icon: <span className="hidden min-[400px]:inline-flex"><Moon size={14} /></span> },
+        { value: "system", label: "Automatisch", icon: <span className="hidden min-[400px]:inline-flex"><Monitor size={14} /></span> },
       ]}
     />
   );

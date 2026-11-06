@@ -256,6 +256,8 @@ h1, h2, h3 { text-wrap: balance; letter-spacing: -.02em; }
 [data-theme="dark"] [class*="hover:bg-white/"]:hover { background-color: var(--raised-hover); }
 [data-theme="dark"] .bg-\[\#f2f2f4\], [data-theme="dark"] .bg-\[\#f5f5f7\] { background-color: var(--neutral-bg); }
 [data-theme="dark"] .bg-\[\#eaf3ff\], [data-theme="dark"] .bg-\[\#f2f7ff\] { background-color: var(--info-bg); }
+/* The logo mark is black: keep its tile light in dark mode, otherwise it disappears. */
+[data-theme="dark"] .logo-tile { background-color: #eef4ff; }
 [data-theme="dark"] .bg-\[\#eaf5ed\] { background-color: var(--success-bg); }
 [data-theme="dark"] .bg-\[\#fff8f8\], [data-theme="dark"] .bg-\[\#fff0f0\] { background-color: var(--danger-bg); }
 [data-theme="dark"] .bg-\[\#fff4df\] { background-color: var(--warning-bg); }

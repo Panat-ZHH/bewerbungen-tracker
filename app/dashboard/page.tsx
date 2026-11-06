@@ -17,7 +17,7 @@ import type { Application, ApplicationStatus } from "@/types";
 
 const closed: ApplicationStatus[] = ["rejected", "withdrawn"];
 const sent: ApplicationStatus[] = ["applied", "interview", "final_interview", "offer"];
-const addLink = "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[image:var(--brand-gradient)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-brand)] transition hover:brightness-110 active:scale-[.98] sm:w-fit";
+const addLink = "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[image:var(--brand-gradient)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-brand)] transition hover:brightness-110 active:scale-[.98] sm:w-fit sm:shrink-0 sm:whitespace-nowrap";
 
 export default function DashboardPage() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -70,7 +70,7 @@ export default function DashboardPage() {
             <h2 className="text-xl font-semibold tracking-[-.4px]">Zuletzt geändert</h2>
             <p className="mt-1 text-sm text-muted">Deine drei letzten Bewerbungen.</p>
           </div>
-          <Link href="/applications" className="inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-[var(--brand)] hover:underline">
+          <Link href="/applications" className="inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap px-1 text-sm font-semibold text-[var(--brand)] hover:underline">
             Alle ansehen <ArrowRight size={15} />
           </Link>
         </div>
@@ -134,10 +134,10 @@ export default function DashboardPage() {
 
 function Summary({ label, value, detail }: { label: string; value: number | string; detail: string }) {
   return (
-    <Card className="min-w-0 p-3.5 sm:p-5">
-      <p className="truncate text-xs text-muted sm:text-sm">{label}</p>
+    <Card className="min-w-0 p-3 sm:p-5">
+      <p className="truncate text-[10.5px] tracking-tight text-muted min-[360px]:text-xs min-[360px]:tracking-normal sm:text-sm">{label}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums tracking-[-1px] sm:mt-3 sm:text-3xl">{value}</p>
-      <p className="mt-1 truncate text-[11px] text-muted sm:text-xs">{detail}</p>
+      <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted sm:text-xs">{detail}</p>
     </Card>
   );
 }

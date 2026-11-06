@@ -109,9 +109,9 @@ export default function ApplicationDetailPage() {
       ) : (
         <>
           {error && <StatusMessage tone="danger" className="mt-5">{error}</StatusMessage>}
-          <div className="mt-4 flex flex-col justify-between gap-5 sm:flex-row sm:items-start">
+          <div className="mt-4 flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
             <div className="min-w-0">
-              <h1 className="break-words text-[28px] font-semibold leading-tight tracking-[-1px] md:text-[38px]">{application.position}</h1>
+              <h1 className="break-words text-2xl font-semibold leading-tight tracking-[-1px] [hyphens:auto] min-[360px]:text-[28px] md:text-[38px]">{application.position}</h1>
               <p className="mt-2 text-lg text-muted">{application.company}</p>
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
                 {application.location && <span><MapPin size={15} className="mr-1 inline" />{application.location}</span>}
@@ -121,7 +121,7 @@ export default function ApplicationDetailPage() {
             </div>
             <div className="flex items-center gap-2">
               <label className="sr-only" htmlFor="application-status">Stand der Bewerbung</label>
-              <select id="application-status" aria-describedby="status-hint" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-4 text-base text-[var(--ink)] pointer-fine:text-sm font-medium outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15 sm:flex-none">
+              <select id="application-status" aria-describedby="status-hint" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 min-[360px]:px-4 text-base text-[var(--ink)] pointer-fine:text-sm font-medium outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15 sm:flex-none">
                 {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
               <Button variant="secondary" onClick={() => setEditing(true)} className="min-h-11 sm:min-h-11"><Pencil size={15} /> Ändern</Button>
