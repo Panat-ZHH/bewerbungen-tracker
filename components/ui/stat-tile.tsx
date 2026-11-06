@@ -8,7 +8,7 @@ export function StatTile({ label, value, icon, trend, tone = "neutral", classNam
     <div className={cn("panel card-interactive min-w-0 p-4 sm:p-5", className)}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-eyebrow min-w-0 leading-tight">{label}</p>
-        {icon && <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)] [&>svg]:h-4 [&>svg]:w-4">{icon}</span>}
+        {icon && <span className="flex h-8 w-8 shrink-0 items-center justify-center max-[430px]:hidden rounded-xl bg-[var(--brand-soft)] text-[var(--brand)] [&>svg]:h-4 [&>svg]:w-4">{icon}</span>}
       </div>
       <p className="tabular mt-3 text-[1.75rem] font-bold leading-none tracking-[-.03em] sm:text-[2rem]">{value}</p>
       {trend && <p className={cn("mt-2 text-small", toneClass)}>{trend}</p>}
