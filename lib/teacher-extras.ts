@@ -1,13 +1,13 @@
 // Pure helpers for the teacher area (P0 part g). No React, no Supabase: unit-tested in tests/teacher-g-lib.test.mjs.
 import type { CsvColumn } from "./teacher-csv";
+import { shownName } from "./profile-name-utils.ts";
 
 const DAY_MS = 86_400_000;
 
 // ---------- names ----------
 /** Display name of a student with a fallback (part f may deliver real names; empty or missing names must never render as blank). */
 export function studentLabel(name: string | null | undefined): string {
-  const trimmed = (name ?? "").trim();
-  return trimmed || "Ohne Namen";
+  return shownName({ displayName: name }, "Ohne Namen");
 }
 
 // ---------- dates ----------

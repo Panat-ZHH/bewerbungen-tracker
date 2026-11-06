@@ -17,6 +17,8 @@ const legal = [
   { href: "/datenschutz", label: "Datenschutz" },
   { href: "/datenschutz-schulen", label: "Datenschutz für Schulen" },
   { href: "/datenschutz-jugend", label: "Datenschutz für Jugendliche" },
+  { href: "/hosting", label: "Hosting" },
+  { href: "/loeschkonzept", label: "Löschkonzept" },
   { href: "/hilfe", label: "Hilfe" },
   { href: "/kontakt", label: "Kontakt" },
 ];

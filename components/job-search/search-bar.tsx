@@ -36,6 +36,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
       return items;
     }, [query, recent]);
     const hints = useMemo(() => synonymHints(query), [query]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setActive(-1), [suggestions.length]);
 
     function choose(value: string) { onQueryChange(value); setOpen(false); onSubmit(value); }

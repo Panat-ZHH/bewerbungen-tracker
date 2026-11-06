@@ -11,7 +11,7 @@ import { friendlyMessage } from "@/lib/ux";
 import { toast } from "@/lib/toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DeleteAccountCard } from "@/components/settings/delete-account";
-import { NotificationSettings } from "@/components/settings/notification-slot";
+import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PasswordChangeCard } from "@/components/settings/password-change";
 import { withSupport } from "@/lib/account-deletion";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";

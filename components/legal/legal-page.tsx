@@ -47,7 +47,7 @@ export async function LegalPage({ docKey, downloadHref }: { docKey: LegalKey; do
       </main>
       <footer className="legal-foot no-print">
         <p>WendApply · Entwurf, nicht juristisch geprüft · <a href={`mailto:${LEGAL_CONTACT}`}>{LEGAL_CONTACT}</a></p>
-        <p>{LEGAL_DOCS.map((d, i) => <span key={d.key}>{i ? " · " : ""}<Link href={d.path}>{d.title}</Link></span>)}</p>
+        <p>{LEGAL_DOCS.map((d, i) => <span key={d.key}>{i ? " · " : ""}<Link href={d.path}>{d.title}</Link></span>)} · <Link href="/impressum">Impressum</Link></p>
       </footer>
     </div>
   );

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BarChart3, CheckCircle2, Eye, EyeOff, GraduationCap, MapPin, ShieldCheck, UserRound, Users } from "lucide-react";
@@ -218,6 +220,7 @@ export default function LoginPage() {
             </p>
           </form>
           <p className="mt-5 text-center text-xs text-muted lg:hidden">Deine Daten bleiben in deinem persönlichen Konto.</p>
+          <p className="mt-3 text-center text-xs text-muted"><Link href="/datenschutz" className="underline">Datenschutz</Link> · <Link href="/datenschutz-jugend" className="underline">Datenschutz für Jugendliche</Link> · <Link href="/impressum" className="underline">Impressum</Link></p>
         </div>
       </section>
     </main>

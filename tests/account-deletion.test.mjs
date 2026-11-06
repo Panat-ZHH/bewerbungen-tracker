@@ -249,7 +249,7 @@ test("settings page: separated sections, notification slot, support text, scroll
   assert.match(page, /<NotificationSettings \/>/);
   assert.match(page, /<PasswordChangeCard \/>/);
   assert.match(page, /scrollIntoView/);
-  const slot = await rf(new URL("../components/settings/notification-slot.tsx", import.meta.url), "utf8");
+  const slot = await rf(new URL("../components/settings/notification-settings.tsx", import.meta.url), "utf8");
   assert.match(slot, /export function NotificationSettings\(\)/);
   const del = await rf(new URL("../components/settings/delete-account.tsx", import.meta.url), "utf8");
   assert.match(del, /withSupport/);
