@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Bell, Megaphone, Hand } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
-import { listMyNotifications, markNotificationRead, type MyNotification } from "@/lib/classes";
+import type { MyNotification } from "@/lib/classes";
+import { markAllNoticesRead, markNoticeRead, useNotices } from "@/lib/notices";
 
 function ago(value: string) {
   const diff = Date.now() - new Date(value).getTime();
@@ -16,18 +17,10 @@ function ago(value: string) {
 
 /** Bell for students: nudges and messages from teachers (my_notifications / mark_notification_read). Renders nothing when there are none. */
 export function NotificationsBell() {
-  const [items, setItems] = useState<MyNotification[] | null>(null);
+  const { items, unread } = useNotices();
   const [open, setOpen] = useState(false);
-  const load = useCallback(() => { listMyNotifications().then(setItems).catch(() => setItems([])); }, []);
-  useEffect(() => { load(); }, [load]);
-
-  const unread = (items ?? []).filter((n) => !n.read).length;
-  async function read(n: MyNotification) {
-    if (n.read) return;
-    setItems((prev) => (prev ?? []).map((x) => (x.id === n.id ? { ...x, read: true } : x)));
-    try { await markNotificationRead(n.id); } catch { load(); }
-  }
-  async function readAll() { await Promise.all((items ?? []).filter((n) => !n.read).map(read)); }
+  const read = (n: MyNotification) => (n.read ? Promise.resolve() : markNoticeRead(n.id));
+  const readAll = () => markAllNoticesRead();
 
   if (items === null || items.length === 0) return null;
   return (

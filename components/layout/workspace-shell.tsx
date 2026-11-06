@@ -11,6 +11,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { useMyAvatar } from "@/components/ui/use-avatars";
 import { FriendRequestsProvider, useFriendRequests } from "@/components/friends/friend-requests-context";
 import { RequestBadge } from "@/components/friends/request-badge";
+import { NoticeBadge } from "@/components/classes/notice-badge";
 import { badgeLabel } from "@/lib/friend-requests";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -165,6 +166,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
                   <Icon size={16} strokeWidth={1.9} />
                   <span className="hidden xl:inline">{label}</span>
                   {href === "/friends" && <RequestBadge count={requestCount} className="-right-0.5 -top-0.5" />}
+                  <NoticeBadge enabled={!isTeacher && href === "/classes"} className="-right-0.5 -top-0.5" />
                 </Link>
               );
             })}
@@ -200,7 +202,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
             return (
               <li key={href} className="min-w-0 flex-1">
                 <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] max-[340px]:text-[9.5px] font-medium tracking-tight transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
-                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${selected ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.2 : 1.8} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
+                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${selected ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.2 : 1.8} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
                   <span className="max-w-full truncate max-[340px]:text-[9.5px]">{label}</span>
                 </Link>
               </li>
@@ -208,7 +210,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
           })}
           <li className="min-w-0 flex-1">
             <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${moreActive ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
-              <span className={`flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${moreActive ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /></span>
+              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${moreActive ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!isTeacher && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" /></span>
               <span className="text-[10.5px] font-medium">Mehr</span>
             </button>
           </li>
@@ -229,6 +231,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
                 <Link href={href} onClick={() => setMoreOpen(false)} aria-current={selected ? "page" : undefined} className={`flex min-h-14 items-center gap-3 rounded-2xl border px-3.5 text-sm font-medium transition active:scale-[.97] ${selected ? "border-[var(--info-line)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--line)] bg-white/60"}`}>
                   <Icon size={18} strokeWidth={1.8} className="shrink-0" />
                   <span className="truncate">{label}</span>
+                  <span className="relative ml-auto"><NoticeBadge enabled={!isTeacher && href === "/classes"} className="-right-1 -top-1" /></span>
                 </Link>
               </li>
             );

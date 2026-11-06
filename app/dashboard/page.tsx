@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarClock, ChevronRight, ClipboardList, Plus, Search, Users } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
+import { NoticesCard } from "@/components/classes/notices-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Card } from "@/components/ui/card";
 import { getApplications } from "@/lib/storage";
@@ -55,6 +56,8 @@ export default function DashboardPage() {
           <Plus size={17} /> Bewerbung hinzufügen
         </Link>
       </div>
+
+      <NoticesCard />
 
       {error && <StatusMessage tone="danger" className="mt-6"><p>{error}</p><Button size="sm" variant="secondary" className="mt-2" onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Erneut versuchen</Button></StatusMessage>}
 

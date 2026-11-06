@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { StatTile } from "@/components/ui/stat-tile";
 import { getClassOverview, listMyClasses } from "@/lib/classes";
 import { ClassSettings } from "./class-settings";
+import { listStudentAliases, shownName } from "@/lib/profile-names";
 import { statusLabels } from "@/lib/utils";
 import type { ClassStudentOverview, SchoolClass } from "@/types";
 import { CodeActions, StatusBar, errorMessage, formatDate } from "./shared";
@@ -42,6 +43,9 @@ export function ClassDetail({ classId }: { classId: string }) {
   const [query, setQuery] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [selected, setSelected] = useState<ClassStudentOverview | null>(null);
+  const [aliases, setAliases] = useState<Record<string, string>>({});
+  const nameOf = useCallback((s: { studentId: string; displayName: string }) => shownName({ alias: aliases[s.studentId], displayName: s.displayName }), [aliases]);
+  useEffect(() => { let alive = true; listStudentAliases(classId).then((a) => { if (alive) setAliases(a); }).catch(() => {}); return () => { alive = false; }; }, [classId]);
 
   const load = useCallback(() => {
     Promise.all([listMyClasses(), getClassOverview(classId)])
@@ -64,14 +68,14 @@ export function ClassDetail({ classId }: { classId: string }) {
   const rows = useMemo(() => {
     let list = [...(students ?? [])];
     const q = query.trim().toLowerCase();
-    list = list.filter((s) => matches[filter](s) && (!q || s.displayName.toLowerCase().includes(q) || (!s.hidden && (s.latest?.company.toLowerCase().includes(q) ?? false))));
+    list = list.filter((s) => matches[filter](s) && (!q || nameOf(s).toLowerCase().includes(q) || (!s.hidden && (s.latest?.company.toLowerCase().includes(q) ?? false))));
     const cmp: Record<SortKey, (a: ClassStudentOverview, b: ClassStudentOverview) => number> = {
       activity: (a, b) => a.last30Days - b.last30Days || a.last7Days - b.last7Days || a.total - b.total,
-      name: (a, b) => a.displayName.localeCompare(b.displayName, "de"),
+      name: (a, b) => nameOf(a).localeCompare(nameOf(b), "de"),
       total: (a, b) => b.total - a.total,
     };
-    return list.sort((a, b) => Number(a.hidden) - Number(b.hidden) || cmp[sort](a, b) || a.displayName.localeCompare(b.displayName, "de"));
-  }, [students, sort, filter, query]);
+    return list.sort((a, b) => Number(a.hidden) - Number(b.hidden) || cmp[sort](a, b) || nameOf(a).localeCompare(nameOf(b), "de"));
+  }, [students, sort, filter, query, nameOf]);
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.value, (students ?? []).filter(matches[f.value]).length])) as Record<FilterKey, number>, [students]);
 
   return (
@@ -124,8 +128,8 @@ export function ClassDetail({ classId }: { classId: string }) {
                   <li key={s.studentId}>
                     <button type="button" onClick={() => setSelected(s)} className="card-interactive panel w-full space-y-3 rounded-[var(--radius-lg)] p-4 text-left">
                       <div className="flex items-center gap-3">
-                        <Avatar name={s.displayName} src={avatars[s.studentId]} size="sm" />
-                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{s.displayName}</p>{s.hidden ? <p className="text-small text-muted">Teilt keine Daten</p> : <p className="text-small text-muted tabular">{s.total} Bewerbungen · 7 T: {s.last7Days} · 30 T: {s.last30Days}</p>}</div>
+                        <Avatar name={nameOf(s)} src={avatars[s.studentId]} size="sm" />
+                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{nameOf(s)}</p>{s.hidden ? <p className="text-small text-muted">Teilt keine Daten</p> : <p className="text-small text-muted tabular">{s.total} Bewerbungen · 7 T: {s.last7Days} · 30 T: {s.last30Days}</p>}</div>
                         {s.hidden && <EyeOff size={16} className="text-muted" />}
                       </div>
                       {!s.hidden && (
@@ -158,7 +162,7 @@ export function ClassDetail({ classId }: { classId: string }) {
                     {rows.map((s) => (
                       <tr key={s.studentId} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
                         <th scope="row" className="px-4 py-3 font-medium">
-                          <button type="button" onClick={() => setSelected(s)} className="inline-flex min-h-11 items-center gap-2.5 text-left hover:text-[var(--brand-strong)]"><Avatar name={s.displayName} src={avatars[s.studentId]} size="xs" />{s.displayName}</button>
+                          <button type="button" onClick={() => setSelected(s)} className="inline-flex min-h-11 items-center gap-2.5 text-left hover:text-[var(--brand-strong)]"><Avatar name={nameOf(s)} src={avatars[s.studentId]} size="xs" />{nameOf(s)}</button>
                         </th>
                         {s.hidden ? (
                           <td colSpan={5} className="px-3 py-3 text-muted"><span className="inline-flex items-center gap-1.5"><EyeOff size={14} /> Teilt keine Daten</span></td>
@@ -181,7 +185,7 @@ export function ClassDetail({ classId }: { classId: string }) {
         </>
       )}
 
-      <StudentDrilldown classId={classId} student={selected} onClose={() => setSelected(null)} onRemoved={() => { setSelected(null); load(); }} />
+      <StudentDrilldown classId={classId} student={selected} alias={selected ? aliases[selected.studentId] : undefined} onAlias={(a) => selected && setAliases((prev) => { const next = { ...prev }; if (a) next[selected.studentId] = a; else delete next[selected.studentId]; return next; })} onClose={() => setSelected(null)} onRemoved={() => { setSelected(null); load(); }} />
       {cls && <ClassSettings cls={cls} open={settingsOpen} onClose={() => setSettingsOpen(false)} onChanged={load} />}
     </div>
   );

@@ -11,6 +11,9 @@ import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { acceptInvite, type ClassAnnouncement, type ClassMembershipV2 as ClassMembership, type ClassPreview, getMyClassMembershipsV2, isInviteToken, joinClass, leaveClass, listClassAnnouncements, previewClass, previewInvite, setClassSharingV2 } from "@/lib/classes";
+import { type ConsentChoice } from "@/lib/consent";
+import { ConsentSwitches } from "./consent-switches";
+import { useJoinConsent } from "./join-consent";
 import { PrivacyPanel } from "./privacy-panel";
 import { errorMessage, formatDate } from "./shared";
 
@@ -32,6 +35,7 @@ export function StudentClasses() {
 
   const [pending, setPending] = useState<ClassPreview | null>(null);
   const [resolved, setResolved] = useState("");
+  const consent = useJoinConsent();
 
   /** Step 1: look the class up so the student sees who they share with before consenting. */
   async function lookup(event: FormEvent) {
@@ -43,29 +47,34 @@ export function StudentClasses() {
       const found: ClassPreview = isInviteToken(trimmed) ? await previewInvite(trimmed) : await previewClass(trimmed);
       const invite = found as Partial<Awaited<ReturnType<typeof previewInvite>>>;
       if (invite.valid === false && !found.alreadyMember) throw new Error(invite.reason ?? "INVALID");
-      if (found.alreadyMember) { setNotice(`Du bist schon in der Klasse "${found.name}".`); setCode(""); } else { setResolved(trimmed); setPending(found); }
+      if (found.alreadyMember) { setNotice(`Du bist schon in der Klasse "${found.name}".`); setCode(""); }
+      else {
+        await consent.load();
+        setResolved(trimmed); setPending(found);
+      }
     } catch (e) { setJoinError(errorMessage(e)); } finally { setJoining(false); }
   }
 
-  /** Step 2: explicit consent. */
+  /** Step 2: explicit consent. Name and age band are saved first so the defaults and the teacher's view are right from the start. */
   async function confirmJoin() {
-    if (!pending) return;
+    if (!pending || !consent.ready) return;
     setJoining(true); setActionError("");
     try {
-      const m = await (isInviteToken(resolved) ? acceptInvite(resolved) : joinClass(resolved));
-      const full: ClassMembership = { ...m, shareCompanies: true, announcementsCount: 0 };
+      const { membership: m, consent: final } = await consent.run(() => (isInviteToken(resolved) ? acceptInvite(resolved) : joinClass(resolved)));
+      const full: ClassMembership = { ...m, shareApplications: final.share, shareCompanies: final.companies, shareStatus: final.status, announcementsCount: 0 };
       setItems((prev) => [full, ...(prev ?? []).filter((x) => x.classId !== m.classId)]);
       setCode(""); setPending(null); setNotice(`Du bist der Klasse "${m.name}" beigetreten.`);
     } catch (e) { setActionError(errorMessage(e)); } finally { setJoining(false); }
   }
 
-  /** Consent: master switch (share) and company names. Optimistic, rolled back on error. */
-  async function update(m: ClassMembership, share: boolean, companies: boolean) {
+  /** Consent: three real switches (Fortschritt teilen, Status zeigen, Firmen zeigen). Optimistic, rolled back on error. */
+  async function update(m: ClassMembership, next: Partial<ConsentChoice>) {
+    const target: ConsentChoice = { share: m.shareApplications, status: m.shareStatus, companies: m.shareCompanies, ...next };
     setBusy(m.classId); setActionError("");
-    const apply = (a: boolean, c: boolean) => setItems((prev) => (prev ?? []).map((x) => (x.classId === m.classId ? { ...x, shareApplications: a, shareCompanies: c } : x)));
-    apply(share, companies);
-    try { await setClassSharingV2(m.classId, share, companies); }
-    catch (e) { apply(m.shareApplications, m.shareCompanies); setActionError(errorMessage(e)); } finally { setBusy(null); }
+    const apply = (c: ConsentChoice) => setItems((prev) => (prev ?? []).map((x) => (x.classId === m.classId ? { ...x, shareApplications: c.share, shareStatus: c.status, shareCompanies: c.companies } : x)));
+    apply(target);
+    try { await setClassSharingV2(m.classId, target.share, target.companies, target.status); }
+    catch (e) { apply({ share: m.shareApplications, status: m.shareStatus, companies: m.shareCompanies }); setActionError(errorMessage(e)); } finally { setBusy(null); }
   }
 
   async function confirmLeave() {
@@ -108,8 +117,7 @@ export function StudentClasses() {
               </div>
               {m.lastNudgeAt && <p className="text-small text-muted">Letzte Erinnerung deiner Lehrperson: {formatDate(m.lastNudgeAt)}</p>}
               <div className="space-y-2.5 rounded-[var(--radius-md)] border border-[var(--line)] p-3.5">
-                <ConsentSwitch label="Fortschritt mit Lehrperson teilen" description={m.shareApplications ? "Anzahl und Status deiner Bewerbungen sind sichtbar." : "Deine Lehrperson sieht nur, dass du in der Klasse bist."} checked={m.shareApplications} disabled={busy === m.classId} onChange={(v) => update(m, v, m.shareCompanies)} />
-                <ConsentSwitch label="Firmennamen zeigen" description={m.shareCompanies ? "Firma und Position sind sichtbar." : "Firma und Position bleiben verborgen."} checked={m.shareApplications && m.shareCompanies} disabled={busy === m.classId || !m.shareApplications} onChange={(v) => update(m, m.shareApplications, v)} />
+                <ConsentSwitches value={{ share: m.shareApplications, status: m.shareStatus, companies: m.shareCompanies }} disabled={busy === m.classId} onChange={(next) => update(m, next)} />
               </div>
               <Announcements classId={m.classId} count={m.announcementsCount} />
               <div className="flex flex-wrap gap-2">
@@ -121,8 +129,8 @@ export function StudentClasses() {
       )}
 
       <Modal open={!!pending} onClose={() => setPending(null)} title={pending ? `Klasse "${pending.name}" beitreten?` : ""} description={pending ? `${pending.teacherName}${pending.schoolYear ? ` · Schuljahr ${pending.schoolYear}` : ""} · ${pending.memberCount} Schüler` : undefined}
-        footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} onClick={confirmJoin}>Beitreten und Freigabe erlauben</Button></div>}>
-        <PrivacyPanel variant="class" teacherName={pending?.teacherName} />
+        footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} disabled={!consent.ready} onClick={confirmJoin}>Beitreten</Button></div>}>
+        {consent.fields(pending?.teacherName)}
         {actionError && <p role="alert" className="text-small mt-3 text-[var(--danger-fg)]">{actionError}</p>}
       </Modal>
 
@@ -142,38 +150,28 @@ function extractCode(input: string): string {
   return isInviteToken(decoded) ? decoded : decoded.toUpperCase();
 }
 
-function ConsentSwitch({ label, description, checked, disabled, onChange }: { label: string; description: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
-  return (
-    <label className={`flex min-h-11 items-center justify-between gap-3 ${disabled ? "opacity-60" : "cursor-pointer"}`}>
-      <span className="min-w-0"><span className="block text-sm font-medium">{label}</span><span className="text-small block text-muted">{description}</span></span>
-      <input type="checkbox" role="switch" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
-      <span aria-hidden className={`relative h-7 w-12 shrink-0 rounded-full border transition peer-focus-visible:ring-4 peer-focus-visible:ring-[var(--brand)]/30 ${checked ? "border-[var(--brand)] bg-[var(--brand)]" : "border-[var(--neutral-line)] bg-[var(--neutral-bg)]"}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${checked ? "left-[26px]" : "left-0.5 bg-[var(--neutral-fg)]"}`} />
-      </span>
-    </label>
-  );
-}
-
-/** Messages from the teacher to the whole class (read only). */
+/** Messages from the teacher to the whole class. Shown open (latest 3); older ones behind one button. */
 function Announcements({ classId, count }: { classId: string; count: number }) {
-  const [open, setOpen] = useState(false);
   const [items, setItems] = useState<ClassAnnouncement[] | null>(null);
   const [failed, setFailed] = useState(false);
+  const [all, setAll] = useState(false);
+  useEffect(() => {
+    if (count === 0) return;
+    let alive = true;
+    listClassAnnouncements(classId).then((r) => { if (alive) setItems(r); }).catch(() => { if (alive) setFailed(true); });
+    return () => { alive = false; };
+  }, [classId, count]);
   if (count === 0) return null;
-  function toggle() {
-    const next = !open; setOpen(next);
-    if (next && !items) listClassAnnouncements(classId).then(setItems).catch(() => setFailed(true));
-  }
+  const visible = all ? items : items?.slice(0, 3);
   return (
     <div>
-      <button type="button" onClick={toggle} aria-expanded={open} className="inline-flex min-h-11 items-center gap-2 rounded-full px-1 text-sm font-semibold text-[var(--brand)] hover:underline"><Megaphone size={15} />{count === 1 ? "1 Mitteilung" : `${count} Mitteilungen`} der Lehrperson</button>
-      {open && (
-        <ul className="mt-1 space-y-2">
-          {failed && <li className="text-small text-[var(--danger-fg)]">Die Mitteilungen konnten nicht geladen werden.</li>}
-          {!items && !failed && <li><Skeleton className="h-12 rounded-[var(--radius-md)]" /></li>}
-          {items?.map((a) => <li key={a.id} className="rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3 text-sm text-[var(--info-fg)]"><p className="whitespace-pre-wrap break-words">{a.text}</p><p className="text-small mt-1 opacity-90">{a.authorName} · {formatDate(a.createdAt)}</p></li>)}
-        </ul>
-      )}
+      <p className="flex items-center gap-2 text-sm font-semibold text-[var(--brand)]"><Megaphone size={15} aria-hidden />{count === 1 ? "1 Mitteilung" : `${count} Mitteilungen`} der Lehrperson</p>
+      <ul className="mt-1 space-y-2">
+        {failed && <li className="text-small text-[var(--danger-fg)]">Die Mitteilungen konnten nicht geladen werden.</li>}
+        {!items && !failed && <li><Skeleton className="h-12 rounded-[var(--radius-md)]" /></li>}
+        {visible?.map((a) => <li key={a.id} className="rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3 text-sm text-[var(--info-fg)]"><p className="whitespace-pre-wrap break-words">{a.text}</p><p className="text-small mt-1 opacity-90">{a.authorName} · {formatDate(a.createdAt)}</p></li>)}
+      </ul>
+      {items && items.length > 3 && !all && <button type="button" onClick={() => setAll(true)} className="mt-1 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] hover:underline">Ältere Mitteilungen anzeigen</button>}
     </div>
   );
 }

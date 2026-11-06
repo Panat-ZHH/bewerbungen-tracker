@@ -10,7 +10,7 @@ const FAKE = "00000000-0000-4000-8000-0000000000ff";
 test("migration is idempotent and keeps existing data", async () => {
   const t = await setupTeacherDb();
   const before = await t.admin("select (select count(*) from public.class_members)::int m, (select count(*) from public.classes)::int c, (select count(*) from public.applications)::int a");
-  await t.apply(t.files.at(-1)); // run the last migration a second time
+  await t.apply(t.files.find((f) => f.includes("teacher_role"))); // run the teacher migration a second time
   assert.deepEqual(await t.admin("select (select count(*) from public.class_members)::int m, (select count(*) from public.classes)::int c, (select count(*) from public.applications)::int a"), before);
   const fns = await t.admin(`select proname from pg_proc where pronamespace = 'public'::regnamespace`);
   for (const name of ["set_my_role", "class_set_archived", "class_add_coteacher", "class_remove_coteacher", "teacher_dashboard", "teacher_class_students", "class_student_timeline",
@@ -22,12 +22,13 @@ test("migration is idempotent and keeps existing data", async () => {
 
 test("upgrade from the previous schema keeps existing members and defaults new consent flags to true", async () => {
   const t = await setupTeacherDb({ seed: false, migrate: false });
-  for (const f of t.files.slice(0, -1)) await t.apply(f);
+  const teacherFile = t.files.find((f) => f.includes("teacher_role"));
+  for (const f of t.files.filter((x) => x < teacherFile)) await t.apply(f);
   await t.database.query(`insert into auth.users values ($1,'t@x.de','{"role":"teacher"}'), ($2,'s@x.de','{}')`, [ids.owner, ids.s1]);
   await t.as(ids.owner);
   const [c] = await t.rpc("select * from public.class_create('Alt')");
   await t.as(ids.s1); await t.rpc("select * from public.class_join($1)", [c.join_code]);
-  await t.apply(t.files.at(-1));
+  await t.apply(teacherFile);
   const rows = await t.admin("select share_applications, share_status, share_companies from public.class_members");
   assert.deepEqual(rows, [{ share_applications: true, share_status: true, share_companies: true }]);
   await t.as(ids.owner);
