@@ -12,6 +12,7 @@ import { deadlineInfo, friendlyMessage } from "@/lib/ux";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { WeeklyGoal } from "@/components/dashboard/weekly-goal";
 import type { Application, ApplicationStatus } from "@/types";
 
 
@@ -63,6 +64,8 @@ export default function DashboardPage() {
         <Summary label="Offen" value={loading ? "–" : activeCount} detail="Noch in Arbeit" />
         <Summary label="Gespräche" value={loading ? "–" : conversations} detail={offers ? `${offers} ${offers === 1 ? "Zusage" : "Zusagen"}` : "Noch keine"} />
       </section>
+
+      {!loading && applications.length > 0 && <WeeklyGoal applications={applications} />}
 
       <section className="mt-10">
         <div className="flex items-center justify-between gap-3">

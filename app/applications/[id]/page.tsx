@@ -12,6 +12,7 @@ import { Modal } from "@/components/ui/modal";
 import { deleteApplication, getApplication, importApplications, updateApplication } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
 import { deadlineInfo, friendlyMessage } from "@/lib/ux";
+import { reward } from "@/lib/rewards";
 import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
@@ -47,6 +48,7 @@ export default function ApplicationDetailPage() {
     try {
       const updated = await updateApplication(application.id, { status });
       if (updated) setApplication(updated);
+      if (status === "applied") reward("applied");
       toast({
         message: `Stand geändert: ${statusLabels[status]}`,
         action: { label: "Rückgängig", onClick: async () => {

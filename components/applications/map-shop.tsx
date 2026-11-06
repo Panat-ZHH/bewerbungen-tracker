@@ -192,7 +192,7 @@ export function MapPlacementTools({ shop }: { shop: ShopController }) {
   if (!shop.placement) {
     const item = shop.allItems.find(({ id }) => id === shop.selectedId);
     if (!item || item.x === null || isLockedMapObject(item)) return undo || message ? <div className={styles.moveToast} aria-label="Verschieben">{undo}{message}</div> : null;
-    return <div className={styles.placementTools} aria-label="Ausgewählter Gegenstand">{undo}{message}<strong>{placeableCatalog[item.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(item)}><LocateFixed size={15} />Verschieben</button>{item.itemType !== "house" && item.itemType !== "street" && <button type="button" disabled={shop.busy} onClick={() => void shop.save(item, null)}><Package size={15} />Einlagern</button>}<button type="button" title="Auswahl schließen" aria-label="Auswahl schließen" disabled={shop.busy} onClick={shop.clearSelection}><X size={17} /></button></div>;
+    return <div className={styles.placementTools} aria-label="Ausgewählter Gegenstand">{undo}{message}<strong>{placeableCatalog[item.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(item)}><LocateFixed size={15} />Verschieben</button>{item.itemType !== "house" && item.itemType !== "street" && <button type="button" disabled={shop.busy} onClick={() => void shop.save(item, null)}><Package size={15} />Einlagern</button>}<button type="button" title="Auswahl schliessen" aria-label="Auswahl schliessen" disabled={shop.busy} onClick={shop.clearSelection}><X size={17} /></button></div>;
   }
   const { item, position } = shop.placement;
   const valid = canPlaceMapItem(item, position, shop.allItems, shop.maxZ, shop.islandCount);
@@ -204,7 +204,7 @@ export function MapPlacementTools({ shop }: { shop: ShopController }) {
     <span>{position.rotation * 90}°</span>
     <button type="button" className={styles.placeConfirm} disabled={shop.busy || !valid} onClick={() => void shop.save(item, position)}><MapPin size={15} />{shop.busy ? "Speichern ..." : "Platzieren"}</button>
     <button type="button" title="Platzierung abbrechen" aria-label="Platzierung abbrechen" disabled={shop.busy} onClick={shop.cancel}><X size={17} /></button>
-    {!valid && <p role="status">Dieser Platz ist belegt oder außerhalb der Baufläche.</p>}{message}
+    {!valid && <p role="status">Dieser Platz ist belegt oder ausserhalb der Baufläche.</p>}{message}
   </div>;
 }
 
@@ -217,7 +217,7 @@ export function MapShop({ shop, compact = false }: { shop: ShopController; compa
   }, []);
   const selected = shop.state?.items.find(({ id }) => id === shop.selectedId);
   return <section className={`${styles.shop} ${compact ? styles.shopCompact : ""}`} aria-labelledby="map-shop-title" aria-busy={shop.busy || shop.loading}>
-    <header className={styles.shopHeading}><div><h2 id="map-shop-title" className={compact ? "sr-only" : undefined}>Shop</h2><p>{shop.state ? `${shop.state.rewardCount} Bewerbungen belohnt` : "Punktestand wird geladen"}</p></div><div className={styles.points} aria-label="Verfügbare Punkte"><Coins size={20} /><strong>{shop.state?.balance ?? "-"}</strong><span>Punkte</span></div></header>
+    <header className={styles.shopHeading}><div><h2 id="map-shop-title" className={compact ? "sr-only" : undefined}>Laden</h2><p>{shop.state ? `${shop.state.rewardCount} Bewerbungen belohnt` : "Punktestand wird geladen"}</p></div><div className={styles.points} aria-label="Verfügbare Punkte"><Coins size={20} /><strong>{shop.state?.balance ?? "-"}</strong><span>Punkte</span></div></header>
     {shop.error && <div className={styles.shopError} role="alert">{shop.error}<button type="button" disabled={shop.busy || shop.loading} onClick={shop.retry}>Erneut laden</button></div>}
     <p className={styles.shopNotice} role="status">{shop.notice}</p>
     <div className={styles.shopGrid}>{(Object.entries(shopCatalog) as [ShopItemType, typeof shopCatalog[ShopItemType]][]).map(([type, item]) => {

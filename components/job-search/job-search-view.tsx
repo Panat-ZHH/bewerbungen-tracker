@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/input";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
+import { reward } from "@/lib/rewards";
 import { toast } from "@/lib/toast";
 import { friendlyMessage, generalCause } from "@/lib/ux";
 import { createApplication, getApplications } from "@/lib/storage";
@@ -184,7 +185,8 @@ export function JobSearchView() {
     try {
       await createApplication({ company: job.company || "Firma noch ergänzen", position: job.title, location: job.location, jobUrl: job.url, source: [...new Set(sources.map((s) => s.name))].join(", "), notes: sources.length > 1 ? sources.map((s) => `${s.name}: ${s.url}`).join("\n") : undefined, category: "other", status: "saved" });
       setSaved((cur) => new Set([...cur, ...sources.map((s) => s.url)]));
-      toast({ message: "Gemerkt – die Stelle steht jetzt unter „Bewerbungen“." });
+      reward("saved");
+      toast({ message: "Die Stelle steht jetzt unter „Bewerbungen“.", duration: 3500 });
     } catch (reason) {
       toast({ tone: "danger", message: friendlyMessage(reason, "Die Stelle konnte nicht gemerkt werden.") });
     } finally { setSaving(""); }

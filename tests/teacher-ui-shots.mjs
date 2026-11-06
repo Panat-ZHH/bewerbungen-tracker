@@ -126,7 +126,7 @@ await session({ w: 1280, h: 800, dark: false }, async (page, stub) => {
   if (!stub.calls.some((c) => c.rpc === "class_nudge" && c.body.p_student_id === "s2")) problems.push("nudge rpc not called");
   await page.locator("tbody tr", { hasText: "Ben Huber" }).getByRole("button", { name: /Erinn/ }).click();
   await page.getByRole("button", { name: "Erinnerung senden" }).last().click(); await page.waitForSelector("text=in den letzten 3 Tagen schon erinnert"); await shot(page, "dialog-nudge-ratelimited-1280", false);
-  await page.getByRole("button", { name: "Schließen", exact: true }).last().click(); await page.waitForTimeout(300);
+  await page.getByRole("button", { name: "Schliessen", exact: true }).last().click(); await page.waitForTimeout(300);
   // remove dialog
   await page.getByRole("button", { name: "Cleo Brunner aus der Klasse entfernen" }).click(); await page.waitForTimeout(400); await shot(page, "dialog-remove-1280", false);
   await page.getByRole("button", { name: "Abbrechen" }).click();

@@ -143,7 +143,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         <div className="space-y-4">
           <Field label="Eigene Nachricht (optional)" htmlFor="nudge-msg" hint={`${message.length}/200 Zeichen`}><Textarea id="nudge-msg" data-autofocus className="text-base! sm:text-base!" rows={3} maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Wie läuft die Suche? Brauchst du Hilfe beim Lebenslauf?" /></Field>
           {nudgeError && <p role="alert" className="text-small text-[var(--danger-fg)]">{nudgeError}</p>}
-          <div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setNudge(null)}>{nudgeError ? "Schließen" : "Abbrechen"}</Button><Button loading={busy} icon={<BellRing size={15} />} onClick={sendNudges}>Erinnerung senden</Button></div>
+          <div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setNudge(null)}>{nudgeError ? "Schliessen" : "Abbrechen"}</Button><Button loading={busy} icon={<BellRing size={15} />} onClick={sendNudges}>Erinnerung senden</Button></div>
         </div>
       </Modal>
 
