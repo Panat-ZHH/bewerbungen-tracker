@@ -51,7 +51,7 @@ export function FilterPanel({ filters, onChange, facets, companies, idPrefix = "
         <div className="flex flex-wrap gap-1.5">{years.map((y) => <ToggleChip key={y} active={filters.startYear === y} onClick={() => onChange({ startYear: filters.startYear === y ? undefined : y })}>{y}</ToggleChip>)}</div>
       </Group>
       <Group title="Ausbildung">
-        <div className="flex flex-wrap gap-1.5">{Object.entries(EDUCATION_LABELS).map(([id, label]) => <ToggleChip key={id} active={filters.education.includes(id as never)} count={facets.education[id]} onClick={() => onChange({ education: toggle(filters.education, id as never) })}>{label}</ToggleChip>)}</div>
+        <div className="flex flex-wrap gap-1.5">{Object.entries(EDUCATION_LABELS).map(([id, label]) => <ToggleChip key={id} active={filters.education.includes(id as never)} count={facets.education[id as keyof typeof facets.education]} onClick={() => onChange({ education: toggle(filters.education, id as never) })}>{label}</ToggleChip>)}</div>
       </Group>
       <Group title="Sprache">
         <div className="flex flex-wrap gap-1.5">{Object.entries(LANGUAGE_LABELS).map(([id, label]) => <ToggleChip key={id} active={filters.languages.includes(id)} onClick={() => onChange({ languages: toggle(filters.languages, id) })}>{label}</ToggleChip>)}</div>

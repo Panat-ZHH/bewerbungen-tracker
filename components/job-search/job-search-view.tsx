@@ -147,7 +147,7 @@ export function JobSearchView() {
 
   const filtered = useMemo(() => applyFilters(results, state.filters, saved), [results, state.filters, saved]);
   const ranked = useMemo(() => sortJobs(rankJobs(filtered, state.query), state.sort), [filtered, state.query, state.sort]);
-  const facets = useMemo(() => computeFacets(results), [results]);
+  const facets = useMemo(() => computeFacets(results, state.filters, saved), [results, state.filters, saved]);
   const companies = useMemo(() => companyOptions(results), [results]);
   const shown = ranked.slice(0, visible);
   const hasMoreLocal = ranked.length > visible;
