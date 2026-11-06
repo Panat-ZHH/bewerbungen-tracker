@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Ban, Link2, Mail, Plus, Send } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Ban, FileUp, Link2, Mail, Plus, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,8 +10,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/lib/toast";
 import { classInviteLink } from "@/lib/classes";
 import { formatDate } from "@/components/classes/shared";
-import { createInvite, createInvites, listInvites, revokeInvite, type ClassInvitation, type DashboardClass } from "./api";
-import { INVITE_STATE_LABEL, MAX_INVITE_EMAILS, inviteMailto, inviteState, inviteUrl, parseEmails, type InviteState } from "./logic";
+import { createInvite, listInvites, revokeInvite, type ClassInvitation, type DashboardClass } from "./api";
+import { createInvitesDetailed, type InviteResult } from "@/lib/teacher-more";
+import { MAX_IMPORT_ROWS, OUTCOME_LABEL, parseInviteCsv, summarizeOutcomes, type ImportRow, type InviteOutcome } from "@/lib/teacher-extras";
+import { INVITE_STATE_LABEL, inviteMailto, inviteState, inviteUrl, type InviteState } from "./logic";
 import { QrCode } from "./qr-code";
 import { CopyButton, ErrorBanner, teacherError } from "./shared";
 
@@ -23,24 +25,35 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
   const [emails, setEmails] = useState("");
   const [busy, setBusy] = useState<"" | "many" | "single">("");
   const [formError, setFormError] = useState("");
-  const [results, setResults] = useState<{ email: string; url: string }[]>([]);
+  const [results, setResults] = useState<(InviteResult & { name: string; url: string | null })[] | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const joinLink = classInviteLink(cls.joinCode, origin);
 
   const load = useCallback(() => { listInvites(cls.id).then((l) => { setInvites(l); setError(""); }).catch((e) => setError(teacherError(e))); }, [cls.id]);
   useEffect(() => { load(); }, [load]);
 
-  const parsed = parseEmails(emails);
+  const parsed = useMemo(() => parseInviteCsv(emails), [emails]);
+  const okRows = parsed.rows.filter((r) => r.status === "ok");
+  async function loadFile(file: File | undefined) {
+    if (!file) return;
+    if (file.size > 512_000) { setFormError("Die Datei ist zu gross (maximal 500 KB)."); return; }
+    setFormError(""); setResults(null); setEmails(await file.text());
+    if (fileRef.current) fileRef.current.value = "";
+  }
   async function sendMany() {
     setFormError("");
-    if (parsed.valid.length === 0) { setFormError("Bitte gib mindestens eine gültige E-Mail-Adresse ein."); return; }
-    if (parsed.valid.length > MAX_INVITE_EMAILS) { setFormError(`Maximal ${MAX_INVITE_EMAILS} Adressen auf einmal (aktuell ${parsed.valid.length}).`); return; }
+    if (okRows.length === 0) { setFormError("Bitte gib mindestens eine gültige E-Mail-Adresse ein."); return; }
     setBusy("many");
     try {
-      const created = await createInvites(cls.id, parsed.valid);
-      setResults(created.map((c) => ({ email: c.email, url: inviteUrl(c.token, origin) })));
-      setEmails(parsed.invalid.join("\n"));
-      toast({ message: `${created.length} Einladungen erstellt.`, tone: "success" });
+      const names = new Map(okRows.map((r) => [r.email, r.name]));
+      const out = await createInvitesDetailed(cls.id, okRows.map((r) => r.email));
+      // Rows rejected on the client are reported together with the server verdicts, so every input line has one visible result.
+      const local = parsed.rows.filter((r) => r.status !== "ok").map((r): InviteResult => ({ email: r.email || "(leer)", outcome: r.status === "duplicate" ? "duplicate" : "invalid", token: null }));
+      setResults([...out, ...local].map((r) => ({ ...r, name: names.get(r.email) ?? "", url: r.token ? inviteUrl(r.token, origin) : null })));
+      setEmails("");
+      const sum = summarizeOutcomes([...out, ...local]);
+      toast({ message: sum.text + ".", tone: sum.created ? "success" : "info" });
       load();
     } catch (e) { setFormError(teacherError(e)); } finally { setBusy(""); }
   }
@@ -55,7 +68,7 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-2">
-      <Card className="space-y-4 p-5">
+      <Card className="min-w-0 space-y-4 p-5">
         <div><h2 className="text-heading">Klassen-Link und Code</h2><p className="text-small text-muted">Wer den Link oder Code hat, kann der Klasse beitreten. Teile ihn nur mit deiner Klasse.</p></div>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
           <QrCode value={joinLink} label={`QR-Code zum Beitritt der Klasse ${cls.name}`} />
@@ -67,24 +80,19 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
         <p className="text-small text-muted">Den Code änderst du in den Einstellungen. Dann funktioniert der alte Link nicht mehr.</p>
       </Card>
 
-      <Card className="space-y-4 p-5">
-        <div><h2 className="text-heading">Per E-Mail einladen</h2><p className="text-small text-muted">Füge Adressen ein, getrennt durch Komma, Leerzeichen oder Zeilenumbruch. Jede Person erhält einen persönlichen Link, der nur mit dieser E-Mail-Adresse funktioniert.</p></div>
-        <Field label="E-Mail-Adressen" htmlFor="inv-emails" error={formError} hint={emails.trim() ? `${parsed.valid.length} gültig${parsed.invalid.length ? `, ${parsed.invalid.length} ungültig (${parsed.invalid.slice(0, 3).join(", ")}${parsed.invalid.length > 3 ? " …" : ""})` : ""}` : `Maximal ${MAX_INVITE_EMAILS} Adressen`}>
-          <Textarea id="inv-emails" rows={4} className="text-base! sm:text-base!" value={emails} onChange={(e) => setEmails(e.target.value)} placeholder={"anna@schule.ch\nben@schule.ch"} aria-invalid={!!formError} />
+      <Card className="min-w-0 space-y-4 p-5">
+        <div><h2 className="text-heading">Per E-Mail einladen</h2><p className="text-small text-muted">Füge Adressen ein oder lade eine Klassenliste als CSV-Datei («Name, E-Mail», Kopfzeile optional). Jede Person erhält einen persönlichen Link, der nur mit dieser E-Mail-Adresse funktioniert. Es wird keine E-Mail automatisch versendet; du verschickst die Links selbst.</p></div>
+        <Field label="Adressen oder Klassenliste" htmlFor="inv-emails" error={formError} hint={`Maximal ${MAX_IMPORT_ROWS} Adressen auf einmal`}>
+          <Textarea id="inv-emails" rows={5} className="text-base! sm:text-base!" value={emails} onChange={(e) => { setEmails(e.target.value); setResults(null); }} placeholder={"Anna Muster, anna@schule.ch\nBen Beispiel, ben@schule.ch"} aria-invalid={!!formError} />
         </Field>
+        <input ref={fileRef} id="inv-file" type="file" accept=".csv,.txt,text/csv,text/plain" className="sr-only" onChange={(e) => void loadFile(e.target.files?.[0])} />
+        {parsed.rows.length > 0 && <ImportPreview rows={parsed.rows} counts={parsed.counts} />}
         <div className="flex flex-wrap gap-2">
-          <Button className="min-h-11 sm:min-h-11" icon={<Send size={15} />} loading={busy === "many"} onClick={sendMany}>Einladungen erstellen</Button>
-          <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Plus size={15} />} loading={busy === "single"} onClick={createLink}>Offenen Link erstellen</Button>
+          <Button className="min-h-11 sm:min-h-11" icon={<Send size={15} />} loading={busy === "many"} disabled={okRows.length === 0} onClick={sendMany}>{okRows.length > 0 ? `${okRows.length} ${okRows.length === 1 ? "Einladung" : "Einladungen"} erstellen` : "Einladungen erstellen"}</Button>
+          <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<FileUp size={15} />} onClick={() => fileRef.current?.click()}>CSV-Datei laden</Button>
+          <Button variant="ghost" className="min-h-11 sm:min-h-11" icon={<Plus size={15} />} loading={busy === "single"} onClick={createLink}>Offenen Link erstellen</Button>
         </div>
-        {results.length > 0 && (
-          <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--success-line)] bg-[var(--success-bg)] p-3" role="status">
-            <p className="text-sm font-semibold text-[var(--success-fg)]">{results.length} persönliche Links bereit</p>
-            <ul className="space-y-1">{results.map((r) => (
-              <li key={r.email} className="flex items-center justify-between gap-2"><span className="min-w-0 truncate text-sm">{r.email}</span><ButtonLink href={inviteMailto(r.email, cls.name, r.url)} size="sm" variant="secondary" className="min-h-11 shrink-0 sm:min-h-11" icon={<Mail size={14} />} aria-label={`E-Mail an ${r.email} vorbereiten`}>E-Mail</ButtonLink></li>
-            ))}</ul>
-            <CopyButton text={results.map((r) => `${r.email}: ${r.url}`).join("\n")} label="Alle Links kopieren" />
-          </div>
-        )}
+        {results && <InviteResults results={results} className={cls.name} />}
       </Card>
 
       <Card className="space-y-3 p-5 lg:col-span-2">
@@ -110,6 +118,51 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
           </ul>
         )}
       </Card>
+    </div>
+  );
+}
+
+const ROW_TONE: Record<ImportRow["status"], "success" | "danger" | "neutral"> = { ok: "success", invalid: "danger", duplicate: "neutral" };
+const ROW_LABEL: Record<ImportRow["status"], string> = { ok: "Gültig", invalid: "Ungültig", duplicate: "Doppelt" };
+
+/** Preview of the parsed list before anything is created: every line with its verdict, plus counts. */
+function ImportPreview({ rows, counts }: { rows: ImportRow[]; counts: { ok: number; invalid: number; duplicate: number; total: number } }) {
+  return (
+    <div className="space-y-2" aria-label="Vorschau der Liste">
+      <p className="text-sm font-semibold" role="status">{counts.total} {counts.total === 1 ? "Zeile" : "Zeilen"}: {counts.ok} gültig{counts.duplicate ? `, ${counts.duplicate} doppelt` : ""}{counts.invalid ? `, ${counts.invalid} ungültig` : ""}</p>
+      <div className="max-h-56 overflow-auto rounded-[var(--radius-md)] border border-[var(--line)]">
+        <table className="w-full text-left text-sm">
+          <caption className="sr-only">Vorschau der Einladungsliste</caption>
+          <thead className="text-eyebrow sticky top-0 bg-[var(--solid)]"><tr><th scope="col" className="px-3 py-2 font-medium">Name</th><th scope="col" className="px-3 py-2 font-medium">E-Mail</th><th scope="col" className="px-3 py-2 font-medium">Prüfung</th></tr></thead>
+          <tbody>{rows.map((r, i) => (
+            <tr key={`${r.line}-${i}`} className="border-t border-[var(--line)]">
+              <td className="max-w-[9rem] truncate px-3 py-2">{r.name || <span className="text-muted">–</span>}</td>
+              <td className="max-w-[12rem] truncate px-3 py-2">{r.email || <span className="text-muted">–</span>}</td>
+              <td className="px-3 py-2"><Badge tone={ROW_TONE[r.status]}>{ROW_LABEL[r.status]}</Badge>{r.reason && <span className="text-small ml-2 text-muted">{r.reason}</span>}</td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+const OUTCOME_TONE: Record<string, "success" | "danger" | "neutral" | "warning"> = { created: "success", already_invited: "warning", already_member: "neutral", duplicate: "neutral", invalid: "danger" };
+/** Result after sending: one line per address (created / already invited / already member / duplicate / invalid) and the totals. */
+function InviteResults({ results, className }: { results: (InviteResult & { name: string; url: string | null })[]; className: string }) {
+  const sum = summarizeOutcomes(results);
+  const links = results.filter((r) => r.url);
+  return (
+    <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--success-line)] bg-[var(--success-bg)] p-3" role="status">
+      <p className="text-sm font-semibold text-[var(--success-fg)]">{sum.text}</p>
+      <ul className="space-y-1">{results.map((r, i) => (
+        <li key={`${r.email}-${i}`} className="flex flex-wrap items-center justify-between gap-2">
+          <span className="min-w-0 flex-1 basis-40 truncate text-sm">{r.name ? `${r.name} · ` : ""}{r.email}</span>
+          <Badge tone={OUTCOME_TONE[r.outcome] ?? "neutral"}>{OUTCOME_LABEL[r.outcome as InviteOutcome] ?? "Übersprungen"}</Badge>
+          {r.url && <ButtonLink href={inviteMailto(r.email, className, r.url)} size="sm" variant="secondary" className="min-h-11 shrink-0 sm:min-h-11" icon={<Mail size={14} />} aria-label={`E-Mail an ${r.email} vorbereiten`}>E-Mail</ButtonLink>}
+        </li>
+      ))}</ul>
+      {links.length > 0 && <CopyButton text={links.map((r) => `${r.name ? `${r.name} · ` : ""}${r.email}: ${r.url}`).join("\n")} label="Alle Links kopieren" />}
     </div>
   );
 }

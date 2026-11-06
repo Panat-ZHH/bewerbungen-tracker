@@ -4,7 +4,7 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, FileText, GraduationCap, LayoutDashboard, LayoutGrid, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, FileText, GraduationCap, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
@@ -34,10 +34,9 @@ const navigation: NavItem[] = [
 
 /** Teacher menu: Übersicht, Klassen, Profil, Einstellungen (profile/settings live in accountLinks below). */
 const teacherNavigation: NavItem[] = [
-  { label: "Übersicht", href: "/teacher", icon: LayoutGrid, keys: ["Übersicht", "Lehrer", "Teacher"] },
-  { label: "Klassen", href: "/classes", icon: GraduationCap, keys: ["Klassen", "Classes"], prefixes: ["/teacher/classes", "/classes"] },
+  { label: "Klassen", href: "/teacher", icon: GraduationCap, keys: ["Übersicht", "Klassen", "Lehrer", "Teacher"], prefixes: ["/teacher"] },
 ];
-const teacherPrimaryHrefs = ["/teacher", "/classes", "/profile", "/settings"];
+const teacherPrimaryHrefs = ["/teacher", "/profile", "/settings"];
 /** Items shown directly in the mobile tab bar; everything else goes into the "Mehr" sheet. */
 const primaryHrefs = ["/dashboard", "/search", "/applications", "/friends"];
 const accountLinks = [

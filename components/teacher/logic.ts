@@ -65,11 +65,13 @@ export function canNudge(s: Pick<TeacherStudent, "hidden" | "lastNudgedAt">, now
   return !s.lastNudgedAt || now - new Date(s.lastNudgedAt).getTime() >= NUDGE_COOLDOWN_DAYS * 864e5;
 }
 
-const day = (value: string | null) => (value ? new Date(value).toLocaleDateString("de-CH") : "");
+/** Swiss date with leading zeros (06.11.2026), independent of the browser locale. */
+const day = (value: string | null) => { const m = value ? /^(\d{4})-(\d{2})-(\d{2})/.exec(value) : null; return m ? `${m[3]}.${m[2]}.${m[1]}` : value ? new Date(value).toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit", year: "numeric" }) : ""; };
+const nameOf = (s: TeacherStudent) => s.displayName.trim() || "Ohne Namen";
 /** Columns for the CSV export of the visible class table. Hidden students expose name only. */
 export function studentCsvColumns(labels: Record<ApplicationStatus, string>): CsvColumn<TeacherStudent>[] {
   return [
-    { header: "Name", value: (s) => s.displayName },
+    { header: "Name", value: nameOf },
     { header: "Teilt Daten", value: (s) => (s.hidden ? "nein" : "ja") },
     { header: "Bewerbungen", value: (s) => (s.hidden ? "" : s.total) },
     { header: "Gespräche", value: (s) => (s.hidden ? "" : s.interviews) },

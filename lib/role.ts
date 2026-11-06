@@ -11,7 +11,7 @@ export const ONBOARDING_PATH = "/teacher/onboarding";
 export const STUDENT_ONBOARDING_PATH = "/onboarding";
 
 /** Routes that only make sense for students. Teachers are sent to /teacher. */
-const STUDENT_ONLY = ["/dashboard", "/applications", "/map", "/cvs", "/search", "/analytics"];
+const STUDENT_ONLY = ["/dashboard", "/applications", "/map", "/cvs", "/search", "/analytics", "/friends"];
 
 function under(pathname: string, prefix: string) { return pathname === prefix || pathname.startsWith(`${prefix}/`); }
 export function homeFor(role: UserRole): string { return role === "teacher" ? TEACHER_HOME : STUDENT_HOME; }
@@ -23,6 +23,12 @@ export function guardRedirect(role: UserRole, pathname: string): string | null {
   const path = pathname.split(/[?#]/)[0] || "/";
   if (role === "student" && isTeacherPath(path)) return STUDENT_HOME;
   if (role === "teacher" && isStudentOnlyPath(path)) return TEACHER_HOME;
+  if (role === "teacher") {
+    // /classes is the student page: teachers use /teacher (one place for classes). Join links stay reachable.
+    if (path === "/classes" || path === "/classes/") return TEACHER_HOME;
+    const detail = /^\/classes\/([^/]+)\/?$/.exec(path);
+    if (detail && detail[1] !== "join") return `/teacher/classes/${detail[1]}`;
+  }
   return null;
 }
 
