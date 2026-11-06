@@ -6,6 +6,21 @@ export interface JobSearchResult {
   source: string;
   sources?: { name: string; url: string }[];
   years?: string[];
+  // optional enrichment, see lib/job-filters/types.ts JobMeta
+  contract?: string;
+  jobType?: "lehrstelle" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
+  workloadMin?: number;
+  workloadMax?: number;
+  postedAt?: string;
+  startDate?: string;
+  canton?: string;
+  education?: "efz" | "eba" | "bm" | "hf" | "fh" | "uni" | "none";
+  language?: string;
+  remote?: "remote" | "hybrid" | "onsite";
+  salaryMin?: number;
+  salaryMax?: number;
+  field?: string;
+  snippet?: string;
 }
 
 export function originalSourceName(value: string): string | undefined {
