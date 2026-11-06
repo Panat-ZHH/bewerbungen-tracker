@@ -8,7 +8,7 @@ import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
-import { DELETE_CONFIRM_WORD, REAUTH_FLAG, confirmationMatches, deletionItems, isFreshSignIn, teacherWarning, type AccountSummary } from "@/lib/account-deletion";
+import { DELETE_CONFIRM_WORD, REAUTH_FLAG, confirmationMatches, deletionItems, isFreshSignIn, teacherWarning, withSupport, type AccountSummary } from "@/lib/account-deletion";
 
 type Identity = { email: string | null; hasPassword: boolean };
 
@@ -31,6 +31,7 @@ export function DeleteAccountCard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const openedByReturn = useRef(false);
+  useEffect(() => { if (error) document.getElementById("delete-error")?.scrollIntoView({ block: "center", behavior: "smooth" }); }, [error]);
 
   async function load() {
     const { data: userData } = await supabase.auth.getUser();
@@ -65,7 +66,7 @@ export function DeleteAccountCard() {
     setBusy(true); setError("");
     sessionStorage.setItem(REAUTH_FLAG, "1");
     const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/settings?delete=1")}` } });
-    if (oauthError) { sessionStorage.removeItem(REAUTH_FLAG); setError("Google konnte nicht geöffnet werden. Bitte versuche es nochmal."); setBusy(false); }
+    if (oauthError) { sessionStorage.removeItem(REAUTH_FLAG); setError(withSupport("Google konnte nicht geöffnet werden.")); setBusy(false); }
   }
 
   async function deleteNow() {
@@ -73,7 +74,7 @@ export function DeleteAccountCard() {
     try {
       if (identity?.hasPassword) {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: identity.email ?? "", password });
-        if (signInError) { setError(/invalid|credentials/i.test(signInError.message) ? "Das Passwort stimmt nicht." : "Die Anmeldung hat nicht geklappt. Bitte versuche es nochmal."); setBusy(false); return; }
+        if (signInError) { setError(/invalid|credentials/i.test(signInError.message) ? "Das Passwort stimmt nicht." : withSupport("Die Anmeldung hat nicht geklappt.")); setBusy(false); return; }
       }
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
@@ -82,7 +83,7 @@ export function DeleteAccountCard() {
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string };
       if (!response.ok || !result.ok) {
         if (result.code === "REAUTH_REQUIRED") setFresh(false);
-        setError(result.message ?? "Das Konto konnte nicht gelöscht werden. Bitte versuche es nochmal.");
+        setError(result.code === "REAUTH_REQUIRED" || result.code === "CONFIRMATION_MISMATCH" ? (result.message ?? "") : withSupport(result.message ?? "Das Konto konnte nicht gelöscht werden."));
         setBusy(false);
         return;
       }
@@ -90,7 +91,7 @@ export function DeleteAccountCard() {
       clearBrowserData();
       window.location.replace("/login?deleted=1");
     } catch {
-      setError("Keine Verbindung. Bitte prüfe dein Internet und versuche es nochmal.");
+      setError(withSupport("Keine Verbindung. Bitte prüfe dein Internet und versuche es nochmal."));
       setBusy(false);
     }
   }
@@ -108,7 +109,7 @@ export function DeleteAccountCard() {
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--danger-bg)] text-[var(--danger-fg)]"><ShieldAlert size={18} /></span>
           <div className="min-w-0">
             <h2 className="text-heading">Konto löschen</h2>
-            <p className="mt-1 text-body text-muted">Löscht dein Konto und alle deine Daten dauerhaft. Das kann nicht rückgängig gemacht werden.</p>
+            <p className="mt-1 text-body text-muted">Löscht dein Konto samt Anmeldung, allen Daten und Dateien dauerhaft. Das kann nicht rückgängig gemacht werden.</p>
           </div>
         </div>
         <Button variant="danger" onClick={show} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<AlertTriangle size={16} />}>Konto löschen…</Button>
@@ -145,7 +146,7 @@ export function DeleteAccountCard() {
             </div>
           ) : null}
 
-          {error && <StatusMessage tone="danger">{error}</StatusMessage>}
+          <div id="delete-error">{error && <StatusMessage tone="danger">{error}</StatusMessage>}</div>
         </div>
       </Modal>
     </>
