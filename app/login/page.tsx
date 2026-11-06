@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BarChart3, CheckCircle2, Eye, EyeOff, GraduationCap, MapPin, ShieldCheck, UserRound, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
@@ -121,7 +121,7 @@ export default function LoginPage() {
         <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
         <div className="relative flex items-center gap-3">
-          <Image src="/logo.png" alt="" width={44} height={44} className="rounded-[13px] bg-white p-1 shadow-[var(--shadow-md)]" />
+          <BrandMark size={44} radius={13} pad={4} fixedTile />
           <span className="text-lg font-semibold tracking-[-.02em]">WendApply</span>
         </div>
         <div className="relative max-w-md">
@@ -141,7 +141,7 @@ export default function LoginPage() {
       <section className="flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6 sm:py-10">
         <div className="animate-rise w-full max-w-[420px]">
           <div className="mb-6 text-center sm:mb-7">
-            <Image src="/logo.png" alt="WendApply" width={56} height={56} className="mx-auto rounded-[16px] bg-white p-1 shadow-[var(--shadow-md)] lg:hidden" priority />
+            <BrandMark size={56} radius={16} pad={4} white className="brand-mark-raised mx-auto lg:hidden" priority />
             <h1 className="text-title mt-5 lg:mt-0">{isSignup ? "Konto erstellen" : "Schön, dass du da bist."}</h1>
             <p className="mt-2 text-sm text-muted">{isSignup ? "Behalte deine Bewerbungen an einem Ort." : "Melde dich an und behalte deine Suche im Blick."}</p>
           </div>
@@ -168,7 +168,7 @@ export default function LoginPage() {
               </fieldset>
             )}
 
-            <button type="button" onClick={() => signInWithProvider("google")} disabled={loading} className="flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border border-[var(--field-border)] bg-white px-4 text-sm font-semibold text-[#1f1f1f] shadow-[var(--shadow-sm)] transition hover:bg-[#f7f7f8] active:scale-[.98] disabled:opacity-60">
+            <button type="button" onClick={() => signInWithProvider("google")} disabled={loading} className="btn-google flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border px-4 text-sm font-semibold shadow-[var(--shadow-sm)] transition active:scale-[.98] disabled:opacity-60">
               <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.1 5.5c4.3-4 6.8-9.9 6.8-16.9z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.1-5.5c-2 1.4-4.9 2.3-8.8 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
               Weiter mit Google
             </button>
