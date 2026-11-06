@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, FileText, GraduationCap, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, FileText, GraduationCap, LayoutDashboard, LayoutGrid, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
@@ -14,8 +14,11 @@ import { RequestBadge } from "@/components/friends/request-badge";
 import { badgeLabel } from "@/lib/friend-requests";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
+import { guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
+import type { UserRole } from "@/types";
+import { NotificationsBell } from "./notifications-bell";
 
-type NavItem = { label: string; href: string; icon: typeof Search; keys: string[] };
+type NavItem = { label: string; href: string; icon: typeof Search; keys: string[]; prefixes?: string[] };
 
 const navigation: NavItem[] = [
   { label: "Start", href: "/dashboard", icon: LayoutDashboard, keys: ["Dashboard", "Übersicht", "Start"] },
@@ -28,6 +31,12 @@ const navigation: NavItem[] = [
   { label: "Klassen", href: "/classes", icon: GraduationCap, keys: ["Classes", "Klassen"] },
 ];
 
+/** Teacher menu: Übersicht, Klassen, Profil, Einstellungen (profile/settings live in accountLinks below). */
+const teacherNavigation: NavItem[] = [
+  { label: "Übersicht", href: "/teacher", icon: LayoutGrid, keys: ["Übersicht", "Lehrer", "Teacher"] },
+  { label: "Klassen", href: "/classes", icon: GraduationCap, keys: ["Klassen", "Classes"], prefixes: ["/teacher/classes", "/classes"] },
+];
+const teacherPrimaryHrefs = ["/teacher", "/classes", "/profile", "/settings"];
 /** Items shown directly in the mobile tab bar; everything else goes into the "Mehr" sheet. */
 const primaryHrefs = ["/dashboard", "/search", "/applications", "/friends"];
 const accountLinks = [
@@ -48,6 +57,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const [checkingSession, setCheckingSession] = useState(true);
   const [moreOpen, setMoreOpen] = useState(false);
   const myAvatar = useMyAvatar(Boolean(user));
+  const [role, setRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -67,6 +77,19 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   useEffect(() => {
     if (!checkingSession && !user) router.replace(pathname && pathname !== "/dashboard" ? `/login?next=${encodeURIComponent(pathname)}` : "/login");
   }, [checkingSession, pathname, router, user]);
+
+  // Resolve the role once per user, ask once if there is none yet, and keep each role on its own pages.
+  useEffect(() => {
+    if (!user) return;
+    if (needsRoleChoice(user)) { router.replace(rolePickerHref(pathname)); return; }
+    let alive = true;
+    loadMyRole(user).then(({ role: resolved }) => {
+      if (!alive) return;
+      const target = guardRedirect(resolved, pathname ?? "/");
+      if (target) router.replace(target); else setRole(resolved);
+    });
+    return () => { alive = false; };
+  }, [user, pathname, router]);
 
   // Fullscreen pages (map): the document itself must never scroll or rubber-band.
   useEffect(() => {
@@ -90,7 +113,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
     router.replace("/login");
   }
 
-  if (checkingSession || !user) {
+  if (checkingSession || !user || !role) {
     return (
       <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
         <Image src="/logo.png" alt="" width={48} height={48} className="logo-tile animate-pulse rounded-[14px] bg-[#f2f7ff]" priority />
@@ -104,9 +127,16 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   }
 
   const displayName = (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
-  const primary = navigation.filter((item) => primaryHrefs.includes(item.href));
-  const more = navigation.filter((item) => !primaryHrefs.includes(item.href));
-  const moreActive = [...more, ...accountLinks].some((item) => item.keys.includes(active));
+  const isTeacher = role === "teacher";
+  const items = isTeacher ? teacherNavigation : navigation;
+  const accountItems: NavItem[] = isTeacher ? [{ ...accountLinks[0], keys: [...accountLinks[0].keys] }, { ...accountLinks[1], keys: [...accountLinks[1].keys] }] : accountLinks;
+  const isSelected = (item: NavItem) => item.keys.includes(active) || (isTeacher && (item.prefixes ?? [item.href]).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)));
+  const mobileAll = isTeacher ? [...teacherNavigation, ...accountItems] : navigation;
+  const primary = isTeacher ? mobileAll.filter((item) => teacherPrimaryHrefs.includes(item.href)) : navigation.filter((item) => primaryHrefs.includes(item.href));
+  const more = isTeacher ? [] : navigation.filter((item) => !primaryHrefs.includes(item.href));
+  const moreList = isTeacher ? [] : [...more, ...accountLinks];
+  const moreActive = moreList.some(isSelected);
+  const home = homeFor(role);
 
   return (
     <div className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
@@ -114,7 +144,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
       <header className={`glass-bar sticky top-0 z-30 shrink-0 border-b ${fullscreen ? "max-md:hidden" : ""}`}>
         <div className="page-wrap flex h-[var(--nav-h)] items-center gap-3 md:gap-5">
-          <Link href="/dashboard" className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
+          <Link href={home} className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
             <span className="flex h-9 w-9 items-center justify-center logo-tile overflow-hidden rounded-[11px] bg-[#f2f7ff] shadow-[var(--shadow-xs)]">
               <Image src="/logo.png" alt="" width={36} height={36} className="h-9 w-9 object-contain" priority />
             </span>
@@ -122,8 +152,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
           </Link>
 
           <nav aria-label="Hauptmenü" className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] md:flex">
-            {navigation.map(({ label, href, icon: Icon, keys }) => {
-              const selected = keys.includes(active);
+            {items.map((item) => {
+              const { label, href, icon: Icon } = item;
+              const selected = isSelected(item);
               return (
                 <Link
                   key={href}
@@ -143,6 +174,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
           <div className="flex-1 md:hidden" />
 
           <div className="flex shrink-0 items-center gap-1">
+            {!isTeacher && <NotificationsBell />}
             <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-9 w-9 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex pointer-coarse:h-11 pointer-coarse:w-11">
               <Settings size={17} strokeWidth={1.8} />
             </Link>
@@ -164,8 +196,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
       <nav aria-label="Hauptmenü mobil" className="glass-bar fixed inset-x-0 bottom-0 z-30 border-t md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
         <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-xl items-stretch px-1">
-          {primary.map(({ label, href, icon: Icon, keys }) => {
-            const selected = keys.includes(active);
+          {primary.map((item) => {
+            const { label, href, icon: Icon } = item;
+            const selected = isSelected(item);
             return (
               <li key={href} className="min-w-0 flex-1">
                 <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] max-[340px]:text-[9.5px] font-medium tracking-tight transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
@@ -190,8 +223,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
           <p className="min-w-0 truncate text-sm font-medium">{user.email}</p>
         </div>
         <ul className="grid grid-cols-2 gap-2">
-          {[...more, ...accountLinks].map(({ label, href, icon: Icon, keys }) => {
-            const selected = keys.includes(active);
+          {moreList.map((item) => {
+            const { label, href, icon: Icon } = item;
+            const selected = isSelected(item);
             return (
               <li key={href}>
                 <Link href={href} onClick={() => setMoreOpen(false)} aria-current={selected ? "page" : undefined} className={`flex min-h-14 items-center gap-3 rounded-2xl border px-3.5 text-sm font-medium transition active:scale-[.97] ${selected ? "border-[var(--info-line)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--line)] bg-white/60"}`}>

@@ -509,7 +509,14 @@ async function main() {
   writeFileSync(OUT + "summary.json", JSON.stringify({ ...summary, results }, null, 2));
   console.log(`\n==== ${summary.pass} PASS, ${summary.fail} FAIL, ${summary.known} KNOWN-BUG, ${summary.skip} SKIP (${summary.total} checks) — summary: ${OUT}summary.json`);
   for (const f of summary.failures) console.log(`  FAIL [${f.scope}] ${f.name} — ${f.info}`);
+  // Teacher-role flows (own stateful stand-in, own screenshots in screenshots/teacher/). Skip with --skip=teacher; run alone with --only=teacher.
+  let teacherFail = 0;
+  if (args.skip !== "teacher" && (!only || only === "teacher")) {
+    const { spawnSync } = await import("node:child_process");
+    const run = spawnSync(process.execPath, [join(ROOT, "scripts/teacher-e2e.mjs")], { stdio: "inherit", env: { ...process.env, BASE: baseUrl, PLAYWRIGHT: process.env.PLAYWRIGHT || [join(homedir(), "Projects/bewerbungen-tracker-wt/audit-tools/node_modules/playwright-core/index.mjs")].find(existsSync) || "playwright-core", CHROME: findChrome() } });
+    teacherFail = run.status ?? 1;
+  }
   stopServer();
-  process.exit(summary.fail ? 1 : 0);
+  process.exit(summary.fail || teacherFail ? 1 : 0);
 }
 main().catch((error) => { console.error(error); stopServer(); process.exit(2); });
