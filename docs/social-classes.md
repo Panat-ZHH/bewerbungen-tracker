@@ -65,3 +65,27 @@ Fremde Klassen oder Nicht-Lehrer: immer `FORBIDDEN`. Tests: `tests/classes.test.
 
 ### Lehrkraft-Übersicht
 Suche (Name oder letzte Firma), Filter (Alle, Inaktiv 30 T, Aktiv 7 T, Mit Zusage, Teilt nicht, jeweils mit Anzahl), Sortierung, Schülerdetail mit „Aus Klasse entfernen“, Dialog „Verwalten“ (Link, Umbenennen, neuer Code, Löschen). Mobil Karten, ab `md` Tabelle.
+
+## Lehrerrolle: Datenschutzmodell (Migration `20261107000000_teacher_role.sql`)
+
+**Grundsatz:** Lehrpersonen lesen keine fremden Tabellen. Jeder Zugriff läuft über `security definer`-Funktionen (`search_path = ''`), die Rolle und Klassenzugehörigkeit prüfen. Die Tabellen `class_teachers`, `class_invitations`, `class_announcements` und `class_notifications` haben RLS ohne Policies und ohne Grants (direkter Zugriff = `permission denied`). Zugriff haben nur Besitzer:in und Co-Lehrpersonen der jeweiligen Klasse; andere Lehrpersonen, Schüler:innen, Fremde und `anon` bekommen `FORBIDDEN` bzw. `permission denied`.
+
+**Was Lehrpersonen sehen (nur wenn die Schüler:in es erlaubt):**
+
+| Schalter (pro Klasse, durch die Schüler:in) | Wirkung |
+| --- | --- |
+| `share_applications` (Hauptschalter) | Aus: nur der Name. Keine Anzahl, keine Aktivität, nichts weiter. Die Person zählt im Dashboard nur als „versteckt“. |
+| `share_status` | Aus: keine Phasen (Bewerbungsstand, Gespräche, Lehrstelle gefunden). Anzahl und letzte Aktivität bleiben sichtbar. |
+| `share_companies` | Aus: keine Firmennamen, Stellen, Orte und keine Fristen-Liste. |
+
+Standard für alle Schalter ist „an“ (entspricht dem bisherigen Verhalten). Änderungen wirken sofort (`class_set_sharing_v2`). Die Transparenz-Box der Schüler:in kommt aus `class_visibility_info()`.
+
+**Was Lehrpersonen nie sehen:** Notizen, Stellenbeschreibung, Gehaltsangaben, Kontakte, Dokumente/Lebenslauf, Links zu Stellenanzeigen. Diese Spalten werden von keiner Funktion ausgegeben (Test `teacher-sql.test.mjs` prüft das mit Marker-Texten).
+
+**Weitere Regeln:**
+- Co-Lehrpersonen haben dieselben Leserechte und können umbenennen, archivieren, einladen, erinnern und ankündigen. Löschen der Klasse und Verwaltung der Co-Lehrpersonen ist nur Besitzer:in vorbehalten (eine Co-Lehrperson darf sich selbst entfernen).
+- Einladungen (`class_invitations`): 64 Zeichen langer Token, Ablauf (1–90 Tage), optionale Maximalzahl, widerrufbar, optional an eine E-Mail-Adresse gebunden (Abgleich mit der Login-E-Mail, sonst `FORBIDDEN`). Unbrauchbare Token verraten keine Klassendetails. Bereits eingetragene Schüler:innen verbrauchen keinen weiteren Platz. Der Beitritt per Kurzcode funktioniert weiter. Archivierte Klassen nehmen niemanden mehr auf.
+- Erinnerungen (`class_nudge`): höchstens eine pro Schüler:in und Klasse in 3 Tagen (`RATE_LIMITED`), gilt gemeinsam für alle Lehrpersonen der Klasse. Die Schüler:in sieht sie unter `my_notifications()`. Ankündigungen landen ebenfalls dort.
+- Rollenwechsel (`set_my_role`) nur, solange die Person weder Klassen besitzt noch Mitglied ist.
+- Zeitverlauf (`class_student_timeline`): es gibt keine gespeicherte Statushistorie, die Ereignisse werden aus den Daten (erstellt, beworben, zuletzt geändert, Frist) abgeleitet.
+- Zahlen im Dashboard: `interviews`/`offers` zählen Bewerbungen, `placed` zählt Schüler:innen mit Status „Lehrstelle gefunden“ (`offer`). Archivierte Klassen zählen nicht in die Summen; Schüler:innen in mehreren Klassen werden einmal gezählt.
