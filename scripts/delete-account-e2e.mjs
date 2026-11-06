@@ -142,7 +142,7 @@ try {
     await card.getByLabel("Neues Passwort", { exact: true }).fill("kurz");
     await card.getByLabel("Neues Passwort wiederholen").fill("kurz");
     await card.getByRole("button", { name: "Passwort ändern" }).click();
-    check(await card.getByText(/mindestens 8 Zeichen/).isVisible(), "password change: too-short password rejected in German");
+    check(await card.getByRole("alert").getByText(/mindestens 8 Zeichen/).isVisible(), "password change: too-short password rejected in German");
     await card.getByLabel("Aktuelles Passwort").fill("falsch-falsch-1");
     await card.getByLabel("Neues Passwort", { exact: true }).fill(PASSWORD + "2");
     await card.getByLabel("Neues Passwort wiederholen").fill(PASSWORD + "2");
