@@ -36,12 +36,23 @@ export function formatDate(value?: string) {
   return Number.isNaN(date.getTime()) ? "–" : date.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-export function StatusBar({ counts, total }: { counts: StatusCounts; total: number }) {
+const HATCHED: ApplicationStatus[] = ["rejected", "withdrawn"];
+/** Stacked status bar. Segments are separated by a thin gap and closed statuses are hatched, so it never relies on colour alone. `legend` adds a text key. */
+export function StatusBar({ counts, total, legend = false }: { counts: StatusCounts; total: number; legend?: boolean }) {
   if (!total) return <div className="h-2 w-full rounded-full bg-[var(--neutral-bg)]" aria-label="Keine Bewerbungen" />;
-  const summary = STATUS_ORDER.filter((s) => counts[s]).map((s) => `${statusLabels[s]}: ${counts[s]}`).join(", ");
+  const present = STATUS_ORDER.filter((s) => counts[s]);
+  const summary = present.map((s) => `${statusLabels[s]}: ${counts[s]}`).join(", ");
+  const fill = (s: ApplicationStatus) => HATCHED.includes(s) ? `repeating-linear-gradient(45deg, ${STATUS_COLORS[s]} 0 3px, rgba(255,255,255,.55) 3px 5px)` : STATUS_COLORS[s];
   return (
-    <div role="img" aria-label={summary} title={summary} className="flex h-2 w-full overflow-hidden rounded-full bg-[var(--neutral-bg)]">
-      {STATUS_ORDER.map((s) => (counts[s] ? <span key={s} style={{ width: `${((counts[s] ?? 0) / total) * 100}%`, background: STATUS_COLORS[s] }} /> : null))}
+    <div>
+      <div role="img" aria-label={summary} title={summary} className="flex h-2 w-full gap-px overflow-hidden rounded-full bg-[var(--neutral-bg)]">
+        {present.map((s) => <span key={s} style={{ width: `${((counts[s] ?? 0) / total) * 100}%`, background: fill(s) }} />)}
+      </div>
+      {legend && (
+        <ul aria-hidden className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+          {present.map((s) => <li key={s} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: fill(s) }} />{statusLabels[s]} {counts[s]}</li>)}
+        </ul>
+      )}
     </div>
   );
 }

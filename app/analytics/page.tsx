@@ -59,7 +59,7 @@ export default function AnalyticsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={data} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }}>
                     <XAxis type="number" allowDecimals={false} hide domain={[0, "dataMax"]} />
-                    <YAxis type="category" dataKey="label" width={112} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "var(--muted)" }} interval={0} />
+                    <YAxis type="category" dataKey="label" width={132} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "var(--muted)" }} interval={0} />
                     <Tooltip cursor={{ fill: "var(--hover)" }} formatter={(value) => [value, "Bewerbungen"]} contentStyle={{ borderRadius: 12, border: "1px solid var(--line)", background: "var(--sheet-bg)", color: "var(--ink)", boxShadow: "var(--shadow-md)", fontSize: 13 }} />
                     <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={18} background={{ fill: "var(--hover)", radius: 8 }} isAnimationActive>
                       {data.map((item) => <Cell key={item.status} fill={barColors[item.status] ?? "var(--brand)"} />)}
