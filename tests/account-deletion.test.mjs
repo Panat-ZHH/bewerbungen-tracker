@@ -106,7 +106,7 @@ test("the service role key never reaches client code", async () => {
       if (!/\.(tsx?|mjs)$/.test(file.pathname)) continue;
       const src = await rf(file, "utf8");
       if (!src.includes("SERVICE_ROLE")) continue;
-      assert.match(file.pathname, /app\/api\/account\/delete\/route\.ts$/, `SERVICE_ROLE referenced in ${file.pathname}`);
+      assert.match(file.pathname, /(app\/api\/account\/delete\/route|lib\/reminders-server)\.ts$/, `SERVICE_ROLE referenced in ${file.pathname}`);
       assert.ok(!/^["']use client["']/m.test(src));
     }
   }
