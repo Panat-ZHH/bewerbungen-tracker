@@ -92,7 +92,7 @@ export function ClassDetail({ classId }: { classId: string }) {
       {students && (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatTile label="Schüler" value={summary.students} icon={<Users size={16} />} />
+            <StatTile label="Schüler:innen" value={summary.students} icon={<Users size={16} />} />
             <StatTile label="Bewerbungen" value={summary.total} icon={<BriefcaseBusiness size={16} />} />
             <StatTile label="Aktiv diese Woche" value={summary.activeWeek} icon={<Sparkles size={16} />} />
             <StatTile label="Zusagen" value={summary.offers} icon={<Trophy size={16} />} />
@@ -100,27 +100,27 @@ export function ClassDetail({ classId }: { classId: string }) {
 
           {cls && (
             <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div><p className="text-eyebrow">Beitrittscode</p><p className="text-small text-muted">Teile den Code, damit weitere Schüler beitreten können.</p></div>
+              <div><p className="text-eyebrow">Beitrittscode</p><p className="text-small text-muted">Teile den Code, damit weitere Schüler:innen beitreten können.</p></div>
               <CodeActions code={cls.joinCode} name={cls.name} />
             </Card>
           )}
 
           {students.length === 0 ? (
-            <EmptyState icon={<Users size={26} />} title="Noch keine Schüler" description="Sobald Schüler mit dem Code beitreten, erscheinen sie hier." />
+            <EmptyState icon={<Users size={26} />} title="Noch keine Schüler:innen" description="Sobald Schüler:innen mit dem Code beitreten, erscheinen sie hier." />
           ) : (
-            <section className="space-y-4" aria-label="Schülerübersicht">
+            <section className="space-y-4" aria-label="Schüler:innenübersicht">
               <div className="space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="relative sm:max-w-xs sm:flex-1">
                     <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
-                    <Input type="search" aria-label="Schüler oder Firma suchen" placeholder="Name oder Firma suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
+                    <Input type="search" aria-label="Schüler:innen oder Firma suchen" placeholder="Name oder Firma suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
                   </div>
                   <Segmented className="[&_button]:min-h-11" label="Sortierung" value={sort} onChange={setSort} options={[{ value: "activity", label: "Wenigste Aktivität" }, { value: "total", label: "Meiste Bewerbungen" }, { value: "name", label: "Name" }]} />
                 </div>
                 <Segmented className="[&_button]:min-h-11" label="Filter" value={filter} onChange={setFilter} options={FILTERS.map((f) => ({ value: f.value, label: f.label, count: counts[f.value] }))} />
               </div>
 
-              {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler zu sehen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
+              {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler:innen zu sehen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
 
               {/* Mobile: cards */}
               <ul className="space-y-3 md:hidden">

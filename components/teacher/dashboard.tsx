@@ -62,7 +62,7 @@ export function TeacherDashboardView() {
           {mode === "no-applications" && (
             <section aria-label="Kennzahlen" className="space-y-3">
               <div className="grid grid-cols-2 gap-3 md:max-w-xl">
-                <StatTile label="Schüler" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
+                <StatTile label="Schüler:innen" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
                 <StatTile label="Bewerbungen" value={t.applications} icon={<BriefcaseBusiness size={16} />} trend="Noch keine geteilt" />
               </div>
               <Card className="text-small p-4 text-muted">Noch hat niemand eine Bewerbung erfasst oder geteilt. Die Kennzahlen erscheinen, sobald die ersten Bewerbungen da sind. Du kannst die Klasse mit einer Mitteilung ans Starten erinnern.</Card>
@@ -70,11 +70,11 @@ export function TeacherDashboardView() {
           )}
           {mode === "normal" && (
           <section aria-label="Kennzahlen" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
-            <StatTile label="Schüler" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
+            <StatTile label="Schüler:innen" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
             <StatTile label="Bewerbungen" value={t.applications} icon={<BriefcaseBusiness size={16} />} />
             <StatTile label="Gespräche" value={t.interviews} icon={<MessageSquare size={16} />} />
             <StatTile label="Zusagen" value={t.offers} icon={<Trophy size={16} />} tone="success" />
-            <StatTile label="Lehrstelle gefunden" value={t.placed} icon={<Home size={16} />} tone="success" trend={t.students ? `${Math.round((t.placed / t.students) * 100)} % der Schüler` : undefined} />
+            <StatTile label="Lehrstelle gefunden" value={t.placed} icon={<Home size={16} />} tone="success" trend={t.students ? `${Math.round((t.placed / t.students) * 100)} % der Schüler:innen` : undefined} />
             <StatTile label="Inaktiv" value={t.inactive} icon={<UserX size={16} />} tone={t.inactive ? "danger" : "neutral"} trend={t.inactive ? "seit 14+ Tagen ohne Aktivität" : "Alle sind aktiv"} />
           </section>
           )}
@@ -96,7 +96,7 @@ export function TeacherDashboardView() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h3 className="text-heading truncate">{c.name}</h3>
-                          <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}{c.students} {c.students === 1 ? "Schülerin/Schüler" : "Schülerinnen und Schüler"}{!c.isOwner && " · Co-Lehrperson"}</p>
+                          <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}{!c.isOwner && " · Co-Lehrperson"}</p>
                         </div>
                         <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
                       </div>
@@ -106,7 +106,7 @@ export function TeacherDashboardView() {
                         ))}
                       </dl>
                       <div className="flex flex-wrap gap-2">
-                        {c.inactive > 0 ? <Badge tone="warning">{c.inactive} inaktiv</Badge> : c.students > 0 ? <Badge tone="success">Alle aktiv</Badge> : <Badge>Noch keine Schüler</Badge>}
+                        {c.inactive > 0 ? <Badge tone="warning">{c.inactive} inaktiv</Badge> : c.students > 0 ? <Badge tone="success">Alle aktiv</Badge> : <Badge>Noch keine Schüler:innen</Badge>}
                         {c.hidden > 0 && <Badge>{c.hidden} teilen nicht</Badge>}
                         {c.archived && <Badge tone="info">Archiviert</Badge>}
                       </div>

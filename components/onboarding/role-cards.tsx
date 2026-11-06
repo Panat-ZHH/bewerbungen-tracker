@@ -5,7 +5,7 @@ import type { UserRole } from "@/types";
 
 const options: { value: UserRole; label: string; hint: string; icon: typeof UserRound }[] = [
   { value: "student", label: "Schüler:in", hint: "Ich suche eine Lehrstelle und verfolge meine Bewerbungen.", icon: UserRound },
-  { value: "teacher", label: "Lehrperson", hint: "Ich begleite Klassen und sehe, wo meine Schüler:innen stehen.", icon: GraduationCap },
+  { value: "teacher", label: "Lehrperson", hint: "Ich begleite Klassen und sehe, wo meine Schülerinnen und Schüler stehen.", icon: GraduationCap },
 ];
 
 /** Two big radio cards for choosing the role. */

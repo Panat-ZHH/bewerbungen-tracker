@@ -51,22 +51,22 @@ export function TeacherClassView({ classId }: { classId: string }) {
         <>
           {students.length === 0 || kpi.applications === 0 ? (
             <section aria-label="Kennzahlen der Klasse" className="grid grid-cols-2 gap-3 md:max-w-xl">
-              <StatTile label="Schüler" value={kpi.students} icon={<Users size={16} />} trend={kpi.hidden ? `${kpi.hidden} teilen nicht` : students.length === 0 ? "Noch niemand beigetreten" : undefined} />
+              <StatTile label="Schüler:innen" value={kpi.students} icon={<Users size={16} />} trend={kpi.hidden ? `${kpi.hidden} teilen nicht` : students.length === 0 ? "Noch niemand beigetreten" : undefined} />
               <StatTile label="Bewerbungen" value={kpi.applications} icon={<BriefcaseBusiness size={16} />} trend="Noch keine geteilt" />
             </section>
           ) : (
           <section aria-label="Kennzahlen der Klasse" className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <StatTile label="Schüler" value={kpi.students} icon={<Users size={16} />} trend={kpi.hidden ? `${kpi.hidden} teilen nicht` : undefined} />
+            <StatTile label="Schüler:innen" value={kpi.students} icon={<Users size={16} />} trend={kpi.hidden ? `${kpi.hidden} teilen nicht` : undefined} />
             <StatTile label="Bewerbungen" value={kpi.applications} icon={<BriefcaseBusiness size={16} />} />
             <StatTile label="Mit Zusage" value={kpi.offers} icon={<Trophy size={16} />} tone="success" />
             <StatTile label="Lehrstelle gefunden" value={kpi.placed} icon={<Home size={16} />} tone="success" />
             <StatTile label="Inaktiv" value={kpi.inactive} icon={<UserX size={16} />} tone={kpi.inactive ? "danger" : "neutral"} />
           </section>
           )}
-          <Segmented className="[&_button]:min-h-11" label="Bereich der Klasse" value={tab} onChange={setTab} options={[{ value: "students", label: "Schüler", icon: <Users size={14} />, count: kpi.students }, { value: "invite", label: "Einladen", icon: <UserPlus size={14} /> }, { value: "calendar", label: "Kalender", icon: <CalendarDays size={14} /> }, { value: "news", label: "Mitteilungen", icon: <Megaphone size={14} /> }, { value: "settings", label: "Einstellungen", icon: <Settings2 size={14} /> }]} />
-          <div role="tabpanel" aria-label={{ students: "Schüler", invite: "Einladen", calendar: "Kalender", news: "Mitteilungen", settings: "Einstellungen" }[tab]}>
+          <Segmented className="[&_button]:min-h-11" label="Bereich der Klasse" value={tab} onChange={setTab} options={[{ value: "students", label: "Schüler:innen", icon: <Users size={14} />, count: kpi.students }, { value: "invite", label: "Einladen", icon: <UserPlus size={14} /> }, { value: "calendar", label: "Kalender", icon: <CalendarDays size={14} /> }, { value: "news", label: "Mitteilungen", icon: <Megaphone size={14} /> }, { value: "settings", label: "Einstellungen", icon: <Settings2 size={14} /> }]} />
+          <div role="tabpanel" aria-label={{ students: "Schüler:innen", invite: "Einladen", calendar: "Kalender", news: "Mitteilungen", settings: "Einstellungen" }[tab]}>
             {tab === "students" && (students.length === 0
-              ? <EmptyState icon={<Users size={26} />} title="Noch keine Schüler" description="Lade deine Klasse per Link, Code oder QR-Code ein. Sobald jemand beitritt, erscheint die Person hier." action={<button type="button" onClick={() => setTab("invite")} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--brand-gradient)] px-5 font-semibold text-white">Schüler einladen</button>} />
+              ? <EmptyState icon={<Users size={26} />} title="Noch keine Schüler:innen" description="Lade deine Klasse per Link, Code oder QR-Code ein. Sobald jemand beitritt, erscheint die Person hier." action={<button type="button" onClick={() => setTab("invite")} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--brand-gradient)] px-5 font-semibold text-white">Schüler:innen einladen</button>} />
               : <div className="space-y-6"><AttentionPanel classId={classId} /><StudentsPanel cls={cls} students={students} onChanged={load} /></div>)}
             {tab === "invite" && <InvitePanel cls={cls} />}
             {tab === "calendar" && <ClassCalendar classId={classId} archived={cls.archived} />}

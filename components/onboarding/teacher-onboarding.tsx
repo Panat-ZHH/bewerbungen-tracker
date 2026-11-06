@@ -55,7 +55,7 @@ export function TeacherOnboarding() {
 
           {step === 0 && (
             <form onSubmit={saveName} className="space-y-5">
-              <div className="text-center"><h1 className="text-title">Wie sollen dich deine Klassen nennen?</h1><p className="mt-2 text-sm text-muted">Dieser Name ist für deine Schüler:innen sichtbar, zum Beispiel „Frau Keller“.</p></div>
+              <div className="text-center"><h1 className="text-title">Wie sollen dich deine Klassen nennen?</h1><p className="mt-2 text-sm text-muted">Dieser Name ist für deine Schülerinnen und Schüler sichtbar, zum Beispiel „Frau Keller“.</p></div>
               <Field label="Anzeigename" htmlFor="display-name"><Input id="display-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" data-autofocus /></Field>
               <Button type="submit" full size="lg" loading={busy}>Weiter <ArrowRight size={16} /></Button>
             </form>
@@ -63,7 +63,7 @@ export function TeacherOnboarding() {
 
           {step === 1 && !created && (
             <form onSubmit={makeClass} className="space-y-5">
-              <div className="text-center"><h1 className="text-title">Deine erste Klasse</h1><p className="mt-2 text-sm text-muted">Danach lädst du deine Schüler:innen per Link oder Code ein. Du kannst weitere Klassen jederzeit hinzufügen.</p></div>
+              <div className="text-center"><h1 className="text-title">Deine erste Klasse</h1><p className="mt-2 text-sm text-muted">Danach lädst du deine Schülerinnen und Schüler per Link oder Code ein. Du kannst weitere Klassen jederzeit hinzufügen.</p></div>
               <Field label="Klassenname" htmlFor="class-name"><Input id="class-name" value={className} onChange={(e) => setClassName(e.target.value)} placeholder="z. B. Informatik 4a" maxLength={60} data-autofocus /></Field>
               <Field label="Schuljahr" htmlFor="school-year"><Input id="school-year" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>
               <Button type="submit" full size="lg" loading={busy} icon={<GraduationCap size={17} />}>Klasse erstellen</Button>
@@ -74,7 +74,7 @@ export function TeacherOnboarding() {
           {step === 1 && created && (
             <div className="space-y-5 text-center">
               <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--success-bg)] text-[var(--success-fg)]"><Check size={28} /></span>
-              <div><h1 className="text-title">„{created.name}“ ist bereit</h1><p className="mt-2 text-sm text-muted">Gib diesen Code an deine Schüler:innen weiter. Sie entscheiden selbst, was sie mit dir teilen.</p></div>
+              <div><h1 className="text-title">„{created.name}“ ist bereit</h1><p className="mt-2 text-sm text-muted">Gib diesen Code an deine Schülerinnen und Schüler weiter. Sie entscheiden selbst, was sie mit dir teilen.</p></div>
               <div className="flex justify-center"><CodeActions code={created.joinCode} name={created.name} /></div>
               <Button full size="lg" loading={busy} onClick={() => void run(() => finish(`/teacher/classes/${created.id}`))}>Zur Klasse</Button>
               <button type="button" onClick={() => void run(() => finish())} className="mx-auto flex min-h-11 items-center px-3 text-sm font-medium text-muted hover:underline">Zur Übersicht</button>

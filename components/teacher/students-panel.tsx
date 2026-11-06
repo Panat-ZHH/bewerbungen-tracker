@@ -94,7 +94,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative sm:max-w-xs sm:flex-1">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
-            <Input type="search" aria-label="Schüler suchen" placeholder="Name suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
+            <Input type="search" aria-label="Schüler:innen suchen" placeholder="Name suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
           </div>
           <label className="flex items-center gap-2 text-sm text-muted">Sortierung
             <Select aria-label="Sortierung" value={sort} onChange={(e) => setSort(e.target.value as StudentSort)} className="w-auto min-w-44">
@@ -110,9 +110,9 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         <Segmented className="[&_button]:min-h-11" label="Filter" value={filter} onChange={setFilter} options={STUDENT_FILTERS.map((f) => ({ ...f, count: counts[f.value] }))} />
       </div>
 
-      {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler zu sehen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
+      {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler:innen zu sehen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
 
-      <ul className="space-y-3 md:hidden" aria-label="Schüler als Karten">
+      <ul className="space-y-3 md:hidden" aria-label="Schüler:innen als Karten">
         {rows.map((s) => (
           <li key={s.studentId} className="panel space-y-3 rounded-[var(--radius-lg)] p-4">
             <Link href={`/teacher/classes/${cls.id}/students/${s.studentId}`} className="flex min-h-11 items-center gap-3">
@@ -131,7 +131,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
 
       <Card className="hidden overflow-x-auto md:block">
         <table className="w-full text-left text-sm">
-          <caption className="sr-only">Schüler der Klasse {cls.name}</caption>
+          <caption className="sr-only">Schüler:innen der Klasse {cls.name}</caption>
           <thead className="text-eyebrow border-b border-[var(--line)]"><tr>
             <th scope="col" className="px-4 py-3 font-medium">Name</th><th scope="col" className="px-3 py-3 text-right font-medium">Bewerb.</th><th scope="col" className="px-3 py-3 text-right font-medium">Gespräche</th><th scope="col" className="px-3 py-3 text-right font-medium">Zusagen</th>
             <th scope="col" className="min-w-40 px-3 py-3 font-medium">Verteilung</th><th scope="col" className="px-3 py-3 font-medium">Letzte Aktivität</th><th scope="col" className="px-3 py-3 font-medium">Status</th><th scope="col" className="px-3 py-3 text-right font-medium">Aktionen</th>
@@ -154,7 +154,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         </table>
       </Card>
 
-      <Modal open={!!nudge} onClose={() => setNudge(null)} title={nudge && nudge.length > 1 ? `${nudge.length} inaktive Schüler erinnern` : "Erinnerung senden"} description={nudge && nudge.length === 1 ? `${studentLabel(nudge[0].displayName)} erhält eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich.` : "Alle erhalten eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich."}>
+      <Modal open={!!nudge} onClose={() => setNudge(null)} title={nudge && nudge.length > 1 ? `${nudge.length} inaktive Schüler:innen erinnern` : "Erinnerung senden"} description={nudge && nudge.length === 1 ? `${studentLabel(nudge[0].displayName)} erhält eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich.` : "Alle erhalten eine freundliche Erinnerung in WendApply. Pro Person ist eine Erinnerung alle 3 Tage möglich."}>
         <div className="space-y-4">
           <Field label="Eigene Nachricht (optional)" htmlFor="nudge-msg" hint={`${message.length}/200 Zeichen`}><Textarea id="nudge-msg" data-autofocus className="text-base! sm:text-base!" rows={3} maxLength={200} value={message} onChange={(e) => setMessage(e.target.value)} placeholder="Wie läuft die Suche? Brauchst du Hilfe beim Lebenslauf?" /></Field>
           {nudgeError && <p role="alert" className="text-small text-[var(--danger-fg)]">{nudgeError}</p>}

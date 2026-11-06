@@ -56,9 +56,9 @@ export function ClassSettingsPanel({ cls, onChanged }: { cls: DashboardClass; on
       <Card className="h-fit space-y-4 p-5">
         <h2 className="text-heading">Aktionen</h2>
         <div className="space-y-1"><Button variant="secondary" className="min-h-11 sm:min-h-11" icon={cls.archived ? <ArchiveRestore size={15} /> : <Archive size={15} />} loading={busy === "archive"} onClick={() => run("archive", async () => { await setClassArchived(cls.id, !cls.archived); onChanged(); }, cls.archived ? "Klasse wieder aktiviert." : "Klasse archiviert.")}>{cls.archived ? "Klasse wieder aktivieren" : "Klasse archivieren"}</Button><p className="text-small text-muted">{cls.archived ? "Die Klasse erscheint wieder in deiner Übersicht." : "Archivierte Klassen sind aus der Übersicht ausgeblendet. Nichts geht verloren."}</p></div>
-        <div className="space-y-1"><Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<RefreshCw size={15} />} onClick={() => setConfirm("code")}>Neuen Beitrittscode erstellen</Button><p className="text-small text-muted">Der alte Code und Link funktionieren danach nicht mehr. Bisherige Schüler bleiben in der Klasse.</p></div>
+        <div className="space-y-1"><Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<RefreshCw size={15} />} onClick={() => setConfirm("code")}>Neuen Beitrittscode erstellen</Button><p className="text-small text-muted">Der alte Code und Link funktionieren danach nicht mehr. Bisherige Schüler:innen bleiben in der Klasse.</p></div>
         {cls.isOwner
-          ? <div className="space-y-1 border-t border-[var(--line)] pt-4"><Button variant="danger" className="min-h-11 sm:min-h-11" icon={<Trash2 size={15} />} onClick={() => setConfirm("delete")}>Klasse löschen</Button><p className="text-small text-muted">Entfernt alle Schüler aus der Klasse. Ihre Bewerbungen bleiben bei ihnen unverändert.</p></div>
+          ? <div className="space-y-1 border-t border-[var(--line)] pt-4"><Button variant="danger" className="min-h-11 sm:min-h-11" icon={<Trash2 size={15} />} onClick={() => setConfirm("delete")}>Klasse löschen</Button><p className="text-small text-muted">Entfernt alle Schüler:innen aus der Klasse. Ihre Bewerbungen bleiben bei ihnen unverändert.</p></div>
           : <p className="text-small border-t border-[var(--line)] pt-4 text-muted">Als Co-Lehrperson kannst du die Klasse nicht löschen.</p>}
       </Card>
 
@@ -83,10 +83,10 @@ export function ClassSettingsPanel({ cls, onChanged }: { cls: DashboardClass; on
         )}
       </Card>
 
-      <Modal open={confirm === "code"} onClose={() => setConfirm("")} title="Neuen Code erstellen?" description="Der alte Code und alle Links mit dem alten Code funktionieren danach nicht mehr. Bisherige Schüler bleiben in der Klasse.">
+      <Modal open={confirm === "code"} onClose={() => setConfirm("")} title="Neuen Code erstellen?" description="Der alte Code und alle Links mit dem alten Code funktionieren danach nicht mehr. Bisherige Schüler:innen bleiben in der Klasse.">
         <div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" data-autofocus onClick={() => setConfirm("")}>Abbrechen</Button><Button loading={busy === "code"} onClick={() => run("code", async () => { await regenerateClassCode(cls.id); onChanged(); }, "Neuer Code erstellt.")}>Neuen Code erstellen</Button></div>
       </Modal>
-      <Modal open={confirm === "delete"} onClose={() => setConfirm("")} title={`Klasse „${cls.name}“ löschen?`} description="Alle Schüler werden aus der Klasse entfernt, die Mitteilungen und Einladungen gehen verloren. Ihre Bewerbungen bleiben unberührt. Das kann nicht rückgängig gemacht werden. Tipp: Archivieren ist reversibel.">
+      <Modal open={confirm === "delete"} onClose={() => setConfirm("")} title={`Klasse „${cls.name}“ löschen?`} description="Alle Schülerinnen und Schüler werden aus der Klasse entfernt, die Mitteilungen und Einladungen gehen verloren. Ihre Bewerbungen bleiben unberührt. Das kann nicht rückgängig gemacht werden. Tipp: Archivieren ist reversibel.">
         <div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" data-autofocus onClick={() => setConfirm("")}>Abbrechen</Button><Button variant="danger" loading={busy === "delete"} onClick={() => run("delete", async () => { await deleteClass(cls.id); router.replace("/teacher"); })}>Endgültig löschen</Button></div>
       </Modal>
     </div>
