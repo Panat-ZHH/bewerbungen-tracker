@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Lightbulb, Plus, SearchX, SlidersHorizontal } from "lucide-react";
+import { LayoutList, Lightbulb, Plus, Rows3, SearchX, SlidersHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -17,11 +17,13 @@ import { createApplication, getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import type { MultiSourceSearchBatch, MultiSourceSearchInput } from "@/lib/job-search";
 import { listingSources, mergeJobResults } from "@/lib/job-results";
+import { splitPlace } from "@/lib/job-query-parse";
+import { applicationExtras } from "@/lib/job-card-info";
 import { FilterChips } from "./filter-chips";
 import { FilterPanel } from "./filter-panel";
 import { PresetMenu } from "./preset-menu";
 import { ResultCard } from "./result-card";
-import { SearchBar, type SearchBarHandle, type SearchTab } from "./search-bar";
+import { SearchBar, useHasKeyboard, type SearchBarHandle, type SearchTab } from "./search-bar";
 import { readPrefill } from "@/lib/onboarding";
 import { activeFilterCount, addRecent, applyFilters, clearRecent, companyOptions, computeFacets, deletePreset, emptyFilters, loadPresets, loadRecent, paramsToState, rankJobs, savePreset, sortJobs, SORT_LABELS, stateToParams, type EnrichedJob, type JobFilters, type JobPreset, type JobSearchState, type JobSort } from "./engine";
 
@@ -32,13 +34,16 @@ function tabOf(f: JobFilters): SearchTab {
 }
 function serverQuery(state: JobSearchState): MultiSourceSearchInput {
   const praktikum = tabOf(state.filters) === "praktikum";
-  const q = state.query.trim();
   const f = state.filters;
+  // "Informatiker Zürich": a known place at the end of the text becomes the location (unless one is already set)
+  const parsed = f.location.trim() ? { query: state.query.trim(), location: "" } : splitPlace(state.query);
+  const q = parsed.query;
+  const location = f.location.trim() || parsed.location;
   const filters: NonNullable<MultiSourceSearchInput["filters"]> = {};
   if (f.postedWithin) filters.postedWithin = f.postedWithin;
-  if (f.radiusKm && f.location.trim()) filters.radiusKm = f.radiusKm;
+  if (f.radiusKm && location) filters.radiusKm = f.radiusKm;
   if (f.cantons.length) filters.cantons = f.cantons;
-  return { query: praktikum && !/praktik|stage/i.test(q) ? `Praktikum ${q}`.trim() : q, location: f.location.trim(), kind: f.kind, ...(Object.keys(filters).length ? { filters } : {}) };
+  return { query: praktikum && !/praktik|stage/i.test(q) ? `Praktikum ${q}`.trim() : q, location, kind: f.kind, ...(Object.keys(filters).length ? { filters } : {}) };
 }
 /** True when the current server-side filters are wider than what was searched (so loaded results may miss listings). */
 function serverWider(searched: MultiSourceSearchInput, current: MultiSourceSearchInput): boolean {
@@ -61,6 +66,9 @@ export function JobSearchView() {
   const [nextCursor, setNextCursor] = useState<MultiSourceSearchBatch["nextCursor"]>(null);
   const [sourceStatuses, setSourceStatuses] = useState<MultiSourceSearchBatch["sources"]>([]);
   const [error, setError] = useState("");
+  const [softError, setSoftError] = useState<{ message: string; state: JobSearchState } | null>(null);
+  const [compact, setCompact] = useState(false);
+  const hasKeyboard = useHasKeyboard();
   const [notice, setNotice] = useState("");
   const [saving, setSaving] = useState("");
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -75,7 +83,7 @@ export function JobSearchView() {
 
   // localStorage is only readable after hydration
   // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { setRecent(loadRecent()); setPresets(loadPresets()); }, []);
+  useEffect(() => { setRecent(loadRecent()); setPresets(loadPresets()); try { setCompact(localStorage.getItem("wendapply-search-density") === "compact"); } catch { /* ignore */ } }, []);
   // Onboarding answers prefill an empty search (a search in the URL always wins).
   useEffect(() => {
     if (params.toString()) return;
@@ -89,7 +97,10 @@ export function JobSearchView() {
   // URL sync (shareable): state -> URL
   useEffect(() => {
     const next = stateToParams(state).toString();
-    if (next === lastUrl.current) return;
+    // user ids never belong in a shareable URL: a stray ?uid=/?userId= is removed even if nothing else changed
+    const stray = new URLSearchParams(window.location.search);
+    const hadId = ["uid", "userId", "user_id", "user"].some((key) => stray.has(key));
+    if (next === lastUrl.current && !hadId) return;
     lastUrl.current = next;
     // native History API: Next syncs it with useSearchParams, without a server round trip per keystroke/filter
     window.history.replaceState(window.history.state, "", next ? `${pathname}?${next}` : pathname);
@@ -113,7 +124,7 @@ export function JobSearchView() {
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
-    setLoading(true); setLoadingMore(false); setError(""); setNotice(""); setNextCursor(null); setSourceStatuses([]); setResults([]); setSearched(null); setVisible(PAGE_STEP);
+    setLoading(true); setLoadingMore(false); setError(""); setSoftError(null); setNotice(""); setNextCursor(null); setSourceStatuses([]); setResults([]); setSearched(null); setVisible(PAGE_STEP);
     setRecent(addRecent(next.query));
     try {
       const { data } = await supabase.auth.getSession();
@@ -129,7 +140,12 @@ export function JobSearchView() {
         if (!controller.signal.aborted) setSaved(new Set(applications.map((a) => a.jobUrl).filter((u): u is string => Boolean(u))));
       } catch { if (!controller.signal.aborted) setNotice("Deine gemerkten Bewerbungen konnten nicht geprüft werden."); }
     } catch (cause) {
-      if (!controller.signal.aborted) setError(generalCause(cause) ?? (cause instanceof Error && cause.message ? cause.message : "Die Suche hat nicht geklappt."));
+      if (!controller.signal.aborted) {
+        const message = generalCause(cause) ?? (cause instanceof Error && cause.message ? cause.message : "");
+        // temporary problems on our or the job boards' side get a friendly message with a retry instead of a red error
+        if (!message || /nicht|antwortet|später|Quelle|erreich/i.test(message) && !/anmelden|mindestens|Gib einen/i.test(message)) setSoftError({ message: "Die Stellenbörsen brauchen gerade etwas länger als sonst. Das ist meist nur kurz.", state: next });
+        else setError(message);
+      }
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
@@ -191,7 +207,9 @@ export function JobSearchView() {
     if (sources.some((s) => saved.has(s.url)) || saving) return;
     setSaving(job.url);
     try {
-      await createApplication({ company: job.company || "Firma noch ergänzen", position: job.title, location: job.location, jobUrl: job.url, source: [...new Set(sources.map((s) => s.name))].join(", "), notes: sources.length > 1 ? sources.map((s) => `${s.name}: ${s.url}`).join("\n") : undefined, category: "other", status: "saved" });
+      const extras = applicationExtras(job);
+      const notes = [extras.startNote, sources.length > 1 ? sources.map((s) => `${s.name}: ${s.url}`).join("\n") : undefined].filter(Boolean).join("\n") || undefined;
+      await createApplication({ company: job.company || "Firma noch ergänzen", position: job.title, location: job.location, jobUrl: job.url, source: [...new Set(sources.map((s) => s.name))].join(", "), deadline: extras.deadline, jobDescription: extras.jobDescription, notes, category: "other", status: "saved" });
       setSaved((cur) => new Set([...cur, ...sources.map((s) => s.url)]));
       toast({ message: "Gemerkt – die Stelle steht jetzt unter „Bewerbungen“." });
     } catch (reason) {
@@ -205,7 +223,17 @@ export function JobSearchView() {
   const clearFilters = () => setState((s) => ({ ...s, filters: { ...emptyFilters(s.filters.kind), location: s.filters.location } }));
   const filterCount = activeFilterCount(state.filters);
   const canSavePreset = state.query.trim().length > 0 || filterCount > 0;
-  const serverDirty = searched && (searched.location !== state.filters.location.trim() || searched.kind !== state.filters.kind || serverWider(searched, serverQuery(state)));
+  const serverDirty = searched && (searched.location !== serverQuery(state).location || searched.kind !== state.filters.kind || serverWider(searched, serverQuery(state)));
+
+  // Changing place, radius, canton, age or search type re-runs the search by itself (debounced), so the list always matches the filters.
+  const rerunKey = serverDirty ? JSON.stringify([state.filters.location.trim(), state.filters.kind, serverQuery(state).filters ?? null]) : "";
+  useEffect(() => {
+    if (!rerunKey || loading) return;
+    const timer = setTimeout(() => void runSearch(state), 900);
+    return () => clearTimeout(timer);
+  }, [rerunKey]); // eslint-disable-line react-hooks/exhaustive-deps -- only the server-relevant key should restart the timer
+
+  function toggleCompact(next: boolean) { setCompact(next); try { localStorage.setItem("wendapply-search-density", next ? "compact" : "comfortable"); } catch { /* ignore */ } }
 
   const panel = (prefix: string) => <FilterPanel idPrefix={prefix} filters={state.filters} onChange={patchFilters} facets={facets} companies={companies} />;
 
@@ -229,25 +257,26 @@ export function JobSearchView() {
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="secondary" size="sm" className="md:hidden" icon={<SlidersHorizontal size={15} />} onClick={() => setSheetOpen(true)}>Filter{filterCount > 0 ? ` (${filterCount})` : ""}</Button>
             <PresetMenu presets={presets} canSave={canSavePreset} onSave={(name) => { setPresets(savePreset(name, state)); toast({ message: "Suche gespeichert." }); }} onApply={(p) => { setState(p.state); void runSearch(p.state); }} onDelete={(id) => setPresets(deletePreset(id))} />
-            <div className="ml-auto flex items-center gap-2"><label htmlFor="job-sort" className="text-xs text-muted">Sortieren</label><Select id="job-sort" className="!min-h-9 !w-auto" value={state.sort} onChange={(e) => setState((s) => ({ ...s, sort: e.target.value as JobSort }))}>{Object.entries(SORT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></div>
+            <div className="ml-auto flex items-center gap-2"><div role="group" aria-label="Darstellung" className="flex overflow-hidden rounded-lg border border-[var(--glass-border)]"><button type="button" aria-pressed={!compact} aria-label="Ausführliche Liste" onClick={() => toggleCompact(false)} className={`flex h-9 w-9 items-center justify-center ${!compact ? "bg-[var(--hover)] text-[var(--ink)]" : "text-muted"}`}><LayoutList size={16} /></button><button type="button" aria-pressed={compact} aria-label="Kompakte Liste" onClick={() => toggleCompact(true)} className={`flex h-9 w-9 items-center justify-center ${compact ? "bg-[var(--hover)] text-[var(--ink)]" : "text-muted"}`}><Rows3 size={16} /></button></div><label htmlFor="job-sort" className="text-xs text-muted">Sortieren</label><Select id="job-sort" className="!min-h-9 !w-auto" value={state.sort} onChange={(e) => setState((s) => ({ ...s, sort: e.target.value as JobSort }))}>{Object.entries(SORT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></div>
           </div>
 
           <div className="mt-3"><FilterChips filters={state.filters} onChange={patchFilters} onClear={clearFilters} /></div>
 
           {error && <StatusMessage tone="danger" className="mt-4">{error}</StatusMessage>}
           {notice && <StatusMessage tone="info" className="mt-4">{notice}</StatusMessage>}
-          {serverDirty && !loading && <StatusMessage tone="info" className="mt-4">Suchbereich wurde geändert. <button type="button" className="font-semibold underline" onClick={() => void runSearch(state)}>Jetzt neu suchen</button></StatusMessage>}
+          {softError && !loading && <StatusMessage tone="info" className="mt-4">{softError.message} <button type="button" className="font-semibold underline" onClick={() => void runSearch(softError.state)}>Nochmals versuchen</button></StatusMessage>}
+          {serverDirty && !loading && !softError && <StatusMessage tone="info" className="mt-4">Du hast Ort, Umkreis oder Alter geändert – die Liste wird gleich neu gesucht. <button type="button" className="font-semibold underline" onClick={() => void runSearch(state)}>Neu suchen mit Filtern</button></StatusMessage>}
 
           {loading && <div role="status" aria-live="polite" className="mt-5 space-y-3"><p className="text-body text-muted">Passende Anzeigen werden gesucht …</p>{[0, 1, 2, 3].map((i) => <Card key={i} className="space-y-3 p-5" aria-hidden><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-1/2" /></Card>)}</div>}
 
           {!searched && !loading && !error && (
-            <Card className="mt-5 border-dashed p-5 text-sm text-muted"><p className="font-semibold text-[var(--ink)]">So geht die Suche</p><ul className="mt-2 list-disc space-y-1 pl-5"><li>Wähle Lehrstelle, Praktikum oder Job und tippe einen Beruf ein.</li><li>Mit den Filtern grenzt du Ort, Kanton, Pensum, Berufsfeld und mehr ein – ohne neu zu laden.</li><li>Drücke „/“, um schnell ins Suchfeld zu springen.</li></ul></Card>
+            <Card className="mt-5 border-dashed p-5 text-sm text-muted"><p className="font-semibold text-[var(--ink)]">So geht die Suche</p><ul className="mt-2 list-disc space-y-1 pl-5"><li>Wähle Lehrstelle, Praktikum oder Job und tippe einen Beruf ein – gern mit Ort, z. B. „Informatiker Zürich“.</li><li>Mit den Filtern grenzt du Ort, Kanton, Pensum, Berufsfeld und mehr ein – ohne neu zu laden.</li>{hasKeyboard && <li>Drücke „/“, um schnell ins Suchfeld zu springen.</li>}</ul></Card>
           )}
 
           {searched && !loading && (
             <div className="mt-4">
               <p className="text-small text-muted" aria-live="polite"><strong className="text-[var(--ink)]">{ranked.length}</strong> {ranked.length === 1 ? "Treffer" : "Treffer"}{filtered.length !== results.length ? ` (von ${results.length} geladenen)` : ""} für „{searched.query}“{searched.location ? ` in ${searched.location}` : " · ganze Schweiz"}</p>
-              {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-2 flex flex-wrap gap-2">{sourceStatuses.map((s) => <li key={s.name}><Badge tone={s.status === "unavailable" ? "danger" : "neutral"}>{s.name}{s.status === "unavailable" ? " · gerade nicht erreichbar" : ` · ${facets.sources[s.name] ?? 0}`}</Badge></li>)}</ul>}
+              {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-2 flex flex-wrap gap-2">{sourceStatuses.map((s) => <li key={s.name}><Badge tone="neutral">{s.name}{s.status === "unavailable" ? " · antwortet gerade langsam" : ` · ${facets.sources[s.name] ?? 0}`}</Badge></li>)}</ul>}
 
               {ranked.length === 0 ? (
                 <Card className="mt-5 flex flex-col items-center px-6 py-10 text-center">
@@ -260,9 +289,9 @@ export function JobSearchView() {
                   </div>
                 </Card>
               ) : (
-                <ol className="mt-4 grid gap-3">
+                <ol className={`mt-4 grid ${compact ? "gap-2" : "gap-3"}`}>
                   {shown.map((item) => (
-                    <li key={item.job.url}><ResultCard item={item} saved={listingSources(item.job).some((s) => saved.has(s.url))} saving={saving === item.job.url} onSave={() => void save(item.job)} /></li>
+                    <li key={item.job.url}><ResultCard compact={compact} item={item} saved={listingSources(item.job).some((s) => saved.has(s.url))} saving={saving === item.job.url} onSave={() => void save(item.job)} /></li>
                   ))}
                 </ol>
               )}
@@ -277,7 +306,7 @@ export function JobSearchView() {
         </section>
       </div>
 
-      <Modal open={sheetOpen} onClose={() => setSheetOpen(false)} title="Filter" footer={<div className="flex w-full gap-2"><Button type="button" variant="ghost" onClick={clearFilters}>Zurücksetzen</Button><Button type="button" className="flex-1" onClick={() => setSheetOpen(false)}>{ranked.length} Treffer anzeigen</Button></div>}>
+      <Modal open={sheetOpen} onClose={() => setSheetOpen(false)} title="Filter" footer={<div className="flex w-full gap-2"><Button type="button" variant="ghost" onClick={clearFilters}>Zurücksetzen</Button><Button type="button" className="flex-1" onClick={() => setSheetOpen(false)}>Fertig</Button></div>}>
         {sheetOpen && panel("m")}
       </Modal>
     </WorkspaceShell>
