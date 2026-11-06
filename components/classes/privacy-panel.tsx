@@ -1,12 +1,18 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { Check, ShieldCheck, X } from "lucide-react";
+import { getVisibilityInfo, type VisibilityInfo } from "@/lib/classes";
 
 const shared = ["Firma und Position", "Status (z. B. Beworben, Gespräch)", "Frist, Bewerbungsdatum und Ort", "Anzahl deiner Bewerbungen"];
 const never = ["Notizen", "Gehalt", "Stellenbeschreibung", "Lebensläufe und Dokumente", "Deine E-Mail-Adresse"];
 
 /** Plain-language list of what a teacher or a friend can and cannot see. */
 export function PrivacyPanel({ variant, teacherName }: { variant: "class" | "friends"; teacherName?: string }) {
-  const sees = variant === "class" ? shared : ["Anzahl deiner Bewerbungen", "Wie viele davon in welchem Status sind", "Deinen Fortschritt auf der Karte"];
-  const never_ = variant === "class" ? never : ["Firmen und Positionen", "Fristen", ...never.slice(0, 4)];
+  const [info, setInfo] = useState<VisibilityInfo | null>(null);
+  useEffect(() => { if (variant !== "class") return; let alive = true; getVisibilityInfo().then((v) => { if (alive && v.teacherSees.length && v.teacherNeverSees.length) setInfo(v); }).catch(() => {}); return () => { alive = false; }; }, [variant]);
+  const sees = info ? info.teacherSees : variant === "class" ? shared : ["Anzahl deiner Bewerbungen", "Wie viele davon in welchem Status sind", "Deinen Fortschritt auf der Karte"];
+  const never_ = info ? info.teacherNeverSees : variant === "class" ? never : ["Firmen und Positionen", "Fristen", ...never.slice(0, 4)];
   const who = variant === "class" ? (teacherName ? teacherName : "Deine Lehrperson") : "Deine Freunde";
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3.5 text-[var(--info-fg)]">

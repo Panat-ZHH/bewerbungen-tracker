@@ -21,6 +21,11 @@ export function errorMessage(reason: unknown): string {
     case "NOT_FOUND": return "Der Eintrag wurde nicht gefunden.";
     case "INVALID_NAME": return "Bitte gib einen gültigen Namen ein.";
     case "INVALID_REQUEST": return "Die Anfrage ist ungültig.";
+    case "EXPIRED": return "Diese Einladung ist abgelaufen. Frag deine Lehrperson nach einem neuen Link.";
+    case "REVOKED": return "Diese Einladung wurde zurückgezogen. Frag deine Lehrperson nach einem neuen Link.";
+    case "USED_UP": return "Diese Einladung wurde schon zu oft benutzt. Frag deine Lehrperson nach einem neuen Link.";
+    case "INVALID": return "Dieser Einladungslink ist nicht gültig.";
+    case "RATE_LIMITED": return "Bitte warte einen Moment, bevor du es erneut versuchst.";
     default: return generalCause(reason) ?? "Etwas ist schiefgelaufen. Bitte versuche es erneut.";
   }
 }

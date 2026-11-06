@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { authMessage, oauthErrorMessage, safeNextPath } from "@/lib/ux";
+import { resolveLanding } from "@/lib/role";
 
 /**
  * Return point of "Weiter mit Google" (redirectTo = <origin>/auth/callback?next=…).
@@ -22,14 +23,15 @@ export default function AuthCallbackPage() {
   useEffect(() => {
     let active = true;
     const params = new URLSearchParams(window.location.search);
-    const next = safeNextPath(params.get("next")) ?? "/dashboard";
+    const next = safeNextPath(params.get("next"));
+    const go = () => resolveLanding(next).then((path) => { if (active) router.replace(path); }).catch(() => { if (active) router.replace(next ?? "/dashboard"); });
     const fail = (message: string) => { if (active) setError(message); };
 
     const providerError = oauthErrorMessage(params) ?? oauthErrorMessage(new URLSearchParams(window.location.hash.replace(/^#/, "")));
     if (providerError) { fail(providerError); return () => { active = false; }; }
     if (!params.get("code") && !window.location.hash.includes("access_token")) {
       // Opened without a code (bookmark, reload after success, back button): fine if already signed in.
-      supabase.auth.getSession().then(({ data }) => { if (!active) return; if (data.session) router.replace(next); else fail("Die Anmeldung ist abgelaufen oder wurde nicht abgeschlossen. Bitte versuch es noch einmal."); });
+      supabase.auth.getSession().then(({ data }) => { if (!active) return; if (data.session) go(); else fail("Die Anmeldung ist abgelaufen oder wurde nicht abgeschlossen. Bitte versuch es noch einmal."); });
       return () => { active = false; };
     }
 
@@ -37,7 +39,7 @@ export default function AuthCallbackPage() {
       if (!active) return;
       if (sessionError) return fail(oauthErrorMessage(`error_description=${sessionError.message}`) ?? authMessage(sessionError));
       if (!data.session) return fail("Die Anmeldung ist abgelaufen oder wurde in einem anderen Browser gestartet. Bitte versuch es noch einmal.");
-      router.replace(next);
+      go();
     }).catch((reason) => fail(authMessage(reason)));
     return () => { active = false; };
   }, [router]);
