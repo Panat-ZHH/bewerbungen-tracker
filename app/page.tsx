@@ -66,7 +66,7 @@ export default function LandingPage() {
             {[
               [MapPin, "Stellen suchen und Betriebe auf der Karte entdecken"],
               [UserRound, "Alle Bewerbungen mit Status, Frist und Notizen an einem Ort"],
-              [Eye, "Erinnerung an Fristen, damit keine Bewerbung untergeht"],
+              [Eye, "Fristen immer im Blick, damit keine Bewerbung untergeht"],
             ].map(([Icon, text]) => {
               const I = Icon as typeof MapPin;
               return <li key={text as string} className="flex items-start gap-3"><span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]"><I size={18} aria-hidden /></span><span className="text-body pt-1.5">{text as string}</span></li>;
