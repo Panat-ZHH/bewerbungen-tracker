@@ -85,7 +85,7 @@
   --hover: rgba(255,255,255,.07); --focus-ring: rgba(76,155,255,.5);
   --raised: rgba(255,255,255,.06); --raised-hover: rgba(255,255,255,.11); --solid: #1d2330;
   --placeholder: #8892a3; --highlight: rgba(255,255,255,.06);
-  --brand-gradient: linear-gradient(135deg, #2f7fe8 0%, #4a5fe0 55%, #6a4fdc 100%);
+  --brand-gradient: linear-gradient(135deg, #2a70d6 0%, #4a5fe0 55%, #6a4fdc 100%); /* white text >= 4.5:1 on every stop (lightest stop 4.8:1) */
   --shadow-xs: 0 1px 2px rgba(0,0,0,.4);
   --shadow-sm: 0 1px 2px rgba(0,0,0,.35), 0 4px 12px rgba(0,0,0,.3);
   --shadow-md: 0 2px 4px rgba(0,0,0,.3), 0 10px 28px rgba(0,0,0,.4);
@@ -256,8 +256,20 @@ h1, h2, h3 { text-wrap: balance; letter-spacing: -.02em; }
 [data-theme="dark"] [class*="hover:bg-white/"]:hover { background-color: var(--raised-hover); }
 [data-theme="dark"] .bg-\[\#f2f2f4\], [data-theme="dark"] .bg-\[\#f5f5f7\] { background-color: var(--neutral-bg); }
 [data-theme="dark"] .bg-\[\#eaf3ff\], [data-theme="dark"] .bg-\[\#f2f7ff\] { background-color: var(--info-bg); }
-/* The logo mark is black: keep its tile light in dark mode, otherwise it disappears. */
-[data-theme="dark"] .logo-tile { background-color: #eef4ff; }
+/* Logo: light tile in light mode; in dark mode a tile-less light glyph (public/logo-dark.png), no dark box or edge. */
+.brand-mark { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; overflow: hidden; background: var(--bm-bg, #f2f7ff); padding: var(--bm-pad, 0px); box-shadow: var(--bm-shadow, var(--shadow-xs)); }
+.brand-mark-raised { --bm-shadow: var(--shadow-md); }
+.brand-mark img { width: 100%; height: 100%; object-fit: contain; opacity: 1 !important; }
+.brand-mark-dark { display: none !important; }
+[data-theme="dark"] .brand-mark:not(.brand-mark-fixed) { background: transparent; box-shadow: none; padding: 0; }
+[data-theme="dark"] .brand-mark:not(.brand-mark-fixed) .brand-mark-light { display: none; }
+[data-theme="dark"] .brand-mark:not(.brand-mark-fixed) .brand-mark-dark { display: block !important; }
+
+/* "Weiter mit Google": Google's light and dark button themes, both >= 4.5:1 (light 16.6:1, dark 14.2:1). */
+.btn-google { background: #fff; color: #1f1f1f; border-color: var(--field-border); }
+.btn-google:hover:not(:disabled) { background: #f3f3f4; }
+[data-theme="dark"] .btn-google { background: #131314; color: #e3e3e3; border-color: #8e918f; }
+[data-theme="dark"] .btn-google:hover:not(:disabled) { background: #1f2023; }
 [data-theme="dark"] .bg-\[\#eaf5ed\] { background-color: var(--success-bg); }
 [data-theme="dark"] .bg-\[\#fff8f8\], [data-theme="dark"] .bg-\[\#fff0f0\] { background-color: var(--danger-bg); }
 [data-theme="dark"] .bg-\[\#fff4df\] { background-color: var(--warning-bg); }
@@ -277,3 +289,5 @@ h1, h2, h3 { text-wrap: balance; letter-spacing: -.02em; }
 [data-theme="dark"] input::placeholder, [data-theme="dark"] textarea::placeholder { color: var(--placeholder); }
 [data-theme="dark"] .recharts-default-tooltip { background: var(--sheet-bg) !important; border-color: var(--line) !important; color: var(--ink); }
 [data-theme="dark"] img { opacity: .94; }
+/* disabled icon buttons stay legible (>= 3:1 for the icon) */
+[data-theme="dark"] .disabled\:opacity-40:disabled { opacity: .62; }
