@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/lib/toast";
-import { authMessage } from "@/lib/ux";
+import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
