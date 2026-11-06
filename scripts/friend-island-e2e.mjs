@@ -9,7 +9,7 @@ const session = { access_token: "a.b.c", refresh_token: "r", token_type: "bearer
 const FRIEND = "22222222-2222-2222-2222-222222222222";
 const STRANGER = "99999999-9999-9999-9999-999999999999";
 const statuses = ["offer", "interview", "applied", "preparing", "rejected", "saved", "final_interview"];
-const island = { userId: FRIEND, displayName: "Mia Muster", islands: 2, applications: statuses.map((status, i) => ({ id: `h000${i + 1}`, status, createdAt: `2026-10-0${i + 1}` })), items: [{ id: "i1", itemType: "tree", x: 8, z: 12, rotation: 0, createdAt: "2026-10-01" }, { id: "i2", itemType: "fountain", x: 10, z: 12, rotation: 0, createdAt: "2026-10-02" }], layouts: [] };
+const island = { userId: FRIEND, displayName: "Mia Muster", islands: 2, applications: statuses.map((status, i) => ({ id: `h000${i + 1}`, status, createdAt: `2026-10-0${i + 1}`, company: ["Swisscom", "UBS", "SBB", "Google Zürich", "Migros", "Zühlke", "Roche"][i] })), items: [{ id: "i1", itemType: "tree", x: 8, z: 12, rotation: 0, createdAt: "2026-10-01" }, { id: "i2", itemType: "fountain", x: 10, z: 12, rotation: 0, createdAt: "2026-10-02" }], layouts: [] };
 let failures = 0;
 const check = (ok, text) => { console.log(ok ? "PASS" : "FAIL", text); if (!ok) failures++; };
 
@@ -56,7 +56,9 @@ async function run(name, vp, dark) {
   check(await page.getByRole("link", { name: /Zurück zu Freunden/ }).isVisible(), `${name}: back button`);
   check(await page.getByRole("button", { name: /Bewerbung|Shop|Verschieben|Löschen|Speichern|Platzieren/ }).count() === 0, `${name}: no edit buttons`);
   const body = await page.locator("body").innerText();
-  check(!/Firma \d|Acme/.test(body) && /Haus 1/.test(body), `${name}: neutral house labels only`);
+  const labels = await page.locator("[data-building] strong").allInnerTexts();
+  const expected = ["Swisscom", "UBS", "SBB", "Google Zürich", "Migros", "Zühlke", "Roche"]; const shown = labels.filter(Boolean); // narrow viewports hide off-screen labels
+  check(shown.length >= 3 && shown.every((l) => expected.includes(l)) && (mobile || shown.length === 7) && !/Haus 1/.test(body), `${name}: company names shown on the houses (${labels.join(", ")})`);
   await page.screenshot({ path: `${OUT}${name}-1-view.png`, timeout: 120000 });
 
   // Attempt to drag a house / item and use edit keys: nothing may be sent
@@ -75,7 +77,7 @@ async function run(name, vp, dark) {
   }
   await host.focus(); for (const key of ["ArrowLeft", "Enter", "Delete", "Control+z"]) await page.keyboard.press(key);
   await page.waitForTimeout(800);
-  const extra = calls.slice(before);
+  const extra = calls.slice(before).filter((c) => c.rpc !== "social_list"); // badge polling is read-only and unrelated to the map
   check(extra.length === 0, `${name}: drag + keyboard attempt sent no requests (${JSON.stringify(extra)})`);
   check(!calls.some((c) => c.method !== "GET" && c.rest) , `${name}: no REST writes`);
   check(!calls.some((c) => /map_shop|map_move|map_island_unlock|place/.test(c.rpc || "")), `${name}: no mutating RPC called`);

@@ -5,8 +5,8 @@ const never = ["Notizen", "Gehalt", "Stellenbeschreibung", "Lebensläufe und Dok
 
 /** Plain-language list of what a teacher or a friend can and cannot see. */
 export function PrivacyPanel({ variant, teacherName }: { variant: "class" | "friends"; teacherName?: string }) {
-  const sees = variant === "class" ? shared : ["Anzahl deiner Bewerbungen", "Wie viele davon in welchem Status sind", "Deinen Fortschritt auf der Karte"];
-  const never_ = variant === "class" ? never : ["Firmen und Positionen", "Fristen", ...never.slice(0, 4)];
+  const sees = variant === "class" ? shared : ["Anzahl deiner Bewerbungen", "Wie viele davon in welchem Status sind", "Deinen Fortschritt auf der Karte", "Firmennamen auf der Karte (abschaltbar)"];
+  const never_ = variant === "class" ? never : ["Positionen und Stellenlinks", "Fristen", ...never.slice(0, 4)];
   const who = variant === "class" ? (teacherName ? teacherName : "Deine Lehrperson") : "Deine Freunde";
   return (
     <div className="rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3.5 text-[var(--info-fg)]">

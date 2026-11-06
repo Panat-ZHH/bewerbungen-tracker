@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
+import { getShareCompanies, setShareCompanies } from "@/lib/friend-island";
 import { getFriendsActivity, getMySocialProfile, listConnections, updateMySocialProfile } from "@/lib/social";
 import type { FriendActivity, SocialConnection, SocialProfile } from "@/types";
 import { PrivacyPanel } from "@/components/classes/privacy-panel";
@@ -27,6 +28,8 @@ export function FriendsView() {
   const [error, setError] = useState("");
   const [sharingBusy, setSharingBusy] = useState(false);
   const [sharingError, setSharingError] = useState("");
+  const [shareCompanies, setShareCompaniesState] = useState(true);
+  const [companiesBusy, setCompaniesBusy] = useState(false);
   const { setCount: setRequestCount } = useFriendRequests();
 
   const load = useCallback(async () => {
@@ -34,6 +37,7 @@ export function FriendsView() {
     try {
       const [me, list, acts] = await Promise.all([getMySocialProfile(), listConnections(), getFriendsActivity().catch(() => [] as FriendActivity[])]);
       setProfile(me);
+      setShareCompaniesState(await getShareCompanies().catch(() => true));
       setConnections(list);
       setRequestCount(list.filter((c) => c.state === "incoming").length); // nav badge follows accept/decline immediately
       setActivity(acts);
@@ -53,6 +57,11 @@ export function FriendsView() {
     if (!profile) return;
     setSharingBusy(true); setSharingError("");
     try { setProfile(await updateMySocialProfile({ shareWithFriends: !profile.shareWithFriends })); } catch (reason) { setSharingError(friendlyError(reason)); } finally { setSharingBusy(false); }
+  }
+
+  async function toggleCompanies() {
+    setCompaniesBusy(true); setSharingError("");
+    try { setShareCompaniesState(await setShareCompanies(!shareCompanies)); } catch (reason) { setSharingError(friendlyError(reason)); } finally { setCompaniesBusy(false); }
   }
 
   const friends = connections.filter((c) => c.state === "friend");
@@ -76,12 +85,23 @@ export function FriendsView() {
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]">{profile.shareWithFriends ? <Eye size={18} /> : <EyeOff size={18} />}</span>
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">Aktivität mit Freunden teilen</p>
-                  <p className="text-small text-muted">{profile.shareWithFriends ? "Freunde sehen Anzahl und Status, nie Firmen, Notizen oder Gehalt." : "Du bist für Freunde auf privat gestellt."}</p>
+                  <p className="text-small text-muted">{profile.shareWithFriends ? "Freunde sehen Anzahl, Status und deine Insel, nie Notizen oder Gehalt." : "Du bist für Freunde auf privat gestellt."}</p>
                 </div>
                 <button type="button" role="switch" aria-checked={profile.shareWithFriends} aria-label="Aktivität mit Freunden teilen" disabled={sharingBusy} onClick={toggleSharing} className="group flex min-h-11 min-w-12 shrink-0 items-center justify-center disabled:opacity-60">
                   <span aria-hidden className={`relative block h-7 w-12 rounded-full transition-colors ${profile.shareWithFriends ? "bg-[var(--brand)]" : "bg-[var(--line)]"}`}><span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${profile.shareWithFriends ? "left-[1.35rem]" : "left-0.5"}`} /></span>
                 </button>
               </div>
+              {profile.shareWithFriends && (
+                <div className="mt-3 flex items-center gap-3 border-t border-[var(--line)] pt-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold">Firmennamen auf der Karte zeigen</p>
+                    <p className="text-small text-muted">{shareCompanies ? "Freunde sehen auf deiner Insel, bei welchen Firmen du dich beworben hast (nur der Name)." : "Deine Häuser erscheinen für Freunde ohne Firmennamen."}</p>
+                  </div>
+                  <button type="button" role="switch" aria-checked={shareCompanies} aria-label="Firmennamen auf der Karte zeigen" disabled={companiesBusy} onClick={toggleCompanies} className="group flex min-h-11 min-w-12 shrink-0 items-center justify-center disabled:opacity-60">
+                    <span aria-hidden className={`relative block h-7 w-12 rounded-full transition-colors ${shareCompanies ? "bg-[var(--brand)]" : "bg-[var(--line)]"}`}><span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-all ${shareCompanies ? "left-[1.35rem]" : "left-0.5"}`} /></span>
+                  </button>
+                </div>
+              )}
               {sharingError && <StatusMessage tone="danger" className="mt-3">{sharingError}</StatusMessage>}
             </Card>
             <PrivacyPanel variant="friends" />
