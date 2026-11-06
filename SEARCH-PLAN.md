@@ -1,0 +1,20 @@
+# SEARCH-PLAN – better search & filters (UI language: German; code/comments English)
+
+Read AGENTS.md first. Data model = `Application` in types/index.ts (company, position, location, source, category, status, salaryMin/Max, currency, deadline, appliedAt, createdAt, updatedAt, matchScore, cvType, jobDescription, notes, jobUrl). There are NO tags/contacts/favourites columns and NO schema changes are allowed: favourites + tags are stored client-side in localStorage (per user id) via lib/search/local-meta.ts; "contact person" is searched inside notes/jobDescription text only. "Has documents" = cvType set. Remote = location/jobDescription contains remote/homeoffice/home office/hybrid.
+
+## Contract (lib/search/*, pure TS, no React, import with relative paths + `.ts` so node --test works; see lib/application-map.ts)
+- `types.ts`: `SearchFilters` { statuses: ApplicationStatus[]; categories: ApplicationCategory[]; sources: string[]; locations: string[]; remote?: "remote"|"onsite"; tags: string[]; cvTypes: CVType[]; appliedFrom/appliedTo/updatedFrom/updatedTo/createdFrom/createdTo/deadlineFrom/deadlineTo?: string (YYYY-MM-DD); salaryMin?: number; salaryMax?: number; minMatch?: number; hasNotes?: boolean; hasCv?: boolean; hasJobUrl?: boolean; overdue?: boolean (deadline passed and status still open); dueSoon?: number (days); favouritesOnly?: boolean }, `SortKey` ("relevance"|"updated"|"applied"|"deadline"|"company"|"salary"|"match") + dir, `SearchState` { query, filters, sort, dir }, `SearchResult` { application, score, matches: {field, ranges:[start,end][]}[] }, `Preset` { id, name, state }.
+- `fuzzy.ts`: normalize (lowercase, strip diacritics, ä→a/ae tolerant), tokenizer, typo-tolerant match (Damerau-Levenshtein bounded, prefix + substring + token-AND semantics), per-field weights (company > position > location > tags > notes/description > source).
+- `engine.ts`: `searchApplications(apps, state, meta, now?) => SearchResult[]` (ranking, filtering, sorting, stable), `highlight(text, ranges)`, `suggest(apps, partial)`.
+- `url.ts`: `stateToParams(state): URLSearchParams`, `paramsToState(params): SearchState` (round-trip, invalid values dropped, short keys: q,st,cat,src,loc,remote,tag,cv,af,at,uf,ut,df,dt,smin,smax,match,notes,cv1,url,overdue,soon,fav,sort,dir).
+- `storage.ts`: recent searches (max 8), presets (saved filters), localStorage keys prefixed `wendapply.search.`; SSR-safe.
+- `local-meta.ts`: favourites + tags per application id.
+- `components/search/*` (client): `SearchBar` (debounced 150 ms, `/` and Cmd/Ctrl+K focus, Esc clears, suggestions + recent dropdown, aria-combobox), `FilterPanel` (desktop sidebar/popover, mobile bottom sheet), `FilterChips` (removable + "Alle löschen"), `PresetMenu`, `Highlight`, `ResultCount`, `SortSelect`, hook `useApplicationSearch(apps)` returning state/results/setters, synced to URL via `useSearchParams` + `router.replace` (shareable).
+- Consumers: app/applications/page.tsx (list) and app/map/page.tsx (map chip search panel; reuse the same engine, compact UI, filters → dim/hide islands as today).
+
+## Parts / ownership
+- core (A): lib/search/**, tests/search-*.test.mjs, docs/search.md (algorithm, URL params). Exports must match the contract above.
+- ui (B): components/search/**, app/applications/page.tsx. Starts from the contract; may stub against lib/search until core is merged into its worktree (rebase/merge `core` branch when ready: `git merge core`).
+- map (C): app/map/page.tsx and its search panel only (uses lib/search + components/search/Highlight if present; otherwise engine only).
+- qa (D, after A-C merged): tests/search-ui-smoke (Playwright or existing scripts/ux-v2-stub.mjs stub pattern, add `scripts/search-e2e.mjs` + hook into e2e-all), scripts/search-visual-qa.mjs (desktop 1280 + mobile 375 screenshots to ~/Projects/bewerbungen-tracker-wt/screenshots/search/), fix small bugs found.
+Build env: NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy. Never push/deploy/touch remote; commit on your branch only; don't edit files owned by other parts.
