@@ -37,7 +37,9 @@ function serverQuery(state: JobSearchState): MultiSourceSearchInput {
   const praktikum = tabOf(state.filters) === "praktikum";
   const f = state.filters;
   // "Informatiker Zürich": a known place at the end of the text becomes the location (unless one is already set)
-  const parsed = f.location.trim() ? { query: state.query.trim(), location: "" } : splitPlace(state.query);
+  // A place typed in the text that equals the Ort filter ("Polymechaniker Winterthur" + Ort: Winterthur) is stripped from the query, the sources do not know the city as a profession.
+  const split = splitPlace(state.query);
+  const parsed = !f.location.trim() ? split : split.location && split.location.toLowerCase() === f.location.trim().toLowerCase() ? { query: split.query, location: "" } : { query: state.query.trim(), location: "" };
   const q = parsed.query;
   const location = f.location.trim() || parsed.location;
   const filters: NonNullable<MultiSourceSearchInput["filters"]> = {};
@@ -194,7 +196,7 @@ export function JobSearchView() {
   const hasMoreLocal = ranked.length > visible;
 
   // infinite scroll
-  const more = useCallback(() => { if (hasMoreLocal) setVisible((v) => v + PAGE_STEP); else void loadMore(); }, [hasMoreLocal, loadMore]);
+  const more = useCallback(() => { if (hasMoreLocal) setVisible((v) => v + PAGE_STEP); else if (!error) void loadMore(); }, [hasMoreLocal, loadMore, error]); // no automatic retry loop after a failed page (the error banner offers a manual retry)
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
