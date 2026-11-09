@@ -110,7 +110,7 @@ export default function ApplicationDetailPage() {
             <div className="min-w-0"><h1 className="text-[28px] font-semibold tracking-[-1px]">Bewerbung bearbeiten</h1><p className="mt-2 text-sm text-muted">{application.position} bei {application.company}</p></div>
             <Button variant="ghost" onClick={() => setEditing(false)} className="min-h-11 sm:min-h-11 shrink-0">Abbrechen</Button>
           </div>
-          <Card className="mt-6 p-4 sm:p-7"><ApplicationForm application={application} /></Card>
+          <Card className="mt-6 p-4 sm:p-7"><ApplicationForm application={application} onSaved={(saved, { stay }) => { setApplication(saved); if (!stay) { setEditing(false); window.scrollTo({ top: 0 }); } }} /></Card>
         </div>
       ) : (
         <>
