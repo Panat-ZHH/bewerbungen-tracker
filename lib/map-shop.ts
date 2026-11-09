@@ -10,7 +10,7 @@ export function isMapShopSetupError(reason: unknown) {
 }
 
 export const shopCatalog = {
-  road: { name: "Straße", price: 20, width: 1, depth: 1 },
+  road: { name: "Strasse", price: 20, width: 1, depth: 1 },
   flowers: { name: "Blumenbeet", price: 30, width: 1, depth: 1 },
   tree: { name: "Zierbaum", price: 40, width: 1, depth: 1 },
   bench: { name: "Parkbank", price: 50, width: 2, depth: 1 },
@@ -21,7 +21,7 @@ export const shopCatalog = {
 export type ShopItemType = keyof typeof shopCatalog;
 export type MapPosition = { x: number; z: number; rotation: number };
 export type OwnedMapItem = { id: string; itemType: ShopItemType; x: number | null; z: number | null; rotation: number; createdAt: string };
-export const placeableCatalog = { ...shopCatalog, house: { name: "Bewerbungshaus", width: 5, depth: 5 }, street: { name: "Straße", width: 1, depth: 1 } };
+export const placeableCatalog = { ...shopCatalog, house: { name: "Bewerbungshaus", width: 5, depth: 5 }, street: { name: "Strasse", width: 1, depth: 1 } };
 export type LayoutItem = Omit<OwnedMapItem, "itemType"> & { itemType: "house" | "street"; applicationId?: string };
 export type PlaceableItem = OwnedMapItem | LayoutItem;
 export type MapLayout = MapPosition & { id: string };

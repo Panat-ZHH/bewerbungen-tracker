@@ -7,26 +7,26 @@ import { lockedDrag } from "../lib/map-readonly.ts";
 
 const read = (file) => readFile(new URL(file, import.meta.url), "utf8");
 
-test("parseFriendIsland replaces company/position with neutral labels and drops unknown data", () => {
+test("parseFriendIsland keeps only the company name (or a neutral label) and drops all other fields", () => {
   const island = parseFriendIsland({
     userId: "u", displayName: "Mia", islands: 3,
     applications: [{ id: "h0001", status: "offer", createdAt: "2026-10-01", company: "Secret AG", position: "CEO", notes: "geheim" }, { id: "h0002", status: "bogus" }, { id: "h0003", status: "applied", createdAt: "2026-10-02" }],
     items: [{ id: "i1", itemType: "tree", x: 1, z: 2, rotation: 0, createdAt: "" }, { id: "i2", itemType: "evil" }],
     layouts: [{ id: "house:h0001", x: 1, z: 2, rotation: 1 }, { id: "x" }],
   });
-  assert.deepEqual(island.applications.map((a) => [a.company, a.position, a.status]), [["Haus 1", "", "offer"], ["Haus 2", "", "applied"]]);
+  assert.deepEqual(island.applications.map((a) => [a.company, a.position, a.status]), [["Secret AG", "", "offer"], ["Haus 2", "", "applied"]]);
   const text = JSON.stringify(island);
-  for (const secret of ["Secret AG", "CEO", "geheim"]) assert.ok(!text.includes(secret));
+  for (const secret of ["CEO", "geheim"]) assert.ok(!text.includes(secret));
   assert.equal(island.items.length, 1);
   assert.equal(island.layouts.length, 1);
   assert.equal(island.islands, 3);
   assert.throws(() => parseFriendIsland(null));
 });
 
-test("mock friend island works without Supabase and shows only neutral labels", () => {
+test("mock friend island works without Supabase and shows only company names", () => {
   const island = mockFriendIsland();
   assert.ok(island.applications.length > 0);
-  assert.ok(island.applications.every((a) => /^Haus \d+$/.test(a.company) && a.position === "" && !a.notes && !a.location));
+  assert.ok(island.applications.every((a) => a.company.length > 0 && a.position === "" && !a.notes && !a.location));
 });
 
 test("German error messages", () => {
@@ -57,7 +57,7 @@ test("friend island view imports no mutation API and no shop/edit hook", async (
     assert.doesNotMatch(source, /@\/lib\/storage|lib\/storage|useMapShop|map-shop"|MapPlacementTools|MapShop\b|islands-storage|use-islands|unlockIsland|moveMapObject|placeMapItem|buyMapItem|\.insert\(|\.update\(|\.upsert\(|\.delete\(/);
   }
   assert.match(lib, /rpc\("map_friend_island"/);
-  assert.equal([...lib.matchAll(/\.rpc\(/g)].length, 1);
+  assert.deepEqual([...lib.matchAll(/\.rpc\("(\w+)"/g)].map((m) => m[1]), ["map_friend_island", "social_get_share_companies", "social_set_share_companies", "social_get_share_outcomes", "social_set_share_outcomes"]);
 });
 
 test("migration: read-only function checks accepted friendship, no write policies/grants, hides private columns", async () => {
@@ -82,7 +82,7 @@ test("database: only accepted friends who share can read; data is sanitized; tab
       create function storage.foldername(text) returns text[] language sql as $storage$ select string_to_array($1, '/') $storage$;
       grant usage on schema auth to authenticated;
     `);
-    for (const file of ["../supabase/schema.sql", "../supabase/social.sql", "../supabase/migrations/20261104000001_lock_streets.sql", "../supabase/migrations/20261104000002_islands.sql", "../supabase/migrations/20261105000001_friend_island_view.sql"]) await database.exec(await read(file));
+    for (const file of ["../supabase/schema.sql", "../supabase/social.sql", "../supabase/migrations/20261104000001_lock_streets.sql", "../supabase/migrations/20261104000002_islands.sql", "../supabase/migrations/20261105000001_friend_island_view.sql", "../supabase/migrations/20261106000000_friend_companies.sql"]) await database.exec(await read(file));
     const [me, friend, pending, stranger] = ["11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222", "33333333-3333-3333-3333-333333333333", "44444444-4444-4444-4444-444444444444"];
     for (const id of [me, friend, pending, stranger]) await database.query("insert into auth.users values ($1)", [id]);
     for (const [id, name] of [[me, "Ich"], [friend, "Freundin"], [pending, "Offen"], [stranger, "Fremd"]]) await database.query("insert into public.user_roles (user_id, display_name, invite_code) values ($1, $2, $3) on conflict (user_id) do update set display_name = excluded.display_name", [id, name, name]);
@@ -97,11 +97,12 @@ test("database: only accepted friends who share can read; data is sanitized; tab
     const ok = (await call(me, friend)).rows[0].r;
     assert.equal(ok.displayName, "Freundin");
     assert.equal(ok.applications.length, 1);
+    assert.equal(ok.applications[0].company, "Acme Geheim GmbH");
     assert.equal(ok.items.length, 1);
     assert.deepEqual(ok.layouts, [{ id: "house:h0001", x: 7, z: 9, rotation: 0 }]);
-    assert.deepEqual(Object.keys(ok.applications[0]).sort(), ["createdAt", "id", "status"]);
+    assert.deepEqual(Object.keys(ok.applications[0]).sort(), ["company", "createdAt", "id", "status"]);
     const text = JSON.stringify(ok);
-    for (const secret of ["Acme", "Geheim", "Chefin", "private Notiz", "Zürich", "acme-secret", "777"]) assert.ok(!text.includes(secret), secret);
+    for (const secret of ["Chefin", "private Notiz", "Zürich", "acme-secret", "777"]) assert.ok(!text.includes(secret), secret);
     // the friend can see mine too (symmetric), but pending/strangers/self cannot be viewed
     assert.ok((await call(friend, me)).rows[0].r);
     for (const target of [pending, stranger, me]) await assert.rejects(call(me, target), /NOT_FRIENDS/);

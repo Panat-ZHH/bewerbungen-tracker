@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { Eye, EyeOff, GraduationCap, LogOut } from "lucide-react";
+import { Eye, EyeOff, GraduationCap, LogOut, Megaphone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,8 +10,10 @@ import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { type ClassPreview, getMyClassMemberships, joinClass, leaveClass, previewClass, setClassSharing } from "@/lib/classes";
-import type { ClassMembership } from "@/types";
+import { acceptInvite, type ClassAnnouncement, type ClassMembershipV2 as ClassMembership, type ClassPreview, getMyClassMembershipsV2, isInviteToken, joinClass, leaveClass, listClassAnnouncements, previewClass, previewInvite, setClassSharingV2 } from "@/lib/classes";
+import { type ConsentChoice } from "@/lib/consent";
+import { ConsentSwitches } from "./consent-switches";
+import { useJoinConsent } from "./join-consent";
 import { PrivacyPanel } from "./privacy-panel";
 import { errorMessage, formatDate } from "./shared";
 
@@ -27,39 +29,52 @@ export function StudentClasses() {
   const [actionError, setActionError] = useState("");
 
   const load = useCallback(() => {
-    getMyClassMemberships().then(setItems).catch((e) => setError(errorMessage(e)));
+    getMyClassMembershipsV2().then(setItems).catch((e) => setError(errorMessage(e)));
   }, []);
   useEffect(() => { load(); }, [load]);
 
   const [pending, setPending] = useState<ClassPreview | null>(null);
+  const [resolved, setResolved] = useState("");
+  const consent = useJoinConsent();
 
   /** Step 1: look the class up so the student sees who they share with before consenting. */
   async function lookup(event: FormEvent) {
     event.preventDefault();
-    const trimmed = code.trim().toUpperCase();
+    const trimmed = extractCode(code);
     if (!trimmed) { setJoinError("Bitte gib den Klassencode ein."); return; }
     setJoining(true); setJoinError(""); setNotice("");
     try {
-      const found = await previewClass(trimmed);
-      if (found.alreadyMember) { setNotice(`Du bist schon in der Klasse "${found.name}".`); setCode(""); } else setPending(found);
+      const found: ClassPreview = isInviteToken(trimmed) ? await previewInvite(trimmed) : await previewClass(trimmed);
+      const invite = found as Partial<Awaited<ReturnType<typeof previewInvite>>>;
+      if (invite.valid === false && !found.alreadyMember) throw new Error(invite.reason ?? "INVALID");
+      if (found.alreadyMember) { setNotice(`Du bist schon in der Klasse "${found.name}".`); setCode(""); }
+      else {
+        await consent.load();
+        setResolved(trimmed); setPending(found);
+      }
     } catch (e) { setJoinError(errorMessage(e)); } finally { setJoining(false); }
   }
 
-  /** Step 2: explicit consent. */
+  /** Step 2: explicit consent. Name and age band are saved first so the defaults and the teacher's view are right from the start. */
   async function confirmJoin() {
-    if (!pending) return;
+    if (!pending || !consent.ready) return;
     setJoining(true); setActionError("");
     try {
-      const m = await joinClass(code.trim().toUpperCase());
-      setItems((prev) => [m, ...(prev ?? []).filter((x) => x.classId !== m.classId)]);
+      const { membership: m, consent: final } = await consent.run(() => (isInviteToken(resolved) ? acceptInvite(resolved) : joinClass(resolved)));
+      const full: ClassMembership = { ...m, shareApplications: final.share, shareCompanies: final.companies, shareStatus: final.status, announcementsCount: 0 };
+      setItems((prev) => [full, ...(prev ?? []).filter((x) => x.classId !== m.classId)]);
       setCode(""); setPending(null); setNotice(`Du bist der Klasse "${m.name}" beigetreten.`);
     } catch (e) { setActionError(errorMessage(e)); } finally { setJoining(false); }
   }
 
-  async function toggle(m: ClassMembership) {
+  /** Consent: three real switches (Fortschritt teilen, Status zeigen, Firmen zeigen). Optimistic, rolled back on error. */
+  async function update(m: ClassMembership, next: Partial<ConsentChoice>) {
+    const target: ConsentChoice = { share: m.shareApplications, status: m.shareStatus, companies: m.shareCompanies, ...next };
     setBusy(m.classId); setActionError("");
-    try { await setClassSharing(m.classId, !m.shareApplications); setItems((prev) => (prev ?? []).map((x) => (x.classId === m.classId ? { ...x, shareApplications: !m.shareApplications } : x))); }
-    catch (e) { setActionError(errorMessage(e)); } finally { setBusy(null); }
+    const apply = (c: ConsentChoice) => setItems((prev) => (prev ?? []).map((x) => (x.classId === m.classId ? { ...x, shareApplications: c.share, shareStatus: c.status, shareCompanies: c.companies } : x)));
+    apply(target);
+    try { await setClassSharingV2(m.classId, target.share, target.companies, target.status); }
+    catch (e) { apply({ share: m.shareApplications, status: m.shareStatus, companies: m.shareCompanies }); setActionError(errorMessage(e)); } finally { setBusy(null); }
   }
 
   async function confirmLeave() {
@@ -75,9 +90,9 @@ export function StudentClasses() {
 
       <Card className="space-y-4 p-5">
         <form onSubmit={lookup}>
-          <Field label="Klassencode" htmlFor="join-code" hint="Den Code bekommst du von deiner Lehrperson." error={joinError}>
+          <Field label="Klassencode" htmlFor="join-code" hint="Code oder Link bekommst du von deiner Lehrperson." error={joinError}>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="z. B. AB12CD34" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! tracking-[.15em] sm:max-w-xs sm:text-base!" />
+              <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code oder Einladungslink" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! sm:max-w-sm sm:text-base!" />
               <Button type="submit" className="min-h-11 sm:min-h-11" loading={joining && !pending}>Weiter</Button>
             </div>
           </Field>
@@ -100,9 +115,12 @@ export function StudentClasses() {
                 </div>
                 <Badge tone={m.shareApplications ? "success" : "neutral"}>{m.shareApplications ? <><Eye size={12} /> Freigabe aktiv</> : <><EyeOff size={12} /> Nicht geteilt</>}</Badge>
               </div>
-              <p className="text-small text-muted">{m.shareApplications ? "Deine Lehrperson sieht Firma, Position, Status und Daten deiner Bewerbungen." : "Deine Lehrperson sieht nur, dass du in der Klasse bist."}</p>
+              {m.lastNudgeAt && <p className="text-small text-muted">Letzte Erinnerung deiner Lehrperson: {formatDate(m.lastNudgeAt)}</p>}
+              <div className="space-y-2.5 rounded-[var(--radius-md)] border border-[var(--line)] p-3.5">
+                <ConsentSwitches value={{ share: m.shareApplications, status: m.shareStatus, companies: m.shareCompanies }} disabled={busy === m.classId} onChange={(next) => update(m, next)} />
+              </div>
+              <Announcements classId={m.classId} count={m.announcementsCount} />
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" loading={busy === m.classId && !leaving} onClick={() => toggle(m)} icon={m.shareApplications ? <EyeOff size={14} /> : <Eye size={14} />}>{m.shareApplications ? "Freigabe pausieren" : "Wieder teilen"}</Button>
                 <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" onClick={() => { setActionError(""); setLeaving(m); }} icon={<LogOut size={14} />}>Klasse verlassen</Button>
               </div>
             </Card>
@@ -110,9 +128,9 @@ export function StudentClasses() {
         </div>
       )}
 
-      <Modal open={!!pending} onClose={() => setPending(null)} title={pending ? `Klasse "${pending.name}" beitreten?` : ""} description={pending ? `${pending.teacherName}${pending.schoolYear ? ` · Schuljahr ${pending.schoolYear}` : ""} · ${pending.memberCount} Schüler` : undefined}
-        footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} onClick={confirmJoin}>Beitreten und Freigabe erlauben</Button></div>}>
-        <PrivacyPanel variant="class" teacherName={pending?.teacherName} />
+      <Modal open={!!pending} onClose={() => setPending(null)} title={pending ? `Klasse "${pending.name}" beitreten?` : ""} description={pending ? `${pending.teacherName}${pending.schoolYear ? ` · Schuljahr ${pending.schoolYear}` : ""} · ${pending.memberCount} Schüler:innen` : undefined}
+        footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} disabled={!consent.ready} onClick={confirmJoin}>Beitreten</Button></div>}>
+        {consent.fields(pending?.teacherName)}
         {actionError && <p role="alert" className="text-small mt-3 text-[var(--danger-fg)]">{actionError}</p>}
       </Modal>
 
@@ -120,6 +138,40 @@ export function StudentClasses() {
         footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setLeaving(null)}>Abbrechen</Button><Button variant="danger" loading={!!leaving && busy === leaving.classId} onClick={confirmLeave}>Verlassen</Button></div>}>
         {actionError && <p role="alert" className="text-small text-[var(--danger-fg)]">{actionError}</p>}
       </Modal>
+    </div>
+  );
+}
+
+/** "https://…/classes/join/<code-or-token>" or a bare code/token. Tokens keep their case, short codes are upper-cased. */
+function extractCode(input: string): string {
+  const raw = input.trim().split(/[?#]/)[0].replace(/\/+$/, "");
+  const last = raw.includes("/") ? raw.slice(raw.lastIndexOf("/") + 1) : raw;
+  let decoded = last; try { decoded = decodeURIComponent(last); } catch { /* keep raw */ }
+  return isInviteToken(decoded) ? decoded : decoded.toUpperCase();
+}
+
+/** Messages from the teacher to the whole class. Shown open (latest 3); older ones behind one button. */
+function Announcements({ classId, count }: { classId: string; count: number }) {
+  const [items, setItems] = useState<ClassAnnouncement[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [all, setAll] = useState(false);
+  useEffect(() => {
+    if (count === 0) return;
+    let alive = true;
+    listClassAnnouncements(classId).then((r) => { if (alive) setItems(r); }).catch(() => { if (alive) setFailed(true); });
+    return () => { alive = false; };
+  }, [classId, count]);
+  if (count === 0) return null;
+  const visible = all ? items : items?.slice(0, 3);
+  return (
+    <div>
+      <p className="flex items-center gap-2 text-sm font-semibold text-[var(--brand)]"><Megaphone size={15} aria-hidden />{count === 1 ? "1 Mitteilung" : `${count} Mitteilungen`} der Lehrperson</p>
+      <ul className="mt-1 space-y-2">
+        {failed && <li className="text-small text-[var(--danger-fg)]">Die Mitteilungen konnten nicht geladen werden.</li>}
+        {!items && !failed && <li><Skeleton className="h-12 rounded-[var(--radius-md)]" /></li>}
+        {visible?.map((a) => <li key={a.id} className="rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3 text-sm text-[var(--info-fg)]"><p className="whitespace-pre-wrap break-words">{a.text}</p><p className="text-small mt-1 opacity-90">{a.authorName} · {formatDate(a.createdAt)}</p></li>)}
+      </ul>
+      {items && items.length > 3 && !all && <button type="button" onClick={() => setAll(true)} className="mt-1 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] hover:underline">Ältere Mitteilungen anzeigen</button>}
     </div>
   );
 }

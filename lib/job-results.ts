@@ -8,7 +8,7 @@ export interface JobSearchResult {
   years?: string[];
   // optional enrichment, see lib/job-filters/types.ts JobMeta
   contract?: string;
-  jobType?: "lehrstelle" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
+  jobType?: "lehrstelle" | "schnupperlehre" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
   workloadMin?: number;
   workloadMax?: number;
   postedAt?: string;
@@ -21,6 +21,9 @@ export interface JobSearchResult {
   salaryMax?: number;
   field?: string;
   snippet?: string;
+  deadline?: string;
+  schnupperlehre?: boolean;
+  transit?: string;
 }
 
 export function originalSourceName(value: string): string | undefined {
@@ -64,7 +67,7 @@ export function listingSources(result: JobSearchResult) {
   return [...links.values()];
 }
 
-const enrichmentKeys = ["contract", "jobType", "workloadMin", "workloadMax", "postedAt", "startDate", "canton", "education", "language", "remote", "salaryMin", "salaryMax", "field", "snippet"];
+const enrichmentKeys = ["contract", "jobType", "workloadMin", "workloadMax", "postedAt", "startDate", "canton", "education", "language", "remote", "salaryMin", "salaryMax", "field", "snippet", "deadline", "schnupperlehre", "transit"];
 
 export function mergeJobResults(existing: JobSearchResult[], incoming: JobSearchResult[]): JobSearchResult[] {
   const merged = existing.map((result) => ({ ...result, sources: listingSources(result), years: listingYears(result) }));

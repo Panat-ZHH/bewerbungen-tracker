@@ -7,7 +7,7 @@
   --paper: #edf1f6;
   --surface: #ffffff;
   --ink: #1d1d1f;
-  --muted: #6e6e73;
+  --muted: #5f5f66;
   --line: #e5e5ea;
   --blue: #0866d6;
   --blue-soft: #eaf3ff;
@@ -140,7 +140,7 @@ h1, h2, h3 { text-wrap: balance; letter-spacing: -.02em; }
 .text-heading { font-size: 1.125rem; line-height: 1.3; font-weight: 650; letter-spacing: -.015em; }
 .text-body    { font-size: .9375rem; line-height: 1.55; }
 .text-small   { font-size: .8125rem; line-height: 1.45; }
-.text-eyebrow { font-size: .6875rem; line-height: 1; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+.text-eyebrow { font-size: .75rem; line-height: 1; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
 .text-muted { color: var(--muted); }
 .text-gradient { background: var(--brand-gradient); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .tabular { font-variant-numeric: tabular-nums; }
@@ -291,3 +291,9 @@ h1, h2, h3 { text-wrap: balance; letter-spacing: -.02em; }
 [data-theme="dark"] img { opacity: .94; }
 /* disabled icon buttons stay legible (>= 3:1 for the icon) */
 [data-theme="dark"] .disabled\:opacity-40:disabled { opacity: .62; }
+
+/* Confetti (lib/rewards.ts) – never rendered with prefers-reduced-motion (JS skips it, CSS double-guards) */
+.confetti-host { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 60px); width: 0; height: 0; z-index: 160; pointer-events: none; }
+.confetti-piece { position: absolute; width: 8px; height: 12px; border-radius: 2px; opacity: 0; animation: confetti-burst 1.1s cubic-bezier(.2,.7,.3,1) forwards; }
+@keyframes confetti-burst { 0% { opacity: 1; transform: translate(0,0) rotate(0); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 140px)) rotate(var(--rot)); } }
+@media (prefers-reduced-motion: reduce) { .confetti-host { display: none; } }

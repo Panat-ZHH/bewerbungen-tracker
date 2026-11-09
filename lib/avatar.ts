@@ -13,7 +13,7 @@ export type AvatarValidation = { ok: true } | { ok: false; message: string };
 export function validateAvatarFile(file: { type: string; size: number }): AvatarValidation {
   if (!(AVATAR_TYPES as readonly string[]).includes(file.type)) return { ok: false, message: "Dieses Format wird nicht unterstützt. Bitte wähle ein PNG-, JPEG- oder WebP-Bild." };
   if (file.size <= 0) return { ok: false, message: "Diese Datei ist leer. Bitte wähle ein anderes Bild." };
-  if (file.size > AVATAR_MAX_BYTES) return { ok: false, message: "Das Bild ist größer als 5 MB. Bitte wähle ein kleineres Bild." };
+  if (file.size > AVATAR_MAX_BYTES) return { ok: false, message: "Das Bild ist grösser als 5 MB. Bitte wähle ein kleineres Bild." };
   return { ok: true };
 }
 

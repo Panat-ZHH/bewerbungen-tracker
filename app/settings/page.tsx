@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Download, Palette, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +10,10 @@ import { Modal } from "@/components/ui/modal";
 import { friendlyMessage } from "@/lib/ux";
 import { toast } from "@/lib/toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { DeleteAccountCard } from "@/components/settings/delete-account";
+import { NotificationSettings } from "@/components/settings/notification-settings";
+import { PasswordChangeCard } from "@/components/settings/password-change";
+import { withSupport } from "@/lib/account-deletion";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
 import type { Application } from "@/types";
@@ -19,6 +23,7 @@ export default function SettingsPage() {
   const [notice, setNotice] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  useEffect(() => { if (notice) document.getElementById("settings-notice")?.scrollIntoView({ block: "center", behavior: "smooth" }); }, [notice]);
   const say = (tone: "success" | "danger", text: string) => setNotice({ tone, text });
 
   async function exportData() {
@@ -35,7 +40,7 @@ export default function SettingsPage() {
       URL.revokeObjectURL(url);
       say("success", "Deine Daten wurden als Datei „wendapply-daten.json“ heruntergeladen.");
     } catch (reason) {
-      say("danger", friendlyMessage(reason, "Der Download konnte nicht erstellt werden."));
+      say("danger", withSupport(friendlyMessage(reason, "Der Download konnte nicht erstellt werden.")));
     } finally {
       setBusy(false);
     }
@@ -52,7 +57,7 @@ export default function SettingsPage() {
       if (data.profile && typeof data.profile === "object") await saveProfile(data.profile);
       say("success", "Deine Sicherung wurde eingelesen. Die Bewerbungen findest du unter „Bewerbungen“.");
     } catch (reason) {
-      say("danger", reason instanceof SyntaxError ? "Diese Datei kann nicht gelesen werden. Nutze eine WendApply-Sicherungsdatei (.json)." : friendlyMessage(reason, "Die Sicherung konnte nicht eingelesen werden."));
+      say("danger", reason instanceof SyntaxError ? "Diese Datei kann nicht gelesen werden. Nutze eine WendApply-Sicherungsdatei (.json)." : withSupport(friendlyMessage(reason, "Die Sicherung konnte nicht eingelesen werden.")));
     } finally {
       setBusy(false);
       event.target.value = "";
@@ -68,7 +73,7 @@ export default function SettingsPage() {
       toast({ message: "Deine Bewerbungen und Profildaten wurden gelöscht." });
     } catch (reason) {
       setConfirmClear(false);
-      say("danger", friendlyMessage(reason, "Die Daten konnten nicht vollständig gelöscht werden."));
+      say("danger", withSupport(friendlyMessage(reason, "Die Daten konnten nicht vollständig gelöscht werden.")));
     } finally {
       setBusy(false);
     }
@@ -79,7 +84,7 @@ export default function SettingsPage() {
       <div className="max-w-2xl pb-safe">
         <PageHeader title="Einstellungen" description="Du hast die Kontrolle über deine Daten und das Aussehen." />
 
-        {notice && <StatusMessage tone={notice.tone} icon={notice.tone === "success" ? <CheckCircle2 /> : undefined} className="mb-5">{notice.text}</StatusMessage>}
+        <div id="settings-notice" className="scroll-mt-24">{notice && <StatusMessage tone={notice.tone} icon={notice.tone === "success" ? <CheckCircle2 /> : undefined} className="mb-5">{notice.text}</StatusMessage>}</div>
 
         <Card className="animate-rise"><CardContent>
           <div className="flex items-start gap-3">
@@ -102,12 +107,22 @@ export default function SettingsPage() {
           </div>
         </CardContent></Card>
 
-        <Card className="animate-rise mt-4 !border-[var(--danger-line)]"><CardContent>
-          <h2 className="text-heading">Daten löschen</h2>
-          <p className="mt-1 text-body text-muted">Entfernt deine Bewerbungen, Notizen und Profilangaben. Deine Lebenslauf-Vorlagen bleiben bestehen.</p>
+        <NotificationSettings />
+
+        <PasswordChangeCard />
+
+        <h2 className="mt-8 text-xl font-semibold" data-testid="section-data">Deine Daten</h2>
+        <p className="mt-1 text-body text-muted">Das Konto und der Zugang bleiben bestehen.</p>
+        <Card className="animate-rise mt-3 !border-[var(--danger-line)]"><CardContent>
+          <h2 className="text-heading">Meine Daten löschen</h2>
+          <p className="mt-1 text-body text-muted">Entfernt nur deine Bewerbungen, Notizen und Profilangaben. Du bleibst angemeldet, dein Konto und deine Lebenslauf-Vorlagen bleiben bestehen.</p>
           <Button variant="danger" onClick={() => setConfirmClear(true)} disabled={busy} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<Trash2 size={16} />}>Meine Daten löschen</Button>
           <p className="mt-2 text-small text-muted">Tipp: Lade vorher eine Sicherung herunter. Gelöschte Daten lassen sich nicht zurückholen.</p>
         </CardContent></Card>
+
+        <h2 className="mt-8 text-xl font-semibold" data-testid="section-account">Dein Konto</h2>
+        <p className="mt-1 text-body text-muted">Hier löschst du alles: Daten, Dateien und die Anmeldung.</p>
+        <DeleteAccountCard />
 
         <Modal open={confirmClear} onClose={() => !busy && setConfirmClear(false)} title="Alle Daten wirklich löschen?" description="Alle Bewerbungen, Notizen und Profilangaben werden entfernt. Deine Lebenslauf-Vorlagen bleiben erhalten."
           footer={<><Button variant="ghost" onClick={() => setConfirmClear(false)} disabled={busy}>Abbrechen</Button><Button variant="danger" onClick={clearData} loading={busy}>Ja, alles löschen</Button></>}>

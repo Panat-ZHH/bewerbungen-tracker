@@ -5,10 +5,10 @@ export type DropVerdict = { valid: boolean; reason: "ok" | "locked" | "bounds" |
 
 export const dropMessages: Record<DropVerdict["reason"], string> = {
   ok: "",
-  locked: "Straßen und Brücken sind fest und lassen sich nicht verschieben.",
-  bounds: "Außerhalb der Insel – der Gegenstand ist zurückgesprungen.",
+  locked: "Strassen und Brücken sind fest und lassen sich nicht verschieben.",
+  bounds: "Ausserhalb der Insel – der Gegenstand ist zurückgesprungen.",
   water: "Hier ist Wasser – der Gegenstand ist zurückgesprungen.",
-  street: "Auf einer Straße ist kein Platz – der Gegenstand ist zurückgesprungen.",
+  street: "Auf einer Strasse ist kein Platz – der Gegenstand ist zurückgesprungen.",
   overlap: "Dieser Platz ist belegt – der Gegenstand ist zurückgesprungen.",
 };
 

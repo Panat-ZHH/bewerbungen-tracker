@@ -1,7 +1,7 @@
 // Shared contract for the job / Lehrstellen search (see JOBSEARCH-PLAN.md). Pure types, no imports from React.
 import type { JobSearchResult } from "../job-results.ts";
 
-export type JobType = "lehrstelle" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
+export type JobType = "lehrstelle" | "schnupperlehre" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
 export type PostedWithin = 1 | 3 | 7 | 14 | 30;
 export type EducationLevel = "efz" | "eba" | "bm" | "hf" | "fh" | "uni" | "none";
 export type JobSort = "relevance" | "newest" | "company" | "location" | "start";

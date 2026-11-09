@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { History, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fieldClasses } from "@/components/ui/input";
@@ -11,12 +11,23 @@ import { suggestQueries, synonymHints } from "./engine";
 export type SearchTab = "apprenticeship" | "praktikum" | "job";
 export type SearchBarHandle = { focus: () => void };
 
+const KEYBOARD_QUERY = "(hover: hover) and (pointer: fine)";
+/** True on devices with a mouse/keyboard; false on touch-only phones (no "/" hint there). */
+export function useHasKeyboard(): boolean {
+  return useSyncExternalStore(
+    (notify) => { const m = window.matchMedia(KEYBOARD_QUERY); m.addEventListener("change", notify); return () => m.removeEventListener("change", notify); },
+    () => window.matchMedia(KEYBOARD_QUERY).matches,
+    () => false,
+  );
+}
+
 export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryChange: (q: string) => void; onSubmit: (q: string) => void; tab: SearchTab; onTabChange: (t: SearchTab) => void; recent: string[]; onClearRecent: () => void; loading: boolean }>(
   function SearchBar({ query, onQueryChange, onSubmit, tab, onTabChange, recent, onClearRecent, loading }, ref) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [open, setOpen] = useState(false);
     const [active, setActive] = useState(-1);
     const listId = useId();
+    const hasKeyboard = useHasKeyboard();
     useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }));
 
     const suggestions = useMemo(() => {
@@ -25,6 +36,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
       return items;
     }, [query, recent]);
     const hints = useMemo(() => synonymHints(query), [query]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setActive(-1), [suggestions.length]);
 
     function choose(value: string) { onQueryChange(value); setOpen(false); onSubmit(value); }
@@ -46,7 +58,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
               autoComplete="off"
               maxLength={80}
               value={query}
-              placeholder="Beruf oder Stelle, z. B. Informatiker  (Taste „/“)"
+              placeholder={hasKeyboard ? "Beruf und Ort, z. B. Informatiker Zürich  (Taste „/“)" : "Beruf und Ort, z. B. Informatiker Zürich"}
               className={cn(fieldClasses, "pl-10 pr-10 sm:text-base")}
               onChange={(e) => { onQueryChange(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
@@ -61,7 +73,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
             />
             {query && <button type="button" aria-label="Suchfeld leeren" onClick={() => { onQueryChange(""); inputRef.current?.focus(); }} className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]"><X size={16} /></button>}
             {open && suggestions.length > 0 && (
-              <ul id={listId} role="listbox" aria-label={query.trim().length < 2 ? "Letzte Suchen" : "Vorschläge"} className="absolute inset-x-0 top-full z-20 mt-1.5 overflow-hidden rounded-xl border border-[var(--glass-border)] bg-[var(--solid)] py-1 shadow-[var(--shadow-lg,0_12px_32px_rgba(0,0,0,.18))]">
+              <ul id={listId} role="listbox" aria-label={query.trim().length < 2 ? "Letzte Suchen" : "Vorschläge"} className="relative z-20 mt-1.5 overflow-hidden sm:absolute sm:inset-x-0 sm:top-full rounded-xl border border-[var(--glass-border)] bg-[var(--solid)] py-1 shadow-[var(--shadow-lg,0_12px_32px_rgba(0,0,0,.18))]">
                 {query.trim().length < 2 && <li role="presentation" className="flex items-center justify-between px-3.5 py-1.5 text-xs font-semibold text-muted">Letzte Suchen<button type="button" onMouseDown={(e) => e.preventDefault()} onClick={onClearRecent} className="font-medium underline">Löschen</button></li>}
                 {suggestions.map((item, index) => (
                   <li key={item.value} id={`${listId}-${index}`} role="option" aria-selected={index === active} onMouseDown={(e) => e.preventDefault()} onClick={() => choose(item.value)} className={`flex min-h-11 cursor-pointer items-center gap-2 px-3.5 text-sm ${index === active ? "bg-[var(--hover)]" : "hover:bg-[var(--hover)]"}`}>

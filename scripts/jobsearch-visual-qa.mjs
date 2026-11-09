@@ -52,7 +52,7 @@ for (const theme of ["light", "dark"]) for (const p of PROFILES) {
     await page.waitForTimeout(400);
     await shot("4-filter-sheet"); await audit("filter sheet");
     await page.getByRole("dialog", { name: "Filter" }).getByRole("button", { name: /^ZH\b/ }).first().click();
-    await page.getByRole("dialog", { name: "Filter" }).getByRole("button", { name: /Treffer anzeigen/ }).click();
+    await page.getByRole("dialog", { name: "Filter" }).getByRole("button", { name: /Fertig|Treffer anzeigen/ }).click();
   } else {
     await page.getByRole("complementary", { name: "Filter" }).getByRole("button", { name: /^ZH\b/ }).first().click();
   }
@@ -66,7 +66,7 @@ for (const theme of ["light", "dark"]) for (const p of PROFILES) {
   await page.getByText(/Keine passenden Anzeigen/).waitFor();
   await shot("7-empty"); await audit("empty");
   await box.fill("fehler"); await box.press("Enter");
-  await page.getByText(/nicht erreichbar/).first().waitFor();
+  await page.getByText(/etwas länger/).first().waitFor();
   await shot("8-error"); await audit("error");
   await ctx.close();
 }

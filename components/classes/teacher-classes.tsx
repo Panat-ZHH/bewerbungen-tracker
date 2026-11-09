@@ -44,7 +44,7 @@ export function TeacherClasses() {
       <PageHeader eyebrow="Lehrperson" title="Meine Klassen" description="Erstelle eine Klasse, teile den Code und behalte den Bewerbungsfortschritt deiner Schülerinnen und Schüler im Blick." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
       {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
       {!classes && !error && <div className="grid gap-4 md:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-40 rounded-[var(--radius-lg)]" />)}</div>}
-      {classes && classes.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und teile den Beitrittscode mit deinen Schülern." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
+      {classes && classes.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und teile den Beitrittscode mit deinen Schüler:innen." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
       {classes && classes.length > 0 && (
         <div className="grid gap-4 md:grid-cols-2">
           {classes.map((c) => (
@@ -52,7 +52,7 @@ export function TeacherClasses() {
               <Link href={`/classes/${c.id}`} className="group flex min-h-11 items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="text-heading truncate">{c.name}</h2>
-                  <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}<Users size={13} className="-mt-0.5 inline" /> {c.memberCount} Schüler</p>
+                  <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}<Users size={13} className="-mt-0.5 inline" /> {c.memberCount} Schüler:innen</p>
                 </div>
                 <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
               </Link>
@@ -64,7 +64,7 @@ export function TeacherClasses() {
           ))}
         </div>
       )}
-      <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Schüler treten mit einem Code bei, den du danach erhältst.">
+      <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Schüler:innen treten mit einem Code bei, den du danach erhältst.">
         <form onSubmit={submit} className="space-y-4">
           <Field label="Klassenname" htmlFor="class-name"><Input id="class-name" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
           <Field label="Schuljahr (optional)" htmlFor="class-year"><Input id="class-year" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>

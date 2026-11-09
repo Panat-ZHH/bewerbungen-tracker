@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { EyeOff, MapPin, Trash2, UserMinus } from "lucide-react";
+import { EyeOff, Trash2, UserMinus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useAvatarUrls } from "@/components/ui/use-avatars";
 import { Badge } from "@/components/ui/badge";
@@ -14,15 +14,15 @@ import { removeFriend } from "@/lib/social";
 import type { ApplicationStatus, FriendActivity, SocialConnection } from "@/types";
 import { friendlyError, statusLabels } from "./shared";
 
-const order: ApplicationStatus[] = ["offer", "final_interview", "interview", "applied", "preparing", "saved", "rejected", "withdrawn"];
-const tones: Partial<Record<ApplicationStatus, "success" | "info" | "brand" | "danger">> = { offer: "success", final_interview: "brand", interview: "brand", applied: "info", rejected: "danger" };
+const order: ApplicationStatus[] = ["contract_signed", "offer", "final_interview", "aptitude_test", "interview", "schnupper_done", "schnupper_planned", "applied", "preparing", "saved", "rejected", "withdrawn"];
+const tones: Partial<Record<ApplicationStatus, "success" | "info" | "brand" | "danger">> = { contract_signed: "success", offer: "success", schnupper_planned: "info", schnupper_done: "info", aptitude_test: "brand", final_interview: "brand", interview: "brand", applied: "info", rejected: "danger" };
 
 function summary(activity?: FriendActivity) {
   if (!activity || !activity.shared) return null;
   const total = activity.total ?? 0;
   if (total === 0) return "Noch keine Bewerbungen. Ein Anstupser kann helfen.";
   const counts = activity.statusCounts ?? {};
-  const offers = counts.offer ?? 0;
+  const offers = (counts.offer ?? 0) + (counts.contract_signed ?? 0);
   if (offers > 0) return `${offers} Zusage${offers === 1 ? "" : "n"}. Glückwunsch!`;
   if ((counts.interview ?? 0) + (counts.final_interview ?? 0) > 0) return "Hat Gespräche im Kalender. Daumen drücken!";
   return `${total} Bewerbung${total === 1 ? "" : "en"} unterwegs.`;
@@ -63,7 +63,6 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
                       {counts.map((s) => <Badge key={s} tone={tones[s] ?? "neutral"}>{act.statusCounts?.[s]} {statusLabels[s]}</Badge>)}
                       {counts.length === 0 && <span className="text-small text-muted">Noch nichts zu zeigen.</span>}
                     </div>
-                    <p className="mt-2 flex items-center gap-1.5 text-small text-muted"><MapPin size={13} aria-hidden /><span className="tabular">{act.mapPointsEarned ?? 0}</span> Map-Punkte, <span className="tabular">{act.mapItems ?? 0}</span> Map-Items</p>
                   </div>
                 )}
               </Card>

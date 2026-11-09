@@ -1,10 +1,15 @@
 "use client";
 
+import { CalendarLinks } from "@/components/reminders/calendar-links";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, CalendarDays, ExternalLink, MapPin, Pencil, Trash2 } from "lucide-react";
 import { ApplicationForm } from "@/components/applications/application-form";
+import { ApplicationTimeline } from "@/components/applications/application-timeline";
+import { StatusPills } from "@/components/applications/status-pills";
+import { ApplicationDocuments } from "@/components/documents/application-documents";
+import { categoryLabel } from "@/lib/categories";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,13 +17,13 @@ import { Modal } from "@/components/ui/modal";
 import { deleteApplication, getApplication, importApplications, updateApplication } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
 import { deadlineInfo, friendlyMessage } from "@/lib/ux";
+import { reward } from "@/lib/rewards";
 import { toast } from "@/lib/toast";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { statusHints } from "@/components/ui/status-badge";
+import { isSentStatus, schnupperResultLabels, showsDeadline, testResultLabels } from "@/lib/status";
 import type { Application, ApplicationStatus } from "@/types";
-
-const statuses = Object.entries(statusLabels) as [ApplicationStatus, string][];
 
 export default function ApplicationDetailPage() {
   const params = useParams<{ id: string }>();
@@ -45,8 +50,9 @@ export default function ApplicationDetailPage() {
     setError("");
     const previous = application.status;
     try {
-      const updated = await updateApplication(application.id, { status });
+      const updated = await updateApplication(application.id, { status, ...(isSentStatus(status) && !application.appliedAt ? { appliedAt: new Date().toISOString().slice(0, 10) } : {}) });
       if (updated) setApplication(updated);
+      if (status === "applied") reward("applied");
       toast({
         message: `Stand geändert: ${statusLabels[status]}`,
         action: { label: "Rückgängig", onClick: async () => {
@@ -101,18 +107,18 @@ export default function ApplicationDetailPage() {
       ) : editing ? (
         <div className="mt-4 max-w-3xl">
           <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0"><h1 className="text-[28px] font-semibold tracking-[-1px]">Bewerbung ändern</h1><p className="mt-2 text-sm text-muted">{application.position} bei {application.company}</p></div>
+            <div className="min-w-0"><h1 className="text-[28px] font-semibold tracking-[-1px]">Bewerbung bearbeiten</h1><p className="mt-2 text-sm text-muted">{application.position} bei {application.company}</p></div>
             <Button variant="ghost" onClick={() => setEditing(false)} className="min-h-11 sm:min-h-11 shrink-0">Abbrechen</Button>
           </div>
-          <Card className="mt-6 p-4 sm:p-7"><ApplicationForm application={application} /></Card>
+          <Card className="mt-6 p-4 sm:p-7"><ApplicationForm application={application} onSaved={(saved, { stay }) => { setApplication(saved); if (!stay) { setEditing(false); window.scrollTo({ top: 0 }); } }} /></Card>
         </div>
       ) : (
         <>
           {error && <StatusMessage tone="danger" className="mt-5">{error}</StatusMessage>}
           <div className="mt-4 flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
             <div className="min-w-0">
-              <h1 className="break-words text-2xl font-semibold leading-tight tracking-[-1px] [hyphens:auto] min-[360px]:text-[28px] md:text-[38px]">{application.position}</h1>
-              <p className="mt-2 text-lg text-muted">{application.company}</p>
+              <h1 className="break-words text-3xl font-semibold leading-tight tracking-[-1px] [hyphens:auto] md:text-[44px]">{application.company}</h1>
+              <p className="mt-2 text-lg text-muted md:text-xl">{application.position}</p>
               <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted">
                 {application.location && <span><MapPin size={15} className="mr-1 inline" />{application.location}</span>}
                 {application.appliedAt && <span><CalendarDays size={15} className="mr-1 inline" />Abgeschickt am {new Date(application.appliedAt).toLocaleDateString("de-CH")}</span>}
@@ -120,24 +126,54 @@ export default function ApplicationDetailPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <label className="sr-only" htmlFor="application-status">Stand der Bewerbung</label>
-              <select id="application-status" aria-describedby="status-hint" value={application.status} onChange={(event) => changeStatus(event.target.value as ApplicationStatus)} className="min-h-11 sm:min-h-11 min-w-0 basis-full flex-1 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3 min-[360px]:px-4 text-base text-[var(--ink)] pointer-fine:text-sm font-medium outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15 min-[480px]:basis-auto sm:flex-none">
-                {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-              <Button variant="secondary" onClick={() => setEditing(true)} className="min-h-11 sm:min-h-11"><Pencil size={15} /> Ändern</Button>
-              <Button variant="danger" onClick={() => setConfirmDelete(true)} aria-label="Bewerbung löschen" title="Bewerbung löschen" className="h-11 w-11 shrink-0 px-0"><Trash2 size={16} /></Button>
+              <Button variant="secondary" onClick={() => setEditing(true)} icon={<Pencil size={15} />} className="min-h-11 sm:min-h-11">Bearbeiten</Button>
+              <Button variant="danger" onClick={() => setConfirmDelete(true)} icon={<Trash2 size={15} />} className="min-h-11 sm:min-h-11">Löschen</Button>
             </div>
           </div>
 
-          <p className="mt-4 text-sm text-muted" id="status-hint">{statusHints[application.status]}</p>
+          <section aria-labelledby="status-heading" className="mt-6 max-w-3xl">
+            <h2 id="status-heading" className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">Stand</h2>
+            <StatusPills value={application.status} onChange={changeStatus} describedBy="status-hint" />
+          </section>
+
+          <p className="mt-3 max-w-3xl text-sm text-muted" id="status-hint">{statusHints[application.status]}</p>
+
+          <CalendarLinks application={application} />
 
           <Card className="mt-6 max-w-3xl divide-y divide-[var(--line)] px-5 md:px-6">
-            {application.deadline && <DetailRow label="Bewerben bis" value={new Date(application.deadline).toLocaleDateString("de-CH")} badge={["saved", "preparing"].includes(application.status) ? deadlineInfo(application.deadline) : null} />}
+            {application.deadline && showsDeadline(application.status) && <DetailRow label="Bewerben bis" value={new Date(application.deadline).toLocaleDateString("de-CH")} badge={["saved", "preparing"].includes(application.status) ? deadlineInfo(application.deadline) : null} />}
+            {application.schnupperDate && <DetailRow label="Schnuppertermin" value={new Date(application.schnupperDate).toLocaleDateString("de-CH")} />}
+            {application.schnupperResult && <DetailRow label="Schnupperlehre" value={schnupperResultLabels[application.schnupperResult]} />}
+            {application.schnupperNotes && <div className="py-5"><h2 className="text-sm font-semibold">Notizen zum Schnuppern</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{application.schnupperNotes}</p></div>}
+            {application.testDate && <DetailRow label="Eignungstest" value={new Date(application.testDate).toLocaleDateString("de-CH")} />}
+            {application.testResult && <DetailRow label="Testergebnis" value={testResultLabels[application.testResult]} />}
             {application.source && <DetailRow label="Gefunden bei" value={application.source} />}
             {(application.salaryMin || application.salaryMax) && <DetailRow label="Lohn" value={`${application.salaryMin ?? "?"}–${application.salaryMax ?? "?"} ${application.currency ?? "CHF"}`} />}
             {application.notes && <div className="py-5"><h2 className="text-sm font-semibold">Deine Notizen</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{application.notes}</p></div>}
             {application.jobDescription && <div className="py-5"><h2 className="text-sm font-semibold">Zur Stelle</h2><p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted">{application.jobDescription}</p></div>}
-            {!application.deadline && !application.source && !application.salaryMin && !application.salaryMax && !application.notes && !application.jobDescription && <p className="py-5 text-sm text-muted">Noch keine weiteren Angaben. Du kannst sie jederzeit ergänzen.</p>}
+            {!(application.deadline && showsDeadline(application.status)) && !application.schnupperDate && !application.schnupperResult && !application.schnupperNotes && !application.testDate && !application.testResult && !application.source && !application.salaryMin && !application.salaryMax && !application.notes && !application.jobDescription && <p className="py-5 text-sm text-muted">Noch keine weiteren Angaben. Du kannst sie jederzeit ergänzen.</p>}
+          </Card>
+
+          <Card className="mt-4 max-w-3xl px-5 py-5 md:px-6">
+            <h2 className="text-sm font-semibold">Kontakt in der Firma</h2>
+            {application.contactName || application.contactInfo ? (
+              <p className="mt-2 text-sm leading-6">
+                {application.contactName && <span className="font-medium">{application.contactName}</span>}
+                {application.contactName && application.contactInfo && <span className="text-muted"> · </span>}
+                {application.contactInfo && (/@/.test(application.contactInfo) ? <a href={`mailto:${application.contactInfo}`} className="text-[var(--brand)] hover:underline">{application.contactInfo}</a> : <span>{application.contactInfo}</span>)}
+              </p>
+            ) : <p className="mt-2 text-sm text-muted">Noch keine Ansprechperson. Trage sie unter «Bearbeiten» ein.</p>}
+            {application.category !== "other" && <p className="mt-3 text-small text-muted">Berufsfeld: {categoryLabel(application.category)}</p>}
+          </Card>
+
+          <Card className="mt-4 max-w-3xl px-5 py-5 md:px-6">
+            <h2 className="mb-4 text-sm font-semibold">Zeitachse</h2>
+            <ApplicationTimeline application={application} />
+          </Card>
+
+          <Card className="mt-4 max-w-3xl px-5 py-5 md:px-6">
+            <h2 className="mb-4 text-sm font-semibold">Unterlagen</h2>
+            <ApplicationDocuments applicationId={application.id} />
           </Card>
         </>
       )}

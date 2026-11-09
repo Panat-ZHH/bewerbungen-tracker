@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, BarChart3, CheckCircle2, Eye, EyeOff, GraduationCap, MapPin, ShieldCheck, UserRound, Users } from "lucide-react";
@@ -8,7 +10,12 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
-import { authMessage, oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
+import { oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
+import { authErrorMessage as authMessage } from "@/lib/auth-errors";
+import { pendingInvitePath } from "@/components/friends/shared";
+import { resolveLanding } from "@/lib/role";
+import { InviteBanner } from "@/components/onboarding/invite-banner";
+import { LoginValueProp } from "@/components/onboarding/login-value-prop";
 
 type AuthMode = "login" | "signup";
 type Role = "student" | "teacher";
@@ -40,14 +47,25 @@ export default function LoginPage() {
     // Error handed over by /auth/callback (or by Supabase directly, in the query or the hash).
     const params = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    if (params.get("deleted") === "1") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
+      setSuccess("Dein Konto und alle deine Daten wurden gelöscht. Danke, dass du WendApply genutzt hast.");
+      window.history.replaceState(null, "", "/login");
+      return;
+    }
     const message = oauthErrorMessage(params) ?? oauthErrorMessage(hash);
     if (message) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
       setError(message);
       window.history.replaceState(null, "", params.get("next") ? `/login?next=${encodeURIComponent(params.get("next")!)}` : "/login");
     }
-    supabase.auth.getUser().then(({ data }) => { if (data.user) router.replace(nextPath()); });
-  }, [router]);
+    supabase.auth.getUser().then(({ data }) => { if (data.user) goHome(); });
+  }, [router]); // eslint-disable-line react-hooks/exhaustive-deps -- goHome only uses router
+
+  /** Role-aware landing: teacher -> /teacher, student -> /dashboard (or the safe ?next= / a waiting class invite). */
+  async function goHome() {
+    const requested = new URLSearchParams(window.location.search).get("next");
+    router.replace(await resolveLanding(safeNextPath(requested) ?? pendingInvitePath()));
+  }
 
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -85,7 +103,7 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.replace(nextPath());
+    await goHome();
   }
 
   async function signInWithProvider(provider: "google") {
@@ -125,7 +143,7 @@ export default function LoginPage() {
           <span className="text-lg font-semibold tracking-[-.02em]">WendApply</span>
         </div>
         <div className="relative max-w-md">
-          <h2 className="text-display">Bewerbungen einfach im Blick.</h2>
+          <h2 className="text-display">Finde deine Lehrstelle und behalte jede Bewerbung im Blick.</h2>
           <ul className="mt-8 space-y-4">
             {highlights.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3 text-[15px] text-white/90">
@@ -140,6 +158,8 @@ export default function LoginPage() {
 
       <section className="flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6 sm:py-10">
         <div className="animate-rise w-full max-w-[420px]">
+          <LoginValueProp />
+          <InviteBanner />
           <div className="mb-6 text-center sm:mb-7">
             <BrandMark size={56} radius={16} pad={4} white className="brand-mark-raised mx-auto lg:hidden" priority />
             <h1 className="text-title mt-5 lg:mt-0">{isSignup ? "Konto erstellen" : "Schön, dass du da bist."}</h1>
@@ -200,13 +220,10 @@ export default function LoginPage() {
             </p>
           </form>
           <p className="mt-5 text-center text-xs text-muted lg:hidden">Deine Daten bleiben in deinem persönlichen Konto.</p>
+          <p className="mt-3 text-center text-xs text-muted"><Link href="/datenschutz" className="underline">Datenschutz</Link> · <Link href="/datenschutz-jugend" className="underline">Datenschutz für Jugendliche</Link> · <Link href="/impressum" className="underline">Impressum</Link></p>
         </div>
       </section>
     </main>
   );
 }
 
-/** Where to go after login: a safe same-site path from ?next=, else the dashboard. */
-function nextPath() {
-  return safeNextPath(new URLSearchParams(window.location.search).get("next")) ?? "/dashboard";
-}

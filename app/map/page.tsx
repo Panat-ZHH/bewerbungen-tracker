@@ -81,7 +81,7 @@ function ApplicationMap() {
   const visible = useMemo(() => applications.filter((application) => (status === "all" || application.status === status) && `${application.company} ${application.position} ${application.location ?? ""}`.toLocaleLowerCase("de").includes(search)), [applications, status, search]);
   const visibleIds = useMemo(() => visible.map(({ id }) => id), [visible]);
   const construction = applications.filter(({ status }) => buildingStages[status].workers).length;
-  const offers = applications.filter(({ status }) => status === "offer").length;
+  const offers = applications.filter(({ status }) => status === "offer" || status === "contract_signed").length;
   const selected = applications.find(({ id }) => id === selectedId);
 
   const emptyNotice = !loading && !applications.length && !error;
@@ -90,7 +90,7 @@ function ApplicationMap() {
 
   return (
     <>
-      <h1 className="sr-only">Map – Dein Bewerbungsdorf</h1>
+      <h1 className="sr-only">Dein Bewerbungsdorf</h1>
       <MapFullscreen
         label="Bewerbungsmap"
         busy={loading}
@@ -122,7 +122,7 @@ function ApplicationMap() {
           </>}
           right={<>
             <MapBadge label={`Punktestand: ${balance ?? "unbekannt"}`}><Coins size={16} aria-hidden /><strong>{balance ?? "–"}</strong></MapBadge>
-            <button type="button" className={`${layout.chip} ${overlayClasses.glass}`} aria-expanded={shopSheetOpen} onClick={() => { setSelectedId(null); setShopOpen(!shopOpen); }}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Shop</span></button>
+            <button type="button" className={`${layout.chip} ${overlayClasses.glass}`} aria-expanded={shopSheetOpen} onClick={() => { setSelectedId(null); setShopOpen(!shopOpen); }}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
             <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Neue Bewerbung" title="Neue Bewerbung"><Plus size={18} aria-hidden /></Link>
           </>}
         />
@@ -132,7 +132,7 @@ function ApplicationMap() {
           {error && <div className={`${layout.notice} ${layout.noticeDanger} ${overlayClasses.glass}`} role="alert"><p>Deine Bewerbungen konnten nicht geladen werden.</p><button type="button" onClick={() => setRefresh(refresh + 1)}>Erneut versuchen</button></div>}
           {emptyNotice && <div className={`${layout.notice} ${overlayClasses.glass}`} role="status"><p>Noch keine Gebäude – du hast noch keine Bewerbungen.</p><Link href="/applications/new">Bewerbung hinzufügen</Link></div>}
           {noMatch && <div className={`${layout.notice} ${overlayClasses.glass}`} role="status"><p>Keine Bewerbungen für diese Auswahl.</p><button type="button" onClick={() => { setQuery(""); setStatus("all"); }}>Filter zurücksetzen</button></div>}
-          <MapSheet id="shop" open={shopSheetOpen} onClose={() => setShopOpen(false)} title="Shop" subtitle={shop.state ? `${shop.state.balance} Punkte` : undefined} icon={<ShoppingBag size={18} />} tall>
+          <MapSheet id="shop" open={shopSheetOpen} onClose={() => setShopOpen(false)} title="Laden" subtitle={shop.state ? `${shop.state.balance} Punkte` : undefined} icon={<ShoppingBag size={18} />} tall>
             <MapShop shop={shop} compact />
           </MapSheet>
           {selected && <MapApplicationDialog key={selected.id} application={selected} onClose={() => setSelectedId(null)} onMove={() => { const house = shop.objects.find((item) => item.applicationId === selected.id); if (house) { shop.start(house); setSelectedId(null); } }} canMove={shop.state !== null && !shop.busy} onUpdated={(updated) => { revision.current++; setApplications((current) => current.map((application) => application.id === updated.id ? updated : application)); setShopRefresh((current) => current + 1); }} />}

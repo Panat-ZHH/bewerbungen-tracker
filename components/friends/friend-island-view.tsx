@@ -61,7 +61,7 @@ export function FriendIslandView({ friendId }: { friendId: string }) {
             <Link href="/friends" className={`${layout.chip} ${layout.friendBack} ${overlayClasses.glass}`} aria-label="Zurück zu Freunden"><ArrowLeft size={16} aria-hidden /><span className={layout.chipLabel}>Freunde</span></Link>
             <MapChip id="friend" icon={<Avatar name={island?.displayName} src={avatars[friendId]} size="sm" />} label={name} meta={<Eye size={14} aria-label="Nur ansehen" />} panelLabel={`Info zur Insel von ${name}`}>
               <h2 className={layout.panelHeading}>Nur ansehen</h2>
-              <p className={layout.friendNote}>Du siehst nur die Karte. Firmen, Stellen und Notizen bleiben privat.</p>
+              <p className={layout.friendNote}>{island?.companiesShared ? `Du siehst nur die Karte und die Firmennamen, bei denen sich ${name} beworben hat.` : `Du siehst nur die Karte, ohne Firmennamen.`} Stellen, Daten und Notizen bleiben privat.</p>
             </MapChip>
           </>}
           right={<>

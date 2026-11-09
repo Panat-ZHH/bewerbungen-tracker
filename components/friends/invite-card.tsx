@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Link2, Mail, Share2 } from "lucide-react";
+import { Check, Copy, Link2, Mail, MessageCircle, QrCode as QrIcon, Share2 } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { inviteLink } from "@/lib/social";
+import { QrCode } from "./qr-code";
 import type { SocialProfile } from "@/types";
 
 export function InviteCard({ profile }: { profile: SocialProfile }) {
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
   const [note, setNote] = useState("");
+  const [showQr, setShowQr] = useState(false);
   const link = inviteLink(profile.inviteCode);
   const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
@@ -32,6 +34,8 @@ export function InviteCard({ profile }: { profile: SocialProfile }) {
     }
   }
 
+  const message = `Komm zu WendApply, dann bleiben wir beim Bewerben gemeinsam dran: ${link} (Code: ${profile.inviteCode})`;
+  const whatsapp = `https://wa.me/?text=${encodeURIComponent(message)}`;
   const mailto = `mailto:?subject=${encodeURIComponent("Bewirb dich mit mir bei WendApply")}&body=${encodeURIComponent(`Hallo!\n\nKomm zu WendApply, dann bleiben wir beim Bewerben gemeinsam dran. Hier ist mein Einladungslink:\n${link}\n\n(Oder gib in der App meinen Code ein: ${profile.inviteCode})`)}`;
 
   return (
@@ -47,11 +51,19 @@ export function InviteCard({ profile }: { profile: SocialProfile }) {
           <span className="min-w-0 flex-1 select-all truncate text-small">{link}</span>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-          <Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => copy("code")} icon={copied === "code" ? <Check size={16} /> : <Copy size={16} />}>Code kopieren</Button>
-          <Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => copy("link")} icon={copied === "link" ? <Check size={16} /> : <Link2 size={16} />}>Link kopieren</Button>
-          <ButtonLink href={mailto} variant="secondary" className="min-h-11 sm:min-h-11" icon={<Mail size={16} />}>Per E-Mail</ButtonLink>
           {canShare && <Button className="col-span-2 min-h-11 sm:col-span-1 sm:min-h-11" onClick={share} icon={<Share2 size={16} />}>Teilen</Button>}
+          <ButtonLink href={whatsapp} target="_blank" rel="noopener noreferrer" variant={canShare ? "secondary" : "primary"} className="min-h-11 sm:min-h-11" icon={<MessageCircle size={16} />}>WhatsApp</ButtonLink>
+          <Button variant="secondary" className="min-h-11 sm:min-h-11" aria-expanded={showQr} onClick={() => setShowQr(!showQr)} icon={<QrIcon size={16} />}>QR-Code</Button>
+          <Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => copy("link")} icon={copied === "link" ? <Check size={16} /> : <Link2 size={16} />}>Link kopieren</Button>
+          <Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => copy("code")} icon={copied === "code" ? <Check size={16} /> : <Copy size={16} />}>Code kopieren</Button>
+          <ButtonLink href={mailto} variant="ghost" className="min-h-11 sm:min-h-11" icon={<Mail size={16} />}>Per E-Mail</ButtonLink>
         </div>
+        {showQr && (
+          <div className="flex flex-col items-center gap-2 rounded-[var(--radius-md)] border border-[var(--line)] p-3">
+            <QrCode value={link} label={`QR-Code für deinen Einladungslink, Code ${profile.inviteCode}`} />
+            <p className="text-center text-small text-muted">Lass die andere Person diesen Code mit der Kamera scannen.</p>
+          </div>
+        )}
         <p className="min-h-4 text-small text-muted" role="status" aria-live="polite">{note}</p>
       </CardContent>
     </Card>

@@ -8,10 +8,10 @@ import { badgeText, badgeLabel, countIncoming, parseMock } from "../lib/friend-b
 import { loadLib } from "./helpers/load-lib.mjs";
 
 test("match score stays within 0..100 and rewards matching category, CV type and details", () => {
-  const strong = calculateMatchScore({ position: "Senior Frontend Developer", category: "software", cvType: "developer", jobDescription: "react typescript software engineer" });
-  const weak = calculateMatchScore({ position: "x", category: "software", cvType: "finance" });
+  const strong = calculateMatchScore({ position: "Senior Frontend Developer", category: "informatik", cvType: "developer", jobDescription: "react typescript software engineer" });
+  const weak = calculateMatchScore({ position: "x", category: "informatik", cvType: "finance" });
   assert.ok(strong > weak, `${strong} > ${weak}`);
-  for (const category of ["software", "sales", "business", "finance", "banking", "consulting", "other"]) {
+  for (const category of ["informatik", "detailhandel", "kaufmaennisch", "finanz-recht", "gesundheit", "other"]) {
     for (const cvType of [undefined, "developer", "sales", "finance", "other"]) {
       for (const jobDescription of [undefined, "", "   ", "bank finance sales developer ".repeat(50)]) {
         const score = calculateMatchScore({ position: "Developer Position Title", category, cvType, jobDescription });
@@ -22,7 +22,7 @@ test("match score stays within 0..100 and rewards matching category, CV type and
 });
 
 test("match score: matching CV type beats mismatching, empty description is penalised", () => {
-  const base = { position: "Software Engineer", category: "software" };
+  const base = { position: "Software Engineer", category: "informatik" };
   assert.ok(calculateMatchScore({ ...base, cvType: "developer" }) > calculateMatchScore({ ...base, cvType: "sales" }));
   assert.ok(calculateMatchScore({ ...base, jobDescription: "details" }) > calculateMatchScore(base));
   assert.equal(calculateMatchScore({ position: "abc", category: "other" }), 15 + 20 + 8 + 8);
@@ -44,7 +44,7 @@ test("listingSources deduplicates by url and mergeJobResults is idempotent", () 
 });
 
 test("statusLabels covers every status with German text and 'offer' reads Zusage", () => {
-  assert.deepEqual(Object.keys(statusLabels).sort(), ["applied", "final_interview", "interview", "offer", "preparing", "rejected", "saved", "withdrawn"]);
+  assert.deepEqual(Object.keys(statusLabels).sort(), ["applied", "aptitude_test", "contract_signed", "final_interview", "interview", "offer", "preparing", "rejected", "saved", "schnupper_done", "schnupper_planned", "withdrawn"]);
   assert.equal(statusLabels.offer, "Zusage");
   for (const label of Object.values(statusLabels)) assert.ok(label.length > 2);
   assert.equal(cn("p-2", false && "x", "p-4"), "p-4");
