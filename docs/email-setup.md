@@ -35,3 +35,19 @@ Danach Absender auf `noreply@wendapply.ch` umstellen und DMARC schrittweise auf 
 
 ## App
 Auth-Fehler laufen über `lib/auth-errors.ts` (ungültige E-Mail, 429 mit Wartezeit, bereits registriert, schwaches Passwort), genutzt in `app/login/page.tsx` und `app/login/reset/page.tsx`. Netlify braucht keine neuen Umgebungsvariablen (SMTP lebt in Supabase).
+
+## Brevo-DNS (exakte Werte, 2026-11-09)
+
+Anbieter laut Brevo: Netlify DNS. Die Domain ist in Brevo angelegt (Methode „Manuell“), Status noch nicht authentifiziert.
+
+| Typ | Name | Wert |
+|---|---|---|
+| TXT | `@` | `brevo-code:29ed1f304c769fdd19a2ddb790ae018c` |
+| CNAME | `brevo1._domainkey` | `b1.wendapply-ch.dkim.brevo.com` |
+| CNAME | `brevo2._domainkey` | `b2.wendapply-ch.dkim.brevo.com` |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com` |
+
+Danach in Brevo (Absender, Domains → Domains → wendapply.ch) „Einträge überprüfen“ → „Domain authentifizieren“, Absender `noreply@wendapply.ch` anlegen und in `~/.config/alfred/smtp.env` `SMTP_ADMIN_EMAIL` umstellen, `scripts/apply-auth-smtp.sh` erneut ausführen.
+Bis dahin: Absender `info.wendico@gmail.com` (in Brevo verifiziert, Name „Wendapply“).
+
+**Update 2026-11-09:** Die vier DNS-Records wurden mit Panats Ja in Netlify DNS (Zone wendapply.ch) angelegt, Brevo zeigt die Domain als „Authentifiziert“. Absender `noreply@wendapply.ch` (WendApply) ist in Brevo angelegt und in Supabase Auth als Absender gesetzt (SMTP smtp-relay.brevo.com:587, Rate-Limit 30/h). Offen: gebrandete Tracking-Subdomain (optional), DMARC später auf quarantine.
