@@ -51,7 +51,7 @@ export function TeacherOnboarding() {
           ))}
         </ol>
 
-        <div className="glass-surface mt-5 space-y-5 p-5 sm:p-7">
+        <div className="panel mt-5 space-y-5 p-5 sm:p-7">
           {error && <StatusMessage tone="danger">{error}</StatusMessage>}
 
           {step === 0 && (
@@ -74,7 +74,7 @@ export function TeacherOnboarding() {
 
           {step === 1 && created && (
             <div className="space-y-5 text-center">
-              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--success-bg)] text-[var(--success-fg)]"><Check size={28} /></span>
+              <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-[var(--success-bg)] text-[var(--success-fg)]"><Check size={28} /></span>
               <div><h1 className="text-title">„{created.name}“ ist bereit</h1><p className="mt-2 text-sm text-muted">Gib diesen Code an deine Schülerinnen und Schüler weiter. Sie entscheiden selbst, was sie mit dir teilen.</p></div>
               <div className="flex justify-center"><CodeActions code={created.joinCode} name={created.name} /></div>
               <Button full size="lg" loading={busy} onClick={() => void run(() => finish(`/teacher/classes/${created.id}`))}>Zur Klasse</Button>

@@ -41,7 +41,7 @@ export default function HilfePage() {
   return (
     <TextPage eyebrow="Hilfe" title="Häufige Fragen" intro="Antworten auf die wichtigsten Fragen. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
       <nav aria-label="Themen" className="flex flex-wrap gap-2">
-        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="rounded-full border border-[var(--line)] bg-[var(--raised)] px-3.5 py-2 text-[13px] font-medium hover:bg-[var(--raised-hover)]">{g.title.replace("Erste Schritte für ", "Start: ")}</a>)}
+        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2 text-[13px] font-medium hover:bg-[var(--surface-2)]">{g.title.replace("Erste Schritte für ", "Start: ")}</a>)}
       </nav>
       {groups.map((g) => (
         <section key={g.id} id={g.id} aria-labelledby={`${g.id}-h`} className="scroll-mt-24">

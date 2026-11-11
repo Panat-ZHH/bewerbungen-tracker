@@ -48,7 +48,7 @@ export default function ChooseRolePage() {
       <div className="animate-rise w-full max-w-[520px]">
         <Image src="/logo.png" alt="WendApply" width={56} height={56} className="logo-tile mx-auto rounded-[16px] bg-[#f2f7ff] p-1 shadow-[var(--shadow-md)]" priority />
         {!ready ? <p role="status" className="mt-6 text-center text-sm text-muted">Einen Moment …</p> : (
-          <div className="glass-surface mt-6 space-y-5 p-5 sm:p-7">
+          <div className="panel mt-6 space-y-5 p-5 sm:p-7">
             <div className="text-center">
               <h1 className="text-title">Wie nutzt du WendApply?</h1>
               <p className="mt-2 text-sm text-muted">Das fragen wir nur einmal. So zeigen wir dir die passende Ansicht.</p>

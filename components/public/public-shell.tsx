@@ -27,8 +27,8 @@ const legal = [
 export function PublicShell({ children }: { children: ReactNode }) {
   return (
     <div className="workspace-bg flex min-h-[100dvh] flex-col text-[var(--ink)]">
-      <a href="#inhalt" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-[var(--solid)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-[var(--shadow-md)]">Zum Inhalt springen</a>
-      <header className="glass-bar sticky top-0 z-40 border-b">
+      <a href="#inhalt" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-[var(--shadow-md)]">Zum Inhalt springen</a>
+      <header className="app-bar sticky top-0 z-40 border-b">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-2 px-4 sm:px-6">
           <Link href="/" className="mr-auto flex items-center gap-2.5 rounded-full py-1 font-semibold tracking-tight" aria-label="WendApply, zur Startseite">
             <BrandMark size={34} radius={10} priority />
@@ -45,7 +45,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main id="inhalt" className="flex-1">{children}</main>
-      <footer className="border-t border-[var(--line)] bg-[var(--glass-bar-bg)]">
+      <footer className="border-t border-[var(--line)] bg-[var(--app-bar-bg)]">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-[1.2fr_2fr] sm:px-6">
           <div>
             <div className="flex items-center gap-2.5 font-semibold"><BrandMark size={30} radius={9} /> WendApply</div>
@@ -66,7 +66,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
 /** Shared section wrapper. */
 export function Section({ id, eyebrow, title, intro, children, tint }: { id?: string; eyebrow?: string; title: string; intro?: string; children: ReactNode; tint?: boolean }) {
   return (
-    <section id={id} aria-labelledby={id ? `${id}-h` : undefined} className={tint ? "border-y border-[var(--line)] bg-[var(--raised)]" : ""}>
+    <section id={id} aria-labelledby={id ? `${id}-h` : undefined} className={tint ? "border-y border-[var(--line)] bg-[var(--surface)]" : ""}>
       <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
         {eyebrow && <p className="text-eyebrow">{eyebrow}</p>}
         <h2 id={id ? `${id}-h` : undefined} className="text-title mt-3 max-w-3xl">{title}</h2>

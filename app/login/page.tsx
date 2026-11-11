@@ -135,7 +135,7 @@ export default function LoginPage() {
 
   return (
     <main className="workspace-bg min-h-[100dvh] lg:grid lg:grid-cols-[1.05fr_1fr]">
-      <aside className="relative hidden [clip-path:inset(0)] bg-[image:var(--brand-gradient)] p-12 text-white lg:flex lg:flex-col lg:justify-between" aria-hidden>
+      <aside className="relative hidden [clip-path:inset(0)] bg-[var(--brand)] p-12 text-white lg:flex lg:flex-col lg:justify-between" aria-hidden>
         <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
         <div className="relative flex items-center gap-3">
@@ -147,7 +147,7 @@ export default function LoginPage() {
           <ul className="mt-8 space-y-4">
             {highlights.map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3 text-[15px] text-white/90">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur"><Icon size={17} /></span>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15"><Icon size={17} /></span>
                 {text}
               </li>
             ))}
@@ -166,7 +166,7 @@ export default function LoginPage() {
             <p className="mt-2 text-sm text-muted">{isSignup ? "Behalte deine Bewerbungen an einem Ort." : "Melde dich an und behalte deine Suche im Blick."}</p>
           </div>
 
-          <form onSubmit={submit} className="glass-surface space-y-5 p-5 sm:p-7">
+          <form onSubmit={submit} className="panel space-y-5 p-5 sm:p-7">
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             {success && <StatusMessage tone="success" icon={<CheckCircle2 />}>{success}</StatusMessage>}
 

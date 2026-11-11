@@ -1,45 +1,101 @@
-# WendApply Design System
+# WendApply Design System – «Sticker-Heft»
 
-All tokens are CSS variables in `app/globals.css`. Legacy names (`--paper --ink --muted --line --blue ...`) and classes (`panel`, `glass-surface`, `glass-bar`, `page-wrap`, `workspace-bg`, `text-muted`) still work.
+Feeling: setting off, looking forward. A good sticker album or a concert ticket, not a bank dashboard and not a SaaS tool.
+Audience: 13–16 year olds (parents and teachers look too): cheerful, a bit playful, still tidy and trustworthy.
 
-## Tokens
-- Brand: `--brand`, `--brand-strong`, `--brand-soft`, `--brand-gradient`, `--shadow-brand`
-- Tones (bg/fg/line): `--success-*`, `--warning-*`, `--danger-*`, `--info-*`, `--neutral-*`
-- Radius: `--radius-sm 8 / md 12 / lg 16 / xl 22 / full`
-- Shadows: `--shadow-xs|sm|md|lg` (layered, soft)
-- Motion: `--ease`, `--dur-fast|dur|dur-slow`; `prefers-reduced-motion` disables animation globally
-- Layout: `--nav-h`, `--tabbar-h`, `--safe-bottom`; use class `pb-safe` for content above the mobile tab bar
-- Dark mode: `data-theme="dark"` on `<html>`, chosen in Settings via `<ThemeToggle />` (`components/ui/theme-toggle.tsx`: Hell / Dunkel / Automatisch, persisted in `localStorage["wendapply-theme"]`, default follows the OS). `app/layout.tsx` applies it before first paint (no flash). `globals.css` ends with a "dark-mode bridge" that remaps legacy hardcoded utilities (`bg-white`, `bg-white/60`, `text-[#a32828]`, ...) to tokens, so older pages work in dark; new code should use variables (`bg-[var(--field-bg)]`) or Tailwind aliases `text-brand bg-brand-soft text-muted border-line`.
-- Surface tokens: `--raised` / `--raised-hover` (translucent control fill), `--solid` (opaque card/segment), `--placeholder`, `--highlight` (top inner edge of panels). Use these instead of `bg-white/..`.
-- Charts: use CSS variables for fills/tooltips (`var(--success-fg)`, `var(--muted)`, tooltip `background: var(--sheet-bg)`), see `app/analytics/page.tsx`.
-- Pages: start with `<PageHeader>`, status via `<StatusMessage>`, loading via `<Skeleton>` inside `<Card>`, empty via `<EmptyState>`, dialogs via `<Modal>`.
+All tokens are CSS variables in `app/globals.css`. **Never hard-code a colour, radius or shadow in a component** – use a token.
 
-## Type classes
-`text-display`, `text-title`, `text-heading`, `text-body`, `text-small`, `text-eyebrow`, `text-gradient`, `tabular`.
+## Never (the "generic AI look")
+- No gradients of any kind (`linear-gradient`, `bg-gradient-*`, `text-gradient`), no coloured glow shadows, no blur shadows.
+- No violet / purple / lilac / indigo anywhere.
+- No glassmorphism: no `backdrop-blur`, no translucent white surfaces (`bg-white/60`).
+- No cards inside cards (e.g. bordered pill rows inside a card). Inside a surface use `.rows` (dashed dividers) or `.inset` (tinted block without border).
+- No row of equal KPI cards (label / big number / sub text). Use `<Figures>` or something visual (ticket, path, segments).
+- No `rounded-2xl` / `rounded-3xl`, no soft `shadow-sm|md|lg|xl` Tailwind shadows.
+- No icons in tinted square/round tiles. Icons stand alone (line icons, stroke 2–2.4) in ink or one accent colour.
+- No eyebrow line above a title and no slogan of the pattern "X. Ganz einfach Y.".
+- No system font / Inter.
+- No hex / rgb colours in `.tsx` (exception: the three.js scene and Google's sign-in button colours).
 
-## Utility classes
-`panel`/`glass-surface`, `card-interactive` (hover lift), `skeleton`, `status status-{success|warning|danger|info}`, `toast`, `animate-{rise|fade|sheet|pop}`, `spinner`.
+## Colours
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `--paper` | `#fff9ef` | `#15140f` | page background (warm, never bluish / navy) |
+| `--surface` | `#ffffff` | `#211f19` | sticker / card face, sheets |
+| `--surface-2` | `#f7efdf` | `#2c2a22` | `.inset`, hovered rows, empty tracks |
+| `--ink` | `#16140f` | `#f6f0e3` | text |
+| `--muted` | `#5e584c` | `#b5ad9c` | secondary text (AA on paper and surface) |
+| `--line` | `#e6dcc8` | `#3b382e` | dashed dividers |
+| `--outline` | ink | ink | contour of surfaces |
+| `--outline-fill` | `#16140f` | `#15140f` | contour of bright fills (always dark) |
+| `--brand` / `--on-brand` | `#385cfc` / white | `#8ea2ff` / dark | **the blue of the logo dot** (sampled from `public/logo.png`). Primary button, links, focus |
+| `--brand-strong`, `--brand-soft` | | | hover text / quiet blue tint |
+| `--sun` / `--on-sun` | `#ffd23f` | same | joy: highlights, marker, active nav, success moments |
+| `--coral` / `--on-coral` | `#ff7a6b` | `#ff8a7c` | sparingly: celebration (Gespräch, Zusage) |
+| `--mint` / `--on-mint` | `#6fdca0` | same | Zusage / done |
+| `--sand` / `--on-sand` | | | calm neutral (Absage) |
+| tones `--{success,warning,danger,info,coral,neutral}-{bg,fg,line}` | | | badges, status messages. `fg` is readable on its `bg` AND on paper/surface |
+
+Status colours (flat, `components/ui/status-badge.tsx`): Gemerkt = paper, In Vorbereitung = yellow, Abgeschickt/Schnuppern/Test = blue,
+Gespräch = coral, Zusage/Vertrag = green, **Absage/Zurückgezogen = sand (calm, never red)**. `danger` is only for real errors and destructive actions.
+
+Tailwind aliases: `bg-paper bg-surface bg-surface-2 text-ink text-muted border-line border-outline bg-brand text-on-brand bg-sun bg-coral bg-mint bg-sand`, or the long form `bg-[var(--sun)]`.
+
+## Type
+- Titles + big numbers: **Bricolage Grotesque** (`--font-title`, class `font-display`), weight 800, tight. `h1–h3` use it automatically.
+- Text/UI: **Instrument Sans** (`--font-body`). Loaded with `next/font/google` in `app/layout.tsx`.
+- Classes: `text-hero` (landing), `text-display` (greeting), `text-title` (page title), `text-heading` (section), `text-body`, `text-small`, `text-label`,
+  `num-display` (giant numeral), `num-big`, `tabular`, `marker` / `marker-coral` (felt-marker highlight behind a word).
+- Big contrast in size: one loud title, the rest calm. No uppercase letter-spaced mini labels.
+
+## Shape
+- Contour: `border-[length:var(--border-w)] border-[var(--outline)]` (1.5px ink). Hard offset shadow: `shadow-[var(--shadow-sm|md|lg)]` = 2/3/5px, no blur.
+- Radius: `--radius-sm 6 / md 8 / lg 10 / xl 12`; Tailwind `rounded-lg` (8) / `rounded-xl` (12). Pills (`rounded-full`) only for buttons, chips, badges.
+- Not everything is a shadowed card. Per screen: one or two stickers (`.panel`), the rest plain lists (`.rows`) on paper.
+- Asymmetry welcome: uneven grid columns, a sticker rotated with `tilt-l` (-2°), `tilt-r` (2°), `tilt-l3`.
+
+## CSS helpers (`app/globals.css`)
+`panel` (sticker surface), `panel-flat` (contour, no shadow), `inset`, `rows` + `row-link` (list with dashed dividers), `sticker` (+ `sticker-coral|mint|blue|paper`),
+`pressable` (lift on hover, sinks on press), `card-interactive`, `ticket` + `ticket-stub`, `app-bar app-bar-top|bottom`, `marker`, `skeleton`,
+`status status-{success|warning|danger|info}`, `toast`, `select-caret`, `animate-{rise|fade|sheet|pop|sticker|wiggle}`, `spinner`.
 
 ## Components (`components/ui/*`)
-| Component | Props |
+| Component | Notes |
 |---|---|
-| `Button` | button props + `variant: primary\|secondary\|ghost\|danger`, `size: sm\|md\|lg`, `full`, `loading`, `icon`. No default `type` (as before). |
-| `ButtonLink` | anchor props + `href`, same variant/size/full/icon. `buttonClasses()` also exported. |
-| `Card`, `CardHeader`, `CardContent`, `CardTitle` | div props; `Card` has `interactive` |
-| `Badge` | span props + `tone: neutral\|brand\|info\|success\|warning\|danger` |
-| `Input`, `Textarea`, `Select` | native props; `fieldClasses` exported |
-| `Field` | `label, htmlFor, hint?, error?, children` |
-| `Avatar` | `name, src?, size: xs\|sm\|md\|lg\|xl`; `initialsOf()` |
-| `EmptyState` | `icon?, title, description?, action?` |
-| `PageHeader` | `title, description?, eyebrow?, actions?` |
-| `Segmented` (alias `Tabs`) | `options: {value,label,icon?,count?}[], value, onChange, label?, full?` |
-| `Modal` (alias `Sheet`) | `open, onClose, title, description?, children, footer?`; bottom sheet on phones, ESC, focus trap/restore, scroll lock; put `data-autofocus` on an element to focus it |
-| `StatTile` | `label, value, icon?, trend?, tone?` |
-| `Skeleton` | div props; size via className |
-| `StatusMessage` | `tone: success\|warning\|danger\|info\|neutral, icon?, toast?` |
+| `Button`, `ButtonLink`, `buttonClasses()` | `variant: primary (blue) \| sun (yellow, dark text) \| secondary (white sticker) \| ghost (underlined text) \| danger`, `size: sm\|md\|lg`, `full`, `loading`, `icon`. Sticker buttons sink on press. One primary per view; `sun` for the joyful main step. |
+| `Card` (+ `CardHeader/Content/Title`) | `.panel`; `flat` = no shadow; `interactive` |
+| `Badge` | `tone: neutral \| paper \| brand \| info \| success \| warning \| danger \| coral` |
+| `StatusBadge`, `statusTone` | application status sticker |
+| `Input`, `Textarea`, `Select`, `Field`, `fieldClasses` | ink contour, focus = blue contour + hard blue shadow |
+| `Avatar` | initials on a flat token colour, ink contour |
+| `EmptyState` | dashed contour + doodle, icon without tile |
+| `PageHeader` | `title, description?, actions?` (no eyebrow) |
+| `Figures` | key numbers without boxes: first huge with marker label, rest inline |
+| `Segmented` / `Tabs` | pill track, selected = ink |
+| `Modal` / `Sheet` | bottom sheet on phones, sticker dialog from `sm` |
+| `Skeleton`, `StatusMessage` | flat pulse; tone messages |
+| `BrandMark` | logo straight on paper (dark glyph variant in dark mode); `fixedTile`/`white` = white sticker tile |
+| `doodles.tsx` | `DoodleArrow, DoodleLoopArrow, DoodleStar, DoodleSparkle, DoodleSquiggle, DoodleUnderline, DoodleBurst, DoodleSmile, DoodlePlane, DoodleTrail` – hand-drawn SVGs, `currentColor`, size by className. A few per screen at most. |
 
-## WorkspaceShell
-`<WorkspaceShell active="Freunde">`. Desktop (md+): glass top bar with icon nav (labels at xl). Mobile: bottom tab bar (Start, Suchen, Bewerbungen, Freunde, Mehr) with a "Mehr" sheet (Map, Lebensläufe, Auswertung, Klassen, Profil, Einstellungen, Abmelden). Active keys: see `navigation` in the file (new: `Friends|Freunde`, `Classes|Klassen`).
+## Joy moments (`lib/joy.ts`, `lib/rewards.ts`)
+- `reward("applied")` → toast + rubber stamp «ABGESCHICKT!» (`stamp()`), counts for the weekly goal.
+- `celebrateStatus(status, previous, { position, location })` after a saved status change: Gespräch / Zusage / Vertrag → `confetti()` + motivating toast (+ stamp «ZUSAGE!»);
+  Absage → calm toast «Gehört dazu. Weiter geht’s 💪» with the action «Ähnliche Stellen» (`/search?q=<position>`).
+- Motion: ≤ 600ms, springy (`--spring`), everything off with `prefers-reduced-motion`.
+
+## Dashboard
+Greeting «Hoi <Vorname>!» + exactly one next step (`lib/next-step.ts: nextStep()`). New users (0 applications): no numbers, the three steps as a numbered list with giant numerals.
+With data: `components/dashboard/progress-path.tsx` (ticket Gemerkt → Abgeschickt → Gespräch → Zusage), weekly goal as segments.
+
+## Shell
+`<WorkspaceShell active="Freunde">`. Desktop: paper top bar with ink edge, active entry = yellow sticker. Phones: bottom tab bar (stays), «Mehr» sheet as a plain list.
+
+## Dark mode
+`data-theme="dark"` on `<html>` (set before paint in `app/layout.tsx`, switch: `components/ui/theme-toggle.tsx`). Warm near-black, same accents, no glow.
+`themeColor` in `app/layout.tsx` must equal `--paper`. Contrast: WCAG AA in both modes (`scripts/dark-contrast-audit.mjs`).
+
+## Copy
+German, Swiss spelling («ss», never «ß»), informal «du», warm, slightly humorous: «Ein guter nächster Schritt reicht für heute.»
 
 ## Auth
 Sign-up stores `role` (`student`|`teacher`, default `student`) in Supabase user metadata (`user.user_metadata.role`).

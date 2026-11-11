@@ -8,7 +8,7 @@ import { CANTONS, EDUCATION_LABELS, FIELD_LABELS, JOB_TYPE_LABELS, LANGUAGE_LABE
 
 export function ToggleChip({ active, onClick, children, count }: { active: boolean; onClick: () => void; children: ReactNode; count?: number }) {
   return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition duration-200 pointer-coarse:min-h-11", active ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--glass-border)] bg-[var(--raised)] text-[var(--ink)] hover:bg-[var(--raised-hover)]")}>
+    <button type="button" aria-pressed={active} onClick={onClick} className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition duration-200 pointer-coarse:min-h-11", active ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--outline)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-2)]")}>
       {children}{count !== undefined && <span className="text-xs text-muted">{count}</span>}
     </button>
   );

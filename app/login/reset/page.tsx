@@ -51,14 +51,14 @@ export default function ResetPasswordPage() {
           <p className="mt-2 text-sm text-muted">Wähle ein Passwort mit mindestens sechs Zeichen.</p>
         </div>
         {ready === "checking" ? (
-          <div role="status" className="glass-surface p-6 text-center text-sm text-muted">Link wird geprüft …</div>
+          <div role="status" className="panel p-6 text-center text-sm text-muted">Link wird geprüft …</div>
         ) : ready === "invalid" ? (
-          <div className="glass-surface space-y-4 p-6 text-center">
+          <div className="panel space-y-4 p-6 text-center">
             <StatusMessage tone="warning">Dieser Link ist abgelaufen oder wurde schon benutzt.</StatusMessage>
             <Link href="/login" className="inline-flex min-h-11 items-center justify-center font-semibold text-[var(--brand)] hover:underline">Zurück zur Anmeldung</Link>
           </div>
         ) : (
-          <form onSubmit={submit} className="glass-surface space-y-5 p-5 sm:p-7">
+          <form onSubmit={submit} className="panel space-y-5 p-5 sm:p-7">
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             <Field label="Neues Passwort" htmlFor="new-password"><Input id="new-password" type="password" required minLength={6} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
             <Field label="Passwort wiederholen" htmlFor="new-password-2"><Input id="new-password-2" type="password" required minLength={6} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>

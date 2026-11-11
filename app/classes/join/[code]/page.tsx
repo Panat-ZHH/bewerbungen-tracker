@@ -47,7 +47,7 @@ function JoinContent({ code }: { code: string }) {
 
   return (
     <Card className="animate-rise mx-auto max-w-md space-y-5 p-6 text-center sm:p-8">
-      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand)]"><GraduationCap size={30} /></span>
+      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]"><GraduationCap size={30} /></span>
       <div>
         <p className="text-eyebrow">Klasseneinladung</p>
         <h1 className="text-title mt-1 break-words">{preview.name}</h1>

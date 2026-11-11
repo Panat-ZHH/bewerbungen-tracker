@@ -52,7 +52,7 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
 
       {events && hidden && (
         <Card className="flex gap-4 p-5" role="status">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--neutral-bg)] text-muted"><EyeOff size={20} aria-hidden /></span>
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--neutral-bg)] text-muted"><EyeOff size={20} aria-hidden /></span>
           <div className="space-y-1"><h2 className="text-heading">Diese Person teilt keine Bewerbungsdaten</h2><p className="text-body text-muted">{student ? name : "Die Person"} hat die Freigabe für diese Klasse ausgeschaltet. Du siehst nur den Namen. Die Einstellung liegt bei der Schülerin oder dem Schüler und kann jederzeit geändert werden. Ein persönliches Gespräch ist der beste Weg, um nachzufragen.</p></div>
         </Card>
       )}
@@ -81,7 +81,7 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
                       <ol className="relative space-y-3 border-l-2 border-[var(--line)] pl-5" aria-label={`Stationen ${c.company}`}>
                         {c.stages.map((st, i) => (
                           <li key={`${st.key}-${i}`} className="relative">
-                            <span className="absolute -left-[1.62rem] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--brand)] ring-4 ring-[var(--solid)]" aria-hidden />
+                            <span className="absolute -left-[1.62rem] top-1.5 h-2.5 w-2.5 rounded-full bg-[var(--brand)] ring-4 ring-[var(--surface)]" aria-hidden />
                             <div className="flex flex-wrap items-center gap-2"><span className="text-small font-semibold">{st.label}</span>{st.deadlineState && <Badge tone={DEADLINE_TONE[st.deadlineState]}>{DEADLINE_TEXT[st.deadlineState]}</Badge>}<span className="text-small tabular text-muted">{formatDateCh(st.date)}</span></div>
                           </li>
                         ))}

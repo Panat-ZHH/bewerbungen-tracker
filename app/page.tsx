@@ -103,7 +103,7 @@ export default function LandingPage() {
       </Section>
 
       <section aria-labelledby="cta-h" className="mx-auto w-full max-w-6xl px-4 pb-16 sm:px-6 sm:pb-24">
-        <div className="rounded-[var(--radius-xl)] bg-[image:var(--brand-gradient)] px-6 py-12 text-center text-white shadow-[var(--shadow-brand)] sm:px-12">
+        <div className="rounded-[var(--radius-xl)] bg-[var(--brand)] px-6 py-12 text-center text-white shadow-[var(--shadow-sm)] sm:px-12">
           <h2 id="cta-h" className="text-title">Bereit für die erste Bewerbung?</h2>
           <p className="mx-auto mt-3 max-w-xl text-[15px] opacity-90">Konto erstellen dauert eine Minute. Schulen können WendApply kostenlos im Pilot testen.</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">

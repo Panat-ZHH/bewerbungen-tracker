@@ -48,7 +48,7 @@ export function Modal({ open, onClose, title, description, children, footer, cla
 
   return createPortal(
     <div className="fixed inset-0 z-[100] overscroll-contain flex items-end justify-center sm:items-center sm:p-6">
-      <div className="animate-fade absolute inset-0 bg-[var(--overlay)] backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div className="animate-fade absolute inset-0 bg-[var(--overlay)]" onClick={onClose} aria-hidden />
       <div
         ref={panelRef}
         role="dialog"
@@ -56,18 +56,18 @@ export function Modal({ open, onClose, title, description, children, footer, cla
         aria-labelledby={titleId}
         aria-describedby={description ? descId : undefined}
         tabIndex={-1}
-        className={cn("animate-sheet sm:animate-pop relative flex max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-3rem)] w-full flex-col rounded-t-[var(--radius-xl)] border border-[var(--glass-border)] bg-[var(--sheet-bg)] shadow-[var(--shadow-lg)] outline-none sm:max-w-lg sm:rounded-[var(--radius-xl)]", className)}
+        className={cn("animate-sheet sm:animate-pop relative flex max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-3rem)] w-full flex-col rounded-t-[var(--radius-xl)] border-[length:var(--border-w)] border-b-0 border-[var(--outline)] bg-[var(--surface)] outline-none sm:max-w-lg sm:rounded-[var(--radius-xl)] sm:border-b-[length:var(--border-w)] sm:shadow-[var(--shadow-lg)]", className)}
       >
-        <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-[var(--line)] sm:hidden" aria-hidden />
+        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-[var(--ink)] sm:hidden" aria-hidden />
         <div className="flex items-start justify-between gap-3 px-5 pt-4 sm:pt-5">
           <div className="min-w-0">
             <h2 id={titleId} className="text-heading">{title}</h2>
             {description && <p id={descId} className="mt-1 text-small text-muted">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} aria-label="Schliessen" className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-[var(--hover)] hover:text-[var(--ink)]"><X size={18} /></button>
+          <button type="button" onClick={onClose} aria-label="Schliessen" className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--hover)]"><X size={20} strokeWidth={2.4} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex flex-col-reverse gap-2 border-t border-[var(--line)] px-5 py-4 pb-[calc(1rem+var(--safe-bottom))] sm:flex-row sm:justify-end">{footer}</div>}
+        {footer && <div className="flex flex-col-reverse gap-2 border-t-[length:var(--border-w)] border-dashed border-[var(--line)] px-5 py-4 pb-[calc(1rem+var(--safe-bottom))] sm:flex-row sm:justify-end">{footer}</div>}
         {!footer && <div className="pb-[var(--safe-bottom)]" />}
       </div>
     </div>,

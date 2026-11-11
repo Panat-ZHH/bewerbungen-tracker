@@ -30,7 +30,7 @@ export function InviteBanner() {
   if (!text && !friend) return null;
   const Icon = friend ? UserPlus : GraduationCap;
   return (
-    <div role="status" className="mb-5 flex items-start gap-3 rounded-2xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] p-4 text-left">
+    <div role="status" className="mb-5 flex items-start gap-3 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] p-4 text-left">
       <Icon size={20} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />
       <div className="text-sm">
         <p className="font-semibold text-[var(--brand-strong)]">{friend ? "Du wurdest zu WendApply eingeladen" : text}</p>

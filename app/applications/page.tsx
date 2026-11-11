@@ -14,7 +14,7 @@ import { StatusMessage } from "@/components/ui/skeleton";
 import type { Application, ApplicationStatus } from "@/types";
 
 
-const addLink = "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[image:var(--brand-gradient)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-brand)] transition hover:brightness-110 active:scale-[.98] sm:w-fit";
+const addLink = "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--brand)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-sm)] transition hover:brightness-110 active:scale-[.98] sm:w-fit";
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -77,7 +77,7 @@ export default function ApplicationsPage() {
           {chips.map((chip) => {
             const selected = status === chip.value;
             return (
-              <button key={chip.value} type="button" aria-pressed={selected} onClick={() => setStatus(chip.value)} className={cn("inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition active:scale-[.97]", selected ? "border-[var(--brand)] bg-[var(--brand)] text-[var(--on-brand)]" : "border-[var(--glass-border)] bg-[var(--raised)] text-[var(--ink)] hover:bg-[var(--raised-hover)]")}>
+              <button key={chip.value} type="button" aria-pressed={selected} onClick={() => setStatus(chip.value)} className={cn("inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition active:scale-[.97]", selected ? "border-[var(--brand)] bg-[var(--brand)] text-[var(--on-brand)]" : "border-[var(--outline)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-2)]")}>
                 {chip.label}
                 <span className={cn("text-xs tabular-nums", selected ? "text-white/80" : "text-muted")}>{chip.count}</span>
               </button>
@@ -96,7 +96,7 @@ export default function ApplicationsPage() {
         <ul className="mt-3 space-y-2.5">
           {filtered.map((application) => (
             <li key={application.id}>
-              <Link href={`/applications/${application.id}`} className="glass-surface group flex min-h-[84px] items-center justify-between gap-3 rounded-[14px] px-4 py-3.5 transition hover:-translate-y-px hover:bg-[var(--raised-hover)] active:scale-[.99] sm:px-5">
+              <Link href={`/applications/${application.id}`} className="panel group flex min-h-[84px] items-center justify-between gap-3 rounded-[14px] px-4 py-3.5 transition hover:-translate-y-px hover:bg-[var(--surface-2)] active:scale-[.99] sm:px-5">
                 <span className="min-w-0">
                   <span className="block truncate text-[15px] font-semibold">{application.company}</span>
                   <span className="mt-1 block truncate text-sm text-muted">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
@@ -114,7 +114,7 @@ export default function ApplicationsPage() {
           <h2 className="text-base font-semibold">{applications.length ? "Dazu gibt es keine Bewerbung." : "Noch keine Bewerbungen"}</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted">{applications.length ? "Prüfe die Schreibweise oder wähle einen anderen Stand." : "Füge deine erste Stelle hinzu, damit du sie nicht aus dem Blick verlierst."}</p>
           {applications.length ? (
-            <button type="button" onClick={() => { setQuery(""); setStatus("all"); }} className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--raised)] px-5 text-sm font-semibold hover:bg-[var(--raised-hover)]">Filter zurücksetzen</button>
+            <button type="button" onClick={() => { setQuery(""); setStatus("all"); }} className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--outline)] bg-[var(--surface)] px-5 text-sm font-semibold hover:bg-[var(--surface-2)]">Filter zurücksetzen</button>
           ) : (
             <Link href="/applications/new" className={cn(addLink, "mx-auto mt-5 sm:w-fit")}><Plus size={16} /> Bewerbung hinzufügen</Link>
           )}

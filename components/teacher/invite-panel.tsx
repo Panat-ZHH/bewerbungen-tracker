@@ -133,7 +133,7 @@ function ImportPreview({ rows, counts }: { rows: ImportRow[]; counts: { ok: numb
       <div className="max-h-56 overflow-auto rounded-[var(--radius-md)] border border-[var(--line)]">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Vorschau der Einladungsliste</caption>
-          <thead className="text-eyebrow sticky top-0 bg-[var(--solid)]"><tr><th scope="col" className="px-3 py-2 font-medium">Name</th><th scope="col" className="px-3 py-2 font-medium">E-Mail</th><th scope="col" className="px-3 py-2 font-medium">Prüfung</th></tr></thead>
+          <thead className="text-eyebrow sticky top-0 bg-[var(--surface)]"><tr><th scope="col" className="px-3 py-2 font-medium">Name</th><th scope="col" className="px-3 py-2 font-medium">E-Mail</th><th scope="col" className="px-3 py-2 font-medium">Prüfung</th></tr></thead>
           <tbody>{rows.map((r, i) => (
             <tr key={`${r.line}-${i}`} className="border-t border-[var(--line)]">
               <td className="max-w-[9rem] truncate px-3 py-2">{r.name || <span className="text-muted">–</span>}</td>

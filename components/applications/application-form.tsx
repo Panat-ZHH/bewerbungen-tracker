@@ -297,7 +297,7 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
         </div>
       </details>
 
-      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[var(--line)] bg-[var(--glass-bar-bg)] px-4 py-4 backdrop-blur-xl sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
+      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[var(--line)] bg-[var(--app-bar-bg)] px-4 py-4 sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0">
         <Button type="button" variant="ghost" onClick={() => router.back()} className="min-h-11 sm:min-h-11">
           <ArrowLeft size={16} /> Zurück
         </Button>

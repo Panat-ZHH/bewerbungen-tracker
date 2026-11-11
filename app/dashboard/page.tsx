@@ -2,30 +2,32 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CalendarClock, ChevronRight, ClipboardList, Plus, Search, Users } from "lucide-react";
+import { ArrowRight, CalendarClock, Plus } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { NoticesCard } from "@/components/classes/notices-card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Card } from "@/components/ui/card";
 import { getApplications } from "@/lib/storage";
-import { cn } from "@/lib/utils";
 import { deadlineInfo, friendlyMessage } from "@/lib/ux";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { isClosedStatus, isSentStatus, isConversationStatus, isPlacedStatus, isSchnupperStatus, showsDeadline } from "@/lib/status";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleSparkle, DoodleTrail } from "@/components/ui/doodles";
+import { isClosedStatus, isSentStatus, showsDeadline } from "@/lib/status";
 import { RemindersCard } from "@/components/reminders/reminders-card";
 import { WeeklyGoal } from "@/components/dashboard/weekly-goal";
+import { ProgressPath } from "@/components/dashboard/progress-path";
+import { firstName, nextStep } from "@/lib/next-step";
+import { loadMyRole } from "@/lib/role";
+import { supabase } from "@/lib/supabase";
+import { todayLocal } from "@/lib/reminders-client";
 import type { Application } from "@/types";
-
-
-const addLink = "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[image:var(--brand-gradient)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-brand)] transition hover:brightness-110 active:scale-[.98] sm:w-fit sm:shrink-0 sm:whitespace-nowrap";
 
 export default function DashboardPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const [name, setName] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -36,10 +38,21 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, [attempt]);
 
-  const activeCount = applications.filter(({ status }) => !isClosedStatus(status)).length;
-  const conversations = applications.filter(({ status }) => isConversationStatus(status)).length;
-  const schnuppern = applications.filter(({ status }) => isSchnupperStatus(status)).length;
-  const offers = applications.filter(({ status }) => isPlacedStatus(status)).length;
+  // Name for the greeting: profile name first, then the name from the sign-up; never an e-mail address.
+  useEffect(() => {
+    let active = true;
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (!data.user) return;
+      const profile = await loadMyRole(data.user).catch(() => null);
+      const meta = data.user.user_metadata ?? {};
+      const found = firstName(profile?.displayName) || firstName(meta.first_name as string) || firstName(meta.full_name as string) || firstName(meta.name as string);
+      if (active) setName(found);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const isNew = !loading && !error && applications.length === 0;
+  const step = nextStep(applications, todayLocal());
   const recent = [...applications].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
   const deadlines = applications
     .filter(({ deadline, status }) => deadline && showsDeadline(status) && !isSentStatus(status) && !isClosedStatus(status))
@@ -48,119 +61,129 @@ export default function DashboardPage() {
 
   return (
     <WorkspaceShell active="Start">
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div className="min-w-0">
-          <p className="text-sm font-medium text-muted">Dein Überblick</p>
-          <h1 className="mt-2 text-balance text-[28px] font-semibold leading-tight tracking-[-1px] md:text-[38px]">Deine Suche. Ganz einfach im Blick.</h1>
-          <p className="mt-2 text-base text-muted">Ein guter nächster Schritt reicht für heute.</p>
-        </div>
-        <Link href="/applications/new" className={addLink}>
-          <Plus size={17} /> Bewerbung hinzufügen
-        </Link>
-      </div>
+      <header className="animate-rise relative">
+        <h1 className="text-display">Hoi{name ? <> <span className="marker">{name}</span></> : ""}!<DoodleBurst className="ml-1 inline-block h-[.7em] w-[.7em] -translate-y-[.35em] text-[var(--coral)]" /></h1>
+        {loading ? (
+          <div className="skeleton mt-4 h-7 w-64 max-w-full" role="status" aria-label="Dein nächster Schritt wird geladen" />
+        ) : !error && (
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+            <p className="font-display max-w-xl text-xl font-semibold leading-snug tracking-[-.01em] sm:text-2xl" data-testid="next-step">{step.text}</p>
+            {!isNew && <ButtonLink href={step.href} variant="sun" className="w-fit shrink-0" icon={<ArrowRight size={16} strokeWidth={2.4} />}>{step.cta}</ButtonLink>}
+          </div>
+        )}
+        {!isNew && <p className="mt-3 text-body text-muted">Ein guter nächster Schritt reicht für heute.</p>}
+      </header>
 
       <NoticesCard />
 
       {error && <StatusMessage tone="danger" className="mt-6"><p>{error}</p><Button size="sm" variant="secondary" className="mt-2" onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Erneut versuchen</Button></StatusMessage>}
 
-      <section aria-label="Deine Zahlen" className="mt-8 grid grid-cols-3 gap-2.5 sm:gap-3">
-        <Summary label="Bewerbungen" value={loading ? "–" : applications.length} detail="Insgesamt" />
-        <Summary label="Offen" value={loading ? "–" : activeCount} detail="Noch in Arbeit" />
-        <Summary label="Gespräche" value={loading ? "–" : conversations} detail={[offers ? `${offers} ${offers === 1 ? "Zusage" : "Zusagen"}` : "", schnuppern ? `${schnuppern} Schnupperlehre${schnuppern === 1 ? "" : "n"}` : ""].filter(Boolean).join(" · ") || "Noch keine"} />
-      </section>
-
-      {!loading && applications.length > 0 && <WeeklyGoal applications={applications} />}
-      {!loading && !error && <RemindersCard applications={applications} />}
-
-      <section className="mt-10">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xl font-semibold tracking-[-.4px]">Zuletzt geändert</h2>
-            <p className="mt-1 text-sm text-muted">Deine drei letzten Bewerbungen.</p>
-          </div>
-          <Link href="/applications" className="inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap px-1 text-sm font-semibold text-[var(--brand)] hover:underline">
-            Alle ansehen <ArrowRight size={15} />
-          </Link>
+      {loading && (
+        <div className="mt-8 space-y-3" role="status" aria-label="Bewerbungen werden geladen">
+          <div className="skeleton h-28" />
+          {[0, 1].map((item) => <div key={item} className="skeleton h-14" />)}
         </div>
+      )}
 
-        {loading ? (
-          <div className="mt-4 space-y-3" role="status" aria-label="Bewerbungen werden geladen">
-            {[0, 1, 2].map((item) => <div key={item} className="h-[76px] skeleton rounded-[14px]" />)}
-          </div>
-        ) : recent.length ? (
-          <div className="mt-4 space-y-2.5">
-            {recent.map((application) => <ApplicationRow key={application.id} application={application} />)}
-          </div>
-        ) : (
-          <Card className="mt-4 border-dashed p-5 sm:p-7">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand)]"><ClipboardList size={22} /></span>
-              <div>
-                <h3 className="text-base font-semibold">Willkommen! So startest du in drei Schritten.</h3>
-                <p className="text-sm text-muted">Du musst nicht alles auf einmal wissen – Firma und Stelle reichen.</p>
+      {isNew && <FirstSteps />}
+
+      {!loading && applications.length > 0 && (
+        <div className="mt-9 grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+          <div className="min-w-0">
+            <ProgressPath applications={applications} />
+
+            <section className="mt-10">
+              <div className="flex items-end justify-between gap-3">
+                <h2 className="text-heading">Zuletzt geändert</h2>
+                <Link href="/applications" className="inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap px-1 text-sm font-semibold text-[var(--brand)] hover:underline">
+                  Alle ansehen <ArrowRight size={15} />
+                </Link>
               </div>
-            </div>
-            <ol className="mt-5 space-y-2">
-              {[
-                { href: "/search", icon: Search, title: "Stelle finden", text: "Durchsuche mehrere Stellenbörsen auf einmal und merke dir, was passt." },
-                { href: "/applications/new", icon: Plus, title: "Bewerbung eintragen", text: "Halte Firma, Stelle und deinen Stand fest." },
-                { href: "/friends", icon: Users, title: "Freunde einladen", text: "Zu zweit bleibt man leichter dran." },
-              ].map(({ href, icon: Icon, title, text }, index) => (
-                <li key={href}>
-                  <Link href={href} className="flex min-h-14 items-center gap-3 rounded-xl border border-[var(--line)] bg-[var(--raised)] px-3.5 py-2.5 transition hover:bg-[var(--hover)]">
-                    <span aria-hidden className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[var(--brand-soft)] text-xs font-bold text-[var(--brand-strong)]">{index + 1}</span>
-                    <span className="min-w-0 flex-1"><span className="block text-sm font-semibold">{title}</span><span className="block text-xs text-muted">{text}</span></span>
-                    <Icon size={16} aria-hidden className="shrink-0 text-[var(--brand)]" />
-                  </Link>
-                </li>
-              ))}
-            </ol>
-            <Link href="/applications/new" className={cn(addLink, "mt-5")}>
-              <Plus size={16} /> Erste Bewerbung eintragen
-            </Link>
-          </Card>
-        )}
-      </section>
-
-      {deadlines.length > 0 && (
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold tracking-[-.4px]">Bald fällig</h2>
-          <p className="mt-1 text-sm text-muted">Fristen für Stellen, die du noch nicht abgeschickt hast.</p>
-          <div className="mt-4 space-y-2.5">
-            {deadlines.map((application) => (
-              <Link key={application.id} href={`/applications/${application.id}`} className="glass-surface flex min-h-14 items-center justify-between gap-3 rounded-[14px] px-4 py-3 transition hover:bg-[var(--raised-hover)]">
-                <span className="min-w-0 truncate text-sm font-semibold">{application.company}<span className="font-normal text-muted"> · {application.position}</span></span>
-                <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted"><CalendarClock size={15} aria-hidden />{new Date(application.deadline as string).toLocaleDateString("de-CH")}{(() => { const info = deadlineInfo(application.deadline as string); return info && <Badge tone={info.tone}>{info.label}</Badge>; })()}</span>
-              </Link>
-            ))}
+              <ul className="rows mt-1 border-y-[length:var(--border-w)] border-[var(--outline)]">
+                {recent.map((application) => (
+                  <li key={application.id}>
+                    <Link href={`/applications/${application.id}`} className="row-link justify-between">
+                      <span className="min-w-0">
+                        <span className="block truncate text-[15px] font-bold">{application.company}</span>
+                        <span className="block truncate text-sm text-muted">{application.position}</span>
+                      </span>
+                      <StatusBadge status={application.status} className="shrink-0" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
-        </section>
+
+          <div className="min-w-0 space-y-10">
+            <WeeklyGoal applications={applications} />
+            {!error && <RemindersCard applications={applications} />}
+            {deadlines.length > 0 && (
+              <section>
+                <h2 className="text-heading">Bald fällig</h2>
+                <p className="mt-1 text-sm text-muted">Fristen für Stellen, die du noch nicht abgeschickt hast.</p>
+                <ul className="rows mt-2">
+                  {deadlines.map((application) => {
+                    const info = deadlineInfo(application.deadline as string);
+                    return (
+                      <li key={application.id}>
+                        <Link href={`/applications/${application.id}`} className="row-link flex-wrap justify-between gap-y-1">
+                          <span className="min-w-0 truncate text-sm font-bold">{application.company}<span className="font-normal text-muted"> · {application.position}</span></span>
+                          <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted"><CalendarClock size={15} aria-hidden />{new Date(application.deadline as string).toLocaleDateString("de-CH")}{info && <Badge tone={info.tone}>{info.label}</Badge>}</span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            )}
+            <ButtonLink href="/applications/new" full size="lg" icon={<Plus size={18} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>
+          </div>
+        </div>
       )}
     </WorkspaceShell>
   );
 }
 
-function Summary({ label, value, detail }: { label: string; value: number | string; detail: string }) {
-  return (
-    <Card className="min-w-0 p-2.5 min-[360px]:p-3 sm:p-5">
-      <p className="truncate text-[10px] tracking-tighter text-muted min-[360px]:text-xs min-[360px]:tracking-normal sm:text-sm">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums tracking-[-1px] sm:mt-3 sm:text-3xl">{value}</p>
-      <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted sm:text-xs">{detail}</p>
-    </Card>
-  );
-}
+const FIRST_STEPS = [
+  { href: "/search", title: "Stelle finden", text: "Durchsuche mehrere Stellenbörsen auf einmal und merke dir, was passt.", color: "text-[var(--brand)]" },
+  { href: "/applications/new", title: "Bewerbung eintragen", text: "Halte Firma, Stelle und deinen Stand fest.", color: "text-[var(--coral)]" },
+  { href: "/friends", title: "Freunde einladen", text: "Zu zweit bleibt man leichter dran.", color: "text-[var(--ink)]" },
+];
 
-function ApplicationRow({ application }: { application: Application }) {
+/** New users: no numbers at all. The three steps ARE the page: a plain numbered list with huge numerals and a doodle. */
+function FirstSteps() {
   return (
-    <Link href={`/applications/${application.id}`} className="glass-surface group flex min-h-[76px] items-center justify-between gap-3 rounded-[14px] px-4 py-3.5 transition hover:-translate-y-px hover:bg-[var(--raised-hover)] active:scale-[.99]">
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold">{application.company}</span>
-        <span className="mt-1 block truncate text-sm text-muted">{application.position}</span>
-      </span>
-      <span className="flex shrink-0 items-center gap-2">
-        <StatusBadge status={application.status} />
-        <ChevronRight size={16} className="hidden text-[var(--muted)] transition group-hover:translate-x-0.5 sm:block" />
-      </span>
-    </Link>
+    <section className="animate-rise mt-8 grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" aria-labelledby="first-steps-h">
+      <div className="min-w-0">
+        <h2 id="first-steps-h" className="text-heading">Willkommen! So startest du in drei Schritten.</h2>
+        <p className="mt-1 text-body text-muted">Du musst nicht alles auf einmal wissen – Firma und Stelle reichen.</p>
+        <ol className="rows mt-4 border-y-[length:var(--border-w)] border-[var(--outline)]">
+          {FIRST_STEPS.map(({ href, title, text, color }, index) => (
+            <li key={href}>
+              <Link href={href} className="group flex items-center gap-4 py-4 sm:gap-6">
+                <span aria-hidden className={`num-display w-[.62em] shrink-0 text-center ${color}`}>{index + 1}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="font-display block text-xl font-bold leading-tight tracking-[-.02em] group-hover:underline group-hover:decoration-[var(--sun)] group-hover:decoration-4 group-hover:underline-offset-4">{title}</span>
+                  <span className="mt-1 block text-sm text-muted">{text}</span>
+                </span>
+                <ArrowRight size={22} strokeWidth={2.4} aria-hidden className="shrink-0 transition-transform duration-200 group-hover:translate-x-1" />
+              </Link>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 flex items-center gap-3">
+          <ButtonLink href="/applications/new" size="lg" icon={<Plus size={18} strokeWidth={2.4} />}>Erste Bewerbung eintragen</ButtonLink>
+          <DoodleArrow className="hidden h-9 w-12 -scale-x-100 rotate-[200deg] text-[var(--ink)] min-[420px]:block" />
+        </div>
+      </div>
+      <div aria-hidden className="relative mx-auto hidden h-64 w-full max-w-xs lg:block">
+        <span className="sticker tilt-l3 absolute left-2 top-6 text-base">Los geht’s!</span>
+        <DoodleTrail className="absolute left-0 top-24 h-20 w-56 text-[var(--ink)]" />
+        <DoodlePlane className="absolute right-2 top-10 h-20 w-24 rotate-[-8deg] text-[var(--brand)]" />
+        <DoodleSparkle className="absolute bottom-10 right-12 h-9 w-9 text-[var(--sun)]" />
+        <span className="sticker sticker-coral tilt-r absolute bottom-4 left-10">Deine Lehrstelle wartet</span>
+      </div>
+    </section>
   );
 }

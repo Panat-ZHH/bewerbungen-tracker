@@ -69,7 +69,7 @@ export function StudentOnboarding() {
           ))}
         </ol>
 
-        <div className="glass-surface mt-5 space-y-5 p-5 sm:p-7">
+        <div className="panel mt-5 space-y-5 p-5 sm:p-7">
           {error && <StatusMessage tone="danger">{error}</StatusMessage>}
 
           {step === 0 && (

@@ -10,7 +10,7 @@ import { createFeed, disablePush, enablePush, feedUrl, listFeeds, loadReminderSe
 import { friendlyMessage } from "@/lib/ux";
 import { toast } from "@/lib/toast";
 
-const select = "min-h-11 rounded-xl border border-[var(--glass-border)] bg-[var(--raised)] px-3 text-sm";
+const select = "min-h-11 rounded-xl border border-[var(--outline)] bg-[var(--surface)] px-3 text-sm";
 
 function Row({ id, label, hint, checked, onChange, disabled }: { id: string; label: string; hint: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   return (

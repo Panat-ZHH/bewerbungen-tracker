@@ -102,7 +102,7 @@ export default function ApplicationDetailPage() {
         <Card className="mt-6 p-6">
           <h1 className="text-xl font-semibold">{error ? "Das hat nicht geklappt" : "Bewerbung nicht gefunden"}</h1>
           <p className="mt-2 text-sm text-muted">{error || "Vielleicht wurde sie schon gelöscht."}</p>
-          <Link href="/applications" className="mt-5 inline-flex min-h-11 items-center rounded-full border border-[var(--glass-border)] bg-[var(--raised)] px-5 text-sm font-semibold hover:bg-[var(--raised-hover)]">Zur Übersicht</Link>
+          <Link href="/applications" className="mt-5 inline-flex min-h-11 items-center rounded-full border border-[var(--outline)] bg-[var(--surface)] px-5 text-sm font-semibold hover:bg-[var(--surface-2)]">Zur Übersicht</Link>
         </Card>
       ) : editing ? (
         <div className="mt-4 max-w-3xl">

@@ -7,7 +7,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT);
 const BASE = process.env.BASE || "http://localhost:3206";
 const OUT = process.env.OUT || `${process.env.HOME}/Projects/bewerbungen-tracker-wt/screenshots/v2/final/`;
 mkdirSync(OUT, { recursive: true });
-const HEIGHT = { 320: 640, 375: 812, 393: 852, 430: 932, 768: 1024, 1280: 800, 1920: 1080 };
+const HEIGHT = { 320: 640, 375: 812, 390: 844, 393: 852, 430: 932, 768: 1024, 1280: 800, 1920: 1080 };
 const WIDTHS = (process.env.WIDTHS || "320,375,393,430,768,1280").split(",").map(Number);
 const THEMES = (process.env.THEMES || "light,dark").split(",");
 const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null;

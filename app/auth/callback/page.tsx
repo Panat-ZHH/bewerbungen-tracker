@@ -49,7 +49,7 @@ export default function AuthCallbackPage() {
       <div className="animate-rise w-full max-w-[420px] text-center">
         <BrandMark size={56} radius={16} pad={4} white className="brand-mark-raised mx-auto" priority />
         {error ? (
-          <div className="glass-surface mt-6 space-y-4 p-6">
+          <div className="panel mt-6 space-y-4 p-6">
             <StatusMessage tone="danger">{error}</StatusMessage>
             <Link href="/login" className="inline-flex min-h-11 items-center justify-center font-semibold text-[var(--brand)] hover:underline">Zurück zur Anmeldung</Link>
           </div>
