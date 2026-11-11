@@ -1,6 +1,6 @@
 // Fields (branches), labels and text classification of listings. Pure regex heuristics.
 import type { EducationLevel, EnrichedJob, JobMeta, JobType, PostedWithin } from "./types.ts";
-import { resolveLocation } from "./geo.ts";
+import { cantonInText } from "../geo/cantons.ts";
 
 export interface FieldInfo { id: string; label: string; pattern: RegExp }
 
@@ -33,7 +33,17 @@ export const LANGUAGE_LABELS: Record<string, string> = { de: "Deutsch", fr: "Fra
 export const REMOTE_LABELS = { remote: "Remote", hybrid: "Hybrid / Homeoffice", onsite: "Vor Ort" } as const;
 export const POSTED_WITHIN_OPTIONS: PostedWithin[] = [1, 3, 7, 14, 30];
 export const postedWithinLabel = (days: PostedWithin) => (days === 1 ? "Letzte 24 Stunden" : `Letzte ${days} Tage`);
-export const RADIUS_OPTIONS = [5, 10, 20, 30, 50, 100] as const;
+/** Radius around the chosen place in km; 0 = "Nur dieser Ort" (same municipality). Only meaningful with a place. */
+export const RADIUS_OPTIONS = [0, 5, 10, 20, 30, 50] as const;
+export const DEFAULT_RADIUS_KM = 10;
+export const radiusLabel = (km: number) => (km === 0 ? "Nur dieser Ort" : `${km} km`);
+/** Radius in effect for a filter state with a place: the chosen value or the default of 10 km. */
+export const effectiveRadiusKm = (filters: { radiusKm?: number }) => filters.radiusKm ?? DEFAULT_RADIUS_KM;
+/** "12 km" / "< 1 km" for a result card; undefined when the listing has no distance. */
+export function formatDistance(km: number | undefined): string | undefined {
+  if (km === undefined || !Number.isFinite(km) || km < 0) return undefined;
+  return km < 1 ? "< 1 km" : `${Math.round(km)} km`;
+}
 export const JOB_TYPES = Object.keys(JOB_TYPE_LABELS) as JobType[];
 export const EDUCATION_LEVELS = Object.keys(EDUCATION_LABELS) as EducationLevel[];
 export const LANGUAGES = Object.keys(LANGUAGE_LABELS);
@@ -138,7 +148,8 @@ export function classifyJob(job: Source & Partial<JobMeta>): JobMeta {
   out.remote = parseRemote(full);
   out.language = parseLanguage(full);
   out.field = classifyField(job);
-  out.canton = resolveLocation(job.location)?.canton;
+  // the search API sets the canton from the localities directory; this is only the fallback for a canton written in the text
+  out.canton = cantonInText(job.location);
   for (const key of Object.keys(out) as (keyof JobMeta)[]) if (out[key] === undefined) delete out[key];
   return out;
 }

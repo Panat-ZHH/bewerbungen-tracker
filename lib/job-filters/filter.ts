@@ -1,8 +1,7 @@
 // Client side filtering of enriched listings. Missing data keeps a listing unless the filter is marked strict.
 import type { EnrichedJob, JobFilters } from "./types.ts";
 import { fold } from "./query.ts";
-import { distanceKm, resolveLocation } from "./geo.ts";
-import { detectJobTypes, enrichJob, startYearOf } from "./taxonomy.ts";
+import { detectJobTypes, effectiveRadiusKm, enrichJob, startYearOf } from "./taxonomy.ts";
 
 export type StrictMap = Partial<Record<keyof JobFilters, boolean>>;
 export interface FilterOptions {
@@ -33,13 +32,14 @@ export function passes(job: EnrichedJob, filters: JobFilters, key: keyof JobFilt
   const missing = () => !strict;
   switch (key) {
     case "radiusKm": {
-      if (filters.radiusKm === undefined || !filters.location.trim()) return true;
-      const origin = resolveLocation(filters.location);
-      const here = resolveLocation(j.location) ?? (j.canton ? resolveLocation(j.canton) : undefined);
-      if (!origin?.lat || !here?.lat) return missing();
-      let km = distanceKm({ lat: origin.lat!, lon: origin.lon! }, { lat: here.lat!, lon: here.lon! });
-      if (!origin.city || !here.city) km = Math.max(0, km - 20); // canton centroids are ~20km fuzzy
-      return km <= filters.radiusKm || (!!origin.city && !!here.city && here.city === origin.city);
+      // Without a place nothing is filtered by distance (whole Switzerland). With a place the search API has geocoded the
+      // listing and put `distanceKm` / `inPlace` on it (one place computes distances); here only the chosen radius is applied,
+      // so narrowing the radius works without a new search. No radius chosen = default 10 km; 0 = "Nur dieser Ort".
+      if (!filters.location.trim()) return true;
+      if (j.distanceKm === undefined) return missing();
+      if (j.inPlace) return true;
+      const radius = effectiveRadiusKm(filters);
+      return radius > 0 && j.distanceKm <= radius;
     }
     case "cantons":
       if (!filters.cantons.length) return true;

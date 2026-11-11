@@ -8,10 +8,11 @@ import { computeFacets as coreFacets, type Facets } from "../../lib/job-filters/
 import { sortJobs as coreSort, SORT_LABELS } from "../../lib/job-filters/sort.ts";
 import * as store from "../../lib/job-filters/storage.ts";
 import { paramsToState, stateToParams, SOURCE_NAMES } from "../../lib/job-filters/url.ts";
-import { CANTON_CODES, resolveLocation } from "../../lib/job-filters/geo.ts";
-import { EDUCATION_LABELS, FIELDS, JOB_TYPE_LABELS, LANGUAGE_LABELS, POSTED_WITHIN_OPTIONS, RADIUS_OPTIONS, REMOTE_LABELS, postedWithinLabel } from "../../lib/job-filters/taxonomy.ts";
+// cantons only: the localities directory (lib/geo/places.ts) stays on the server, distances arrive on the results
+import { CANTON_CODES, cantonInText } from "../../lib/geo/cantons.ts";
+import { DEFAULT_RADIUS_KM, EDUCATION_LABELS, FIELDS, JOB_TYPE_LABELS, LANGUAGE_LABELS, POSTED_WITHIN_OPTIONS, RADIUS_OPTIONS, REMOTE_LABELS, effectiveRadiusKm, formatDistance, postedWithinLabel, radiusLabel } from "../../lib/job-filters/taxonomy.ts";
 
-export { emptyFilters, paramsToState, stateToParams, SOURCE_NAMES, SORT_LABELS, JOB_TYPE_LABELS, EDUCATION_LABELS, LANGUAGE_LABELS, REMOTE_LABELS, RADIUS_OPTIONS };
+export { emptyFilters, paramsToState, stateToParams, SOURCE_NAMES, SORT_LABELS, JOB_TYPE_LABELS, EDUCATION_LABELS, LANGUAGE_LABELS, REMOTE_LABELS, RADIUS_OPTIONS, DEFAULT_RADIUS_KM, effectiveRadiusKm, formatDistance, radiusLabel };
 export type { EnrichedJob, JobFilters, JobPreset, JobSearchState, JobSort, JobType, RankedJob, Facets, PostedWithin };
 
 export const FIELD_LABELS: Record<string, string> = Object.fromEntries(FIELDS.map((f) => [f.id, f.label]));
@@ -36,7 +37,7 @@ export function suggestQueries(prefix: string, limit = 6): string[] {
 }
 
 export function jobCanton(job: EnrichedJob): string | undefined {
-  return job.canton?.toUpperCase() ?? resolveLocation(job.location)?.canton;
+  return job.canton?.toUpperCase() ?? cantonInText(job.location);
 }
 
 /** Missing data never excludes a listing. */

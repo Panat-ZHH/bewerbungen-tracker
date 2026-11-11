@@ -4,12 +4,12 @@ import type { JobSearchResult } from "../job-results.ts";
 export type JobType = "lehrstelle" | "schnupperlehre" | "praktikum" | "vollzeit" | "teilzeit" | "temporaer" | "freelance" | "other";
 export type PostedWithin = 1 | 3 | 7 | 14 | 30;
 export type EducationLevel = "efz" | "eba" | "bm" | "hf" | "fh" | "uni" | "none";
-export type JobSort = "relevance" | "newest" | "company" | "location" | "start";
+export type JobSort = "relevance" | "distance" | "newest" | "company" | "location" | "start";
 
 export interface JobFilters {
   kind: "job" | "apprenticeship";          // main tab (server-side)
-  location: string;                         // free text place (server-side)
-  radiusKm?: number;                        // 5|10|20|30|50|100 (server-side where supported, else client approx via canton)
+  location: string;                         // free text place, resolved by the search API (lib/geo/places.ts)
+  radiusKm?: number;                        // 0 ("Nur dieser Ort")|5|10|20|30|50, only with a place; undefined = default 10 km
   cantons: string[];                        // two-letter codes ZH, BE ... (client)
   jobTypes: JobType[];
   workloadMin?: number;                     // pensum % lower bound 10..100

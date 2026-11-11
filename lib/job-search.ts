@@ -1,6 +1,10 @@
 import { load } from "cheerio";
 import robotsParser from "robots-parser";
 import { listingSources, mergeJobResults, type JobSearchResult } from "./job-results.ts";
+import { CANTON_CODES, cantonFromName } from "./geo/cantons.ts";
+import { cantonsWithin, distanceKm, geocode, locateListing, placeNamesWithin, samePlace, withinRadius, type PlaceMatch } from "./geo/places.ts";
+import { DEFAULT_RADIUS_KM, RADIUS_OPTIONS } from "./job-filters/taxonomy.ts";
+import { splitPlace } from "./job-query-parse.ts";
 
 export type { JobSearchResult } from "./job-results.ts";
 
@@ -10,8 +14,18 @@ export type SearchKind = "job" | "apprenticeship";
 export interface ServerJobFilters {
   postedWithin?: 1 | 3 | 7 | 14 | 30;
   jobTypes?: string[];
+  /** 0 = "Nur dieser Ort", else km. Only used with a place; default 10. */
   radiusKm?: number;
   cantons?: string[];
+}
+
+export interface SourceCursor { page: number; offset: number; /** index into the source's request plan (cantons / groups of place names) */ segment?: number }
+
+/** The place a search ran for, resolved from the Ort field or from the free text ("Informatiker Zürich"). */
+export interface SearchPlace { label: string; name: string; plz: string; canton: string; lat: number; lon: number; radiusKm: number; fromQuery: boolean }
+
+export class PlaceNotFoundError extends Error {
+  readonly code = "unknown_place";
 }
 
 export interface JobSearchInput {
@@ -19,18 +33,21 @@ export interface JobSearchInput {
   location: string;
   kind: SearchKind;
   filters?: ServerJobFilters;
-  cursor?: { page: number; offset: number };
+  cursor?: SourceCursor;
   excludedUrls?: string[];
 }
 
 export interface JobSearchBatch {
   results: JobSearchResult[];
-  nextCursor: { page: number; offset: number } | null;
+  nextCursor: SourceCursor | null;
   warning?: string;
+  /** listings left out because their place could not be recognised (only when a place is searched) */
+  hidden?: number;
 }
 
 export type JobSource = "yousty" | "jobs" | "jobup";
-export type SourceCursors = Record<JobSource, { page: number; offset: number } | null>;
+export type SourceCursors = Record<JobSource, SourceCursor | null>;
+export type SourceStatus = { name: string; status: "ok" | "partial" | "unavailable" | "exhausted"; count: number; message?: string };
 
 export interface MultiSourceSearchInput extends Omit<JobSearchInput, "cursor"> {
   cursor?: SourceCursors;
@@ -43,8 +60,17 @@ export interface MultiSourceSearchBatch {
   results: JobSearchResult[];
   updates: JobSearchResult[];
   nextCursor: SourceCursors | null;
-  sources: { name: string; status: "ok" | "unavailable" | "exhausted"; count: number; message?: string }[];
+  sources: SourceStatus[];
   warning?: string;
+  /** Profession part of the search text (a place typed into it is split off). */
+  query: string;
+  /** Place text the search ran for ("" = whole Switzerland). */
+  location: string;
+  place: SearchPlace | null;
+  /** Canton named in the search text ("Informatiker Aargau"); the client turns it into its canton filter. */
+  cantons?: string[];
+  /** Listings hidden in this batch because their place could not be recognised. */
+  hiddenWithoutPlace: number;
 }
 
 const sourceNames: Record<JobSource, string> = { yousty: "Yousty", jobs: "jobs.ch", jobup: "jobup.ch" };
@@ -77,18 +103,21 @@ async function checkRobots(url: URL, signal?: AbortSignal) {
 
 const transientStatuses = new Set([429, 500, 502, 503, 504]);
 
-/** One retry for network errors and transient 5xx/429 answers; robots and redirects are handled by the caller. */
+const RETRY_DELAYS = [300, 900];
+
+/** Up to two retries with a short backoff for network errors, timeouts (10 s per attempt) and transient 5xx/429 answers; robots and redirects are handled by the caller. */
 async function fetchWithRetry(url: URL, signal?: AbortSignal): Promise<Response> {
-  const attempt = () => fetch(url, { headers: { "User-Agent": userAgent, Accept: "text/html" }, signal: requestSignal(12000, signal), cache: "no-store", redirect: "manual" });
-  let response: Response | undefined;
-  try {
-    response = await attempt();
-    if (!transientStatuses.has(response.status)) return response;
-    await response.body?.cancel();
-  } catch (cause) {
-    if (signal?.aborted) throw cause;
+  const attempt = () => fetch(url, { headers: { "User-Agent": userAgent, Accept: "text/html" }, signal: requestSignal(10000, signal), cache: "no-store", redirect: "manual" });
+  for (const delay of RETRY_DELAYS) {
+    try {
+      const response = await attempt();
+      if (!transientStatuses.has(response.status)) return response;
+      await response.body?.cancel();
+    } catch (cause) {
+      if (signal?.aborted) throw cause;
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay));
   }
-  await new Promise((resolve) => setTimeout(resolve, 300));
   return attempt();
 }
 
@@ -126,7 +155,7 @@ async function getPublicHtml(url: URL, signal?: AbortSignal): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
-const cantonCodes = new Set(["ZH", "BE", "LU", "UR", "SZ", "OW", "NW", "GL", "ZG", "FR", "SO", "BS", "BL", "SH", "AR", "AI", "SG", "GR", "AG", "TG", "TI", "VD", "VS", "NE", "GE", "JU"]);
+const cantonCodes = new Set(CANTON_CODES);
 
 function compact<T extends object>(value: T): T {
   return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined && entry !== "")) as T;
@@ -192,11 +221,30 @@ function titleMeta(title: string, now: Date): Pick<JobSearchResult, "education" 
   };
 }
 
+/** jobs.ch / jobup.ch embed their search state as JSON; every listing has structured locations (canton, city, postcode). Best effort, never throws. */
+export function jobsStateLocations(html: string): Map<string, { canton?: string; city?: string; plz?: string }> {
+  const found = new Map<string, { canton?: string; city?: string; plz?: string }>();
+  const text = (value: string | undefined) => {
+    if (value === undefined) return undefined;
+    try { return JSON.parse(`"${value}"`) as string; } catch { return undefined; }
+  };
+  for (const match of html.matchAll(/"id":"([0-9a-f]{8}-[0-9a-f-]{27})"(?:(?!"id":")[^]){0,2500}?"locations":\[(\{[^\]]*?\})?\]/g)) {
+    if (found.has(match[1]) || !match[2]) continue;
+    const field = (name: string) => text(match[2].match(new RegExp(`"${name}":"((?:[^"\\\\]|\\\\.)*)"`))?.[1]);
+    const canton = field("cantonCode");
+    found.set(match[1], { canton: canton && cantonCodes.has(canton) ? canton : undefined, city: field("city") || undefined, plz: field("postalCode") || undefined });
+  }
+  return found;
+}
+
+const apprenticeshipTitle = /\b(?:lehrstellen?|berufslehre|lernende[rn]?|apprenti(?:e|ssage)?)\b/i;
+
 export function parseJobsHtml(html: string, source: "jobs" | "jobup" = "jobs", onlyApprenticeships = false, now = new Date()): JobSearchResult[] {
   const document = load(html);
   const results = new Map<string, JobSearchResult>();
   const origin = source === "jobs" ? "https://www.jobs.ch" : "https://www.jobup.ch";
   const detailPattern = source === "jobs" ? /^\/de\/stellenangebote\/detail\/[a-z0-9-]+\/$/ : /^\/fr\/emplois\/detail\/[a-z0-9-]+\/$/;
+  const state = jobsStateLocations(html);
   document('a[data-cy="job-link"]').each((_index, element) => {
     const link = document(element);
     const href = link.attr("href");
@@ -206,17 +254,21 @@ export function parseJobsHtml(html: string, source: "jobs" | "jobup" = "jobs", o
     if (url.origin !== origin || !detailPattern.test(url.pathname)) return;
     const card = link.closest('[data-cy="serp-item"]');
     const labelled = (labels: string[]) => card.find("span").filter((_index, span) => labels.includes(document(span).text().trim())).first().siblings("p").text().trim();
-    const place = labelled(["Arbeitsort:", "Lieu de travail:"]);
+    const structured = state.get(url.pathname.split("/").filter(Boolean).pop() ?? "");
+    // the card label is what people see; the structured city only fills a missing label
+    const place = labelled(["Arbeitsort:", "Lieu de travail:"]) || structured?.city || "";
     const contract = labelled(["Vertragsart:", "Type de contrat:"]);
     const workload = parseWorkload(labelled(["Pensum:", "Taux d'activité:", "Taux d’activité:"]));
     const salary = parseSalary(labelled(["Lohn:", "Salaire:"]));
     const postedAt = parsePostedAt(card.find('[data-cy^="serp-item-"] p').first().text(), now);
-    if (onlyApprenticeships && !/^(Lehrstelle|Lehre|Apprentissage)$/i.test(contract)) return;
+    // many apprenticeships are published as "Festanstellung" or without a contract type: the title decides as well
+    const apprenticeship = /^(Lehrstelle|Lehre|Apprentissage)$/i.test(contract) || apprenticeshipTitle.test(title);
+    if (onlyApprenticeships && !apprenticeship) return;
     const company = card.find("p.fw_bold").last().text().trim();
     results.set(url.href, compact({
       title, company: company || undefined, location: place || undefined, url: url.href, source: sourceNames[source],
-      contract: contract || undefined, jobType: jobTypeFromContract(contract, workload), ...workload, ...salary, postedAt,
-      canton: cantonFromText(place), ...titleMeta(title, now),
+      contract: contract || undefined, jobType: apprenticeship && !/^(Lehrstelle|Lehre|Apprentissage)$/i.test(contract) ? "lehrstelle" as const : jobTypeFromContract(contract, workload), ...workload, ...salary, postedAt,
+      canton: structured?.canton ?? cantonFromText(place), ...titleMeta(title, now),
     }));
   });
   return [...results.values()];
@@ -240,114 +292,243 @@ export function hasNextPage(html: string, url: URL, page: number): boolean {
   });
 }
 
+/** A search with its place resolved. Built once per request by `resolveSearch` and shared by all sources. */
+export interface ResolvedSearch {
+  query: string;
+  location: string;
+  kind: SearchKind;
+  filters?: ServerJobFilters;
+  origin?: PlaceMatch;
+  radiusKm: number;
+  fromQuery: boolean;
+  /** cantons to search when there is no place (canton filter or a canton named in the text) */
+  cantons: string[];
+  /** canton named in the search text */
+  textCanton?: string;
+}
+
+/** Radius actually used: missing -> 10 km, legacy values above 50 (old "100 km" links) -> 50 km, anything else unknown -> 10 km. */
+export function normalizeRadius(value: number | undefined): number {
+  if (value === undefined) return DEFAULT_RADIUS_KM;
+  if ((RADIUS_OPTIONS as readonly number[]).includes(value)) return value;
+  return value > 50 ? 50 : DEFAULT_RADIUS_KM;
+}
+
+/**
+ * Turns the raw input into profession + place. The place comes from the Ort field or, when that is empty, from the end of the
+ * search text ("Informatiker Zürich") – both go through the same resolver (lib/geo/places.ts `geocode`).
+ */
+export function resolveSearch(input: Pick<JobSearchInput, "query" | "location" | "kind" | "filters">): ResolvedSearch {
+  let query = input.query.trim();
+  let location = input.location.trim();
+  let fromQuery = false;
+  let textCanton: string | undefined;
+  const cantons = (input.filters?.cantons ?? []).filter((code) => cantonCodes.has(code));
+  const split = splitPlace(query);
+  // a canton typed into the Ort field ("Aargau") is a canton search, not a place
+  const fieldCanton = location && !geocode(location, { fuzzy: true }) ? cantonFromName(location.replace(/^kanton\s+/i, "")) : undefined;
+  if (fieldCanton) { textCanton = fieldCanton; location = ""; }
+  else if (!location) {
+    if (split.location) { query = split.query; location = split.location; fromQuery = true; }
+    else if (split.canton) { query = split.query; textCanton = split.canton; }
+  }
+  const base = { kind: input.kind, filters: input.filters, radiusKm: normalizeRadius(input.filters?.radiusKm), fromQuery, textCanton };
+  if (!location) return { ...base, query, location: "", cantons: textCanton ? [textCanton] : cantons };
+  const origin = geocode(location, { fuzzy: true });
+  if (!origin) throw new PlaceNotFoundError(`Den Ort „${location}“ kennen wir leider nicht. Wähle einen Vorschlag aus der Liste oder gib eine Postleitzahl ein.`);
+  // "Polymechaniker Winterthur" with Ort = Winterthur: the place is not part of the profession
+  if (!fromQuery && split.location) {
+    const typed = geocode(split.location);
+    if (typed && samePlace(typed.locality, origin.locality)) query = split.query;
+  }
+  return { ...base, query, location, origin, cantons: [] };
+}
+
+function searchPlace(search: ResolvedSearch): SearchPlace | null {
+  if (!search.origin) return null;
+  const { locality, label } = search.origin;
+  return { label, name: locality.name, plz: locality.plz, canton: locality.canton, lat: locality.lat, lon: locality.lon, radiusKm: search.radiusKm, fromQuery: search.fromQuery };
+}
+
+interface Segment { url: URL; canton?: string }
+const NAMES_PER_REQUEST = 60;
+const MAX_NAME_REQUESTS = 12;
+
+/**
+ * The requests a source needs for this search, in order (the cursor's `segment` is an index into this list).
+ * The sources cannot filter by distance in a way we may use (Yousty's place pages only show 10 listings of a 14 km circle and their
+ * further pages need parameters that robots.txt forbids; jobs.ch/jobup.ch match the exact place name only). So we ask for a wider
+ * area and filter ourselves: Yousty by canton (all cantons that reach into the radius), jobs.ch/jobup.ch by the names of all
+ * localities inside the radius (several `location` parameters per request).
+ */
+async function sourceSegments(search: ResolvedSearch, source: JobSource, signal?: AbortSignal): Promise<Segment[]> {
+  if (source === "yousty") {
+    const slug = await professionSlug(search.query, signal);
+    const cantons = search.origin ? cantonsWithin(search.origin.locality, search.radiusKm) : search.cantons;
+    const page = (canton?: string): Segment => ({ url: new URL(`/de-CH/lehrstellen/${canton ? `${canton}/` : ""}${slug}`, "https://www.yousty.ch"), canton });
+    return cantons.length ? cantons.map((canton) => page(canton)) : [page()];
+  }
+  const base = () => {
+    const url = new URL(source === "jobs" ? "https://www.jobs.ch/de/stellenangebote/" : "https://www.jobup.ch/fr/emplois/");
+    url.searchParams.set("term", search.kind === "apprenticeship" ? `${search.query} Lehrstelle` : search.query);
+    if (search.filters?.postedWithin) url.searchParams.set("publication-date", String(search.filters.postedWithin));
+    if (search.filters?.jobTypes?.length === 1 && search.filters.jobTypes[0] === "temporaer") url.searchParams.set("employment-type", "1");
+    return url;
+  };
+  if (!search.origin) return [{ url: base() }];
+  const names = placeNamesWithin(search.origin.locality, search.radiusKm, NAMES_PER_REQUEST * MAX_NAME_REQUESTS);
+  const segments: Segment[] = [];
+  for (let start = 0; start < names.length; start += NAMES_PER_REQUEST) {
+    const url = base();
+    for (const name of names.slice(start, start + NAMES_PER_REQUEST)) url.searchParams.append("location", name);
+    segments.push({ url });
+  }
+  return segments;
+}
+
+/** Normalises the listing's place, computes the distance to the searched place (the one spot where this happens) and decides whether it is inside the radius. */
+function placeEntry(entry: JobSearchResult, search: ResolvedSearch, source: JobSource, segment: Segment): { job: JobSearchResult; keep: boolean; unresolved: boolean } {
+  const hint = entry.canton ?? segment.canton;
+  const { job, match } = locateListing(entry, source === "yousty" ? { preferCanton: hint } : { canton: hint });
+  if (!search.origin) return { job, keep: true, unresolved: false };
+  if (!match) return { job, keep: false, unresolved: true };
+  const inPlace = samePlace(search.origin.locality, match.locality);
+  const located: JobSearchResult = { ...job, distanceKm: Math.round(distanceKm(search.origin.locality, match.locality) * 10) / 10, ...(inPlace ? { inPlace: true } : {}) };
+  return { job: located, keep: withinRadius(search.origin.locality, match.locality, search.radiusKm), unresolved: false };
+}
+
+function looksLikeSource(html: string, source: JobSource): boolean {
+  const title = load(html)("title").text();
+  return source === "yousty" ? /lehrstelle|yousty/i.test(title) : source === "jobs" ? /jobs\.ch/i.test(title) : /jobup\.ch/i.test(title);
+}
+
+const MORE_FAILED = "Weitere Anzeigen konnten gerade nicht geladen werden. Deine bisherigen Treffer bleiben da – mit «Mehr laden» versuchst du es nochmals.";
+
 export async function searchJobBatch(input: JobSearchInput): Promise<JobSearchBatch> {
   return searchSourceBatch(input, input.kind === "apprenticeship" ? "yousty" : "jobs");
 }
 
-async function searchSourceBatch(input: JobSearchInput, source: JobSource, limit = 25, signal = AbortSignal.timeout(45000)): Promise<JobSearchBatch> {
+const publicCursor = (cursor: Required<SourceCursor>): SourceCursor => (cursor.segment ? cursor : { page: cursor.page, offset: cursor.offset });
+
+async function searchSourceBatch(input: JobSearchInput, source: JobSource, limit = 25, signal = AbortSignal.timeout(45000), search?: ResolvedSearch, deadline = Date.now() + 30000): Promise<JobSearchBatch> {
   if (!input.query.trim()) throw new Error("Bitte gib einen Beruf ein.");
-  let cursor = input.cursor ?? { page: 1, offset: 0 };
-  if (!Number.isInteger(cursor.page) || cursor.page < 1 || cursor.page > 1000 || !Number.isInteger(cursor.offset) || cursor.offset < 0 || cursor.offset > 1000) {
+  const resolved = search ?? resolveSearch(input);
+  let cursor: Required<SourceCursor> = { page: input.cursor?.page ?? 1, offset: input.cursor?.offset ?? 0, segment: input.cursor?.segment ?? 0 };
+  if (!Number.isInteger(cursor.page) || cursor.page < 1 || cursor.page > 1000 || !Number.isInteger(cursor.offset) || cursor.offset < 0 || cursor.offset > 1000 || !Number.isInteger(cursor.segment) || cursor.segment < 0 || cursor.segment > 60) {
     throw new Error("Ungültige Ergebnisseite. Starte die Suche erneut.");
   }
-  const url = await getSearchUrl(input, source, signal);
+  const segments = await sourceSegments(resolved, source, signal);
   const results = new Map<string, JobSearchResult>();
   const excluded = new Set(input.excludedUrls ?? []);
-  for (let pagesRead = 0; pagesRead < 5; pagesRead++) {
-    const pageUrl = new URL(url);
+  let hidden = 0;
+  const batch = (nextCursor: Required<SourceCursor> | null, warning?: string): JobSearchBatch => ({
+    results: [...results.values()], nextCursor: nextCursor && publicCursor(nextCursor), ...(warning ? { warning } : {}), ...(hidden ? { hidden } : {}),
+  });
+  // with a place most fetched listings are filtered out again, so more pages may be read per call
+  const maxPages = resolved.origin ? 8 : 5;
+  for (let pagesRead = 0; pagesRead < maxPages; pagesRead++) {
+    if (cursor.segment >= segments.length) return batch(null);
+    if (pagesRead > 0 && Date.now() > deadline) break;
+    const segment = segments[cursor.segment];
+    const pageUrl = new URL(segment.url);
     if (cursor.page > 1) pageUrl.searchParams.set("page", String(cursor.page));
     let html: string;
     try {
       html = await getPublicHtml(pageUrl, signal);
     } catch (cause) {
       if (!results.size) throw cause;
-      return { results: [...results.values()], nextCursor: cursor, warning: "Weitere Anzeigen konnten gerade nicht geladen werden. Mit Mehr laden kannst du es erneut versuchen." };
+      return batch(cursor, MORE_FAILED);
     }
-    const allEntries = source === "yousty" ? parseYoustyHtml(html, youstyCanton(url)) : parseJobsHtml(html, source);
+    const entries = source === "yousty" ? parseYoustyHtml(html, youstyCanton(segment.url)) : parseJobsHtml(html, source);
     const allowed = source !== "yousty" && input.kind === "apprenticeship" ? new Set(parseJobsHtml(html, source, true).map((result) => result.url)) : null;
-    const entries = allEntries;
-    const document = load(html);
-    const empty = source === "yousty"
-      ? /0 Lehrstellen|keine Lehrstellen/i.test(document("body").text())
-      : /^Keine .+ Jobs - jobs\.ch$/i.test(document("title").text().trim()) || /0 (?:Jobs|Stellen)|keine (?:Jobs|Stellen)|aucun(?:e)? .*offre|0 offres/i.test(document("body").text());
-    if (!entries.length && !empty) {
+    // A page of the source without listings is the end of that list (also when the source links to an empty further page).
+    // Only HTML that is not a result page of the source at all (block page, changed markup) is a failure.
+    if (!entries.length && !looksLikeSource(html, source)) {
       if (!results.size) throw new Error("Die Treffer dieser Quelle lassen sich gerade nicht lesen. Bitte versuche es später wieder.");
-      return { results: [...results.values()], nextCursor: cursor, warning: "Eine weitere Ergebnisseite konnte nicht gelesen werden. Bitte versuche Mehr laden erneut." };
+      return batch(cursor, MORE_FAILED);
     }
-    const hasMore = hasNextPage(html, pageUrl, cursor.page);
+    const hasMore = entries.length > 0 && hasNextPage(html, pageUrl, cursor.page);
+    const following = (): Required<SourceCursor> | null => hasMore
+      ? { segment: cursor.segment, page: cursor.page + 1, offset: 0 }
+      : cursor.segment + 1 < segments.length ? { segment: cursor.segment + 1, page: 1, offset: 0 } : null;
     for (let index = cursor.offset; index < entries.length; index++) {
       const entry = entries[index];
       if (allowed && !allowed.has(entry.url)) continue;
       if (excluded.has(entry.url) || results.has(entry.url)) continue;
-      results.set(entry.url, entry);
-      if (results.size === limit) {
-        const nextCursor = index + 1 < entries.length
-          ? { page: cursor.page, offset: index + 1 }
-          : hasMore ? { page: cursor.page + 1, offset: 0 } : null;
-        return { results: [...results.values()], nextCursor };
-      }
+      const placed = placeEntry(entry, resolved, source, segment);
+      if (placed.unresolved) { hidden++; continue; }
+      if (!placed.keep) continue;
+      results.set(entry.url, placed.job);
+      if (results.size === limit) return batch(index + 1 < entries.length ? { ...cursor, offset: index + 1 } : following());
     }
-    if (!hasMore) return { results: [...results.values()], nextCursor: null };
-    cursor = { page: cursor.page + 1, offset: 0 };
+    const next = following();
+    if (!next) return batch(null);
+    cursor = next;
   }
-  return { results: [...results.values()], nextCursor: cursor };
+  return batch(cursor);
 }
 
-/** Yousty list URLs look like /de-CH/lehrstellen/ZH/Zuerich/<slug>; the path carries the canton. */
+/** Yousty list URLs look like /de-CH/lehrstellen/ZH/<slug> (canton page) or /de-CH/lehrstellen/ZH/Zuerich/<slug>; the path carries the canton. */
 export function youstyCanton(url: URL): string | undefined {
   const code = url.pathname.match(/^\/de-CH\/lehrstellen\/([A-Z]{2})\//)?.[1];
   return code && cantonCodes.has(code) ? code : undefined;
 }
 
-async function getSearchUrl(input: JobSearchInput, source: JobSource, signal?: AbortSignal): Promise<URL> {
-  if (source === "yousty") return getApprenticeshipUrl(input, signal);
-  const url = new URL(source === "jobs" ? "https://www.jobs.ch/de/stellenangebote/" : "https://www.jobup.ch/fr/emplois/");
-  url.searchParams.set("term", input.kind === "apprenticeship" ? `${input.query} Lehrstelle` : input.query);
-  if (input.location) url.searchParams.set("location", input.location);
-  if (input.filters?.postedWithin) url.searchParams.set("publication-date", String(input.filters.postedWithin));
-  if (input.filters?.jobTypes?.length === 1 && input.filters.jobTypes[0] === "temporaer") url.searchParams.set("employment-type", "1");
-  return url;
+/** Friendly text for a source that failed; technical details stay in the server log. */
+function sourceProblem(reason: unknown): string {
+  const message = reason instanceof Error ? reason.message : "";
+  if (/Lehrberuf|erlaubt|Ergebnisseite|lesen/.test(message)) return message;
+  return "antwortet gerade nicht. Versuch es in ein paar Minuten nochmals.";
 }
 
 export async function searchMultipleSources(input: MultiSourceSearchInput): Promise<MultiSourceSearchBatch> {
   if (!input.query.trim()) throw new Error("Bitte gib einen Beruf ein.");
+  const search = resolveSearch(input);
   const enabled: JobSource[] = input.kind === "apprenticeship" ? ["yousty", "jobs"] : ["jobs", "jobup"];
   const cursors: SourceCursors = input.cursor ? { ...input.cursor } : { yousty: null, jobs: null, jobup: null };
   if (!input.cursor) for (const source of enabled) cursors[source] = { page: 1, offset: 0 };
   const known = mergeJobResults([], input.knownResults ?? []);
   let merged = known;
   const failed = new Set<JobSource>();
-  const statuses = new Map<JobSource, { name: string; status: "ok" | "unavailable" | "exhausted"; count: number; message?: string }>();
+  const statuses = new Map<JobSource, SourceStatus>();
   for (const source of enabled) statuses.set(source, { name: sourceNames[source], status: cursors[source] ? "ok" : "exhausted", count: 0 });
   const warnings: string[] = [];
   const signal = AbortSignal.timeout(45000);
+  // stop starting new rounds after 25 s: what is loaded is returned, the cursor lets "Mehr laden" continue
+  const deadline = Date.now() + 25000;
   let succeeded = false;
+  let hidden = 0;
   const pageSize = Number.isInteger(input.pageSize) ? Math.min(60, Math.max(10, input.pageSize!)) : 25;
   for (let round = 0; round < 4; round++) {
     const remaining = pageSize - (merged.length - known.length);
     const active = enabled.filter((source) => cursors[source] && !failed.has(source)).slice(0, remaining);
-    if (remaining <= 0 || !active.length) break;
+    if (remaining <= 0 || !active.length || (round > 0 && Date.now() > deadline)) break;
     const excludedUrls = [...new Set([...(input.excludedUrls ?? []), ...merged.flatMap((result) => listingSources(result).map((source) => source.url))])];
     const batches = await Promise.allSettled(active.map((source, index) => searchSourceBatch(
       { query: input.query, location: input.location, kind: input.kind, filters: input.filters, cursor: cursors[source]!, excludedUrls },
       source,
       Math.floor(remaining / active.length) + (index < remaining % active.length ? 1 : 0),
       signal,
+      search,
+      deadline,
     )));
     for (const [index, batch] of batches.entries()) {
       const source = active[index];
+      const previous = statuses.get(source)!;
       if (batch.status === "rejected") {
+        // results of earlier rounds stay; the cursor is kept so the next "Mehr laden" retries this source
         failed.add(source);
-        const message = batch.reason instanceof Error ? batch.reason.message : "Quelle nicht erreichbar.";
-        statuses.set(source, { name: sourceNames[source], status: "unavailable", count: 0, message });
+        const message = previous.count ? MORE_FAILED : sourceProblem(batch.reason);
+        statuses.set(source, { name: sourceNames[source], status: previous.count ? "partial" : "unavailable", count: previous.count, message });
         warnings.push(`${sourceNames[source]}: ${message}`);
         continue;
       }
       succeeded = true;
       merged = mergeJobResults(merged, batch.value.results);
       cursors[source] = batch.value.nextCursor;
-      const count = statuses.get(source)!.count + batch.value.results.length;
-      statuses.set(source, { name: sourceNames[source], status: batch.value.warning ? "unavailable" : cursors[source] ? "ok" : "exhausted", count, message: batch.value.warning });
+      hidden += batch.value.hidden ?? 0;
+      const count = previous.count + batch.value.results.length;
+      statuses.set(source, { name: sourceNames[source], status: batch.value.warning ? "partial" : cursors[source] ? "ok" : "exhausted", count, message: batch.value.warning });
       if (batch.value.warning) {
         warnings.push(`${sourceNames[source]}: ${batch.value.warning}`);
         failed.add(source);
@@ -361,6 +542,11 @@ export async function searchMultipleSources(input: MultiSourceSearchInput): Prom
     nextCursor: enabled.some((source) => cursors[source]) ? cursors : null,
     sources: [...statuses.values()],
     warning: warnings.length ? warnings.join(" ") : undefined,
+    query: search.query,
+    location: search.location,
+    place: searchPlace(search),
+    ...(search.textCanton ? { cantons: [search.textCanton] } : {}),
+    hiddenWithoutPlace: hidden,
   };
 }
 
@@ -408,40 +594,52 @@ export function parseYoustyHtml(html: string, defaultCanton?: string, now = new 
     if (!href || !title) return;
     const url = new URL(href, "https://www.yousty.ch");
     if (url.origin !== "https://www.yousty.ch" || !/^\/de-CH\/lehrstellen\/profile\/\d+-[a-z0-9-]+$/.test(url.pathname)) return;
-    const details = link.find(".company-info strong");
-    const location = details.eq(1).text().trim();
+    // "Bei <strong>Firma</strong> in <strong>Ort</strong>": the word in front decides what a value is, not its position
+    // (a listing with only "in <strong>Ort</strong>" must not turn the place into the company).
+    const info = link.find(".company-info");
+    let company = "";
+    let location = "";
+    let label = "";
+    info.contents().each((_position, node) => {
+      if (node.type === "text") { label = node.data; return; }
+      if (node.type !== "tag" || node.name !== "strong") return;
+      const value = document(node).text().trim();
+      if (/\bin\s*$/i.test(label)) location ||= value;
+      else if (/\bbei\s*$/i.test(label) || !company) company ||= value;
+      else location ||= value;
+      label = "";
+    });
+    if (!company && !location) {
+      const details = info.find("strong");
+      company = details.eq(0).text().trim();
+      location = details.eq(1).text().trim();
+    }
     results.set(url.href, compact({
-      title, company: details.eq(0).text().trim() || undefined, location: location || undefined, url: url.href, source: "Yousty",
+      title, company: company || undefined, location: location || undefined, url: url.href, source: "Yousty",
       contract: "Lehrstelle", jobType: "lehrstelle" as const, canton: cantonFromText(location) ?? defaultCanton, ...titleMeta(title, now),
     }));
   });
   return [...results.values()];
 }
 
-async function getApprenticeshipUrl(input: JobSearchInput, signal?: AbortSignal): Promise<URL> {
-  const catalog = await getPublicHtml(new URL("https://www.yousty.ch/de-CH/lehrstellen/berufe"), signal);
-  const slug = queryVariants(input.query).map((variant) => findProfessionSlug(catalog, variant)).find(Boolean);
-  if (!slug) throw new Error("Dieser Lehrberuf wurde nicht gefunden. Nutze einen genauen Beruf, zum Beispiel Informatiker oder Kaufmann.");
-  let prefix = "/de-CH/lehrstellen";
-  if (input.location) {
-    const locationUrl = new URL("https://www.yousty.ch/de-CH/lehrstellen");
-    locationUrl.searchParams.set("user_place", input.location);
-    await checkRobots(locationUrl, signal);
-    const response = await fetch(locationUrl, { method: "HEAD", headers: { "User-Agent": userAgent }, redirect: "manual", cache: "no-store", signal: requestSignal(8000, signal) });
-    const redirect = response.headers.get("location");
-    const resolved = redirect ? new URL(redirect, locationUrl) : undefined;
-    if (!resolved || resolved.origin !== locationUrl.origin || !/^\/de-CH\/lehrstellen\/[A-Z]{2}\/[a-zA-Z0-9-]+$/.test(resolved.pathname)) {
-      throw new Error("Dieser Ort wurde nicht gefunden. Nutze einen Schweizer Ortsnamen, zum Beispiel Zürich.");
-    }
-    prefix = resolved.pathname;
+let catalogCache: { expires: number; html: string } | undefined;
+
+/** Yousty's profession page for a search text. The catalogue of professions changes rarely and is kept for an hour. */
+async function professionSlug(query: string, signal?: AbortSignal): Promise<string> {
+  if (!catalogCache || catalogCache.expires <= Date.now()) {
+    catalogCache = { html: await getPublicHtml(new URL("https://www.yousty.ch/de-CH/lehrstellen/berufe"), signal), expires: Date.now() + 3600000 };
   }
-  return new URL(`${prefix}/${slug}`, "https://www.yousty.ch");
+  const catalog = catalogCache.html;
+  const slug = queryVariants(query).map((variant) => findProfessionSlug(catalog, variant)).find(Boolean);
+  if (!slug) throw new Error("Dieser Lehrberuf wurde nicht gefunden. Nutze einen genauen Beruf, zum Beispiel Informatiker oder Kaufmann.");
+  return slug;
 }
 
 const searchCache = new Map<string, { expires: number; value: MultiSourceSearchBatch }>();
 
 export function clearSearchCache() {
   searchCache.clear();
+  catalogCache = undefined;
 }
 
 /** Identical searches (same query, filters, cursor, known results) within 60 s are answered from memory so paging back and forth does not hit the sources again. */

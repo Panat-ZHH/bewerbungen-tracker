@@ -1,7 +1,7 @@
 // URL <-> JobSearchState with short keys. Invalid values are dropped silently; defaults are omitted.
 import type { EducationLevel, JobFilters, JobSearchState, JobSort, JobType, PostedWithin } from "./types.ts";
 import { emptyFilters } from "./types.ts";
-import { CANTON_CODES } from "./geo.ts";
+import { CANTON_CODES } from "../geo/cantons.ts";
 import { FIELD_IDS, EDUCATION_LEVELS, JOB_TYPES, LANGUAGES, POSTED_WITHIN_OPTIONS, RADIUS_OPTIONS } from "./taxonomy.ts";
 import { SORT_OPTIONS } from "./sort.ts";
 
@@ -56,8 +56,10 @@ export function paramsToState(input: URLSearchParams | string | Record<string, s
   const kind = p.get("k") === "j" ? "job" : p.get("k") === "a" ? "apprenticeship" : defaultKind;
   const f = emptyFilters(kind);
   f.location = (p.get("l") ?? "").trim().slice(0, MAX_LEN);
-  const radius = int(p.get("r"), 1, 1000);
+  // r=0 is "Nur dieser Ort". Old links: r=100 (removed option) becomes the largest radius, no r with a place means the default of 10 km.
+  const radius = int(p.get("r"), 0, 1000);
   if (radius !== undefined && (RADIUS_OPTIONS as readonly number[]).includes(radius)) f.radiusKm = radius;
+  else if (radius === 100) f.radiusKm = 50;
   f.cantons = pick(p.get("c")?.toUpperCase() ?? null, CANTON_CODES);
   f.jobTypes = pick<JobType>(p.get("t"), JOB_TYPES);
   f.workloadMin = int(p.get("wn"), 10, 100);

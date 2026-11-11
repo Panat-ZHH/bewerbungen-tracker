@@ -65,19 +65,21 @@ test("robots disallow blocks source search", async (context) => {
   assert.equal(fetchMock.mock.calls.length, 1);
 });
 
-test("apprenticeship query fetches profession and location-specific page, never all listings", async (context) => {
+test("apprenticeship query with a place fetches the profession's canton page, never all listings or Yousty's place search", async (context) => {
+  // Yousty's place pages (/ZH/Zuerich/<slug>) only show 10 listings of their own 14 km circle and their page 2 needs
+  // parameters robots.txt forbids. The search asks for the cantons inside the radius and filters by distance itself.
   const requests = [];
   context.mock.method(globalThis, "fetch", async (url, options) => {
     requests.push({ url: String(url), method: options?.method || "GET" });
     if (String(url).endsWith("/robots.txt")) return new Response("User-agent: *\nAllow: /\n");
     if (String(url).endsWith("/lehrstellen/berufe")) return new Response(professions, { headers: { "Content-Type": "text/html" } });
-    if (options?.method === "HEAD") return new Response(null, { status: 302, headers: { Location: "/de-CH/lehrstellen/ZH/Zuerich" } });
-    assert.equal(String(url), "https://www.yousty.ch/de-CH/lehrstellen/ZH/Zuerich/1712-informatiker-in-efz");
+    assert.equal(String(url), "https://www.yousty.ch/de-CH/lehrstellen/ZH/1712-informatiker-in-efz");
     return new Response(apprenticeshipCard, { headers: { "Content-Type": "text/html" } });
   });
-  const results = await searchJobs({ query: "Informatiker", location: "Zürich", kind: "apprenticeship" });
+  const results = await searchJobs({ query: "Informatiker", location: "Zürich", kind: "apprenticeship", filters: { radiusKm: 0 } });
   assert.equal(results[0].location, "Zürich");
-  assert.equal(requests.filter((request) => request.url.includes("user_place") && request.method === "GET").length, 0);
+  assert.equal(results[0].distanceKm, 0);
+  assert.equal(requests.filter((request) => request.url.includes("user_place") || request.method !== "GET").length, 0);
 });
 
 test("unresolved apprenticeship profession does not fetch vacancies", async (context) => {
