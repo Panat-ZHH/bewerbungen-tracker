@@ -71,7 +71,10 @@ export function LocationAutocomplete({ id, value, onChange, label = "Ort", place
       event.preventDefault();
       commit(open && active >= 0 && options[active] ? options[active].value : draft);
     } else if (event.key === "Escape" && open) {
+      // only the suggestions close; a surrounding dialog (the filter sheet on phones) stays open
       event.preventDefault();
+      event.stopPropagation();
+      event.nativeEvent.stopImmediatePropagation();
       close();
     }
   }
@@ -97,9 +100,9 @@ export function LocationAutocomplete({ id, value, onChange, label = "Ort", place
           </li>
         ))}
       </ul>
-      <p className="location-autocomplete__status sr-only" role="status" aria-live="polite">
+      <div className="location-autocomplete__status sr-only" role="status" aria-live="polite">
         {loading ? "Vorschläge werden geladen …" : open ? (options.length ? `${options.length} ${options.length === 1 ? "Vorschlag" : "Vorschläge"}. Mit den Pfeiltasten auswählen.` : "Kein passender Ort gefunden. Du kannst auch eine Postleitzahl eingeben.") : ""}
-      </p>
+      </div>
     </div>
   );
 }

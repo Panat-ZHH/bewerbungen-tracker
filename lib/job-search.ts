@@ -351,15 +351,20 @@ function searchPlace(search: ResolvedSearch): SearchPlace | null {
 }
 
 interface Segment { url: URL; canton?: string }
-const NAMES_PER_REQUEST = 60;
-const MAX_NAME_REQUESTS = 12;
+const NAMES_PER_REQUEST = 40;
+const MAX_NAME_REQUESTS = 20;
+const MAX_SINGLE_NAME_REQUESTS = 10;
 
 /**
  * The requests a source needs for this search, in order (the cursor's `segment` is an index into this list).
- * The sources cannot filter by distance in a way we may use (Yousty's place pages only show 10 listings of a 14 km circle and their
- * further pages need parameters that robots.txt forbids; jobs.ch/jobup.ch match the exact place name only). So we ask for a wider
- * area and filter ourselves: Yousty by canton (all cantons that reach into the radius), jobs.ch/jobup.ch by the names of all
- * localities inside the radius (several `location` parameters per request).
+ * The sources cannot filter by distance in a way we may use, so we ask for a wider area and filter ourselves (verified live, 2026-11-11):
+ * - Yousty: place pages show 10 listings of Yousty's own 14 km circle, unsorted, and their further pages need `coordinates`/`distance`
+ *   parameters that robots.txt forbids. We read the canton pages of every canton that reaches into the radius (plain ?page=N paging).
+ * - jobs.ch / jobup.ch have no radius ("Umkreisfilter ist zur Zeit noch nicht verfügbar"); `location` matches the exact place only.
+ *   Apprenticeships: the nationwide list for the profession is small, we read it whole (this also finds listings without a place field).
+ *   Other jobs: the nationwide list is far too long, so we pass the names of the localities inside the radius as several `location`
+ *   parameters. A name with a space must go alone: combined with others it silently replaces the whole list (seen with "Affoltern am
+ *   Albis", "Rickenbach Sulz"), while unknown one-word names are harmless.
  */
 async function sourceSegments(search: ResolvedSearch, source: JobSource, signal?: AbortSignal): Promise<Segment[]> {
   if (source === "yousty") {
@@ -375,14 +380,20 @@ async function sourceSegments(search: ResolvedSearch, source: JobSource, signal?
     if (search.filters?.jobTypes?.length === 1 && search.filters.jobTypes[0] === "temporaer") url.searchParams.set("employment-type", "1");
     return url;
   };
-  if (!search.origin) return [{ url: base() }];
-  const names = placeNamesWithin(search.origin.locality, search.radiusKm, NAMES_PER_REQUEST * MAX_NAME_REQUESTS);
-  const segments: Segment[] = [];
-  for (let start = 0; start < names.length; start += NAMES_PER_REQUEST) {
+  if (!search.origin || search.kind === "apprenticeship") return [{ url: base() }];
+  const names = placeNamesWithin(search.origin.locality, search.radiusKm, 2000);
+  const request = (group: string[]): Segment => {
     const url = base();
-    for (const name of names.slice(start, start + NAMES_PER_REQUEST)) url.searchParams.append("location", name);
-    segments.push({ url });
-  }
+    for (const name of group) url.searchParams.append("location", name);
+    return { url };
+  };
+  const combinable = names.filter((name) => !/\s/.test(name)).slice(0, NAMES_PER_REQUEST * MAX_NAME_REQUESTS);
+  const alone = names.filter((name) => /\s/.test(name)).slice(0, MAX_SINGLE_NAME_REQUESTS);
+  const segments: Segment[] = [];
+  // the searched place itself always comes first (nearest names first in general)
+  if (/\s/.test(names[0])) segments.push(request([alone.shift()!]));
+  for (let start = 0; start < combinable.length; start += NAMES_PER_REQUEST) segments.push(request(combinable.slice(start, start + NAMES_PER_REQUEST)));
+  for (const name of alone) segments.push(request([name]));
   return segments;
 }
 
@@ -432,6 +443,8 @@ async function searchSourceBatch(input: JobSearchInput, source: JobSource, limit
     const segment = segments[cursor.segment];
     const pageUrl = new URL(segment.url);
     if (cursor.page > 1) pageUrl.searchParams.set("page", String(cursor.page));
+    // jobs.ch answers "+" for a space with a redirect to "%20": ask the canonical form right away (a literal plus is %2B)
+    pageUrl.search = pageUrl.search.replace(/\+/g, "%20");
     let html: string;
     try {
       html = await getPublicHtml(pageUrl, signal);

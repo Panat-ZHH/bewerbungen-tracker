@@ -1,8 +1,8 @@
 // A small offline stand-in for Yousty and jobs.ch that behaves like the real sources do (verified live on 2026-11-11):
 // - Yousty canton pages /de-CH/lehrstellen/<KT>/<slug> list the canton's apprenticeships, 10 per page, plain ?page=N paging.
 // - Yousty place pages /de-CH/lehrstellen/<KT>/<Ort>/<slug> must never be requested any more (the test fails if they are).
-// - jobs.ch matches `location` by the exact place name only, combines several `location` parameters, 20 per page,
-//   and answers "Keine … Jobs" when nothing matches.
+// - jobs.ch matches `location` by the exact place name only, combines several one-word `location` parameters, 20 per page,
+//   and answers "Keine … Jobs" when nothing matches. A name with a space combined with other names breaks the whole filter.
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
@@ -71,6 +71,8 @@ export function installWorld(context, { yousty = YOUSTY, jobs = JOBS, respond } 
     }
     if (url.hostname === "www.jobs.ch") {
       const wanted = url.searchParams.getAll("location").map(fold);
+      assert.ok(!url.search.includes("+"), "spaces are sent as %20 (jobs.ch redirects the + form)");
+      if (wanted.length > 1 && wanted.some((name) => /\s/.test(name))) return html("<title>Keine Informatiker Jobs - jobs.ch</title>");
       const list = wanted.length ? jobs.filter(([, , place]) => wanted.includes(fold(place))) : jobs;
       const slice = list.slice((page - 1) * 20, page * 20);
       if (!slice.length) return html(`<title>Keine Informatiker Lehrstelle Jobs${wanted.length === 1 ? ` in ${url.searchParams.get("location")}` : ""} - jobs.ch</title>`);

@@ -7,6 +7,7 @@ import { JOBS, YOUSTY, fixture, installWorld, jobsCard, jobsUrl, loadAll, yousty
 import { rankJobs } from "../lib/job-filters/rank.ts";
 import { sortJobs } from "../lib/job-filters/sort.ts";
 
+const url_has_plus = (urls) => urls.some((url) => url.search.includes("+"));
 let instance = 0;
 const load = () => import(`../lib/job-search.ts?ort-suche-${++instance}`);
 const sortedByDistance = (results) => sortJobs(rankJobs(results, { query: "Informatiker" }, Date.now()), "distance").map((item) => item.job);
@@ -31,15 +32,14 @@ test("Informatiker + Winterthur + 10 km: only listings within 10 km, sorted by d
   assert.equal(sorted.at(-1).location, "Illnau-Effretikon");
   assert.ok(sorted.slice(0, 3).every((job) => job.inPlace === true) && sorted.slice(3).every((job) => job.inPlace === undefined));
 
-  // jobs.ch: asked with the names of the localities inside the radius, not only "Winterthur", and it delivers
+  // jobs.ch: the exact-place search ("location=Winterthur") found nothing; the nationwide list filtered by us delivers
   const fromJobs = results.filter((job) => job.sources.some((source) => source.name === "jobs.ch"));
   assert.deepEqual(fromJobs.map((job) => job.company).sort(), ["Seuzi Treuhand AG", "Stadtwerk Winterthur", "Weinland Treuhand AG"]);
   assert.equal(first.sources.find((source) => source.name === "jobs.ch").count, 3);
   const jobsRequests = requests.filter((url) => url.hostname === "www.jobs.ch");
-  const asked = jobsRequests.flatMap((url) => url.searchParams.getAll("location"));
-  assert.ok(asked.includes("Winterthur") && asked.includes("Seuzach") && asked.includes("Henggart"));
-  assert.ok(!asked.includes("Zürich") && !asked.includes("Uster") && !asked.includes("Frauenfeld"));
-  assert.ok(jobsRequests.every((url) => url.searchParams.get("term") === "Informatiker Lehrstelle"));
+  assert.ok(jobsRequests.length >= 1 && jobsRequests.every((url) => url.searchParams.get("term") === "Informatiker Lehrstelle" && !url.searchParams.has("location")));
+  // 11.9 km away: recognised (place was in the company name) but outside 10 km
+  assert.ok(!results.some((job) => /Loomis/.test(job.company)));
 
   // Yousty: the canton pages of every canton that reaches into the radius (ZH and TG), all their pages, no place page
   const youstyPaths = requests.filter((url) => url.hostname === "www.yousty.ch" && !url.pathname.endsWith("/berufe")).map((url) => `${url.pathname}${url.search}`);
@@ -58,8 +58,6 @@ test("Informatiker + Uster + 'Nur dieser Ort': only Uster (the whole municipalit
   assert.ok(results.every((job) => job.inPlace === true));
   assert.deepEqual(results.map((job) => job.company).sort(), ["AZW Uster", "Näni Tech AG", "Spital Uster AG", "Uster Technologies AG"]);
   for (const neighbour of ["Volketswil", "Fehraltorf", "Mönchaltorf", "Glattpark", "Dübendorf"]) assert.ok(!places(results).some((p) => p.includes(neighbour)), neighbour);
-  const asked = requests.filter((url) => url.hostname === "www.jobs.ch").flatMap((url) => url.searchParams.getAll("location"));
-  assert.ok(asked.includes("Uster") && asked.includes("Nänikon") && !asked.includes("Volketswil"));
   assert.ok(requests.every((url) => !/\/(TG|SH|AG)\//.test(url.pathname)), "only the place's own canton is needed");
 });
 
@@ -70,7 +68,10 @@ test("Informatiker + 8450 (Andelfingen) + 20 km: listings from the Weinland / Wi
   assert.deepEqual([first.place.label, first.place.name, first.place.plz, first.place.canton], ["8450 Andelfingen", "Andelfingen", "8450", "ZH"]);
   for (const job of results) assert.ok(job.distanceKm <= 20, `${job.location} ${job.distanceKm}`);
   const found = places(results);
-  for (const expected of ["Andelfingen", "Henggart", "Seuzach", "Winterthur", "Schaffhausen", "Frauenfeld", "Islikon", "Illnau-Effretikon"]) assert.ok(found.includes(expected), expected);
+  for (const expected of ["Andelfingen", "Henggart", "Seuzach", "Winterthur", "Schaffhausen", "Frauenfeld", "Islikon", "Illnau-Effretikon", "Kloten"]) assert.ok(found.includes(expected), expected);
+  // the jobs.ch listing without a place field ("Loomis Schweiz AG Kloten") is found, placed in Kloten (17 km) and cleaned
+  const loomis = results.find((job) => /Loomis/.test(job.company));
+  assert.deepEqual([loomis.company, loomis.location, loomis.canton, loomis.distanceKm], ["Loomis Schweiz AG", "Kloten", "ZH", 17]);
   for (const far of ["Zürich", "Uster", "Dübendorf", "Volketswil", "Mönchaltorf", "Aarau", "Bern"]) assert.ok(!found.some((p) => p.includes(far)), far);
   const sorted = sortedByDistance(results);
   assert.equal(sorted[0].location, "Andelfingen");
@@ -258,8 +259,16 @@ test("jobs for adults use the same place logic (jobs.ch and jobup.ch get the pla
   assert.deepEqual(batch.results.map((job) => job.distanceKm > 0).sort(), [false, true]);
   assert.ok(batch.results.every((job) => job.inPlace));
   for (const host of ["www.jobs.ch", "www.jobup.ch"]) {
-    const url = requests.find((request) => request.hostname === host);
-    assert.equal(url.searchParams.get("term"), "Informatiker");
-    assert.ok(url.searchParams.getAll("location").includes("Winterthur") && url.searchParams.getAll("location").length > 3);
+    const asked = requests.filter((request) => request.hostname === host);
+    assert.equal(asked[0].searchParams.get("term"), "Informatiker");
+    assert.equal(asked[0].searchParams.getAll("location")[0], "Winterthur");
+    assert.ok(asked[0].searchParams.getAll("location").length > 3 && asked[0].searchParams.getAll("location").length <= 40);
+    // a name with a space is never combined with other names (jobs.ch would silently drop the others)
+    for (const url of asked) assert.ok(url.searchParams.getAll("location").length === 1 || url.searchParams.getAll("location").every((name) => !/\s/.test(name)), url.search);
+    assert.ok(!url_has_plus(asked));
   }
+  // a place with a space in its name is asked on its own first
+  requests.length = 0;
+  await searchMultipleSources({ query: "Informatiker", location: "St. Gallen", kind: "job", filters: { radiusKm: 5 } });
+  assert.deepEqual(requests.find((request) => request.hostname === "www.jobs.ch").searchParams.getAll("location"), ["St. Gallen"]);
 });

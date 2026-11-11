@@ -69,6 +69,8 @@ export function JobSearchView() {
   const [place, setPlace] = useState<MultiSourceSearchBatch["place"]>(null);
   const [hiddenNoPlace, setHiddenNoPlace] = useState(0);
   const lastPlace = useRef("");
+  // Ort text the API did not know: changing or removing it searches again by itself
+  const [unknownPlace, setUnknownPlace] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [softError, setSoftError] = useState<{ message: string; state: JobSearchState } | null>(null);
   const [compact, setCompact] = useState(false);
@@ -128,7 +130,7 @@ export function JobSearchView() {
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
-    setLoading(true); setLoadingMore(false); setError(""); setSoftError(null); setNotice(""); setNextCursor(null); setSourceStatuses([]); setResults([]); setSearched(null); setPlace(null); setHiddenNoPlace(0); setVisible(PAGE_STEP);
+    setLoading(true); setLoadingMore(false); setError(""); setSoftError(null); setNotice(""); setNextCursor(null); setSourceStatuses([]); setResults([]); setSearched(null); setPlace(null); setHiddenNoPlace(0); setUnknownPlace(null); setVisible(PAGE_STEP);
     setRecent(addRecent(next.query));
     try {
       const { data } = await supabase.auth.getSession();
@@ -163,7 +165,7 @@ export function JobSearchView() {
       if (!controller.signal.aborted) {
         const message = generalCause(cause) ?? (cause instanceof Error && cause.message ? cause.message : "");
         // an unknown place is a typing matter, not an outage: say exactly that
-        if ((cause as { code?: string } | null)?.code === "unknown_place") { setError(message); return; }
+        if ((cause as { code?: string } | null)?.code === "unknown_place") { setError(message); setUnknownPlace(input.location); return; }
         // temporary problems on our or the job boards' side get a friendly message with a retry instead of a red error
         if (!message || /nicht|antwortet|später|Quelle|erreich/i.test(message) && !/anmelden|mindestens|Gib einen/i.test(message)) setSoftError({ message: "Die Stellenbörsen brauchen gerade etwas länger als sonst. Das ist meist nur kurz.", state: next });
         else setError(message);
@@ -250,7 +252,7 @@ export function JobSearchView() {
   const serverDirty = searched && (searched.location !== serverQuery(state).location || searched.kind !== state.filters.kind || serverWider(searched, serverQuery(state)));
 
   // Changing place, radius, canton, age or search type re-runs the search by itself (debounced), so the list always matches the filters.
-  const rerunKey = serverDirty ? JSON.stringify([state.filters.location.trim(), state.filters.kind, serverQuery(state).filters ?? null]) : "";
+  const rerunKey = serverDirty || (unknownPlace !== null && state.filters.location.trim() !== unknownPlace) ? JSON.stringify([state.filters.location.trim(), state.filters.kind, serverQuery(state).filters ?? null]) : "";
   useEffect(() => {
     if (!rerunKey || loading) return;
     const timer = setTimeout(() => void runSearch(state), 900);

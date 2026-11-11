@@ -44,7 +44,7 @@ const ALIASES: Record<string, string> = {
   genf: "geneve", geneva: "geneve", ginevra: "geneve", neuenburg: "neuchatel", freiburg: "fribourg", sitten: "sion", siders: "sierre",
   delsberg: "delemont", pruntrut: "porrentruy", bellenz: "bellinzona", lucerne: "luzern", lucerna: "luzern", berne: "bern", berna: "bern",
   bale: "basel", basilea: "basel", zurigo: "zurich", "st gall": "st gallen", "san gallo": "st gallen", losanna: "lausanne", coira: "chur", coire: "chur",
-  soleure: "solothurn", schaffhouse: "schaffhausen", martinach: "martigny", yverdon: "yverdon les bains", neuenstadt: "la neuveville", morat: "murten",
+  soleure: "solothurn", schaffhouse: "schaffhausen", martinach: "martigny", yverdon: "yverdon les bains", neuenstadt: "la neuveville", morat: "murten", bendern: "Gamprin-Bendern", gamprin: "Gamprin-Bendern",
 };
 
 // "The largest / most likely place wins" for names that exist in several cantons and are written without a canton.
