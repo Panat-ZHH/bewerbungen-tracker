@@ -6,6 +6,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { listingSources } from "@/lib/job-results";
 import { cardFacts, formatIsoDate } from "@/lib/job-card-info";
+import { DistanceBadge } from "./distance-badge";
 import { JOB_TYPE_LABELS, type RankedJob } from "./engine";
 
 export function Highlight({ text, ranges }: { text: string; ranges?: [number, number][] }) {
@@ -29,7 +30,7 @@ function ago(iso?: string): string | undefined {
   return days <= 0 ? "Heute" : days === 1 ? "Gestern" : `Vor ${days} Tagen`;
 }
 
-export function ResultCard({ item, saved, saving, onSave, compact = false }: { item: RankedJob; saved: boolean; saving: boolean; onSave: () => void; compact?: boolean }) {
+export function ResultCard({ item, saved, saving, onSave, compact = false, placeLabel }: { item: RankedJob; saved: boolean; saving: boolean; onSave: () => void; compact?: boolean; placeLabel?: string }) {
   const { job } = item;
   const sources = listingSources(job);
   const match = (field: string) => item.matches.find((m) => m.field === field)?.ranges;
@@ -45,6 +46,7 @@ export function ResultCard({ item, saved, saving, onSave, compact = false }: { i
           {job.snippet && !compact && <p className="mt-1.5 line-clamp-2 break-words text-sm text-muted"><Highlight text={job.snippet} ranges={match("snippet")} /></p>}
           <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
             {job.location && <Badge><MapPin size={12} aria-hidden /><Highlight text={job.location} ranges={match("location")} /></Badge>}
+            <DistanceBadge km={job.distanceKm} from={placeLabel} />
             {job.jobType && <Badge tone="brand">{JOB_TYPE_LABELS[job.jobType]}</Badge>}
             {workload && <Badge>{workload}</Badge>}
             {facts.start && <Badge>Lehrbeginn {facts.start}</Badge>}
