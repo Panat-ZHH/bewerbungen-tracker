@@ -18,7 +18,6 @@ import { createApplication, getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import type { MultiSourceSearchBatch, MultiSourceSearchInput } from "@/lib/job-search";
 import { listingSources, mergeJobResults } from "@/lib/job-results";
-import { splitPlace } from "@/lib/job-query-parse";
 import { applicationExtras } from "@/lib/job-card-info";
 import { FilterChips } from "./filter-chips";
 import { FilterPanel } from "./filter-panel";
@@ -26,7 +25,7 @@ import { PresetMenu } from "./preset-menu";
 import { ResultCard } from "./result-card";
 import { SearchBar, useHasKeyboard, type SearchBarHandle, type SearchTab } from "./search-bar";
 import { readPrefill } from "@/lib/onboarding";
-import { activeFilterCount, addRecent, applyFilters, clearRecent, companyOptions, computeFacets, deletePreset, emptyFilters, loadPresets, loadRecent, paramsToState, rankJobs, savePreset, sortJobs, SORT_LABELS, stateToParams, type EnrichedJob, type JobFilters, type JobPreset, type JobSearchState, type JobSort } from "./engine";
+import { activeFilterCount, addRecent, applyFilters, clearRecent, companyOptions, computeFacets, DEFAULT_RADIUS_KM, deletePreset, effectiveRadiusKm, emptyFilters, loadPresets, loadRecent, paramsToState, rankJobs, savePreset, sortJobs, SORT_LABELS, stateToParams, type EnrichedJob, type JobFilters, type JobPreset, type JobSearchState, type JobSort } from "./engine";
 
 const PAGE_STEP = 20;
 
@@ -36,15 +35,13 @@ function tabOf(f: JobFilters): SearchTab {
 function serverQuery(state: JobSearchState): MultiSourceSearchInput {
   const praktikum = tabOf(state.filters) === "praktikum";
   const f = state.filters;
-  // "Informatiker Zürich": a known place at the end of the text becomes the location (unless one is already set)
-  // A place typed in the text that equals the Ort filter ("Polymechaniker Winterthur" + Ort: Winterthur) is stripped from the query, the sources do not know the city as a profession.
-  const split = splitPlace(state.query);
-  const parsed = !f.location.trim() ? split : split.location && split.location.toLowerCase() === f.location.trim().toLowerCase() ? { query: split.query, location: "" } : { query: state.query.trim(), location: "" };
-  const q = parsed.query;
-  const location = f.location.trim() || parsed.location;
+  // "Informatiker Zürich": the search API splits a place off the end of the text with the same resolver as the Ort filter
+  // (lib/geo/places.ts) and reports it back as `place`; the browser does not carry the localities directory.
+  const q = state.query.trim();
+  const location = f.location.trim();
   const filters: NonNullable<MultiSourceSearchInput["filters"]> = {};
   if (f.postedWithin) filters.postedWithin = f.postedWithin;
-  if (f.radiusKm && location) filters.radiusKm = f.radiusKm;
+  if (f.radiusKm !== undefined) filters.radiusKm = f.radiusKm; // 0 = "Nur dieser Ort"; only used when the search has a place
   if (f.cantons.length) filters.cantons = f.cantons;
   return { query: praktikum && !/praktik|stage/i.test(q) ? `Praktikum ${q}`.trim() : q, location, kind: f.kind, ...(Object.keys(filters).length ? { filters } : {}) };
 }
@@ -52,7 +49,7 @@ function serverQuery(state: JobSearchState): MultiSourceSearchInput {
 function serverWider(searched: MultiSourceSearchInput, current: MultiSourceSearchInput): boolean {
   const a = searched.filters ?? {}; const b = current.filters ?? {};
   if (a.postedWithin && (!b.postedWithin || b.postedWithin > a.postedWithin)) return true;
-  if (a.radiusKm && (!b.radiusKm || b.radiusKm > a.radiusKm)) return true;
+  if (current.location && (b.radiusKm ?? DEFAULT_RADIUS_KM) > (a.radiusKm ?? DEFAULT_RADIUS_KM)) return true;
   if (a.cantons?.length && (!b.cantons?.length || b.cantons.some((c) => !a.cantons!.includes(c)))) return true;
   return false;
 }
@@ -68,6 +65,12 @@ export function JobSearchView() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<MultiSourceSearchBatch["nextCursor"]>(null);
   const [sourceStatuses, setSourceStatuses] = useState<MultiSourceSearchBatch["sources"]>([]);
+  // the place the loaded results were searched for (resolved by the API) and how many listings had no recognisable place
+  const [place, setPlace] = useState<MultiSourceSearchBatch["place"]>(null);
+  const [hiddenNoPlace, setHiddenNoPlace] = useState(0);
+  const lastPlace = useRef("");
+  // Ort text the API did not know: changing or removing it searches again by itself
+  const [unknownPlace, setUnknownPlace] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [softError, setSoftError] = useState<{ message: string; state: JobSearchState } | null>(null);
   const [compact, setCompact] = useState(false);
@@ -127,16 +130,32 @@ export function JobSearchView() {
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
-    setLoading(true); setLoadingMore(false); setError(""); setSoftError(null); setNotice(""); setNextCursor(null); setSourceStatuses([]); setResults([]); setSearched(null); setVisible(PAGE_STEP);
+    setLoading(true); setLoadingMore(false); setError(""); setSoftError(null); setNotice(""); setNextCursor(null); setSourceStatuses([]); setResults([]); setSearched(null); setPlace(null); setHiddenNoPlace(0); setUnknownPlace(null); setVisible(PAGE_STEP);
     setRecent(addRecent(next.query));
     try {
       const { data } = await supabase.auth.getSession();
       if (!data.session) throw new Error("Bitte melde dich erneut an.");
       const response = await fetch("/api/job-search", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` }, body: JSON.stringify(input), signal: controller.signal });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Die Suche hat nicht geklappt.");
+      if (!response.ok) throw Object.assign(new Error(payload.error || "Die Suche hat nicht geklappt."), { code: payload.code });
       if (controller.signal.aborted) return;
-      setResults(payload.results); setNextCursor(payload.nextCursor); setSourceStatuses(payload.sources ?? []); setSearched(input);
+      const found: MultiSourceSearchBatch["place"] = payload.place ?? null;
+      const textCantons: string[] = payload.cantons ?? [];
+      // A place or canton typed into the search text moves into the filters, so the radius control, chips and URL match what was searched.
+      const moved = Boolean(found?.fromQuery) || textCantons.length > 0;
+      const typedQuery = moved ? (input.query !== next.query.trim() ? String(payload.query).replace(/^Praktikum /, "") : String(payload.query)) : next.query;
+      const cantons = [...new Set([...next.filters.cantons, ...textCantons])];
+      const normalized: MultiSourceSearchInput = moved ? { ...input, query: payload.query, location: payload.location ?? "", ...(textCantons.length ? { filters: { ...input.filters, cantons } } : {}) } : input;
+      const placeKey = found ? `${found.plz} ${found.name}` : "";
+      const placeChanged = placeKey !== lastPlace.current;
+      lastPlace.current = placeKey;
+      setResults(payload.results); setNextCursor(payload.nextCursor); setSourceStatuses(payload.sources ?? []); setSearched(normalized); setPlace(found); setHiddenNoPlace(payload.hiddenWithoutPlace ?? 0);
+      // with a place the nearest listings come first; without one the distance sort has nothing to sort by
+      setState((s) => {
+        const sort = found && placeChanged && s.sort === "relevance" ? "distance" : !found && s.sort === "distance" ? "relevance" : s.sort;
+        if (!moved && sort === s.sort) return s;
+        return { ...s, sort, ...(moved ? { query: typedQuery, filters: { ...s.filters, location: found?.fromQuery ? payload.location : s.filters.location, cantons } } : {}) };
+      });
       if (payload.warning) setNotice(payload.warning);
       try {
         const applications = await getApplications();
@@ -145,6 +164,8 @@ export function JobSearchView() {
     } catch (cause) {
       if (!controller.signal.aborted) {
         const message = generalCause(cause) ?? (cause instanceof Error && cause.message ? cause.message : "");
+        // an unknown place is a typing matter, not an outage: say exactly that
+        if ((cause as { code?: string } | null)?.code === "unknown_place") { setError(message); setUnknownPlace(input.location); return; }
         // temporary problems on our or the job boards' side get a friendly message with a retry instead of a red error
         if (!message || /nicht|antwortet|später|Quelle|erreich/i.test(message) && !/anmelden|mindestens|Gib einen/i.test(message)) setSoftError({ message: "Die Stellenbörsen brauchen gerade etwas länger als sonst. Das ist meist nur kurz.", state: next });
         else setError(message);
@@ -179,10 +200,11 @@ export function JobSearchView() {
       if (!response.ok) throw new Error(payload.error || "Weitere Stellen konnten nicht geladen werden.");
       if (controller.signal.aborted) return;
       setResults((current) => mergeJobResults(current, [...(payload.updates ?? []), ...payload.results]));
-      setNextCursor(payload.nextCursor); setSourceStatuses(payload.sources ?? []);
-      if (payload.warning) setNotice(payload.warning);
+      setNextCursor(payload.nextCursor); setSourceStatuses(payload.sources ?? []); setHiddenNoPlace((count) => count + (payload.hiddenWithoutPlace ?? 0));
+      setNotice(payload.warning ?? "");
     } catch (cause) {
-      if (!controller.signal.aborted) setError(generalCause(cause) ?? (cause instanceof Error && cause.message ? cause.message : "Weitere Stellen konnten nicht geladen werden."));
+      // the loaded results stay; the cursor is unchanged, so "Mehr laden" tries the same page again
+      if (!controller.signal.aborted) setError(generalCause(cause) ?? "Weitere Stellen konnten gerade nicht geladen werden. Deine bisherigen Treffer bleiben da – tippe auf «Mehr laden», um es nochmals zu versuchen.");
     } finally {
       if (!controller.signal.aborted) setLoadingMore(false);
     }
@@ -196,11 +218,11 @@ export function JobSearchView() {
   const hasMoreLocal = ranked.length > visible;
 
   // infinite scroll
-  const more = useCallback(() => { if (hasMoreLocal) setVisible((v) => v + PAGE_STEP); else if (!error) void loadMore(); }, [hasMoreLocal, loadMore, error]); // no automatic retry loop after a failed page (the error banner offers a manual retry)
+  const more = useCallback((auto?: unknown) => { if (hasMoreLocal) setVisible((v) => v + PAGE_STEP); else if (auto !== true || !error) void loadMore(); }, [hasMoreLocal, loadMore, error]); // no automatic retry loop after a failed page; the "Mehr laden" button (called with the click event) always retries
   useEffect(() => {
     const node = sentinelRef.current;
     if (!node || typeof IntersectionObserver === "undefined") return;
-    const observer = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) more(); }, { rootMargin: "400px" });
+    const observer = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) more(true); }, { rootMargin: "400px" });
     observer.observe(node);
     return () => observer.disconnect();
   }, [more, shown.length, searched]);
@@ -230,7 +252,7 @@ export function JobSearchView() {
   const serverDirty = searched && (searched.location !== serverQuery(state).location || searched.kind !== state.filters.kind || serverWider(searched, serverQuery(state)));
 
   // Changing place, radius, canton, age or search type re-runs the search by itself (debounced), so the list always matches the filters.
-  const rerunKey = serverDirty ? JSON.stringify([state.filters.location.trim(), state.filters.kind, serverQuery(state).filters ?? null]) : "";
+  const rerunKey = serverDirty || (unknownPlace !== null && state.filters.location.trim() !== unknownPlace) ? JSON.stringify([state.filters.location.trim(), state.filters.kind, serverQuery(state).filters ?? null]) : "";
   useEffect(() => {
     if (!rerunKey || loading) return;
     const timer = setTimeout(() => void runSearch(state), 900);
@@ -279,8 +301,8 @@ export function JobSearchView() {
 
           {searched && !loading && (
             <div className="mt-4">
-              <p className="text-small text-muted" aria-live="polite"><strong className="text-[var(--ink)]">{ranked.length}</strong> {ranked.length === 1 ? "Treffer" : "Treffer"}{filtered.length !== results.length ? ` (von ${results.length} geladenen)` : ""} für „{searched.query}“{searched.location ? ` in ${searched.location}` : " · ganze Schweiz"}</p>
-              {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-2 flex flex-wrap gap-2">{sourceStatuses.map((s) => <li key={s.name}><Badge tone="neutral">{s.name}{s.status === "unavailable" ? " · antwortet gerade langsam" : ` · ${facets.sources[s.name] ?? 0}`}</Badge></li>)}</ul>}
+              <p className="text-small text-muted" aria-live="polite"><strong className="text-[var(--ink)]">{ranked.length}</strong> {ranked.length === 1 ? "Treffer" : "Treffer"}{filtered.length !== results.length ? ` (von ${results.length} geladenen)` : ""} für „{searched.query}“{place ? ` in ${place.label} (${effectiveRadiusKm(state.filters) === 0 ? "nur dieser Ort" : `bis ${effectiveRadiusKm(state.filters)} km`})` : " · ganze Schweiz"}{place && hiddenNoPlace > 0 ? ` · ${hiddenNoPlace} ${hiddenNoPlace === 1 ? "Anzeige" : "Anzeigen"} ohne erkennbaren Ort ausgeblendet` : ""}</p>
+              {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-2 flex flex-wrap gap-2">{sourceStatuses.map((s) => <li key={s.name}><Badge tone="neutral">{s.name}{s.status === "unavailable" ? " · antwortet gerade nicht" : ` · ${facets.sources[s.name] ?? 0}${s.status === "partial" ? " · noch nicht alle geladen" : ""}`}</Badge></li>)}</ul>}
 
               {ranked.length === 0 ? (
                 <Card className="mt-5 flex flex-col items-center px-6 py-10 text-center">
@@ -295,7 +317,7 @@ export function JobSearchView() {
               ) : (
                 <ol className={`mt-4 grid ${compact ? "gap-2" : "gap-3"}`}>
                   {shown.map((item) => (
-                    <li key={item.job.url}><ResultCard compact={compact} item={item} saved={listingSources(item.job).some((s) => saved.has(s.url))} saving={saving === item.job.url} onSave={() => void save(item.job)} /></li>
+                    <li key={item.job.url}><ResultCard compact={compact} item={item} placeLabel={place?.label} saved={listingSources(item.job).some((s) => saved.has(s.url))} saving={saving === item.job.url} onSave={() => void save(item.job)} /></li>
                   ))}
                 </ol>
               )}

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { searchMultipleSourcesCached, type JobSource, type MultiSourceSearchInput, type ServerJobFilters } from "@/lib/job-search";
+import { PlaceNotFoundError, normalizeRadius, searchMultipleSourcesCached, type JobSource, type MultiSourceSearchInput, type ServerJobFilters } from "@/lib/job-search";
 import { originalSourceName, type JobSearchResult } from "@/lib/job-results";
 
 export const runtime = "nodejs";
@@ -61,6 +61,7 @@ function readEnrichment(result: JobSearchResult): Partial<JobSearchResult> {
     remote: oneOf<NonNullable<JobSearchResult["remote"]>>(result.remote, remotes), salaryMin: number(result.salaryMin, 0, 10000000),
     salaryMax: number(result.salaryMax, 0, 10000000), field: text(result.field, 60), snippet: text(result.snippet, 600),
     deadline: deadline, transit: text(result.transit, 100), schnupperlehre: typeof result.schnupperlehre === "boolean" ? result.schnupperlehre : undefined,
+    distanceKm: number(result.distanceKm, 0, 1000), inPlace: result.inPlace === true ? true : undefined,
   };
   return Object.fromEntries(Object.entries(entries).filter(([, value]) => value !== undefined));
 }
@@ -75,8 +76,9 @@ function readFilters(value: unknown): ServerJobFilters | undefined {
     filters.postedWithin = raw.postedWithin as ServerJobFilters["postedWithin"];
   }
   if (raw.radiusKm !== undefined) {
-    if (![5, 10, 20, 30, 50, 100].includes(raw.radiusKm as number)) throw new Error("Invalid filters");
-    filters.radiusKm = raw.radiusKm as number;
+    // 0 = "Nur dieser Ort"; 100 is accepted from old links/presets and treated as the largest radius
+    if (![0, 5, 10, 20, 30, 50, 100].includes(raw.radiusKm as number)) throw new Error("Invalid filters");
+    filters.radiusKm = normalizeRadius(raw.radiusKm as number);
   }
   if (raw.jobTypes !== undefined) {
     if (!Array.isArray(raw.jobTypes) || raw.jobTypes.length > 7 || raw.jobTypes.some((type) => !jobTypes.includes(type))) throw new Error("Invalid filters");
@@ -119,7 +121,8 @@ export async function POST(request: Request) {
         const cursor = value.cursor[source];
         if (cursor === null) continue;
         if (!cursor || !Number.isInteger(cursor.page) || cursor.page < 1 || cursor.page > 1000 || !Number.isInteger(cursor.offset) || cursor.offset < 0 || cursor.offset > 1000) throw new Error("Invalid cursor");
-        input.cursor[source] = { page: cursor.page, offset: cursor.offset };
+        if (cursor.segment !== undefined && (!Number.isInteger(cursor.segment) || cursor.segment < 0 || cursor.segment > 60)) throw new Error("Invalid cursor");
+        input.cursor[source] = { page: cursor.page, offset: cursor.offset, ...(cursor.segment ? { segment: cursor.segment } : {}) };
       }
     }
     if (value.excludedUrls !== undefined) {
@@ -147,8 +150,11 @@ export async function POST(request: Request) {
 
   try {
     const batch = await searchMultipleSourcesCached(input, !input.cursor && POPULAR.test(input.query) ? POPULAR_TTL : 60000);
-    return Response.json({ ...batch, searchedAt: new Date().toISOString(), query: input.query, location: input.location, kind: input.kind, filters: input.filters ?? null }, { headers });
+    // `query`/`location`/`place` come from the batch: the place may have been split off the search text
+    return Response.json({ ...batch, searchedAt: new Date().toISOString(), kind: input.kind, filters: input.filters ?? null }, { headers });
   } catch (cause) {
+    // an unknown place is the user's input, not an outage: say so clearly (the browser shows it next to the Ort field's results)
+    if (cause instanceof PlaceNotFoundError) return Response.json({ error: cause.message, code: cause.code }, { status: 422, headers });
     return Response.json({ error: cause instanceof Error ? cause.message : "Die Quelle antwortet gerade nicht. Versuch es später erneut." }, { status: 502, headers });
   }
 }

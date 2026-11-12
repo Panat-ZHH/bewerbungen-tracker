@@ -142,6 +142,96 @@ export function registerJobsearchFlows(flow, student) {
     await search("Kaufmann");
     t.check("search recovers after an error", await cards().first().waitFor().then(() => true, () => false));
   });
+
+  // ---- place: autocomplete (real /api/places of the server under test), radius, distance badge, sort, URL
+  flow("ortsuche", student({ apps: [] }), async (t) => {
+    const { page } = t;
+    const log = await installJobsearchStub(page);
+    const cards = () => page.locator('section[aria-label="Suchergebnisse"] ol > li');
+    const hitLine = () => page.locator('section[aria-label="Suchergebnisse"] p[aria-live=polite]').first().innerText().catch(() => "");
+    const count = async () => Number(((await page.locator("p[aria-live=polite] strong").first().innerText().catch(() => "")) || "NaN").trim());
+    const openFilters = async () => {
+      if (!t.mobile) return page.getByRole("complementary", { name: "Filter" });
+      await page.getByRole("button", { name: /^Filter( \(\d+\))?$/ }).click();
+      const dialog = page.getByRole("dialog", { name: "Filter" });
+      await dialog.waitFor();
+      return dialog;
+    };
+    const closeFilters = async (scope) => { if (t.mobile) { await scope.getByRole("button", { name: /Fertig|Treffer anzeigen/ }).click(); await scope.waitFor({ state: "hidden" }); } };
+
+    await t.visit("/search?q=Stelle&k=a", { waitFor: () => cards().first().waitFor() });
+    t.check("without a place: whole Switzerland, no distance badges", /ganze Schweiz/.test(await hitLine()) && (await page.locator(".distance-badge").count()) === 0, await hitLine());
+    let scope = await openFilters();
+    const ort = scope.getByRole("combobox", { name: "Ort" });
+    const radius = scope.getByLabel("Umkreis");
+    t.check("radius is disabled without a place", await radius.isDisabled());
+    t.check("no 'Ganze Schweiz / kein Umkreis' option any more", !(await radius.locator("option").allInnerTexts()).some((text) => /Ganze Schweiz/.test(text)));
+
+    const before = log.length;
+    await ort.click();
+    await ort.pressSequentially("Wint", { delay: 30 });
+    const list = scope.getByRole("listbox", { name: "Vorschläge für den Ort" });
+    await list.waitFor({ timeout: 10000 });
+    const first = list.getByRole("option").first();
+    t.check("suggestions show Ortschaft, PLZ and Kanton", /Winterthur\s*8400 · ZH/.test((await first.innerText()).replace(/\n/g, " ")), await first.innerText());
+    t.check("typing alone does not start a search", log.length === before);
+    t.check("combobox is expanded and wired to the list", (await ort.getAttribute("aria-expanded")) === "true" && (await ort.getAttribute("aria-controls")) === (await list.getAttribute("id")));
+    await ort.press("ArrowDown");
+    t.check("arrow key marks the first suggestion", (await first.getAttribute("aria-selected")) === "true" && (await ort.getAttribute("aria-activedescendant")) === (await first.getAttribute("id")));
+    await ort.press("Escape");
+    t.check("Escape closes the suggestions and keeps the text", await list.isHidden() && (await ort.inputValue()) === "Wint");
+    await ort.press("ArrowDown");
+    await ort.press("Enter");
+    t.check("Enter takes the suggestion", (await ort.inputValue()) === "Winterthur", await ort.inputValue());
+    t.check("radius is enabled with the options Nur dieser Ort, 5, 10, 20, 30, 50 km; default 10 km", !(await radius.isDisabled()) && (await radius.locator("option").allInnerTexts()).join("|") === "Nur dieser Ort|5 km|10 km|20 km|30 km|50 km" && (await radius.inputValue()) === "10", (await radius.locator("option").allInnerTexts()).join("|"));
+    await closeFilters(scope);
+    await page.waitForFunction(() => /in Winterthur/.test(document.querySelector("p[aria-live=polite]")?.textContent ?? ""), null, { timeout: 15000 }).catch(() => undefined);
+    t.check("the search re-runs with the place", log.at(-1)?.location === "Winterthur", JSON.stringify(log.at(-1)));
+    t.check("hit line names place and radius", /in Winterthur \(bis 10 km\)/.test(await hitLine()), await hitLine());
+    t.check("hidden listings without a recognisable place are mentioned", /3 Anzeigen ohne erkennbaren Ort ausgeblendet/.test(await hitLine()), await hitLine());
+    t.check("cards show the distance", (await page.locator(".distance-badge").count()) > 0 && /^(Entfernung: )?(< 1|\d+) km$/.test((await page.locator(".distance-badge").first().innerText()).replace(/\s+/g, " ").trim()), await page.locator(".distance-badge").first().innerText().catch(() => "-"));
+    t.check("with a place the list is sorted by distance", (await page.getByLabel("Sortieren").inputValue()) === "distance" && /< 1 km/.test(await cards().first().innerText()), await page.getByLabel("Sortieren").inputValue());
+    t.check("URL carries place and sort", /[?&]l=Winterthur/.test(page.url()) && /so=distance/.test(page.url()), page.url());
+    t.check("chip shows place and radius", await page.getByRole("button", { name: "Filter entfernen: Ort: Winterthur · +10 km" }).isVisible());
+    await t.shot("place");
+
+    // narrowing the radius filters the loaded list without a new search
+    const wide = await count(); const calls = log.length;
+    scope = await openFilters();
+    await scope.getByLabel("Umkreis").selectOption("0");
+    await closeFilters(scope);
+    await page.waitForTimeout(1300);
+    const narrow = await count();
+    t.check("'Nur dieser Ort' keeps only listings in the place, without asking the sources again", narrow > 0 && narrow < wide && log.length === calls && (await page.locator(".distance-badge").allInnerTexts()).every((text) => /< 1 km/.test(text)), `${wide} -> ${narrow}, calls ${calls} -> ${log.length}`);
+    t.check("URL has r=0 and the hit line says so", /[?&]r=0/.test(page.url()) && /nur dieser Ort/.test(await hitLine()), page.url());
+    t.check("chip says Nur dieser Ort", await page.getByRole("button", { name: "Filter entfernen: Ort: Winterthur · Nur dieser Ort" }).isVisible());
+    // widening asks the sources again
+    scope = await openFilters();
+    await scope.getByLabel("Umkreis").selectOption("20");
+    await closeFilters(scope);
+    await page.waitForFunction(() => /bis 20 km/.test(document.querySelector("p[aria-live=polite]")?.textContent ?? "") && !document.querySelector("[role=status] .animate-pulse"), null, { timeout: 15000 }).catch(() => undefined);
+    await page.waitForTimeout(1500);
+    t.check("a wider radius starts a new search with that radius", log.length > calls && log.at(-1)?.filters?.radiusKm === 20, JSON.stringify(log.at(-1)?.filters));
+
+    // shared link with "Nur dieser Ort"
+    await t.visit("/search?q=Stelle&k=a&l=Uster&r=0", { waitFor: () => cards().first().waitFor() });
+    t.check("shared link restores place and 'Nur dieser Ort'", log.at(-1)?.location === "Uster" && log.at(-1)?.filters?.radiusKm === 0 && /in Uster \(nur dieser Ort\)/.test(await hitLine()), `${JSON.stringify(log.at(-1)?.filters)} ${await hitLine()}`);
+
+    // unknown place: clear message, not the "sources are slow" note
+    t.expect(/422/, /Failed to load resource/);
+    scope = await openFilters();
+    await scope.getByRole("combobox", { name: "Ort" }).fill("nirgendwo");
+    await scope.getByRole("combobox", { name: "Ort" }).press("Enter");
+    await closeFilters(scope);
+    t.check("unknown place gets a clear message", await t.text(/Den Ort „nirgendwo“ kennen wir leider nicht/, 8000) && !(await t.text(/Stellenbörsen brauchen gerade etwas länger/, 500)));
+    // removing the place: whole Switzerland again, radius disabled
+    await page.getByRole("button", { name: /^Filter entfernen: Ort: nirgendwo/ }).click();
+    await cards().first().waitFor();
+    await page.waitForFunction(() => /ganze Schweiz/.test(document.querySelector("p[aria-live=polite]")?.textContent ?? ""), null, { timeout: 15000 }).catch(() => undefined);
+    scope = await openFilters();
+    t.check("without the place: whole Switzerland, relevance sort, radius disabled again", /ganze Schweiz/.test(await hitLine()) && (await page.getByLabel("Sortieren").inputValue()) === "relevance" && await scope.getByLabel("Umkreis").isDisabled(), await hitLine());
+    await closeFilters(scope);
+  });
 }
 
 // standalone: delegate to the shared runner

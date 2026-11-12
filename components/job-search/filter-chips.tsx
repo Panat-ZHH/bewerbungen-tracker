@@ -1,14 +1,14 @@
 "use client";
 
 import { X } from "lucide-react";
-import { EDUCATION_LABELS, FIELD_LABELS, JOB_TYPE_LABELS, LANGUAGE_LABELS, REMOTE_LABELS, type JobFilters } from "./engine";
+import { EDUCATION_LABELS, FIELD_LABELS, JOB_TYPE_LABELS, LANGUAGE_LABELS, REMOTE_LABELS, effectiveRadiusKm, radiusLabel, type JobFilters } from "./engine";
 
 export type FilterChip = { key: string; label: string; patch: Partial<JobFilters> };
 
 export function filterChips(f: JobFilters): FilterChip[] {
   const chips: FilterChip[] = [];
-  if (f.location) chips.push({ key: "loc", label: `Ort: ${f.location}${f.radiusKm ? ` +${f.radiusKm} km` : ""}`, patch: { location: "", radiusKm: undefined } });
-  else if (f.radiusKm) chips.push({ key: "rad", label: `Umkreis ${f.radiusKm} km`, patch: { radiusKm: undefined } });
+  // a radius only exists together with a place (default 10 km, 0 = "Nur dieser Ort")
+  if (f.location) chips.push({ key: "loc", label: `Ort: ${f.location} · ${effectiveRadiusKm(f) === 0 ? radiusLabel(0) : `+${effectiveRadiusKm(f)} km`}`, patch: { location: "", radiusKm: undefined } });
   f.cantons.forEach((c) => chips.push({ key: `c-${c}`, label: `Kanton ${c}`, patch: { cantons: f.cantons.filter((v) => v !== c) } }));
   f.jobTypes.forEach((t) => chips.push({ key: `t-${t}`, label: JOB_TYPE_LABELS[t], patch: { jobTypes: f.jobTypes.filter((v) => v !== t) } }));
   if (f.workloadMin !== undefined || f.workloadMax !== undefined) chips.push({ key: "wl", label: `Pensum ab ${f.workloadMin ?? 10}%`, patch: { workloadMin: undefined, workloadMax: undefined } });

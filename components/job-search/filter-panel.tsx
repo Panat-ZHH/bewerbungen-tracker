@@ -4,7 +4,9 @@ import type { ReactNode } from "react";
 import { Input, Select } from "@/components/ui/input";
 import { Segmented } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import { CANTONS, EDUCATION_LABELS, FIELD_LABELS, JOB_TYPE_LABELS, LANGUAGE_LABELS, POSTED_OPTIONS, RADIUS_OPTIONS, REMOTE_LABELS, SOURCE_NAMES, type Facets, type JobFilters, type JobType } from "./engine";
+import { CANTONS, EDUCATION_LABELS, FIELD_LABELS, JOB_TYPE_LABELS, LANGUAGE_LABELS, POSTED_OPTIONS, REMOTE_LABELS, SOURCE_NAMES, type Facets, type JobFilters, type JobType } from "./engine";
+import { LocationAutocomplete } from "./location-autocomplete";
+import { RadiusSelect } from "./radius-select";
 
 export function ToggleChip({ active, onClick, children, count }: { active: boolean; onClick: () => void; children: ReactNode; count?: number }) {
   return (
@@ -27,12 +29,9 @@ export function FilterPanel({ filters, onChange, facets, companies, idPrefix = "
   return (
     <div className="space-y-6">
       <Group title="Ort">
-        <Input id={`${idPrefix}-loc`} aria-label="Ort" maxLength={80} value={filters.location} onChange={(e) => onChange({ location: e.target.value })} placeholder="Ort oder PLZ" />
+        <LocationAutocomplete id={`${idPrefix}-loc`} value={filters.location} onChange={(location) => onChange(location ? { location } : { location, radiusKm: undefined })} />
         <label className="block text-xs text-muted" htmlFor={`${idPrefix}-radius`}>Umkreis</label>
-        <Select id={`${idPrefix}-radius`} value={filters.radiusKm ?? ""} onChange={(e) => onChange({ radiusKm: e.target.value ? Number(e.target.value) : undefined })}>
-          <option value="">Ganze Schweiz / kein Umkreis</option>
-          {RADIUS_OPTIONS.map((km) => <option key={km} value={km}>{km} km</option>)}
-        </Select>
+        <RadiusSelect id={`${idPrefix}-radius`} value={filters.radiusKm} disabled={!filters.location.trim()} onChange={(radiusKm) => onChange({ radiusKm })} />
       </Group>
       <Group title="Kantone">
         <div className="flex flex-wrap gap-1.5">{CANTONS.map((c) => <ToggleChip key={c} active={filters.cantons.includes(c)} count={facets.cantons[c]} onClick={() => onChange({ cantons: toggle(filters.cantons, c) })}>{c}</ToggleChip>)}</div>

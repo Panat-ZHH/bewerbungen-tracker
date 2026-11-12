@@ -10,6 +10,7 @@ import { addRecent, loadRecent, savePreset, loadPresets, deletePreset, addRecent
 import { computeFacets } from "../lib/job-filters/facets.ts";
 import { sortJobs } from "../lib/job-filters/sort.ts";
 import { plzToCanton, resolveLocation, distanceKm } from "../lib/job-filters/geo.ts";
+import { locateListing } from "../lib/geo/places.ts";
 import { searchJobs } from "../lib/job-filters/index.ts";
 import { emptyFilters } from "../lib/job-filters/types.ts";
 
@@ -91,7 +92,7 @@ test("filters: canton, type, workload overlap, year, education, source, posted, 
     job("Teilzeit Sachbearbeiter 60-80%", { company: "B AG", location: "Bern", source: "jobs.ch", postedAt: "2026-11-05", salaryMin: 70000 }),
     job("Praktikum Marketing", { company: "C AG", location: "Basel", source: "jobup.ch", postedAt: "2026-09-01", remote: "hybrid" }),
     job("Mystery Job", { company: "D AG" }),
-  ];
+  ].map((listing) => locateListing(listing).job); // as delivered by the search API: place normalised, canton from the localities directory
   const f = (filters, options) => applyJobFilters(jobs, { ...emptyFilters(), ...filters }, { now: NOW, ...options }).map((j) => j.company);
   assert.deepEqual(f({}), ["A AG", "B AG", "C AG", "D AG"]);
   assert.deepEqual(f({ cantons: ["ZH"] }), ["A AG", "D AG"]);
@@ -108,15 +109,21 @@ test("filters: canton, type, workload overlap, year, education, source, posted, 
   assert.deepEqual(f({ salaryMin: 60000 }, { strict: { salaryMin: true } }), ["B AG"]);
   assert.deepEqual(f({ companies: ["b ag"] }), ["B AG"]);
   assert.deepEqual(f({ hideSaved: true }, { savedUrls: [jobs[0].url] }), ["B AG", "C AG", "D AG"]);
-  assert.deepEqual(f({ location: "Zürich", radiusKm: 20 }, { strict: true }), ["A AG"]);
-  assert.deepEqual(f({ location: "Zürich", radiusKm: 100 }, { strict: true }), ["A AG", "B AG", "C AG"]);
+  // the radius filter only applies the distances the search API put on the listings (details: tests/ort-suche-filter.test.mjs)
+  const placed = [{ ...jobs[0], distanceKm: 0, inPlace: true }, { ...jobs[1], distanceKm: 95.5 }, { ...jobs[2], distanceKm: 74.3 }, jobs[3]];
+  const r = (filters, options) => applyJobFilters(placed, { ...emptyFilters(), ...filters }, { now: NOW, ...options }).map((j) => j.company);
+  assert.deepEqual(r({ location: "Zürich", radiusKm: 20 }, { strict: true }), ["A AG"]);
+  assert.deepEqual(r({ location: "Zürich", radiusKm: 0 }, { strict: true }), ["A AG"]);
+  assert.deepEqual(r({ location: "", radiusKm: 20 }, { strict: true }), ["A AG", "B AG", "C AG", "D AG"]);
   assert.equal(activeFilterCount({ ...emptyFilters(), cantons: ["ZH"], remote: "remote" }), 2);
 });
 
 test("classification: workload, education, type, start year, remote, field", () => {
   assert.deepEqual(parseWorkload("Pensum 80-100%"), { min: 80, max: 100 });
   assert.deepEqual(parseWorkload("60 %"), { min: 60, max: 60 });
-  const c = classifyJob({ title: "Polymechaniker/in EFZ, Lehrbeginn 2027", location: "8400 Winterthur", snippet: "Homeoffice nach Absprache" });
+  const c = classifyJob({ title: "Polymechaniker/in EFZ, Lehrbeginn 2027", location: "8400 Winterthur ZH", snippet: "Homeoffice nach Absprache" });
+  // without a canton in the text the canton comes from the localities directory (search API), not from the browser-side classifier
+  assert.equal(locateListing({ title: "x", location: "8400 Winterthur" }).job.canton, "ZH");
   assert.equal(c.jobType, "lehrstelle");
   assert.equal(c.education, "efz");
   assert.equal(c.startDate, "2027");

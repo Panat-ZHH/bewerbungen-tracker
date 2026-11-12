@@ -24,6 +24,10 @@ export interface JobSearchResult {
   deadline?: string;
   schnupperlehre?: boolean;
   transit?: string;
+  /** Distance in km from the searched place to the listing's locality (set by the search API, only when a place is searched). */
+  distanceKm?: number;
+  /** The listing is in the searched place itself (same municipality) – what "Nur dieser Ort" keeps. */
+  inPlace?: boolean;
 }
 
 export function originalSourceName(value: string): string | undefined {
@@ -67,7 +71,7 @@ export function listingSources(result: JobSearchResult) {
   return [...links.values()];
 }
 
-const enrichmentKeys = ["contract", "jobType", "workloadMin", "workloadMax", "postedAt", "startDate", "canton", "education", "language", "remote", "salaryMin", "salaryMax", "field", "snippet", "deadline", "schnupperlehre", "transit"];
+const enrichmentKeys = ["contract", "jobType", "workloadMin", "workloadMax", "postedAt", "startDate", "canton", "education", "language", "remote", "salaryMin", "salaryMax", "field", "snippet", "deadline", "schnupperlehre", "transit", "distanceKm", "inPlace"];
 
 export function mergeJobResults(existing: JobSearchResult[], incoming: JobSearchResult[]): JobSearchResult[] {
   const merged = existing.map((result) => ({ ...result, sources: listingSources(result), years: listingYears(result) }));
