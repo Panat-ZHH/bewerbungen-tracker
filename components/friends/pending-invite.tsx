@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { UserPlus, X } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { findUserByCode, sendFriendRequest } from "@/lib/social";
 import type { SocialLookup } from "@/types";
@@ -45,14 +44,15 @@ export function PendingInvite({ onChanged }: { onChanged: () => void }) {
   }
 
   return (
-    <Card className="animate-rise p-4">
+    // Cut-out coupon: dashed ink contour, no shadow (the invite card stays the only loud sticker).
+    <div className="animate-rise rounded-[var(--radius-xl)] border-2 border-dashed border-[var(--outline)] p-4">
       <div className="flex items-center gap-3">
         <Avatar name={inviter.displayName} size="md" />
         <p className="min-w-0 flex-1 text-body"><strong className="font-semibold">{inviter.displayName}</strong> hat dich eingeladen. Möchtest du befreundet sein?</p>
-        <button type="button" aria-label="Einladung verwerfen" onClick={() => { clearPendingInvite(); setInviter(null); }} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--neutral-bg)]"><X size={16} /></button>
+        <button type="button" aria-label="Einladung verwerfen" onClick={() => { clearPendingInvite(); setInviter(null); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)] active:translate-y-px"><X size={16} /></button>
       </div>
-      <Button className="mt-3" full loading={busy} onClick={accept} icon={<UserPlus size={16} />}>Als Freund hinzufügen</Button>
+      <Button variant="sun" className="mt-3" full loading={busy} onClick={accept} icon={<UserPlus size={16} />}>Als Freund hinzufügen</Button>
       {error && <StatusMessage tone="danger" className="mt-3">{error}</StatusMessage>}
-    </Card>
+    </div>
   );
 }

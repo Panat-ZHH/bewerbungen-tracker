@@ -49,10 +49,10 @@ function InviteContent({ code }: { code: string }) {
   if (!inviter) return <EmptyState className="mx-auto max-w-md" title="Einladung nicht gefunden" description={error || "Dieser Code gehört zu niemandem. Bitte frag nach einem neuen Link."} action={<ButtonLink href="/friends" variant="secondary">Zu den Freunden</ButtonLink>} />;
 
   return (
-    <Card className="animate-rise mx-auto flex max-w-md flex-col items-center p-6 text-center sm:p-8">
+    <Card className="animate-rise relative mx-auto mt-4 flex max-w-md flex-col items-center p-6 text-center shadow-[var(--shadow-lg)] sm:p-8">
+      <span className="sticker tilt-l3 absolute -left-2 -top-3.5">Einladung</span>
       <Avatar name={inviter.displayName} size="xl" />
-      <p className="text-eyebrow mt-5">Einladung</p>
-      <h1 className="text-title mt-1 break-words">{inviter.displayName}</h1>
+      <h1 className="text-title mt-5 max-w-full break-words">{inviter.displayName}</h1>
       <p className="mt-2 text-body text-muted">möchte mit dir bei WendApply befreundet sein und gemeinsam dranbleiben.</p>
       <div className="mt-6 w-full space-y-3">
         {done ? (
@@ -64,7 +64,7 @@ function InviteContent({ code }: { code: string }) {
           <>
             <Button full size="lg" loading={busy} onClick={add} icon={<UserPlus size={17} />}>Als Freund hinzufügen</Button>
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
-            <Link href="/friends" className="text-small flex min-h-11 items-center justify-center text-muted hover:underline">Später</Link>
+            <Link href="/friends" className="text-small flex min-h-11 items-center justify-center font-medium text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)]">Später</Link>
           </>
         ) : (
           <>
@@ -94,7 +94,7 @@ export default function InvitePage() {
   }, [code, router]);
 
   if (!signedIn) {
-    return <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5"><p className="text-sm text-muted">Einladung wird geöffnet …</p></main>;
+    return <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5"><p role="status" className="flex items-center gap-3 font-display text-xl font-bold tracking-[-.01em]"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einladung wird geöffnet …</p></main>;
   }
   return <WorkspaceShell active="Freunde"><InviteContent code={code} /></WorkspaceShell>;
 }
