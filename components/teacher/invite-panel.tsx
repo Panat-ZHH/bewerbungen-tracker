@@ -9,7 +9,7 @@ import { Field, Textarea } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/lib/toast";
 import { classInviteLink } from "@/lib/classes";
-import { formatDate } from "@/components/classes/shared";
+import { CODE_CHIP, TABLE_HEAD, formatDate } from "@/components/classes/shared";
 import { createInvite, listInvites, revokeInvite, type ClassInvitation, type DashboardClass } from "./api";
 import { createInvitesDetailed, type InviteResult } from "@/lib/teacher-more";
 import { MAX_IMPORT_ROWS, OUTCOME_LABEL, parseInviteCsv, summarizeOutcomes, type ImportRow, type InviteOutcome } from "@/lib/teacher-extras";
@@ -17,7 +17,8 @@ import { INVITE_STATE_LABEL, inviteMailto, inviteState, inviteUrl, type InviteSt
 import { QrCode } from "./qr-code";
 import { CopyButton, ErrorBanner, teacherError } from "./shared";
 
-const STATE_TONE: Record<InviteState, "success" | "neutral" | "warning" | "danger"> = { active: "success", used: "neutral", expired: "warning", revoked: "danger" };
+// A revoked link is a normal outcome, not an error: calm tone.
+const STATE_TONE: Record<InviteState, "success" | "neutral" | "warning"> = { active: "success", used: "neutral", expired: "warning", revoked: "neutral" };
 
 export function InvitePanel({ cls }: { cls: DashboardClass }) {
   const [invites, setInvites] = useState<ClassInvitation[] | null>(null);
@@ -67,21 +68,21 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
   }
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card className="min-w-0 space-y-4 p-5">
-        <div><h2 className="text-heading">Klassen-Link und Code</h2><p className="text-small text-muted">Wer den Link oder Code hat, kann der Klasse beitreten. Teile ihn nur mit deiner Klasse.</p></div>
-        <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+    <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
+      <Card className="h-fit min-w-0 space-y-4 p-4 sm:p-5">
+        <div><h2 className="text-heading">Klassen-Link und Code</h2><p className="text-small mt-1 text-muted">Wer den Link oder Code hat, kann der Klasse beitreten. Teile ihn nur mit deiner Klasse.</p></div>
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
           <QrCode value={joinLink} label={`QR-Code zum Beitritt der Klasse ${cls.name}`} />
-          <div className="w-full min-w-0 space-y-3">
-            <div><p className="text-eyebrow mb-1">Code</p><div className="flex flex-wrap items-center gap-2"><code className="tabular break-all rounded-[var(--radius-md)] border border-[var(--neutral-line)] bg-[var(--neutral-bg)] px-3 py-1.5 text-[15px] font-semibold tracking-[.18em]">{cls.joinCode}</code><CopyButton text={cls.joinCode} label="Code kopieren" /></div></div>
-            <div><p className="text-eyebrow mb-1">Link</p><p className="text-small select-all break-all text-muted">{joinLink}</p><div className="mt-2"><CopyButton text={joinLink} label="Link kopieren" /></div></div>
+          <div className="w-full min-w-0 space-y-4">
+            <div><p className="mb-1.5 text-sm font-bold">Code</p><div className="flex flex-wrap items-center gap-2"><code className={CODE_CHIP}>{cls.joinCode}</code><CopyButton text={cls.joinCode} label="Code kopieren" /></div></div>
+            <div><p className="mb-1 text-sm font-bold">Link</p><p className="text-small select-all break-all text-muted">{joinLink}</p><div className="mt-2"><CopyButton text={joinLink} label="Link kopieren" /></div></div>
           </div>
         </div>
-        <p className="text-small text-muted">Den Code änderst du in den Einstellungen. Dann funktioniert der alte Link nicht mehr.</p>
+        <p className="text-small border-t-[1.5px] border-dashed border-[var(--line)] pt-3 text-muted">Den Code änderst du in den Einstellungen. Dann funktioniert der alte Link nicht mehr.</p>
       </Card>
 
-      <Card className="min-w-0 space-y-4 p-5">
-        <div><h2 className="text-heading">Per E-Mail einladen</h2><p className="text-small text-muted">Füge Adressen ein oder lade eine Klassenliste als CSV-Datei («Name, E-Mail», Kopfzeile optional). Jede Person erhält einen persönlichen Link, der nur mit dieser E-Mail-Adresse funktioniert. Es wird keine E-Mail automatisch versendet; du verschickst die Links selbst.</p></div>
+      <section className="min-w-0 space-y-4">
+        <div><h2 className="text-heading">Per E-Mail einladen</h2><p className="text-small mt-1 text-muted">Füge Adressen ein oder lade eine Klassenliste als CSV-Datei («Name, E-Mail», Kopfzeile optional). Jede Person erhält einen persönlichen Link, der nur mit dieser E-Mail-Adresse funktioniert. Es wird keine E-Mail automatisch versendet; du verschickst die Links selbst.</p></div>
         <Field label="Adressen oder Klassenliste" htmlFor="inv-emails" error={formError} hint={`Maximal ${MAX_IMPORT_ROWS} Adressen auf einmal`}>
           <Textarea id="inv-emails" rows={5} className="text-base! sm:text-base!" value={emails} onChange={(e) => { setEmails(e.target.value); setResults(null); }} placeholder={"Anna Muster, anna@schule.ch\nBen Beispiel, ben@schule.ch"} aria-invalid={!!formError} />
         </Field>
@@ -93,20 +94,20 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
           <Button variant="ghost" className="min-h-11 sm:min-h-11" icon={<Plus size={15} />} loading={busy === "single"} onClick={createLink}>Offenen Link erstellen</Button>
         </div>
         {results && <InviteResults results={results} className={cls.name} />}
-      </Card>
+      </section>
 
-      <Card className="space-y-3 p-5 lg:col-span-2">
+      <section className="min-w-0 lg:col-span-2">
         <h2 className="text-heading">Einladungen</h2>
-        {error && <ErrorBanner message={error} onRetry={load} />}
-        {!invites && !error && <Skeleton className="h-16 rounded-[var(--radius-md)]" />}
-        {invites && invites.length === 0 && <p className="text-small flex items-center gap-2 text-muted"><Link2 size={16} aria-hidden /> Noch keine persönlichen Einladungen erstellt.</p>}
+        {error && <div className="mt-3"><ErrorBanner message={error} onRetry={load} /></div>}
+        {!invites && !error && <Skeleton className="mt-3 h-16 rounded-[var(--radius-md)]" />}
+        {invites && invites.length === 0 && <p className="text-small mt-2 flex items-center gap-2 text-muted"><Link2 size={16} aria-hidden /> Noch keine persönlichen Einladungen erstellt.</p>}
         {invites && invites.length > 0 && (
-          <ul className="divide-y divide-[var(--line)]">
+          <ul className="rows mt-2 border-y-[length:var(--border-w)] border-[var(--outline)]">
             {invites.map((inv) => {
               const state = inviteState(inv); const url = inviteUrl(inv.token, origin);
               return (
                 <li key={inv.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
-                  <div className="min-w-0"><p className="truncate text-sm font-semibold">{inv.email ?? "Offener Link"}</p><p className="text-small tabular text-muted">Gültig bis {formatDate(inv.expiresAt)} · {inv.uses}{inv.maxUses !== null ? `/${inv.maxUses}` : ""} Beitritte</p></div>
+                  <div className="min-w-0"><p className="truncate text-sm font-bold">{inv.email ?? "Offener Link"}</p><p className="text-small tabular text-muted">Gültig bis {formatDate(inv.expiresAt)} · {inv.uses}{inv.maxUses !== null ? `/${inv.maxUses}` : ""} Beitritte</p></div>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone={STATE_TONE[state]}>{INVITE_STATE_LABEL[state]}</Badge>
                     {state === "active" && <CopyButton text={url} label="Link" variant="ghost" />}
@@ -117,7 +118,7 @@ export function InvitePanel({ cls }: { cls: DashboardClass }) {
             })}
           </ul>
         )}
-      </Card>
+      </section>
     </div>
   );
 }
@@ -130,12 +131,12 @@ function ImportPreview({ rows, counts }: { rows: ImportRow[]; counts: { ok: numb
   return (
     <div className="space-y-2" aria-label="Vorschau der Liste">
       <p className="text-sm font-semibold" role="status">{counts.total} {counts.total === 1 ? "Zeile" : "Zeilen"}: {counts.ok} gültig{counts.duplicate ? `, ${counts.duplicate} doppelt` : ""}{counts.invalid ? `, ${counts.invalid} ungültig` : ""}</p>
-      <div className="max-h-56 overflow-auto rounded-[var(--radius-md)] border border-[var(--line)]">
+      <div className="panel-flat max-h-56 overflow-auto rounded-[var(--radius-md)]">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Vorschau der Einladungsliste</caption>
-          <thead className="text-eyebrow sticky top-0 bg-[var(--surface)]"><tr><th scope="col" className="px-3 py-2 font-medium">Name</th><th scope="col" className="px-3 py-2 font-medium">E-Mail</th><th scope="col" className="px-3 py-2 font-medium">Prüfung</th></tr></thead>
+          <thead className={`${TABLE_HEAD} sticky top-0 bg-[var(--surface)] shadow-[0_1.5px_0_var(--outline)]`}><tr><th scope="col" className="px-3 py-2">Name</th><th scope="col" className="px-3 py-2">E-Mail</th><th scope="col" className="px-3 py-2">Prüfung</th></tr></thead>
           <tbody>{rows.map((r, i) => (
-            <tr key={`${r.line}-${i}`} className="border-t border-[var(--line)]">
+            <tr key={`${r.line}-${i}`} className="border-t-[1.5px] border-dashed border-[var(--line)] first:border-0">
               <td className="max-w-[9rem] truncate px-3 py-2">{r.name || <span className="text-muted">–</span>}</td>
               <td className="max-w-[12rem] truncate px-3 py-2">{r.email || <span className="text-muted">–</span>}</td>
               <td className="px-3 py-2"><Badge tone={ROW_TONE[r.status]}>{ROW_LABEL[r.status]}</Badge>{r.reason && <span className="text-small ml-2 text-muted">{r.reason}</span>}</td>
@@ -153,9 +154,9 @@ function InviteResults({ results, className }: { results: (InviteResult & { name
   const sum = summarizeOutcomes(results);
   const links = results.filter((r) => r.url);
   return (
-    <div className="space-y-2 rounded-[var(--radius-md)] border border-[var(--success-line)] bg-[var(--success-bg)] p-3" role="status">
-      <p className="text-sm font-semibold text-[var(--success-fg)]">{sum.text}</p>
-      <ul className="space-y-1">{results.map((r, i) => (
+    <div className="space-y-2 rounded-[var(--radius-lg)] bg-[var(--success-bg)] p-4" role="status">
+      <p className="text-sm font-bold text-[var(--success-fg)]">{sum.text}</p>
+      <ul className="rows [&>*+*]:border-[var(--success-line)] [&>*]:py-1.5">{results.map((r, i) => (
         <li key={`${r.email}-${i}`} className="flex flex-wrap items-center justify-between gap-2">
           <span className="min-w-0 flex-1 basis-40 truncate text-sm">{r.name ? `${r.name} · ` : ""}{r.email}</span>
           <Badge tone={OUTCOME_TONE[r.outcome] ?? "neutral"}>{OUTCOME_LABEL[r.outcome as InviteOutcome] ?? "Übersprungen"}</Badge>

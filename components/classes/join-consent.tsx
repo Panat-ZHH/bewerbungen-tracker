@@ -46,7 +46,7 @@ export function useJoinConsent() {
     <div className="space-y-4 text-left">
       {needsName && (
         <fieldset className="space-y-2">
-          <legend className="text-sm font-semibold">Wie heisst du?</legend>
+          <legend className="text-sm font-bold">Wie heisst du?</legend>
           <p className="text-small text-muted">Deine Lehrperson sieht deinen Namen in der Klassenliste. Bitte gib deinen echten Namen an.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <Field label="Vorname" htmlFor="join-first"><Input id="join-first" value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" maxLength={30} /></Field>
@@ -55,20 +55,20 @@ export function useJoinConsent() {
         </fieldset>
       )}
       <fieldset className="space-y-1">
-        <legend className="text-sm font-semibold">Wie alt bist du?</legend>
+        <legend className="text-sm font-bold">Wie alt bist du?</legend>
         <p className="text-small text-muted">Wenn du unter 16 bist, ist das Teilen zu Beginn ausgeschaltet. Du entscheidest unten selbst.</p>
         <div className="flex flex-wrap gap-2 pt-1">
           {([["u16", "Unter 16"], ["o16", "16 oder älter"]] as const).map(([value, label]) => (
-            <label key={value} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4 text-sm font-medium focus-within:ring-4 focus-within:ring-[var(--brand)]/30 ${age === value ? "border-[var(--brand)] bg-[var(--brand-soft)]" : "border-[var(--line)]"}`}>
+            <label key={value} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[length:var(--border-w)] px-4 text-sm font-semibold transition-colors has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus-ring)] ${age === value ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-sm)]" : "border-[var(--outline)] bg-[var(--surface)]"}`}>
               <input type="radio" name="join-age" className="sr-only" checked={age === value} onChange={() => { setAge(value); setChoice(defaultConsent(value === "u16")); }} />{label}
             </label>
           ))}
         </div>
       </fieldset>
       <PrivacyPanel variant="class" teacherName={teacherName} />
-      <div className="space-y-2.5 rounded-[var(--radius-md)] border border-[var(--line)] p-3.5">
-        <p className="text-sm font-semibold">Das teilst du ab dem Beitritt</p>
-        <ConsentSwitches value={choice} onChange={(next) => setChoice((c) => ({ ...c, ...next }))} />
+      <div>
+        <p className="font-display text-base font-bold">Das teilst du ab dem Beitritt</p>
+        <div className="rows mt-1"><ConsentSwitches value={choice} onChange={(next) => setChoice((c) => ({ ...c, ...next }))} /></div>
       </div>
     </div>
   );

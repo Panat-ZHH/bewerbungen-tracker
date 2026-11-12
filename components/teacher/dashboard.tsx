@@ -3,21 +3,20 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Archive, BriefcaseBusiness, CalendarClock, ChevronRight, GraduationCap, MessageSquare, Plus, Trophy, UserX, Users, Home } from "lucide-react";
+import { Archive, CalendarClock, ChevronRight, GraduationCap, Plus, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatTile } from "@/components/ui/stat-tile";
+import { Figures } from "@/components/ui/figures";
 import { dashboardMode } from "@/lib/teacher-extras";
 import { AttentionPanel } from "./attention-panel";
 import { Segmented } from "@/components/ui/tabs";
 import { createClass, getTeacherDashboard, type TeacherDashboard } from "./api";
-import { ErrorBanner, teacherError } from "./shared";
+import { ClassPath, ErrorBanner, teacherError } from "./shared";
 import { formatDate } from "@/components/classes/shared";
 
 export function TeacherDashboardView() {
@@ -50,66 +49,63 @@ export function TeacherDashboardView() {
   const mode = data && t ? dashboardMode(t, data.classes.filter((c) => !c.archived).length) : "normal";
   const firstClass = (data?.classes ?? []).find((c) => !c.archived);
   return (
-    <div className="space-y-6 pb-safe">
-      <PageHeader eyebrow="Lehrperson" title="Übersicht" description="So weit sind deine Klassen mit der Lehrstellensuche. Es zählen nur Schülerinnen und Schüler, die ihre Daten teilen." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
+    <div>
+      <PageHeader title="Übersicht" description="So weit sind deine Klassen mit der Lehrstellensuche. Es zählen nur Schülerinnen und Schüler, die ihre Daten teilen." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
       {error && <ErrorBanner message={error} onRetry={load} />}
-      {!data && !error && <div className="space-y-4"><div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">{[0, 1, 2, 3, 4, 5].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div><div className="grid gap-4 md:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-44 rounded-[var(--radius-lg)]" />)}</div></div>}
+      {!data && !error && <div className="space-y-3"><Skeleton className="h-24 rounded-[var(--radius-lg)]" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />)}</div>}
       {data && t && (
-        <>
+        <div className="space-y-10">
           {mode === "no-students" && firstClass && (
-            <EmptyState icon={<Users size={26} />} title="Noch niemand in deinen Klassen" description="Sobald sich Schülerinnen und Schüler mit dem Code oder Link anmelden, siehst du hier ihren Fortschritt. Nächster Schritt: die Klasse einladen." action={<Link href={`/teacher/classes/${firstClass.id}?tab=invite`} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--brand)] px-5 font-semibold text-white">Klasse «{firstClass.name}» einladen</Link>} />
+            <EmptyState icon={<Users size={26} />} title="Noch niemand in deinen Klassen" description="Sobald sich Schülerinnen und Schüler mit dem Code oder Link anmelden, siehst du hier ihren Fortschritt. Nächster Schritt: die Klasse einladen." action={<ButtonLink href={`/teacher/classes/${firstClass.id}?tab=invite`} variant="sun" className="max-w-full"><span className="truncate">Klasse «{firstClass.name}» einladen</span></ButtonLink>} />
           )}
           {mode === "no-applications" && (
-            <section aria-label="Kennzahlen" className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 md:max-w-xl">
-                <StatTile label="Schüler:innen" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
-                <StatTile label="Bewerbungen" value={t.applications} icon={<BriefcaseBusiness size={16} />} trend="Noch keine geteilt" />
-              </div>
-              <Card className="text-small p-4 text-muted">Noch hat niemand eine Bewerbung erfasst oder geteilt. Die Kennzahlen erscheinen, sobald die ersten Bewerbungen da sind. Du kannst die Klasse mit einer Mitteilung ans Starten erinnern.</Card>
-            </section>
+            <div className="space-y-4">
+              <Figures label="Kennzahlen" items={[{ label: "Schüler:innen", value: t.students, hint: t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined }, { label: "Bewerbungen", value: t.applications, hint: "Noch keine geteilt" }]} />
+              <p className="text-small max-w-2xl text-muted">Noch hat niemand eine Bewerbung erfasst oder geteilt. Die Kennzahlen erscheinen, sobald die ersten Bewerbungen da sind. Du kannst die Klasse mit einer Mitteilung ans Starten erinnern.</p>
+            </div>
           )}
           {mode === "normal" && (
-          <section aria-label="Kennzahlen" className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
-            <StatTile label="Schüler:innen" value={t.students} icon={<Users size={16} />} trend={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined} />
-            <StatTile label="Bewerbungen" value={t.applications} icon={<BriefcaseBusiness size={16} />} />
-            <StatTile label="Gespräche" value={t.interviews} icon={<MessageSquare size={16} />} />
-            <StatTile label="Zusagen" value={t.offers} icon={<Trophy size={16} />} tone="success" />
-            <StatTile label="Lehrstelle gefunden" value={t.placed} icon={<Home size={16} />} tone="success" trend={t.students ? `${Math.round((t.placed / t.students) * 100)} % der Schüler:innen` : undefined} />
-            <StatTile label="Inaktiv" value={t.inactive} icon={<UserX size={16} />} tone={t.inactive ? "danger" : "neutral"} trend={t.inactive ? "seit 14+ Tagen ohne Aktivität" : "Alle sind aktiv"} />
-          </section>
+            <ClassPath
+              label="Kennzahlen"
+              students={t.students}
+              studentsHint={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined}
+              stages={[{ label: "Bewerbungen", value: t.applications, fill: "brand" }, { label: "Gespräche", value: t.interviews, fill: "coral" }, { label: "Zusagen", value: t.offers, fill: "mint" }, { label: "Lehrstelle gefunden", short: "Lehrstelle", value: t.placed, fill: "sun" }]}
+              note={<>
+                {t.inactive ? <><Badge tone="warning">{t.inactive} inaktiv</Badge><span className="mr-2">seit 14+ Tagen ohne Aktivität</span></> : <Badge tone="success">Alle sind aktiv</Badge>}
+                {t.students > 0 && <span>Lehrstelle gefunden: {Math.round((t.placed / t.students) * 100)} % der Schüler:innen</span>}
+              </>}
+            />
           )}
 
           {mode !== "no-class" && mode !== "no-students" && <AttentionPanel />}
 
-          <section className="space-y-3" aria-label="Klassen">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <section aria-label="Klassen">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <h2 className="text-heading">Klassen</h2>
               <Segmented className="[&_button]:min-h-11" label="Klassen anzeigen" value={showArchived} onChange={setShowArchived} options={[{ value: "active", label: "Aktiv", count: active.length }, { value: "archived", label: "Archiv", icon: <Archive size={13} />, count: archived.length }]} />
             </div>
-            {data.classes.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und lade dann deine Schülerinnen und Schüler per Link, Code oder QR-Code ein." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
-            {data.classes.length > 0 && shown.length === 0 && <EmptyState icon={<Archive size={24} />} title={showArchived === "archived" ? "Das Archiv ist leer" : "Alle Klassen sind archiviert"} description={showArchived === "archived" ? "Archivierte Klassen erscheinen hier. Ihre Daten bleiben erhalten." : "Wechsle zum Archiv, um eine Klasse wieder zu aktivieren."} />}
+            {data.classes.length === 0 && <EmptyState className="mt-3" icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und lade dann deine Schülerinnen und Schüler per Link, Code oder QR-Code ein." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
+            {data.classes.length > 0 && shown.length === 0 && <EmptyState className="mt-3" icon={<Archive size={24} />} title={showArchived === "archived" ? "Das Archiv ist leer" : "Alle Klassen sind archiviert"} description={showArchived === "archived" ? "Archivierte Klassen erscheinen hier. Ihre Daten bleiben erhalten." : "Wechsle zum Archiv, um eine Klasse wieder zu aktivieren."} />}
             {shown.length > 0 && (
-              <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <ul className="rows mt-3 border-y-[length:var(--border-w)] border-[var(--outline)]">
                 {shown.map((c) => (
                   <li key={c.id}>
-                    <Link href={`/teacher/classes/${c.id}`} className="card-interactive panel group block h-full space-y-4 rounded-[var(--radius-lg)] p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="text-heading truncate">{c.name}</h3>
-                          <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}{!c.isOwner && " · Co-Lehrperson"}</p>
+                    <Link href={`/teacher/classes/${c.id}`} className="row-link group flex-wrap gap-x-6 gap-y-2 py-4">
+                      <div className="min-w-0 flex-1 basis-56">
+                        <h3 className="font-display truncate text-xl font-extrabold tracking-[-.02em] group-hover:underline group-hover:decoration-[var(--sun)] group-hover:decoration-4 group-hover:underline-offset-4">{c.name}</h3>
+                        <p className="text-small mt-0.5 text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}{!c.isOwner && " · Co-Lehrperson"}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {c.inactive > 0 ? <Badge tone="warning">{c.inactive} inaktiv</Badge> : c.students > 0 ? <Badge tone="success">Alle aktiv</Badge> : <Badge>Noch keine Schüler:innen</Badge>}
+                          {c.hidden > 0 && <Badge>{c.hidden} teilen nicht</Badge>}
+                          {c.archived && <Badge tone="info">Archiviert</Badge>}
                         </div>
-                        <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" aria-hidden />
                       </div>
-                      <dl className="tabular grid grid-cols-4 gap-2 text-center">
+                      <dl className="tabular flex shrink-0 gap-x-5 sm:gap-x-7">
                         {[["Bewerb.", c.applications], ["Gespräche", c.interviews], ["Zusagen", c.offers], ["Lehrstelle", c.placed]].map(([label, value]) => (
-                          <div key={label} className="rounded-[var(--radius-md)] bg-[var(--neutral-bg)] px-1 py-2"><dd className="text-lg font-bold leading-none">{value}</dd><dt className="text-small mt-1 text-muted">{label}</dt></div>
+                          <div key={label} className="flex flex-col-reverse"><dt className="text-small text-muted">{label}</dt><dd className="font-display text-2xl font-extrabold leading-none">{value}</dd></div>
                         ))}
                       </dl>
-                      <div className="flex flex-wrap gap-2">
-                        {c.inactive > 0 ? <Badge tone="warning">{c.inactive} inaktiv</Badge> : c.students > 0 ? <Badge tone="success">Alle aktiv</Badge> : <Badge>Noch keine Schüler:innen</Badge>}
-                        {c.hidden > 0 && <Badge>{c.hidden} teilen nicht</Badge>}
-                        {c.archived && <Badge tone="info">Archiviert</Badge>}
-                      </div>
+                      <ChevronRight size={20} strokeWidth={2.4} className="ml-auto shrink-0 transition-transform group-hover:translate-x-1" aria-hidden />
                     </Link>
                   </li>
                 ))}
@@ -117,26 +113,24 @@ export function TeacherDashboardView() {
             )}
           </section>
 
-          <section className="space-y-3" aria-label="Anstehende Fristen">
+          <section aria-label="Anstehende Fristen">
             <h2 className="text-heading">Anstehende Fristen <span className="text-small font-normal text-muted">(nächste 14 Tage)</span></h2>
             {data.deadlines.length === 0 ? (
-              <Card className="flex items-center gap-3 p-4 text-small text-muted"><CalendarClock size={18} aria-hidden /> Keine Bewerbungsfristen in den nächsten 14 Tagen.</Card>
+              <p className="text-small mt-2 flex items-center gap-2 text-muted"><CalendarClock size={17} aria-hidden /> Keine Bewerbungsfristen in den nächsten 14 Tagen.</p>
             ) : (
-              <Card className="divide-y divide-[var(--line)] overflow-hidden">
-                <ul>
-                  {data.deadlines.map((d, i) => (
-                    <li key={`${d.studentId}-${d.company}-${i}`}>
-                      <Link href={`/teacher/classes/${d.classId}/students/${d.studentId}`} className="flex min-h-14 flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 hover:bg-[var(--hover)]">
-                        <div className="min-w-0"><p className="truncate text-sm font-semibold">{d.studentName} · {d.company}</p><p className="text-small truncate text-muted">{d.position ? `${d.position} · ` : ""}{d.className}</p></div>
-                        <span className="tabular inline-flex items-center gap-1.5 text-sm font-medium text-[var(--warning-fg)]"><CalendarClock size={14} aria-hidden /> {formatDate(d.deadline)}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </Card>
+              <ul className="rows mt-2">
+                {data.deadlines.map((d, i) => (
+                  <li key={`${d.studentId}-${d.company}-${i}`}>
+                    <Link href={`/teacher/classes/${d.classId}/students/${d.studentId}`} className="row-link flex-wrap justify-between gap-x-4 gap-y-1">
+                      <div className="min-w-0"><p className="truncate text-sm font-bold">{d.studentName} · {d.company}</p><p className="text-small truncate text-muted">{d.position ? `${d.position} · ` : ""}{d.className}</p></div>
+                      <span className="tabular inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-[var(--warning-fg)]"><CalendarClock size={14} aria-hidden /> {formatDate(d.deadline)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
             )}
           </section>
-        </>
+        </div>
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Danach kannst du Schülerinnen und Schüler per Link, Code, QR-Code oder E-Mail einladen.">
         <form onSubmit={submit} className="space-y-4">

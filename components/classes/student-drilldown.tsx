@@ -3,16 +3,15 @@
 import { useEffect, useState } from "react";
 import { EyeOff, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getClassStudentApplications, removeClassStudent } from "@/lib/classes";
 import { shownName } from "@/lib/profile-names";
-import { statusLabels } from "@/lib/utils";
 import type { ClassStudentApplication, ClassStudentOverview } from "@/types";
 import { AliasEditor } from "./alias-editor";
-import { STATUS_COLORS, errorMessage, formatDate } from "./shared";
+import { errorMessage, formatDate } from "./shared";
 
 export function StudentDrilldown({ classId, student, alias, onAlias, onClose, onRemoved }: { classId: string; student: ClassStudentOverview | null; alias?: string; onAlias?: (alias: string) => void; onClose: () => void; onRemoved: () => void }) {
   const [state, setState] = useState<{ id: string; apps?: ClassStudentApplication[]; hidden?: boolean; error?: string } | null>(null);
@@ -45,20 +44,20 @@ export function StudentDrilldown({ classId, student, alias, onAlias, onClose, on
       {current?.hidden && <EmptyState icon={<EyeOff size={24} />} title="Teilt keine Daten" description="Diese Person hat die Freigabe für die Klasse deaktiviert." />}
       {current && !current.error && !current.hidden && sorted.length === 0 && <EmptyState title="Noch keine Bewerbungen" />}
       {sorted.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="rows border-y-[length:var(--border-w)] border-[var(--outline)]">
           {sorted.map((a) => (
-            <li key={a.id} className="rounded-[var(--radius-md)] border border-[var(--line)] p-3">
+            <li key={a.id} className="py-3">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0"><p className="truncate text-sm font-semibold">{a.company}</p><p className="text-small truncate text-muted">{a.position}{a.location ? ` · ${a.location}` : ""}</p></div>
-                <Badge className="shrink-0"><span className="h-2 w-2 rounded-full" style={{ background: STATUS_COLORS[a.status] }} />{statusLabels[a.status]}</Badge>
+                <div className="min-w-0"><p className="truncate text-sm font-bold">{a.company}</p><p className="text-small truncate text-muted">{a.position}{a.location ? ` · ${a.location}` : ""}</p></div>
+                <StatusBadge status={a.status} className="shrink-0" />
               </div>
-              <p className="text-small mt-1.5 text-muted">{a.appliedAt ? `Beworben am ${formatDate(a.appliedAt)}` : `Angelegt am ${formatDate(a.createdAt)}`}{a.deadline ? ` · Frist ${formatDate(a.deadline)}` : ""}</p>
+              <p className="text-small mt-1 text-muted">{a.appliedAt ? `Beworben am ${formatDate(a.appliedAt)}` : `Angelegt am ${formatDate(a.createdAt)}`}{a.deadline ? ` · Frist ${formatDate(a.deadline)}` : ""}</p>
             </li>
           ))}
         </ul>
       )}
-      {student && onAlias && <div className="mt-5 border-t border-[var(--line)] pt-4"><AliasEditor key={student.studentId} classId={classId} studentId={student.studentId} realName={shownName({ displayName: student.displayName })} alias={alias} onSaved={onAlias} /></div>}
-      <div className="mt-5 border-t border-[var(--line)] pt-4">
+      {student && onAlias && <div className="mt-5 border-t-[1.5px] border-dashed border-[var(--line)] pt-4"><AliasEditor key={student.studentId} classId={classId} studentId={student.studentId} realName={shownName({ displayName: student.displayName })} alias={alias} onSaved={onAlias} /></div>}
+      <div className="mt-4 border-t-[1.5px] border-dashed border-[var(--line)] pt-3">
         {confirming ? (
           <div className="space-y-2">
             <p className="text-small">Aus der Klasse entfernen? Du siehst die Bewerbungen danach nicht mehr. Die Person kann mit dem Code wieder beitreten.</p>

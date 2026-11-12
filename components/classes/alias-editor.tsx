@@ -19,7 +19,7 @@ export function AliasEditor({ classId, studentId, realName, alias, onSaved }: { 
   }
   return (
     <form onSubmit={save} className="space-y-1.5">
-      <label htmlFor={`alias-${studentId}`} className="text-sm font-semibold">Anzeigename für dich</label>
+      <label htmlFor={`alias-${studentId}`} className="text-sm font-bold">Anzeigename für dich</label>
       <p className="text-small text-muted">Nur Lehrpersonen dieser Klasse sehen ihn. Angemeldet als «{realName}». Leer lassen, um den Namen der Person zu zeigen.</p>
       <div className="flex flex-col gap-2 sm:flex-row">
         <Input id={`alias-${studentId}`} value={value} onChange={(e) => { setValue(e.target.value); setSaved(false); }} maxLength={60} placeholder="z. B. Mia Muster" className="text-base! sm:max-w-xs sm:text-base!" />
