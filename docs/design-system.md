@@ -49,7 +49,7 @@ Tailwind aliases: `bg-paper bg-surface bg-surface-2 text-ink text-muted border-l
 - Big contrast in size: one loud title, the rest calm. No uppercase letter-spaced mini labels.
 
 ## Shape
-- Contour: `border-[length:var(--border-w)] border-[var(--outline)]` (1.5px ink). Hard offset shadow: `shadow-[var(--shadow-sm|md|lg)]` = 2/3/5px, no blur.
+- Contour: `border-[length:var(--border-w)] border-[var(--outline)]` (1.5px ink). Hard offset shadow: `shadow-[var(--shadow-sm)]`, `shadow-[var(--shadow-md)]`, `shadow-[var(--shadow-lg)]` = 2/3/5px, no blur.
 - Radius: `--radius-sm 6 / md 8 / lg 10 / xl 12`; Tailwind `rounded-lg` (8) / `rounded-xl` (12). Pills (`rounded-full`) only for buttons, chips, badges.
 - Not everything is a shadowed card. Per screen: one or two stickers (`.panel`), the rest plain lists (`.rows`) on paper.
 - Asymmetry welcome: uneven grid columns, a sticker rotated with `tilt-l` (-2°), `tilt-r` (2°), `tilt-l3`.
