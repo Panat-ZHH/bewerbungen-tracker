@@ -214,6 +214,7 @@ test("mock review: valid, deterministic and based on the text", () => {
 
   const eszett = mockReview({ text: LETTER.replace("Grüsse", "Grüße") });
   assert.ok(eszett.improve.some((t) => /ss/.test(t.tipp)));
+  assert.ok(!JSON.stringify(eszett).includes("ß"), "mock output must survive normalizeReview (no Eszett)");
 });
 
 // ---------- Anthropic call ----------

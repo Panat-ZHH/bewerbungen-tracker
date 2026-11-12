@@ -80,7 +80,7 @@ const COMMENTS: Record<AiReviewCategoryKey, (score: number, s: TextSignals) => s
   sprache: (n) => (n >= 14 ? "Dein Text ist gut lesbar." : "Einige Sätze kannst du noch klarer schreiben."),
   motivation: (n) => (n >= 13 ? "Man merkt, warum dich die Lehre interessiert." : "Schreib noch genauer, warum du genau diese Lehre willst."),
   passung: (_n, s) => (s.mentionsCompany ? "Du sprichst die Firma direkt an." : "Die Firma kommt im Text noch kaum vor."),
-  rechtschreibung: (_n, s) => (s.hasEszett ? "In der Schweiz schreibt man «ss» statt «ß»." : "Wir haben keine groben Fehler gefunden."),
+  rechtschreibung: (_n, s) => (s.hasEszett ? "In der Schweiz schreibt man immer «ss», nie das deutsche Eszett." : "Wir haben keine groben Fehler gefunden."),
 };
 
 /** Builds a plausible AiReviewResult from heuristics. Always satisfies the contract (5 categories, list sizes). */
@@ -133,8 +133,8 @@ export function mockReview(input: MockInput): AiReviewResult {
   }
   if (s.hasEszett) {
     improve.push({
-      tipp: "Ersetze «ß» durch «ss».",
-      beispiel: { vorher: "Grüße", nachher: "Grüsse", warum: "In der Schweiz verwendet man kein «ß»." },
+      // No literal Eszett here: normalizeReview turns every one into "ss", which would garble the tip.
+      tipp: "Schreib überall «ss» statt dem deutschen Eszett, zum Beispiel bei «Grüsse» oder «gross».",
     });
   }
   improve.push({
