@@ -402,7 +402,7 @@ flow("not-found", student(), async (t) => {
 flow("navigation", student({ apps: seedApps(3) }), async (t) => {
   const { page } = t;
   await t.visit("/dashboard");
-  t.check("dashboard greets with stats", await t.text(/Dein Überblick/));
+  t.check("dashboard greets by name and shows the progress strip", await t.text(/^Hoi .+!/) && await t.text(/Dein Weg zur Lehrstelle/));
   const nav = t.mobile ? page.locator("nav").last() : page.locator("header, nav").first();
   await page.getByRole("link", { name: /^Bewerbungen$/ }).locator("visible=true").first().click();
   await page.waitForURL(/\/applications$/).catch(() => undefined);
