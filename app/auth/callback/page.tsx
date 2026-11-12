@@ -1,6 +1,6 @@
 "use client";
 
-import { BrandMark } from "@/components/ui/brand-mark";
+import { AuthFrame } from "@/components/onboarding/auth-frame";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -45,18 +45,15 @@ export default function AuthCallbackPage() {
   }, [router]);
 
   return (
-    <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-4 py-8">
-      <div className="animate-rise w-full max-w-[420px] text-center">
-        <BrandMark size={56} radius={16} pad={4} white className="brand-mark-raised mx-auto" priority />
+    <AuthFrame className="max-w-[440px]">
         {error ? (
-          <div className="panel mt-6 space-y-4 p-6">
+          <div className="panel space-y-4 p-5 sm:p-7">
             <StatusMessage tone="danger">{error}</StatusMessage>
-            <Link href="/login" className="inline-flex min-h-11 items-center justify-center font-semibold text-[var(--brand)] hover:underline">Zurück zur Anmeldung</Link>
+            <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]">Zurück zur Anmeldung</Link>
           </div>
         ) : (
-          <div role="status" className="mt-6 text-sm text-muted">Du wirst angemeldet …</div>
+          <div role="status" className="flex items-center gap-3"><span aria-hidden className="spinner h-5 w-5 shrink-0 text-[var(--brand)]" /><span className="font-display text-2xl font-extrabold tracking-[-.02em]">Du wirst angemeldet …</span></div>
         )}
-      </div>
-    </main>
+    </AuthFrame>
   );
 }

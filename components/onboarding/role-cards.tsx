@@ -1,6 +1,6 @@
 "use client";
 
-import { GraduationCap, UserRound } from "lucide-react";
+import { Check, GraduationCap, UserRound } from "lucide-react";
 import type { UserRole } from "@/types";
 
 const options: { value: UserRole; label: string; hint: string; icon: typeof UserRound }[] = [
@@ -13,14 +13,16 @@ export function RoleCards({ value, onChange, disabled }: { value: UserRole | nul
   return (
     <fieldset disabled={disabled}>
       <legend className="sr-only">Ich bin</legend>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {options.map(({ value: v, label, hint, icon: Icon }) => {
+      <div className="grid gap-4 sm:grid-cols-2 sm:pb-3">
+        {options.map(({ value: v, label, hint, icon: Icon }, i) => {
           const selected = value === v;
           return (
-            <label key={v} className={`relative flex min-h-[112px] cursor-pointer flex-col items-start gap-1.5 rounded-xl border p-4 text-left transition duration-200 focus-within:ring-4 focus-within:ring-[var(--brand)]/25 active:scale-[.98] ${selected ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-[var(--shadow-sm)]" : "border-[var(--field-border)] bg-[var(--surface)] hover:border-[var(--brand)]/50"}`}>
+            <label key={v} className={`pressable relative flex min-h-[128px] cursor-pointer flex-col items-start gap-2 rounded-xl border-[length:var(--border-w)] p-4 text-left shadow-[var(--shadow-md)] focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-[var(--focus-ring)] sm:p-5 ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)]" : "border-[var(--outline)] bg-[var(--surface)]"} ${i === 1 ? "sm:translate-y-3" : ""}`}>
               <input type="radio" name="role" value={v} checked={selected} onChange={() => onChange(v)} className="sr-only" />
-              <span className={`flex items-center gap-2 text-[15px] font-semibold ${selected ? "text-[var(--brand-strong)]" : ""}`}><Icon size={18} />{label}</span>
-              <span className="text-small text-muted">{hint}</span>
+              <Icon size={28} strokeWidth={2} aria-hidden className={selected ? "" : "text-[var(--brand)]"} />
+              <span className="font-display text-xl font-extrabold tracking-[-.02em]">{label}</span>
+              <span className={`text-small ${selected ? "" : "text-muted"}`}>{hint}</span>
+              {selected && <Check size={18} strokeWidth={3} aria-hidden className="absolute right-4 top-4" />}
             </label>
           );
         })}

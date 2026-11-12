@@ -30,11 +30,11 @@ export function InviteBanner() {
   if (!text && !friend) return null;
   const Icon = friend ? UserPlus : GraduationCap;
   return (
-    <div role="status" className="mb-5 flex items-start gap-3 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand-soft)] p-4 text-left">
-      <Icon size={20} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />
+    <div role="status" className="animate-sticker mb-6 flex items-start gap-3 rounded-[var(--radius-lg)] border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] p-4 text-left text-[var(--on-sun)] shadow-[var(--shadow-sm)] [--tilt:-1deg]">
+      <Icon size={22} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0" />
       <div className="text-sm">
-        <p className="font-semibold text-[var(--brand-strong)]">{friend ? "Du wurdest zu WendApply eingeladen" : text}</p>
-        <p className="mt-0.5 text-muted">{friend ? "Melde dich an oder erstelle ein Konto, dann geht es direkt weiter." : "Melde dich an oder erstelle ein Konto. Danach kannst du beitreten und selbst entscheiden, was du teilst."}</p>
+        <p className="font-bold">{friend ? "Du wurdest zu WendApply eingeladen" : text}</p>
+        <p className="mt-0.5">{friend ? "Melde dich an oder erstelle ein Konto, dann geht es direkt weiter." : "Melde dich an oder erstelle ein Konto. Danach kannst du beitreten und selbst entscheiden, was du teilst."}</p>
       </div>
     </div>
   );
