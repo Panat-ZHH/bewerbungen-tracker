@@ -4,7 +4,7 @@ import { CalendarLinks } from "@/components/reminders/calendar-links";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, CalendarDays, ExternalLink, MapPin, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, CalendarDays, ExternalLink, MapPin, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { ApplicationForm } from "@/components/applications/application-form";
 import { ApplicationTimeline } from "@/components/applications/application-timeline";
 import { StatusPills } from "@/components/applications/status-pills";
@@ -172,6 +172,11 @@ export default function ApplicationDetailPage() {
               <section>
                 <h2 className="text-heading mb-3">Unterlagen</h2>
                 <ApplicationDocuments applicationId={application.id} />
+                <p className="mt-4 flex flex-wrap items-center gap-x-2 text-sm text-muted">
+                  <Sparkles size={16} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />
+                  Ist dein Brief bereit?
+                  <Link href={`/bewerbung-check?application=${encodeURIComponent(application.id)}`} className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline underline-offset-4" data-testid="ai-review-link">Bewerbung checken lassen</Link>
+                </p>
               </section>
             </div>
 
