@@ -22,6 +22,8 @@ export default function ImpressumPage() {
         <p className="mt-2">UID / Handelsregister-Nr.: <Todo>UID bestätigen</Todo><br />MWST-Nr.: <Todo>falls vorhanden</Todo></p></section>
       <section aria-labelledby="haftung"><h2 id="haftung" className="text-heading">Haftungsausschluss</h2>
         <p className="mt-2 text-muted">Wir erstellen die Inhalte dieser Website mit Sorgfalt, übernehmen aber keine Gewähr für Richtigkeit, Vollständigkeit und Aktualität. Für Inhalte verlinkter externer Seiten sind ausschliesslich deren Betreiber verantwortlich. Stellenangaben stammen von Dritten.</p></section>
+      <section aria-labelledby="datenquellen"><h2 id="datenquellen" className="text-heading">Datenquellen</h2>
+        <p className="mt-2 text-muted">Ortsdaten: Bundesamt für Landestopografie swisstopo</p></section>
       <p className="text-small text-muted">Siehe auch: <Link className="underline underline-offset-4" href="/datenschutz">Datenschutzerklärung</Link></p>
     </TextPage>
   );
