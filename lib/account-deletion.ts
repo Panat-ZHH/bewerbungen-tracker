@@ -56,7 +56,7 @@ export function deletionItems(s: AccountSummary | null): string[] {
   const items = [
     s ? `${n(s.applications, "Bewerbung", "Bewerbungen")} samt Notizen, Kontakten, Fristen und Verlauf` : "Alle Bewerbungen samt Notizen, Kontakten, Fristen und Verlauf",
     s ? `${n(s.documents, "Dokument", "Dokumente")} (Lebenslauf und Anhänge) inklusive der hochgeladenen Dateien` : "Alle Dokumente und hochgeladenen Dateien (Lebenslauf, Anhänge)",
-    "Dein Profil mit Profilbild, deine gespeicherten Suchen und Einstellungen",
+    "Dein Profil mit Profilbild, deine gespeicherten Suchen, Einstellungen und Bewerbungs-Checks",
     "Deine Karte mit Inseln, Gebäuden, Münzen und Belohnungen",
     s ? `Freundschaften und Anfragen (${s.friends}) – deine Freunde sehen dich danach nicht mehr` : "Freundschaften und Anfragen – deine Freunde sehen dich danach nicht mehr",
     "Deine Anmeldung (E-Mail oder Google-Verknüpfung)",
