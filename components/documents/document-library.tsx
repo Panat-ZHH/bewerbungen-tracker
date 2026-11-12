@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { Eye, FileText, Image as ImageIcon, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { addDocument, documentUrl, listDocuments, removeDocument } from "@/lib/documents";
@@ -75,54 +74,66 @@ export function DocumentLibrary() {
   }
 
   if (loading) {
-    return <div className="grid gap-4 lg:grid-cols-2" role="status" aria-label="Dokumente werden geladen">{[0, 1, 2, 3].map((item) => <Card key={item} className="space-y-3 p-5"><Skeleton className="h-6 w-1/2" /><Skeleton className="h-4" /><Skeleton className="h-11 w-1/3" /></Card>)}</div>;
+    return <div className="rows border-y-[length:var(--border-w)] border-[var(--outline)]" role="status" aria-label="Dokumente werden geladen">{[0, 1, 2, 3].map((item) => <div key={item} className="space-y-3 py-6"><Skeleton className="h-6 w-1/3" /><Skeleton className="h-4 w-2/3" /><Skeleton className="h-10 w-40" /></div>)}</div>;
   }
+
+  // Only one loud (blue) upload button per view: the first kind that is still missing.
+  const firstMissing = DOCUMENT_KINDS.find((info) => !docs.some((doc) => doc.kind === info.kind))?.kind;
+  const kindsDone = DOCUMENT_KINDS.filter((info) => docs.some((doc) => doc.kind === info.kind)).length;
 
   return (
     <>
       {notice && <StatusMessage tone="danger" className="mb-5">{notice}</StatusMessage>}
-      <div className="pb-safe grid grid-cols-1 gap-4 lg:grid-cols-2 [&>*]:min-w-0">
+      <p className="mb-4 flex items-center gap-2.5 text-sm text-muted">
+        <span className={`sticker tilt-l ${kindsDone === DOCUMENT_KINDS.length ? "sticker-mint" : ""}`}>{kindsDone} von {DOCUMENT_KINDS.length}</span>
+        {kindsDone === DOCUMENT_KINDS.length ? "Dein Dossier ist komplett." : "Arten von Unterlagen sind schon da."}
+      </p>
+      <div className="pb-safe"><div className="rows border-y-[length:var(--border-w)] border-[var(--outline)] [&>*]:min-w-0">
         {DOCUMENT_KINDS.map((info) => {
           const items = docs.filter((doc) => doc.kind === info.kind);
           const Icon = info.photoOnly ? ImageIcon : FileText;
           const single = info.kind === "lebenslauf" || info.kind === "foto";
           return (
-            <Card key={info.kind} className="animate-rise flex flex-col p-5">
+            <section key={info.kind} className="animate-rise grid gap-x-10 gap-y-3 py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--neutral-bg)] text-[var(--neutral-fg)]"><Icon size={19} /></span>
+                <Icon size={24} strokeWidth={2.2} aria-hidden className={`mt-0.5 shrink-0 ${items.length ? "text-[var(--brand)]" : "text-[var(--muted)]"}`} />
                 <div className="min-w-0 flex-1">
-                  <h2 className="text-heading">{info.plural}</h2>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <h2 className="text-heading">{info.plural}</h2>
+                    <Badge tone={items.length ? "success" : "neutral"}>{items.length ? (items.length === 1 ? "1 Datei" : `${items.length} Dateien`) : "Fehlt noch"}</Badge>
+                  </div>
                   <p className="text-small mt-1 text-muted">{info.hint}</p>
                 </div>
-                <Badge tone={items.length ? "success" : "neutral"}>{items.length ? (items.length === 1 ? "1 Datei" : `${items.length} Dateien`) : "Fehlt noch"}</Badge>
               </div>
 
-              {items.length > 0 && (
-                <ul className="mt-4 divide-y divide-[var(--line)] border-y border-[var(--line)]">
-                  {items.map((doc) => (
-                    <li key={doc.id} className="flex items-center gap-2 py-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{doc.name}</p>
-                        <p className="text-small truncate text-muted">{[formatBytes(doc.fileSize), doc.updatedAt && new Date(doc.updatedAt).toLocaleDateString("de-CH")].filter(Boolean).join(" · ")}</p>
-                      </div>
-                      <button type="button" onClick={() => open(doc)} aria-label={`${doc.name} ansehen`} title="Ansehen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-[var(--hover)] hover:text-[var(--ink)]"><Eye size={16} /></button>
-                      <button type="button" onClick={() => setToDelete(doc)} aria-label={`${doc.name} löschen`} title="Löschen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition hover:bg-[var(--danger-bg)] hover:text-[var(--danger-fg)]"><Trash2 size={16} /></button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <div className="min-w-0">
+                {items.length > 0 && (
+                  <ul className="rows mb-3">
+                    {items.map((doc) => (
+                      <li key={doc.id} className="flex items-center gap-1 py-1.5">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold">{doc.name}</p>
+                          <p className="text-small truncate text-muted">{[formatBytes(doc.fileSize), doc.updatedAt && new Date(doc.updatedAt).toLocaleDateString("de-CH")].filter(Boolean).join(" · ")}</p>
+                        </div>
+                        <button type="button" onClick={() => open(doc)} aria-label={`${doc.name} ansehen`} title="Ansehen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] active:translate-y-px"><Eye size={17} /></button>
+                        <button type="button" onClick={() => setToDelete(doc)} aria-label={`${doc.name} löschen`} title="Löschen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-[var(--danger-bg)] hover:text-[var(--danger-fg)] active:translate-y-px"><Trash2 size={17} /></button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
-              <input ref={(element) => { inputs.current[info.kind] = element; }} type="file" accept={accept(info.kind)} className="hidden" aria-label={`${info.plural} hochladen`} onChange={(event) => upload(info.kind, event.target.files?.[0])} />
-              <div className="mt-4 flex items-center gap-3">
-                <Button variant={items.length ? "secondary" : "primary"} loading={busy === info.kind} icon={<Upload size={15} />} onClick={() => inputs.current[info.kind]?.click()}>
-                  {busy === info.kind ? "Lädt …" : single && items.length ? "Weitere Version" : "Datei auswählen"}
-                </Button>
-                <span className="text-small text-muted">{info.photoOnly ? "JPG oder PNG" : "PDF, JPG oder PNG"}, max. {MAX_DOCUMENT_BYTES / 1024 / 1024} MB</span>
+                <input ref={(element) => { inputs.current[info.kind] = element; }} type="file" accept={accept(info.kind)} className="hidden" aria-label={`${info.plural} hochladen`} onChange={(event) => upload(info.kind, event.target.files?.[0])} />
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                  <Button variant={info.kind === firstMissing ? "primary" : "secondary"} loading={busy === info.kind} icon={<Upload size={15} />} onClick={() => inputs.current[info.kind]?.click()}>
+                    {busy === info.kind ? "Lädt …" : single && items.length ? "Weitere Version" : "Datei auswählen"}
+                  </Button>
+                  <span className="text-small text-muted">{info.photoOnly ? "JPG oder PNG" : "PDF, JPG oder PNG"}, max. {MAX_DOCUMENT_BYTES / 1024 / 1024} MB</span>
+                </div>
               </div>
-            </Card>
+            </section>
           );
         })}
-      </div>
+      </div></div>
 
       <Modal
         open={Boolean(toDelete)}

@@ -1,21 +1,14 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { badgeToneClasses } from "@/components/ui/badge";
 import { statusTone } from "@/components/ui/status-badge";
 import { cn, statusLabels } from "@/lib/utils";
 import type { ApplicationStatus } from "@/types";
 
-// Local adapter: renders every status of statusLabels (so new Lehrstellen statuses show up automatically)
-// as a radio group of pills instead of a <select>.
-const toneClass: Record<string, string> = {
-  neutral: "border-[var(--neutral-line)] bg-[var(--neutral-bg)] text-[var(--neutral-fg)]",
-  brand: "border-[var(--info-line)] bg-[var(--brand-soft)] text-[var(--brand-strong)]",
-  info: "border-[var(--info-line)] bg-[var(--info-bg)] text-[var(--info-fg)]",
-  success: "border-[var(--success-line)] bg-[var(--success-bg)] text-[var(--success-fg)]",
-  warning: "border-[var(--warning-line)] bg-[var(--warning-bg)] text-[var(--warning-fg)]",
-  danger: "border-[var(--danger-line)] bg-[var(--danger-bg)] text-[var(--danger-fg)]",
-};
-
+// Renders every status of statusLabels (so new Lehrstellen statuses show up automatically)
+// as a radio group of sticker chips instead of a <select>. Selected = flat tone fill + contour of the status
+// (Absage/Zurückgezogen stay calm sand, never red).
 export function StatusPills({ value, onChange, describedBy }: { value: ApplicationStatus; onChange: (status: ApplicationStatus) => void; describedBy?: string }) {
   const entries = Object.entries(statusLabels) as [ApplicationStatus, string][];
   return (
@@ -30,11 +23,11 @@ export function StatusPills({ value, onChange, describedBy }: { value: Applicati
             aria-checked={selected}
             onClick={() => onChange(status)}
             className={cn(
-              "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--brand)]/25",
-              selected ? cn(toneClass[statusTone[status] ?? "neutral"], "font-semibold ring-2 ring-current/30") : "border-[var(--field-border)] bg-[var(--field-bg)] text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)]",
+              "inline-flex min-h-11 items-center gap-1.5 rounded-full border-[length:var(--border-w)] px-3.5 text-sm transition-colors duration-150 active:translate-y-px",
+              selected ? cn(badgeToneClasses[statusTone[status] ?? "neutral"], "font-bold shadow-[var(--shadow-sm)]") : "border-[var(--line)] font-medium text-[var(--muted)] hover:border-[var(--outline)] hover:text-[var(--ink)]",
             )}
           >
-            {selected && <Check size={14} aria-hidden />}
+            {selected && <Check size={14} strokeWidth={3} aria-hidden />}
             {label}
           </button>
         );

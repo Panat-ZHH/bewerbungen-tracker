@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/ui/page-header";
 export default function DocumentsPage() {
   return (
     <WorkspaceShell active="Lebensläufe">
-      <PageHeader title="Meine Dokumente" description="Lebenslauf, Motivationsschreiben, Zeugnisse und Foto an einem Ort. Nur du siehst sie, und du hängst sie bei jeder Bewerbung an." />
+      <PageHeader title={<>Meine <span className="marker">Dokumente</span></>} description="Lebenslauf, Motivationsschreiben, Zeugnisse und Foto an einem Ort. Nur du siehst sie, und du hängst sie bei jeder Bewerbung an." />
       <DocumentLibrary />
     </WorkspaceShell>
   );

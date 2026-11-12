@@ -41,27 +41,27 @@ export function ApplicationDocuments({ applicationId }: { applicationId: string 
     }
   }
 
-  if (loading) return <div className="h-24 skeleton rounded-[14px]" role="status" aria-label="Unterlagen werden geladen" />;
+  if (loading) return <div className="skeleton h-24" role="status" aria-label="Unterlagen werden geladen" />;
 
   return (
     <div>
       {error && <StatusMessage tone="danger" className="mb-4">{error}</StatusMessage>}
-      <p className="text-sm font-medium" aria-live="polite">Dossier: {checklist.done} von {checklist.total} Unterlagen dabei</p>
+      <p className="text-sm font-semibold" aria-live="polite">Dossier: {checklist.done} von {checklist.total} Unterlagen dabei</p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {checklist.items.map((item) => (
-          <li key={item.kind} className={`flex items-center gap-2 text-sm ${item.done ? "text-[var(--success-fg)]" : "text-muted"}`}>
-            {item.done ? <Check size={16} aria-hidden /> : <Circle size={16} aria-hidden />}
+          <li key={item.kind} className={`flex items-center gap-2 text-sm ${item.done ? "font-semibold text-[var(--success-fg)]" : "text-muted"}`}>
+            {item.done ? <Check size={16} strokeWidth={3} aria-hidden /> : <Circle size={16} aria-hidden />}
             <span>{item.label}</span>
             <span className="sr-only">{item.done ? "dabei" : "fehlt noch"}</span>
           </li>
         ))}
       </ul>
 
-      <h3 className="mt-6 text-sm font-semibold">Anhängen</h3>
+      <h3 className="font-body mt-6 text-sm font-bold tracking-normal">Anhängen</h3>
       {docs.length === 0 ? (
-        <p className="mt-2 text-sm text-muted">Du hast noch keine Dokumente hochgeladen. <Link href="/cvs" className="font-medium text-[var(--brand)] hover:underline">Dokument hochladen</Link></p>
+        <p className="mt-2 text-sm text-muted">Du hast noch keine Dokumente hochgeladen. <Link href="/cvs" className="font-semibold text-[var(--brand)] hover:underline">Dokument hochladen</Link></p>
       ) : (
-        <ul className="mt-2 divide-y divide-[var(--line)]">
+        <ul className="rows mt-1 border-y-[length:var(--border-w)] border-[var(--outline)]">
           {docs.map((doc) => {
             const id = `att-${doc.id}`;
             return (
@@ -69,7 +69,7 @@ export function ApplicationDocuments({ applicationId }: { applicationId: string 
                 <label htmlFor={id} className="flex min-h-11 cursor-pointer items-center gap-3 py-2">
                   <input id={id} type="checkbox" checked={attached.has(doc.id)} disabled={pending === doc.id} onChange={() => toggle(doc)} className="h-5 w-5 shrink-0 accent-[var(--brand)]" />
                   <FileText size={16} className="shrink-0 text-muted" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-sm">{doc.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium">{doc.name}</span>
                   <span className="text-small shrink-0 text-muted">{kindLabel(doc.kind)}</span>
                 </label>
               </li>
@@ -77,7 +77,7 @@ export function ApplicationDocuments({ applicationId }: { applicationId: string 
           })}
         </ul>
       )}
-      {docs.length > 0 && <p className="mt-3 text-small text-muted"><Link href="/cvs" className="font-medium text-[var(--brand)] hover:underline">Dokumente verwalten</Link></p>}
+      {docs.length > 0 && <p className="mt-3 text-small text-muted"><Link href="/cvs" className="font-semibold text-[var(--brand)] hover:underline">Dokumente verwalten</Link></p>}
     </div>
   );
 }
