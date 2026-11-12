@@ -12,7 +12,7 @@ const variants: Record<ButtonVariant, string> = {
   sun: cn(sticker, "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)]"),
   secondary: cn(sticker, "border-[var(--outline)] bg-[var(--surface)] text-[var(--ink)]"),
   ghost: "text-[var(--ink)] underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:bg-[var(--hover)] hover:decoration-[var(--ink)] active:translate-y-px",
-  danger: cn(sticker, "border-[var(--danger-fg)] bg-[var(--danger-bg)] text-[var(--danger-fg)] shadow-none hover:shadow-none"),
+  danger: "border-[length:var(--border-w)] border-[var(--danger-fg)] bg-[var(--danger-bg)] text-[var(--danger-fg)] transition-transform hover:brightness-95 active:translate-y-px",
 };
 const sizes: Record<ButtonSize, string> = {
   sm: "min-h-9 px-3.5 text-[13px] pointer-coarse:min-h-11",

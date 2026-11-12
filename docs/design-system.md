@@ -22,7 +22,7 @@ All tokens are CSS variables in `app/globals.css`. **Never hard-code a colour, r
 |---|---|---|---|
 | `--paper` | `#fff9ef` | `#15140f` | page background (warm, never bluish / navy) |
 | `--surface` | `#ffffff` | `#211f19` | sticker / card face, sheets |
-| `--surface-2` | `#f7efdf` | `#2c2a22` | `.inset`, hovered rows, empty tracks |
+| `--surface-2` | `#f9f2e4` | `#2c2a22` | `.inset`, hovered rows, empty tracks |
 | `--ink` | `#16140f` | `#f6f0e3` | text |
 | `--muted` | `#5e584c` | `#b5ad9c` | secondary text (AA on paper and surface) |
 | `--line` | `#e6dcc8` | `#3b382e` | dashed dividers |
