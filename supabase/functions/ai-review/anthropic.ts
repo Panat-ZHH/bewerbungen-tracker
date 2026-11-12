@@ -28,7 +28,8 @@ export function buildRequestBody(input: ReviewInput, model: string): Record<stri
   return {
     model,
     max_tokens: MAX_TOKENS,
-    system: SYSTEM_PROMPT,
+    // Static system prompt (~3k tokens) → prompt caching across requests.
+    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     messages: [{ role: "user", content: buildUserMessage(input) }],
     output_config: outputConfig,
   };
@@ -103,7 +104,7 @@ async function attempt(input: ReviewInput, opts: Required<Omit<AnthropicOptions,
   const raw = parseMessageResponse(body);
   let result: AiReviewResult;
   try {
-    result = normalizeReview(raw);
+    result = normalizeReview(raw, { hasJobAd: Boolean(input.jobAd?.trim()) });
   } catch {
     throw new AttemptError("invalid_review", true);
   }

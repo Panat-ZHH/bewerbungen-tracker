@@ -250,7 +250,9 @@ test("anthropic: request shape (model, headers, structured output) and success",
   assert.equal(c.body.model, "claude-haiku-5-5");
   assert.ok(c.body.max_tokens >= 4000);
   assert.equal(c.body.messages[0].role, "user");
-  assert.equal(typeof c.body.system, "string");
+  assert.equal(c.body.system[0].type, "text");
+  assert.equal(typeof c.body.system[0].text, "string");
+  assert.deepEqual(c.body.system[0].cache_control, { type: "ephemeral" });
   assert.ok(!("temperature" in c.body), "sampling params are rejected by current models");
   assert.ok(!("thinking" in c.body));
   const schema = (await import(`${fn}prompt.ts`)).REVIEW_JSON_SCHEMA;

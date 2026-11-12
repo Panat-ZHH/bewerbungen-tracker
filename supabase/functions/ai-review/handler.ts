@@ -125,7 +125,7 @@ export function createHandler(deps: HandlerDeps): (req: Request) => Promise<Resp
       let result: AiReviewResult;
       let model: string;
       if (mock) {
-        result = normalizeReview(mockReview(input));
+        result = normalizeReview(mockReview(input), { hasJobAd: Boolean(jobAd?.trim()) });
         model = MOCK_MODEL;
       } else {
         const out = await reviewWithAnthropic(input, {
