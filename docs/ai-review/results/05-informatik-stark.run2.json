@@ -1,0 +1,93 @@
+{
+  "sample": "05-informatik-stark",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "strong",
+    "score": "78-92"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 87,
+  "issues": [],
+  "result": {
+    "score": 87,
+    "summary": "Dein Brief ist stark und ehrlich geschrieben. Besonders gut sind deine konkreten Erlebnisse mit Computern und im Schulteam. Mit wenigen Ergänzungen wird er noch besser.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 18,
+        "comment": "Absender, Empfänger, Datum, Betreff, Anrede, drei Absätze, Gruss und Beilagen sind alle da. Der Hauptteil hat eine gute Länge."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 15,
+        "comment": "Der Text ist klar und höflich, mit eigenen Worten. Zweimal «Dabei» am Anfang wirkt etwas gleich."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 18,
+        "comment": "Du nennst mehrere konkrete Erlebnisse: PC-Bau, WLAN zu Hause, Schulteam und Schnuppern in Köniz."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 16,
+        "comment": "Du gehst auf Telefonkontakt und den Multicheck ICT ein, beides steht im Inserat. Warum gerade Datacom, steht noch nicht im Brief."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 20,
+        "comment": "Ich finde keine Rechtschreib- oder Grammatikfehler. Der Text ist sauber geschrieben."
+      }
+    ],
+    "good": [
+      "Du nennst konkrete Erlebnisse: den PC aus alten Teilen, das WLAN zu Hause und die Hilfe im Schulteam. Das zeigt echtes Interesse.",
+      "Der Brief ist vollständig: Absender, Datum, Betreff, Anrede, Hauptteil, Schluss und Beilagen stehen alle drin.",
+      "Du greifst Anforderungen aus dem Inserat auf, zum Beispiel den Kontakt mit Kundinnen und Kunden am Telefon und den Multicheck ICT."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreib, warum genau Datacom Bern für dich passt. Bisher steht nur, dass du die Stelle gesehen hast.",
+        "beispiel": {
+          "vorher": "Auf Ihrer Webseite habe ich gesehen, dass Sie ab August 2027 einen Lernenden in der Plattformentwicklung suchen.",
+          "nachher": "Auf Ihrer Webseite habe ich gesehen, dass Sie ab August 2027 einen Lernenden in der Plattformentwicklung suchen. Mich reizt besonders, bei Ihnen Server und Netzwerke einrichten und betreuen zu lernen.",
+          "warum": "So zeigst du, dass du das Inserat gelesen hast und genau diese Aufgaben willst."
+        }
+      },
+      {
+        "tipp": "Vermeide das Wort «Dabei» zweimal in kurzer Zeit. Wähle einen anderen Satzanfang.",
+        "beispiel": {
+          "vorher": "Dabei habe ich gemerkt, dass mir das Suchen nach Fehlern richtig Spass macht.",
+          "nachher": "Beim Helfen merkte ich, dass mir das Suchen nach Fehlern richtig Spass macht.",
+          "warum": "Der Satz wird abwechslungsreicher und flüssiger zu lesen."
+        }
+      },
+      {
+        "tipp": "Schreib in einem Satz, was du in Köniz über den Beruf gelernt hast. Das macht das Schnuppern greifbarer."
+      }
+    ],
+    "company": [
+      {
+        "tipp": "Das Inserat nennt Kundschaft am Telefon und vor Ort. Nimm beides in deinen Brief auf.",
+        "beispiel": {
+          "vorher": "Genau das brauche ich auch, wenn ich bei Ihnen Kundinnen und Kunden am Telefon helfe.",
+          "nachher": "Genau das brauche ich auch, wenn ich bei Ihnen Kundinnen und Kunden am Telefon oder vor Ort helfe.",
+          "warum": "Du zeigst, dass du alle Aufgaben aus dem Inserat kennst."
+        }
+      },
+      {
+        "tipp": "Das Inserat wünscht den Multicheck ICT. Nenne dein Ergebnis direkt im Text, nicht nur als Beilage.",
+        "beispiel": {
+          "vorher": "Das Resultat lege ich bei.",
+          "nachher": "Den Multicheck ICT habe ich im September mit dem Ergebnis [Ergebnis] gemacht. Die Auswertung lege ich bei.",
+          "warum": "Die Firma sieht sofort, dass du die Anforderung erfüllst."
+        }
+      }
+    ],
+    "nextStep": "Ergänze dein Ergebnis im Multicheck ICT und schreibe, warum du genau bei Datacom Bern lernen willst."
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "sample": "06-elektro-stark-ohne-inserat",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "strong",
+    "score": "75-90"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 87,
+  "issues": [],
+  "result": {
+    "score": 87,
+    "summary": "Dein Brief ist klar aufgebaut und zeigt echtes Interesse am Beruf. Die Schnupperwoche beschreibst du konkret, das ist deine grösste Stärke.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 18,
+        "comment": "Absender, Firma, Datum, Betreff, Anrede, Schluss und Beilagen sind alle da. Der Hauptteil hat rund 160 Wörter in vier klaren Absätzen."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 15,
+        "comment": "Der Text ist klar, höflich und in eigenen Worten. Drei Abschnitte beginnen mit «Ich», das wirkt etwas eintönig."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 17,
+        "comment": "Du nennst mehrere konkrete Erlebnisse: Leerrohre, Messgerät, Velo und Lampe. Das zeigt echtes Interesse am Beruf."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 17,
+        "comment": "Du nennst Herrn Odermatt, die Baustelle in Buochs und die Schnupperwoche bei der Firma, das passt gut zum Beruf. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 20,
+        "comment": "Ich habe 0 Fehler gefunden. Auch die Kommas vor «dass» und «wenn» sind richtig gesetzt."
+      }
+    ],
+    "good": [
+      "Die Schnupperwoche beschreibst du konkret: Leerrohre verlegen, Steckdosen anschliessen und mit dem Messgerät prüfen.",
+      "Mit dem Velo, das du mit deinem Vater zerlegt hast, und der Lampe mit Schalter zeigst du echtes Interesse am Handwerk.",
+      "Du nennst eine feste Zeit: «um 6.45 Uhr in der Werkstatt». Das wirkt zuverlässig."
+    ],
+    "improve": [
+      {
+        "tipp": "Verbinde Mathe mit dem Beruf. Schreib, wobei dir das Fach auf der Baustelle hilft.",
+        "beispiel": {
+          "vorher": "In der Schule ist Mathematik mein bestes Fach, und im Werken habe ich eine Lampe mit Schalter gebaut.",
+          "nachher": "In der Schule ist Mathematik mein bestes Fach. Das hilft mir bestimmt beim Rechnen auf der Baustelle, und im Werken habe ich eine Lampe mit Schalter gebaut.",
+          "warum": "So erkennt die Firma, warum dir Mathe für diesen Beruf nützt."
+        }
+      },
+      {
+        "tipp": "Wechsle die Satzanfänge. Drei Abschnitte beginnen mit «Ich».",
+        "beispiel": {
+          "vorher": "Ich arbeite gerne mit den Händen.",
+          "nachher": "Mir macht es Freude, mit den Händen zu arbeiten.",
+          "warum": "Der Satz klingt abwechslungsreicher und bleibt trotzdem ehrlich."
+        }
+      },
+      {
+        "tipp": "Schliesse mit einem klaren Wunsch ab.",
+        "beispiel": {
+          "vorher": "Ich freue mich, wenn ich mich bei Ihnen vorstellen darf.",
+          "nachher": "Über ein Gespräch mit Ihnen würde ich mich sehr freuen.",
+          "warum": "Der Satz sagt klar, was du dir von der Firma wünschst."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Ändere zuerst den Satz mit der Mathematik und lies den Brief danach noch einmal laut vor."
+  }
+}

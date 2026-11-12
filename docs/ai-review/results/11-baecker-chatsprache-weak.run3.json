@@ -1,0 +1,92 @@
+{
+  "sample": "11-baecker-chatsprache-weak",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "weak",
+    "score": "15-45"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 43,
+  "issues": [],
+  "result": {
+    "score": 43,
+    "summary": "Du hast Freude am Backen, und das merkt man. Der Zopf mit deiner Mutter ist ein schönes Erlebnis, auf das du aufbauen kannst. Der Brief braucht noch die richtige Form und den richtigen Firmennamen.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 6,
+        "comment": "Der Brief hat nur «Hallo» und «lg Timo». Absender, Datum, Betreff und ein Schluss fehlen."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 6,
+        "comment": "Wörter wie «haha», «voll» und «hab» sind zu locker. Das «ich» kommt oft am Satzanfang vor."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 11,
+        "comment": "Der Zopf mit deiner Mutter ist ein konkretes Erlebnis. Mehr Gründe und Beispiele fehlen aber noch."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 5,
+        "comment": "Der Brief nennt «Müller AG», die Firma heisst aber Bäckerei Moser. «Nah bei mir» ist kein Grund für diese Firma. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 15,
+        "comment": "Du hast 3 kleine Fehler: «backen» gross schreiben und zwei Kommas vor «weil» und «wenn»."
+      }
+    ],
+    "good": [
+      "Du schreibst, dass du backen mega cool findest. Man merkt, dass dir der Beruf Freude macht.",
+      "Du erzählst vom Zopf, den du mit deiner Mutter gemacht hast. Das ist ein konkretes Erlebnis.",
+      "Du schreibst, dass du früh aufstehen kannst. Das passt gut zum Bäckerberuf."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreib den richtigen Firmennamen. Im Text steht «Müller AG», die Firma heisst aber Bäckerei Moser.",
+        "beispiel": {
+          "vorher": "Ich möchte bei der Firma Müller AG eine Lehre machen weil das nah bei mir ist.",
+          "nachher": "Ich möchte bei Ihnen, der Bäckerei Moser, eine Lehre als Bäcker-Konditor-Confiseur machen. Die Bäckerei ist nah bei mir.",
+          "warum": "Der Firmenname stimmt, und die Firma weiss, dass du genau dort lernen willst."
+        }
+      },
+      {
+        "tipp": "Schreib eine richtige Briefform mit Anrede, Betreff und Gruss. Setze auch deinen Namen und deine Adresse oben hin.",
+        "beispiel": {
+          "vorher": "Hallo",
+          "nachher": "Sehr geehrte Damen und Herren",
+          "warum": "Eine höfliche Anrede zeigt, dass du den Brief ernst meinst."
+        }
+      },
+      {
+        "tipp": "Erzähl genauer vom Zopf. Was hast du dabei gelernt, und was hat dir am meisten gefallen?",
+        "beispiel": {
+          "vorher": "Ich hab schon mal Zopf gemacht mit meiner Mutter und der war voll fein.",
+          "nachher": "Zusammen mit meiner Mutter habe ich schon einen Zopf gebacken. Dabei habe ich gemerkt, wie viel Freude mir das Backen macht.",
+          "warum": "Ein genaues Erlebnis zeigt besser, warum du den Beruf willst."
+        }
+      },
+      {
+        "tipp": "Schreib ohne Chat-Wörter wie «haha», «lg» oder «mega». Das klingt ruhiger und passt zu einer Bewerbung.",
+        "beispiel": {
+          "vorher": "Ich finde backen mega cool und esse auch gern Kuchen haha.",
+          "nachher": "Backen finde ich sehr spannend, und ich esse auch gern Kuchen.",
+          "warum": "Ganze Sätze ohne Umgangssprache wirken reifer und höflicher."
+        }
+      },
+      {
+        "tipp": "Schreib «Backen» gross, weil es hier ein Nomen ist. Setze vor «weil» und «wenn» immer ein Komma."
+      }
+    ],
+    "company": [],
+    "nextStep": "Schreib den Brief neu mit dem Namen Bäckerei Moser, einer richtigen Anrede und einer Grussformel."
+  }
+}

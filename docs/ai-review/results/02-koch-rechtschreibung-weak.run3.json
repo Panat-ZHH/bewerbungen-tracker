@@ -1,0 +1,81 @@
+{
+  "sample": "02-koch-rechtschreibung-weak",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "medium_weak_spelling",
+    "score": "45-65"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 62,
+  "issues": [],
+  "result": {
+    "score": 62,
+    "summary": "Dein Brief ist vollständig und zeigt echtes Interesse am Kochen. Dein Risotto und deine Schnupperlehre sind starke Beispiele.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 15,
+        "comment": "Der Brief hat Absender, Datum, Betreff, Anrede und Gruss. Der Hauptteil ist kurz, etwa 125 Wörter, daher gibt es höchstens 15 Punkte."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 10,
+        "comment": "Der Text ist verständlich, aber holprig. Sechs Sätze beginnen mit «Ich», und «hab» ist Umgangssprache."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 16,
+        "comment": "Du nennst dein Hobby, das Risotto von deiner Nonna und deine Schnupperlehre. Das zeigt echtes Interesse am Kochen."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 16,
+        "comment": "Du nennst Koch EFZ und die Schnupperlehre bei der Firma. Gemüse schneiden und anrichten passen gut zum Beruf. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 5,
+        "comment": "Ich zähle 16 Fehler. Der Text ist noch lesbar, aber «ihnen», «wen» und einige Kommas stimmen nicht."
+      }
+    ],
+    "good": [
+      "Du nennst konkrete Erlebnisse: das Risotto für deine Familie und die Schnupperlehre im Oktober.",
+      "Du schreibst, was dir bei der Schnupperlehre gefallen hat: «Gemüse schneiden» und «anrichten».",
+      "Alle wichtigen Teile des Briefs sind da: Absender, Datum, Betreff, Anrede und Gruss."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreibe «Sie» und «Ihnen» in der Anrede gross. Setze ein Komma vor «weil».",
+        "beispiel": {
+          "vorher": "Ich möchte mich bei ihnen für eine Lehrstelle als Koch bewerben weil Kochen ist schon lange mein Hobby.",
+          "nachher": "Ich möchte mich bei Ihnen für eine Lehrstelle als Koch bewerben, weil Kochen schon lange mein Hobby ist.",
+          "warum": "Die Firma wird mit «Sie» angesprochen, und «weil» braucht davor ein Komma."
+        }
+      },
+      {
+        "tipp": "Schreibe «wenn» statt «wen». Setze davor ein Komma.",
+        "beispiel": {
+          "vorher": "Ich würde mich freuen wen ich bei ihnen eine Lehre machen darf.",
+          "nachher": "Ich würde mich freuen, wenn ich bei Ihnen eine Lehre machen darf.",
+          "warum": "«Wen» fragt nach einer Person, «wenn» passt hier als Bedingung."
+        }
+      },
+      {
+        "tipp": "Nenne ein konkretes Beispiel aus dem Fussball, statt nur zu sagen, dass Teamarbeit wichtig ist.",
+        "beispiel": {
+          "vorher": "Ich bin auch im Fussballclub und darum weis ich das man im Team zusammen arbeiten muss.",
+          "nachher": "Im Fussballclub habe ich gelernt, dass man im Team zusammenarbeiten muss, zum Beispiel [Beispiel aus dem Training].",
+          "warum": "Ein echtes Erlebnis zeigt besser, dass du Teamarbeit kennst."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Korrigiere zuerst «ihnen» zu «Ihnen» und «wen» zu «wenn», und schreibe den Brief danach noch einmal sauber ab."
+  }
+}
