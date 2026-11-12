@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { ChevronRight, GraduationCap, Plus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -40,29 +39,29 @@ export function TeacherClasses() {
   }
 
   return (
-    <div className="space-y-6 pb-safe">
-      <PageHeader eyebrow="Lehrperson" title="Meine Klassen" description="Erstelle eine Klasse, teile den Code und behalte den Bewerbungsfortschritt deiner Schülerinnen und Schüler im Blick." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
-      {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
-      {!classes && !error && <div className="grid gap-4 md:grid-cols-2">{[0, 1].map((i) => <Skeleton key={i} className="h-40 rounded-[var(--radius-lg)]" />)}</div>}
+    <div className="space-y-6">
+      <PageHeader title="Meine Klassen" description="Erstelle eine Klasse, teile den Code und behalte den Bewerbungsfortschritt deiner Schülerinnen und Schüler im Blick." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
+      {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
+      {!classes && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-20 rounded-[var(--radius-lg)]" />)}</div>}
       {classes && classes.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und teile den Beitrittscode mit deinen Schüler:innen." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
       {classes && classes.length > 0 && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <ul className="rows border-y-[length:var(--border-w)] border-[var(--outline)]">
           {classes.map((c) => (
-            <Card key={c.id} className="space-y-4 p-5">
-              <Link href={`/classes/${c.id}`} className="group flex min-h-11 items-start justify-between gap-3">
+            <li key={c.id} className="flex flex-col gap-x-6 gap-y-2 py-4 md:flex-row md:items-center md:justify-between">
+              <Link href={`/classes/${c.id}`} className="group flex min-h-11 min-w-0 flex-1 items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="text-heading truncate">{c.name}</h2>
-                  <p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}<Users size={13} className="-mt-0.5 inline" /> {c.memberCount} Schüler:innen</p>
+                  <h2 className="font-display truncate text-xl font-extrabold tracking-[-.02em] group-hover:underline group-hover:decoration-[var(--sun)] group-hover:decoration-4 group-hover:underline-offset-4">{c.name}</h2>
+                  <p className="text-small mt-0.5 text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}<Users size={13} className="-mt-0.5 inline" /> {c.memberCount} Schüler:innen</p>
                 </div>
-                <ChevronRight size={18} className="mt-1 shrink-0 text-muted transition-transform group-hover:translate-x-0.5" />
+                <ChevronRight size={20} strokeWidth={2.4} className="shrink-0 transition-transform group-hover:translate-x-1 md:hidden" />
               </Link>
-              <div>
-                <p className="text-eyebrow mb-2">Beitrittscode</p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p className="text-label">Beitrittscode</p>
                 <CodeActions code={c.joinCode} name={c.name} />
               </div>
-            </Card>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Schüler:innen treten mit einem Code bei, den du danach erhältst.">
         <form onSubmit={submit} className="space-y-4">

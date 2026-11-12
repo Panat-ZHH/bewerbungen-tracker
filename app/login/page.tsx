@@ -4,9 +4,8 @@ import Link from "next/link";
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, BarChart3, CheckCircle2, Eye, EyeOff, GraduationCap, MapPin, ShieldCheck, UserRound, Users } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff, GraduationCap, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { BrandMark } from "@/components/ui/brand-mark";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
@@ -16,6 +15,8 @@ import { pendingInvitePath } from "@/components/friends/shared";
 import { resolveLanding } from "@/lib/role";
 import { InviteBanner } from "@/components/onboarding/invite-banner";
 import { LoginValueProp } from "@/components/onboarding/login-value-prop";
+import { AuthBrand } from "@/components/onboarding/auth-frame";
+import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleTrail } from "@/components/ui/doodles";
 
 type AuthMode = "login" | "signup";
 type Role = "student" | "teacher";
@@ -23,12 +24,6 @@ type Role = "student" | "teacher";
 const roles: { value: Role; label: string; hint: string; icon: typeof UserRound }[] = [
   { value: "student", label: "Schüler:in", hint: "Ich bewerbe mich", icon: UserRound },
   { value: "teacher", label: "Lehrperson", hint: "Ich begleite Klassen", icon: GraduationCap },
-];
-
-const highlights = [
-  { icon: BarChart3, text: "Alle Bewerbungen und Status an einem Ort" },
-  { icon: MapPin, text: "Betriebe auf der Karte finden" },
-  { icon: Users, text: "Gemeinsam mit Freunden und Klassen dranbleiben" },
 ];
 
 export default function LoginPage() {
@@ -134,53 +129,42 @@ export default function LoginPage() {
   const hint = isSignup ? passwordHint(password) : null;
 
   return (
-    <main className="workspace-bg min-h-[100dvh] lg:grid lg:grid-cols-[1.05fr_1fr]">
-      <aside className="relative hidden [clip-path:inset(0)] bg-[image:var(--brand-gradient)] p-12 text-white lg:flex lg:flex-col lg:justify-between" aria-hidden>
-        <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 -left-16 h-96 w-96 rounded-full bg-black/10 blur-3xl" />
-        <div className="relative flex items-center gap-3">
-          <BrandMark size={44} radius={13} pad={4} fixedTile />
-          <span className="text-lg font-semibold tracking-[-.02em]">WendApply</span>
-        </div>
-        <div className="relative max-w-md">
-          <h2 className="text-display">Finde deine Lehrstelle und behalte jede Bewerbung im Blick.</h2>
-          <ul className="mt-8 space-y-4">
-            {highlights.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-center gap-3 text-[15px] text-white/90">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/15 backdrop-blur"><Icon size={17} /></span>
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <p className="relative flex items-center gap-2 text-sm text-white/75"><ShieldCheck size={16} /> Deine Daten bleiben in deinem persönlichen Konto.</p>
-      </aside>
-
-      <section className="flex min-h-[100dvh] items-center justify-center px-4 py-8 sm:px-6 sm:py-10">
-        <div className="animate-rise w-full max-w-[420px]">
+    <main className="workspace-bg min-h-[100dvh] overflow-x-clip px-4 pb-10 sm:px-6">
+      <div className="mx-auto grid w-full max-w-[1080px] lg:min-h-[100dvh] lg:grid-cols-[1.15fr_minmax(0,430px)] lg:items-center lg:gap-16">
+        {/* Setting off: logo, one loud line, what you get. No hero panel, it all sits on paper. */}
+        <section className="animate-rise relative pt-4 lg:pb-16 lg:pt-0">
+          <AuthBrand className="h-12 lg:h-auto" />
+          <h1 className="mt-5 text-display lg:mt-12 lg:text-[clamp(3.5rem,5.4vw,4.75rem)] lg:leading-[.95] lg:tracking-[-.04em]">
+            {isSignup ? <>Konto <span className="marker">erstellen</span></> : <>Schön, dass du <span className="marker">da bist.</span></>}
+            <DoodleBurst className="ml-2 inline-block h-[.5em] w-[.5em] -translate-y-[.15em] text-[var(--coral)]" />
+          </h1>
           <LoginValueProp />
-          <InviteBanner />
-          <div className="mb-6 text-center sm:mb-7">
-            <BrandMark size={56} radius={16} pad={4} white className="brand-mark-raised mx-auto lg:hidden" priority />
-            <h1 className="text-title mt-5 lg:mt-0">{isSignup ? "Konto erstellen" : "Schön, dass du da bist."}</h1>
-            <p className="mt-2 text-sm text-muted">{isSignup ? "Behalte deine Bewerbungen an einem Ort." : "Melde dich an und behalte deine Suche im Blick."}</p>
+          <span className="sticker sticker-coral tilt-l3 absolute right-1 top-5 lg:static lg:mt-10">Gratis für Schüler:innen</span>
+          <div className="pointer-events-none absolute -bottom-2 right-4 hidden items-end gap-1 text-[var(--brand)] lg:flex" aria-hidden>
+            <DoodleTrail className="h-12 w-36" />
+            <DoodlePlane className="mb-6 h-12 w-16" />
           </div>
+        </section>
 
-          <form onSubmit={submit} className="glass-surface space-y-5 p-5 sm:p-7">
+        <section className="animate-rise relative mt-6 w-full max-w-[430px] justify-self-center lg:mt-0 lg:py-10">
+          <InviteBanner />
+          <DoodleArrow className="absolute -left-14 top-6 hidden h-12 w-16 text-[var(--ink)] lg:block" />
+
+          <form onSubmit={submit} className="panel space-y-5 p-5 shadow-[var(--shadow-lg)] sm:p-7">
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             {success && <StatusMessage tone="success" icon={<CheckCircle2 />}>{success}</StatusMessage>}
 
             {isSignup && (
               <fieldset>
-                <legend className="mb-2 block text-sm font-medium">Ich bin</legend>
+                <legend className="mb-2 block text-sm font-semibold">Ich bin</legend>
                 <div className="grid grid-cols-2 gap-2.5">
                   {roles.map(({ value, label, hint, icon: Icon }) => {
                     const selected = role === value;
                     return (
-                      <label key={value} className={`relative flex min-h-[76px] cursor-pointer flex-col items-start justify-center gap-0.5 rounded-xl border p-3 transition duration-200 focus-within:ring-4 focus-within:ring-[var(--brand)]/20 active:scale-[.98] ${selected ? "border-[var(--brand)] bg-[var(--brand-soft)] shadow-[var(--shadow-sm)]" : "border-[var(--field-border)] bg-[var(--field-bg)] hover:border-[#b8b8c0]"}`}>
+                      <label key={value} className={`relative flex min-h-[76px] cursor-pointer flex-col items-start justify-center gap-0.5 rounded-[var(--radius-lg)] border-[length:var(--border-w)] p-3 transition-[transform,box-shadow,background-color] duration-150 focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-[var(--focus-ring)] active:translate-y-px ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-sm)]" : "border-[var(--field-border)] bg-[var(--field-bg)] hover:bg-[var(--surface-2)]"}`}>
                         <input type="radio" name="role" value={value} checked={selected} onChange={() => setRole(value)} className="sr-only" />
-                        <span className={`flex items-center gap-1.5 text-sm font-semibold ${selected ? "text-[var(--brand-strong)]" : ""}`}><Icon size={15} />{label}</span>
-                        <span className="text-xs text-muted">{hint}</span>
+                        <span className="flex items-center gap-1.5 text-sm font-bold"><Icon size={16} strokeWidth={2.2} />{label}</span>
+                        <span className={`text-xs ${selected ? "" : "text-muted"}`}>{hint}</span>
                       </label>
                     );
                   })}
@@ -188,11 +172,11 @@ export default function LoginPage() {
               </fieldset>
             )}
 
-            <button type="button" onClick={() => signInWithProvider("google")} disabled={loading} className="btn-google flex min-h-12 w-full items-center justify-center gap-3 rounded-xl border px-4 text-sm font-semibold shadow-[var(--shadow-sm)] transition active:scale-[.98] disabled:opacity-60">
+            <button type="button" onClick={() => signInWithProvider("google")} disabled={loading} className="btn-google pressable flex min-h-12 w-full items-center justify-center gap-3 rounded-full border-[length:var(--border-w)] border-[var(--outline)] px-4 text-[15px] font-semibold shadow-[var(--shadow-sm)] disabled:pointer-events-none disabled:opacity-60">
               <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.6 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.2 5.3-4.6 6.9l7.1 5.5c4.3-4 6.8-9.9 6.8-16.9z"/><path fill="#FBBC05" d="M10.5 28.7a14.5 14.5 0 0 1 0-9.4l-7.9-6.1a24 24 0 0 0 0 21.6l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.1-5.5c-2 1.4-4.9 2.3-8.8 2.3-6.3 0-11.6-4.1-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
               Weiter mit Google
             </button>
-            <div className="flex items-center gap-3 text-xs text-muted" aria-hidden><span className="h-px flex-1 bg-[var(--line)]" />oder mit E-Mail<span className="h-px flex-1 bg-[var(--line)]" /></div>
+            <div className="flex items-center gap-3 text-xs font-medium text-muted" aria-hidden><span className="flex-1 border-t-2 border-dashed border-[var(--line)]" />oder mit E-Mail<span className="flex-1 border-t-2 border-dashed border-[var(--line)]" /></div>
 
             <Field label="E-Mail-Adresse" htmlFor="email">
               <Input id="email" type="email" required autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" />
@@ -203,7 +187,7 @@ export default function LoginPage() {
                 <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
               </div>
             </Field>
-            {!isSignup && <p className="-mt-3 text-right"><button type="button" onClick={forgotPassword} disabled={loading} className="inline-flex min-h-11 items-center px-1 text-sm font-medium text-[var(--brand)] hover:underline disabled:opacity-60">Passwort vergessen?</button></p>}
+            {!isSignup && <p className="-mt-3 text-right"><button type="button" onClick={forgotPassword} disabled={loading} className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)] disabled:opacity-60">Passwort vergessen?</button></p>}
             {isSignup && (
               <Field label="Passwort wiederholen" htmlFor="confirm-password">
                 <Input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
@@ -211,19 +195,18 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" size="lg" full loading={loading}>
-              {loading ? "Einen Moment …" : isSignup ? "Konto erstellen" : "Anmelden"}{!loading && <ArrowRight size={16} />}
+              {loading ? "Einen Moment …" : isSignup ? "Konto erstellen" : "Anmelden"}{!loading && <ArrowRight size={16} strokeWidth={2.4} />}
             </Button>
 
-            <p className="border-t border-[var(--line)] pt-5 text-center text-sm text-muted">
+            <p className="border-t-2 border-dashed border-[var(--line)] pt-4 text-center text-sm text-muted">
               {isSignup ? "Du hast schon ein Konto?" : "Noch kein Konto?"}{" "}
-              <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="inline-flex min-h-11 items-center px-1 font-semibold text-[var(--brand)] hover:underline">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
+              <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="inline-flex min-h-11 items-center px-1 font-bold text-[var(--ink)] underline decoration-[var(--sun)] decoration-[3px] underline-offset-4 hover:decoration-[var(--ink)]">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
             </p>
           </form>
-          <p className="mt-5 text-center text-xs text-muted lg:hidden">Deine Daten bleiben in deinem persönlichen Konto.</p>
-          <p className="mt-3 text-center text-xs text-muted"><Link href="/datenschutz" className="underline">Datenschutz</Link> · <Link href="/datenschutz-jugend" className="underline">Datenschutz für Jugendliche</Link> · <Link href="/impressum" className="underline">Impressum</Link></p>
-        </div>
-      </section>
+          <p className="mt-6 text-center text-xs text-muted">Deine Daten bleiben in deinem persönlichen Konto.</p>
+          <p className="mt-2 text-center text-xs text-muted"><Link href="/datenschutz" className="underline underline-offset-2">Datenschutz</Link> · <Link href="/datenschutz-jugend" className="underline underline-offset-2">Datenschutz für Jugendliche</Link> · <Link href="/impressum" className="underline underline-offset-2">Impressum</Link></p>
+        </section>
+      </div>
     </main>
   );
 }
-

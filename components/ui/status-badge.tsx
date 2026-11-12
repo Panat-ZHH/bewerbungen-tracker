@@ -2,19 +2,23 @@ import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { statusLabels } from "@/lib/utils";
 import type { ApplicationStatus } from "@/types";
 
-/** One colour per status, from design tokens (works in light and dark). */
+/**
+ * One flat colour per stage, from design tokens (works in light and dark):
+ * Offen = paper/yellow, Abgeschickt = blue, Gespräch = coral, Zusage = green.
+ * Absage is deliberately calm (sand), never red: a rejection should not look like an error.
+ */
 export const statusTone: Record<ApplicationStatus, BadgeTone> = {
-  saved: "neutral",
+  saved: "paper",
   preparing: "warning",
   applied: "info",
-  schnupper_planned: "warning",
+  schnupper_planned: "info",
   schnupper_done: "info",
   aptitude_test: "info",
-  interview: "success",
-  final_interview: "success",
+  interview: "coral",
+  final_interview: "coral",
   offer: "success",
   contract_signed: "success",
-  rejected: "danger",
+  rejected: "neutral",
   withdrawn: "neutral",
 };
 

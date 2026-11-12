@@ -4,13 +4,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, Plus, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Input, fieldClasses } from "@/components/ui/input";
 import { createApplication, updateApplication } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { draftKey, isDirty, parseDraft, serializeDraft } from "@/lib/application-draft";
 import { cn, statusLabels } from "@/lib/utils";
 import { friendlyMessage } from "@/lib/ux";
 import { reward } from "@/lib/rewards";
+import { celebrateStatus } from "@/lib/joy";
 import { toast } from "@/lib/toast";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { statusHints } from "@/components/ui/status-badge";
@@ -66,6 +67,11 @@ function toForm(application?: Application): FormValue {
     contactInfo: application.contactInfo ?? "",
   };
 }
+
+// Group title inside the form: display font, calm size (no uppercase mini label).
+// A further group below the first one: separated by air, not by a box.
+const groupClass = "mt-8 min-w-0 border-0 p-0";
+const legendClass = "font-display mb-4 p-0 text-lg font-bold tracking-[-.01em]";
 
 type Errors = Partial<Record<keyof FormValue, string>>;
 
@@ -208,6 +214,8 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
         : await createApplication(payload);
       if (result) {
         if (payload.status === "applied" && (!isEditing || application?.status !== "applied")) reward("applied");
+        // joy moment for Gespräch / Zusage / Absage: only when the status really changed (new application: previous = null)
+        celebrateStatus(payload.status, isEditing ? application?.status ?? null : null, { position: payload.position, location: payload.location });
         clearDraft();
         setRestored(false);
         setSaving(false);
@@ -229,22 +237,22 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
     <form onSubmit={submit} noValidate className="max-w-2xl">
       {error && <StatusMessage tone="danger" className="mb-5">{error}</StatusMessage>}
       {restored && (
-        <div role="status" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--info-line)] bg-[var(--info-bg)] px-4 py-3 text-sm text-[var(--info-fg)]">
+        <div role="status" className="status status-info mb-5 flex-wrap items-center justify-between gap-x-3 gap-y-0">
           <span>Entwurf wiederhergestellt: Das hattest du schon eingetragen, aber noch nicht gespeichert.</span>
-          <button type="button" onClick={discardDraft} className="inline-flex min-h-11 items-center gap-1.5 font-semibold underline-offset-2 hover:underline"><RotateCcw size={14} /> Entwurf verwerfen</button>
+          <button type="button" onClick={discardDraft} className="inline-flex min-h-11 items-center gap-1.5 font-semibold underline underline-offset-4 active:translate-y-px"><RotateCcw size={14} /> Entwurf verwerfen</button>
         </div>
       )}
 
       <fieldset className="min-w-0 space-y-5 border-0 p-0">
-        <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Das Wichtigste</legend>
+        <legend className={legendClass}>Das Wichtigste</legend>
         <Field label="Firma" required {...bind("company")} placeholder="Zum Beispiel: Migros" autoFocus={!isEditing} autoComplete="organization" />
         <Field label="Welche Stelle?" required {...bind("position")} placeholder="Zum Beispiel: Mediamatiker:in" />
         <SelectField label="Was ist der Stand?" hint={statusHints[form.status]} value={form.status} onChange={(value) => update("status", value)} options={Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))} />
       </fieldset>
 
       {isSchnupperStatus(form.status) && (
-        <fieldset className="mt-7 min-w-0 space-y-5 border-0 p-0">
-          <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Schnupperlehre</legend>
+        <fieldset className={cn(groupClass, "space-y-5")}>
+          <legend className={legendClass}>Schnupperlehre</legend>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Schnupperdatum" {...bind("schnupperDate")} type="date" />
             {form.status === "schnupper_done" && (
@@ -256,8 +264,8 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
       )}
 
       {form.status === "aptitude_test" && (
-        <fieldset className="mt-7 min-w-0 border-0 p-0">
-          <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Eignungstest / Multicheck</legend>
+        <fieldset className={groupClass}>
+          <legend className={legendClass}>Eignungstest / Multicheck</legend>
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Testdatum" {...bind("testDate")} type="date" />
             <SelectField label="Ergebnis" value={form.testResult} onChange={(value) => update("testResult", value)} options={[{ value: "", label: "Noch offen" }, ...Object.entries(testResultLabels).map(([value, label]) => ({ value, label }))]} />
@@ -265,13 +273,13 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
         </fieldset>
       )}
 
-      <details open={isEditing || optionalHasError || restored || undefined} className="group mt-7 border-t border-[var(--line)] pt-2">
-        <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-semibold text-[var(--brand)] marker:hidden [&::-webkit-details-marker]:hidden">
-          <span className="flex items-center gap-2"><Plus size={16} className="transition-transform group-open:rotate-45" /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
+      <details open={isEditing || optionalHasError || restored || undefined} className="group mt-7 border-t-[length:var(--border-w)] border-dashed border-[var(--line)] pt-2">
+        <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-bold text-[var(--ink)] marker:hidden [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-2"><Plus size={17} strokeWidth={2.6} className="text-[var(--brand)] transition-transform group-open:rotate-45" /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
         </summary>
-        <div className="mt-4 space-y-7">
+        <div className="mt-4 space-y-8">
           <fieldset className="min-w-0 border-0 p-0">
-            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Die Stelle</legend>
+            <legend className={legendClass}>Die Stelle</legend>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Ort" {...bind("location")} placeholder="Zürich oder von zu Hause" />
               <SelectField label="Berufsfeld (Suchkategorie)" value={form.category} onChange={(value) => update("category", value)} options={CATEGORY_OPTIONS} />
@@ -281,14 +289,14 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
             </div>
           </fieldset>
           <fieldset className="min-w-0 border-0 p-0">
-            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Kontakt in der Firma</legend>
+            <legend className={legendClass}>Kontakt in der Firma</legend>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Ansprechperson" {...bind("contactName")} placeholder="Zum Beispiel: Frau Meier" autoComplete="off" />
               <Field label="E-Mail oder Telefon" {...bind("contactInfo")} placeholder="lehrstellen@firma.ch" autoComplete="off" />
             </div>
           </fieldset>
           <fieldset className="min-w-0 border-0 p-0">
-            <legend className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted">Notizen</legend>
+            <legend className={legendClass}>Notizen</legend>
             <div className="space-y-5">
               <TextArea label="Was ist in der Stellenanzeige wichtig?" value={form.jobDescription} onChange={(value) => update("jobDescription", value)} />
               <TextArea label="Deine Notizen" value={form.notes} onChange={(value) => update("notes", value)} placeholder="Fragen, Ideen oder was du als Nächstes tun möchtest …" />
@@ -297,13 +305,13 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
         </div>
       </details>
 
-      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t border-[var(--line)] bg-[var(--glass-bar-bg)] px-4 py-4 backdrop-blur-xl sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:bg-transparent sm:px-0 sm:pb-0 sm:backdrop-blur-none">
+      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-4 py-4 sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:border-dashed sm:border-[var(--line)] sm:bg-transparent sm:px-0 sm:pb-0">
         <Button type="button" variant="ghost" onClick={() => router.back()} className="min-h-11 sm:min-h-11">
           <ArrowLeft size={16} /> Zurück
         </Button>
         {draftSaved && !saving && <span role="status" className="text-xs text-muted sm:ml-auto sm:mr-1">Entwurf auf diesem Gerät gesichert</span>}
         {isEditing && <Button type="button" variant="secondary" disabled={saving} onClick={() => void persist(true)} className="min-h-11 sm:min-h-11">Zwischenstand speichern</Button>}
-        <Button type="submit" disabled={saving} className={cn("min-h-11 sm:min-h-11 px-6", !(draftSaved && !saving) && !isEditing && "sm:ml-auto")}>
+        <Button type="submit" variant={isEditing ? "primary" : "sun"} disabled={saving} className={cn("min-h-11 sm:min-h-11 px-6", !(draftSaved && !saving) && !isEditing && "sm:ml-auto")}>
           {isEditing ? <Check size={16} /> : <Plus size={16} />}
           {saving ? "Speichert …" : isEditing ? "Änderungen speichern" : "Bewerbung speichern"}
         </Button>
@@ -328,8 +336,8 @@ function Field({ label, value, onChange, onBlur, error, placeholder, type = "tex
   const id = useId();
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}{required && <span aria-hidden="true" className="text-muted"> *</span>}</label>
-      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[var(--danger-fg)] focus:border-[var(--danger-fg)] focus:ring-[var(--danger-fg)]/15")} />
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{label}{required && <span aria-hidden="true" className="text-muted"> *</span>}</label>
+      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[var(--danger-fg)] focus:border-[var(--danger-fg)] focus:shadow-[3px_3px_0_var(--danger-fg)]")} />
       {error && <p id={`${id}-error`} className="mt-1.5 text-xs font-medium text-[var(--danger-fg)]">{error}</p>}
     </div>
   );
@@ -345,8 +353,8 @@ function SelectField({ label, value, onChange, options, hint }: {
   const id = useId();
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
-      <select id={id} value={value} aria-describedby={hint ? `${id}-hint` : undefined} onChange={(event) => onChange(event.target.value as never)} className="min-h-11 sm:min-h-11 w-full rounded-xl border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2.5 text-base text-[var(--ink)] pointer-fine:text-sm outline-none transition focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15">
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{label}</label>
+      <select id={id} value={value} aria-describedby={hint ? `${id}-hint` : undefined} onChange={(event) => onChange(event.target.value as never)} className={cn(fieldClasses, "select-caret")}>
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
       {hint && <p id={`${id}-hint`} className="mt-1.5 text-xs text-muted">{hint}</p>}
@@ -363,8 +371,8 @@ function TextArea({ label, value, onChange, placeholder }: {
   const id = useId();
   return (
     <div>
-      <label htmlFor={id} className="mb-2 block text-sm font-medium">{label}</label>
-      <textarea id={id} rows={4} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className="w-full resize-y rounded-xl border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 py-2.5 text-base text-[var(--ink)] pointer-fine:text-sm outline-none transition placeholder:text-[var(--placeholder)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15" />
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{label}</label>
+      <textarea id={id} rows={4} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} className={cn(fieldClasses, "min-h-24 resize-y leading-6")} />
     </div>
   );
 }

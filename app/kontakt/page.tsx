@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 
 export default function KontaktPage() {
   return (
-    <TextPage eyebrow="Kontakt" title="Wir freuen uns auf Ihre Nachricht" intro="Fragen, Feedback oder ein Pilot für Ihre Schule? Schreiben Sie uns, wir antworten in der Regel innert weniger Werktage.">
-      <div className="panel p-6">
+    <TextPage title={<>Wir freuen uns auf Ihre <span className="marker">Nachricht</span></>} intro="Fragen, Feedback oder ein Pilot für Ihre Schule? Schreiben Sie uns, wir antworten in der Regel innert weniger Werktage.">
+      <div className="panel max-w-md p-6">
         <h2 className="text-heading">E-Mail</h2>
         <p className="mt-2"><a className="font-semibold text-[var(--brand)] underline underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
         <ButtonLink href={`mailto:${CONTACT_EMAIL}`} className="mt-4" icon={<Mail size={16} aria-hidden />}>E-Mail schreiben</ButtonLink>

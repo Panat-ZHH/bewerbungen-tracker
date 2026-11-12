@@ -122,16 +122,16 @@ function ApplicationMap() {
           </>}
           right={<>
             <MapBadge label={`Punktestand: ${balance ?? "unbekannt"}`}><Coins size={16} aria-hidden /><strong>{balance ?? "–"}</strong></MapBadge>
-            <button type="button" className={`${layout.chip} ${overlayClasses.glass}`} aria-expanded={shopSheetOpen} onClick={() => { setSelectedId(null); setShopOpen(!shopOpen); }}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
+            <button type="button" className={`${layout.chip} ${overlayClasses.sticker}`} aria-expanded={shopSheetOpen} onClick={() => { setSelectedId(null); setShopOpen(!shopOpen); }}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
             <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Neue Bewerbung" title="Neue Bewerbung"><Plus size={18} aria-hidden /></Link>
           </>}
         />
         <MapControls camera={camera} night={night} onToggleNight={() => setNight(!night)} onRefresh={() => setRefresh(refresh + 1)} refreshing={loading} />
         <MapDock>
           <MapPlacementTools shop={shop} />
-          {error && <div className={`${layout.notice} ${layout.noticeDanger} ${overlayClasses.glass}`} role="alert"><p>Deine Bewerbungen konnten nicht geladen werden.</p><button type="button" onClick={() => setRefresh(refresh + 1)}>Erneut versuchen</button></div>}
-          {emptyNotice && <div className={`${layout.notice} ${overlayClasses.glass}`} role="status"><p>Noch keine Gebäude – du hast noch keine Bewerbungen.</p><Link href="/applications/new">Bewerbung hinzufügen</Link></div>}
-          {noMatch && <div className={`${layout.notice} ${overlayClasses.glass}`} role="status"><p>Keine Bewerbungen für diese Auswahl.</p><button type="button" onClick={() => { setQuery(""); setStatus("all"); }}>Filter zurücksetzen</button></div>}
+          {error && <div className={`${layout.notice} ${layout.noticeDanger} ${overlayClasses.sticker}`} role="alert"><p>Deine Bewerbungen konnten nicht geladen werden.</p><button type="button" onClick={() => setRefresh(refresh + 1)}>Erneut versuchen</button></div>}
+          {emptyNotice && <div className={`${layout.notice} ${overlayClasses.sticker}`} role="status"><p>Noch keine Gebäude – du hast noch keine Bewerbungen.</p><Link href="/applications/new">Bewerbung hinzufügen</Link></div>}
+          {noMatch && <div className={`${layout.notice} ${overlayClasses.sticker}`} role="status"><p>Keine Bewerbungen für diese Auswahl.</p><button type="button" onClick={() => { setQuery(""); setStatus("all"); }}>Filter zurücksetzen</button></div>}
           <MapSheet id="shop" open={shopSheetOpen} onClose={() => setShopOpen(false)} title="Laden" subtitle={shop.state ? `${shop.state.balance} Punkte` : undefined} icon={<ShoppingBag size={18} />} tall>
             <MapShop shop={shop} compact />
           </MapSheet>

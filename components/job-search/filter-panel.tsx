@@ -10,14 +10,14 @@ import { RadiusSelect } from "./radius-select";
 
 export function ToggleChip({ active, onClick, children, count }: { active: boolean; onClick: () => void; children: ReactNode; count?: number }) {
   return (
-    <button type="button" aria-pressed={active} onClick={onClick} className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition duration-200 pointer-coarse:min-h-11", active ? "border-[var(--brand)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--glass-border)] bg-[var(--raised)] text-[var(--ink)] hover:bg-[var(--raised-hover)]")}>
-      {children}{count !== undefined && <span className="text-xs text-muted">{count}</span>}
+    <button type="button" aria-pressed={active} onClick={onClick} className={cn("inline-flex min-h-9 items-center gap-1.5 rounded-full border-[length:var(--border-w)] px-3 text-[13px] font-semibold transition-[background-color,transform] duration-150 active:translate-y-px pointer-coarse:min-h-11", active ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)]" : "border-[var(--outline)] bg-[var(--surface)] text-[var(--ink)] hover:bg-[var(--surface-2)]")}>
+      {children}{count !== undefined && <span className="tabular text-xs font-medium opacity-70">{count}</span>}
     </button>
   );
 }
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
-  return <fieldset className="min-w-0 space-y-2 border-0 p-0"><legend className="mb-2 text-sm font-semibold">{title}</legend>{children}</fieldset>;
+  return <fieldset className="m-0 min-w-0 space-y-2 border-0 border-b-[length:var(--border-w)] border-dashed border-[var(--line)] px-0 pb-5 pt-0"><legend className="mb-2 p-0 font-display text-[15px] font-bold tracking-[-.01em]">{title}</legend>{children}</fieldset>;
 }
 
 const toggle = <T,>(list: T[], value: T) => (list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -27,10 +27,10 @@ export function FilterPanel({ filters, onChange, facets, companies, idPrefix = "
   const years = [new Date().getFullYear(), new Date().getFullYear() + 1, new Date().getFullYear() + 2];
   const fieldIds = Object.keys(FIELD_LABELS);
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <Group title="Ort">
         <LocationAutocomplete id={`${idPrefix}-loc`} value={filters.location} onChange={(location) => onChange(location ? { location } : { location, radiusKm: undefined })} />
-        <label className="block text-xs text-muted" htmlFor={`${idPrefix}-radius`}>Umkreis</label>
+        <label className="block pt-1 text-small font-semibold text-muted" htmlFor={`${idPrefix}-radius`}>Umkreis</label>
         <RadiusSelect id={`${idPrefix}-radius`} value={filters.radiusKm} disabled={!filters.location.trim()} onChange={(radiusKm) => onChange({ radiusKm })} />
       </Group>
       <Group title="Kantone">
@@ -41,7 +41,7 @@ export function FilterPanel({ filters, onChange, facets, companies, idPrefix = "
       </Group>
       <Group title={`Pensum${filters.workloadMin !== undefined ? ` · ab ${workload}%` : ""}`}>
         <input type="range" aria-label="Pensum ab (Prozent)" min={10} max={100} step={10} value={workload} onChange={(e) => { const v = Number(e.target.value); onChange({ workloadMin: v <= 10 ? undefined : v }); }} className="h-11 w-full accent-[var(--brand)]" />
-        <div className="flex justify-between text-xs text-muted"><span>10%</span><span>100%</span></div>
+        <div className="tabular flex justify-between text-xs font-medium text-muted"><span>10%</span><span>100%</span></div>
       </Group>
       <Group title="Berufsfeld">
         <div className="flex flex-wrap gap-1.5">{fieldIds.map((id) => <ToggleChip key={id} active={filters.fields.includes(id)} count={facets.fields[id]} onClick={() => onChange({ fields: toggle(filters.fields, id) })}>{FIELD_LABELS[id]}</ToggleChip>)}</div>
@@ -73,9 +73,9 @@ export function FilterPanel({ filters, onChange, facets, companies, idPrefix = "
       </Group>}
       <Group title="Lohn (CHF pro Jahr, min.)">
         <Input type="number" inputMode="numeric" aria-label="Mindestlohn pro Jahr" min={0} max={1000000} step={5000} value={filters.salaryMin ?? ""} onChange={(e) => onChange({ salaryMin: e.target.value ? Math.max(0, Number(e.target.value)) : undefined })} placeholder="z. B. 70000" />
-        <p className="text-xs text-muted">Nur Anzeigen mit Lohnangabe werden aussortiert.</p>
+        <p className="text-small text-muted">Nur Anzeigen mit Lohnangabe werden aussortiert.</p>
       </Group>
-      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-medium">
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm font-semibold">
         <input type="checkbox" className="h-5 w-5 accent-[var(--brand)]" checked={Boolean(filters.hideSaved)} onChange={(e) => onChange({ hideSaved: e.target.checked || undefined })} />
         Schon gemerkte Stellen ausblenden
       </label>

@@ -29,7 +29,7 @@ export default function Page() {
   return (
     <WorkspaceShell active="Klassen">
       {role === null ? <Skeleton className="h-40 rounded-[var(--radius-lg)]" /> : (
-        <div className="space-y-6">
+        <div className="space-y-10">
           <ClassesPage />
           {role === "student" && <StudentClassExtras />}
         </div>

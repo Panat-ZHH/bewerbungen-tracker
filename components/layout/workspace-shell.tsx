@@ -4,7 +4,7 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, FileText, GraduationCap, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
@@ -131,7 +131,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   if (checkingSession || !user || !role) {
     return (
       <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
-        <BrandMark size={48} radius={14} className="animate-pulse" priority />
+        <BrandMark size={56} className="animate-wiggle" priority />
         <div className="w-full max-w-[260px] space-y-2.5" role="status">
           <Skeleton className="h-3.5" />
           <Skeleton className="mx-auto h-3.5 w-2/3" />
@@ -156,13 +156,13 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
   return (
     <div className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-[var(--shadow-md)]">Zum Inhalt springen</a>
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-full focus:border-[length:var(--border-w)] focus:border-[var(--outline-fill)] focus:bg-[var(--sun)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[var(--on-sun)] focus:shadow-[var(--shadow-sm)]">Zum Inhalt springen</a>
 
-      <header className={`glass-bar sticky top-0 z-30 shrink-0 border-b ${fullscreen ? "max-md:hidden" : ""}`}>
+      <header className={`app-bar app-bar-top sticky top-0 z-30 shrink-0 ${fullscreen ? "max-md:hidden" : ""}`}>
         <div className="page-wrap flex h-[var(--nav-h)] items-center gap-3 md:gap-5">
-          <Link href={home} className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-xl transition active:scale-[.97]" aria-label="WendApply Start">
-            <BrandMark size={36} radius={11} priority />
-            <span className="text-[15px] font-semibold tracking-[-.2px]">WendApply</span>
+          <Link href={home} className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg transition-transform active:translate-y-0.5" aria-label="WendApply Start">
+            <BrandMark size={38} priority />
+            <span className="font-display text-[19px] font-extrabold tracking-[-.03em]">WendApply</span>
           </Link>
 
           <nav aria-label="Hauptmenü" className="hidden min-w-0 flex-1 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] md:flex">
@@ -176,9 +176,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
                   title={label}
                   aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : label}
                   aria-current={selected ? "page" : undefined}
-                  className={`relative flex h-11 shrink-0 items-center justify-center gap-2 rounded-full px-3 xl:gap-1.5 xl:px-2 2xl:gap-2 2xl:px-3 text-[13px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-medium transition duration-200 active:scale-[.96] ${selected ? "bg-[var(--brand-soft)] text-[var(--brand-strong)] shadow-[var(--shadow-xs)]" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
+                  className={`relative flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border-[length:var(--border-w)] px-3 xl:px-3.5 text-[13.5px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-semibold transition-colors duration-150 active:translate-y-px ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent text-[var(--ink)] hover:bg-[var(--hover)]"}`}
                 >
-                  <Icon size={16} strokeWidth={1.9} />
+                  <Icon size={17} strokeWidth={2.1} className="xl:hidden" />
                   <span className="hidden xl:inline">{label}</span>
                   {href === "/friends" && <RequestBadge count={requestCount} className="-right-0.5 -top-0.5" />}
                   <NoticeBadge enabled={!isTeacher && href === "/classes"} className="-right-0.5 -top-0.5" />
@@ -190,13 +190,13 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
           <div className="flex shrink-0 items-center gap-1">
             {!isTeacher && <NotificationsBell />}
-            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
-              <Settings size={17} strokeWidth={1.8} />
+            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] md:flex">
+              <Settings size={18} strokeWidth={2} />
             </Link>
-            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
-              <LogOut size={17} strokeWidth={1.8} />
+            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] md:flex">
+              <LogOut size={18} strokeWidth={2} />
             </button>
-            <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition active:scale-95">
+            <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:translate-y-0.5">
               <Avatar name={displayName} src={myAvatar} size="sm" />
             </Link>
           </div>
@@ -209,50 +209,53 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
         <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{children}</main>
       )}
 
-      <nav aria-label="Hauptmenü mobil" className="glass-bar fixed inset-x-0 bottom-0 z-30 border-t md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
+      <nav aria-label="Hauptmenü mobil" className="app-bar app-bar-bottom fixed inset-x-0 bottom-0 z-30 md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
         <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-xl items-stretch px-1">
           {primary.map((item) => {
             const { label, href, icon: Icon } = item;
             const selected = isSelected(item);
             return (
               <li key={href} className="min-w-0 flex-1">
-                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10px] max-[340px]:text-[9.5px] font-medium tracking-tight transition active:scale-95 ${selected ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
-                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${selected ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.2 : 1.8} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
+                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] max-[340px]:text-[9.5px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full border-[length:var(--border-w)] transition-colors duration-150 ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.3 : 1.9} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
                   <span className="max-w-full truncate max-[340px]:text-[9.5px]">{label}</span>
                 </Link>
               </li>
             );
           })}
           <li className="min-w-0 flex-1">
-            <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition active:scale-95 ${moreActive ? "text-[var(--brand-strong)]" : "text-[var(--muted)]"}`}>
-              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition duration-200 ${moreActive ? "bg-[var(--brand-soft)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!isTeacher && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
-              <span className="text-[10.5px] font-medium">Mehr</span>
+            <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full border-[length:var(--border-w)] transition-colors duration-150 ${moreActive ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!isTeacher && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
+              <span>Mehr</span>
             </button>
           </li>
         </ul>
       </nav>
 
       <Modal open={moreOpen} onClose={() => setMoreOpen(false)} title="Mehr">
-        <div className="mb-4 flex items-center gap-3 rounded-2xl bg-[var(--hover)] p-3">
-          <Avatar name={displayName} src={myAvatar} size="md" />
-          <p className="min-w-0 truncate text-sm font-medium">{user.email}</p>
+        <div className="flex items-center gap-3 pb-4">
+          <Avatar name={displayName} src={myAvatar} size="lg" className="tilt-l" />
+          <div className="min-w-0">
+            <p className="font-display truncate text-lg font-bold leading-tight">{isPlaceholderName(profileName, user.email) ? "Hoi!" : `Hoi ${profileName.split(" ")[0]}!`}</p>
+            <p className="truncate text-small text-muted">{user.email}</p>
+          </div>
         </div>
-        <ul className="grid grid-cols-2 gap-2">
+        <ul className="rows border-y-[length:var(--border-w)] border-dashed border-[var(--line)]">
           {moreList.map((item) => {
             const { label, href, icon: Icon } = item;
             const selected = isSelected(item);
             return (
               <li key={href}>
-                <Link href={href} onClick={() => setMoreOpen(false)} aria-current={selected ? "page" : undefined} className={`flex min-h-14 items-center gap-3 rounded-2xl border px-3.5 text-sm font-medium transition active:scale-[.97] ${selected ? "border-[var(--info-line)] bg-[var(--brand-soft)] text-[var(--brand-strong)]" : "border-[var(--line)] bg-white/60"}`}>
-                  <Icon size={18} strokeWidth={1.8} className="shrink-0" />
-                  <span className="truncate">{label}</span>
-                  <span className="relative ml-auto"><NoticeBadge enabled={!isTeacher && href === "/classes"} className="-right-1 -top-1" /></span>
+                <Link href={href} onClick={() => setMoreOpen(false)} aria-current={selected ? "page" : undefined} className="row-link text-[15px] font-semibold">
+                  <Icon size={20} strokeWidth={2} className={`shrink-0 ${selected ? "text-[var(--brand)]" : ""}`} />
+                  <span className={`truncate ${selected ? "marker" : ""}`}>{label}</span>
+                  <span className="relative ml-auto flex items-center"><NoticeBadge enabled={!isTeacher && href === "/classes"} className="-right-1 -top-1" /><ChevronRight size={18} aria-hidden className="text-[var(--muted)]" /></span>
                 </Link>
               </li>
             );
           })}
         </ul>
-        <button type="button" onClick={logout} className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-[var(--danger-line)] bg-[var(--danger-bg)] text-sm font-semibold text-[var(--danger-fg)] transition active:scale-[.98]">
+        <button type="button" onClick={logout} className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-full text-sm font-semibold text-[var(--danger-fg)] transition-colors hover:bg-[var(--danger-bg)] active:translate-y-px">
           <LogOut size={17} /> Abmelden
         </button>
       </Modal>

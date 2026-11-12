@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -11,6 +10,7 @@ import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
+import { AuthFrame, AuthTitle } from "@/components/onboarding/auth-frame";
 
 /** Target of the "Passwort zurücksetzen" e-mail link: Supabase opens a recovery session, here the user picks a new password. */
 export default function ResetPasswordPage() {
@@ -43,29 +43,23 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-4 py-8">
-      <div className="animate-rise w-full max-w-[420px]">
-        <div className="mb-6 text-center">
-          <Image src="/logo.png" alt="WendApply" width={56} height={56} className="mx-auto rounded-[16px] bg-white p-1 shadow-[var(--shadow-md)]" priority />
-          <h1 className="text-title mt-5">Neues Passwort festlegen</h1>
-          <p className="mt-2 text-sm text-muted">Wähle ein Passwort mit mindestens sechs Zeichen.</p>
-        </div>
+    <AuthFrame className="max-w-[440px]">
+        <AuthTitle title={<>Neues <span className="marker">Passwort</span> festlegen</>}>Wähle ein Passwort mit mindestens sechs Zeichen.</AuthTitle>
         {ready === "checking" ? (
-          <div role="status" className="glass-surface p-6 text-center text-sm text-muted">Link wird geprüft …</div>
+          <div role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Link wird geprüft …</div>
         ) : ready === "invalid" ? (
-          <div className="glass-surface space-y-4 p-6 text-center">
+          <div className="panel space-y-4 p-5 sm:p-7">
             <StatusMessage tone="warning">Dieser Link ist abgelaufen oder wurde schon benutzt.</StatusMessage>
-            <Link href="/login" className="inline-flex min-h-11 items-center justify-center font-semibold text-[var(--brand)] hover:underline">Zurück zur Anmeldung</Link>
+            <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]">Zurück zur Anmeldung</Link>
           </div>
         ) : (
-          <form onSubmit={submit} className="glass-surface space-y-5 p-5 sm:p-7">
+          <form onSubmit={submit} className="panel space-y-5 p-5 sm:p-7">
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             <Field label="Neues Passwort" htmlFor="new-password"><Input id="new-password" type="password" required minLength={6} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
             <Field label="Passwort wiederholen" htmlFor="new-password-2"><Input id="new-password-2" type="password" required minLength={6} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
-            <Button type="submit" size="lg" full loading={loading}>{loading ? "Speichert …" : "Passwort speichern"}{!loading && <ArrowRight size={16} />}</Button>
+            <Button type="submit" size="lg" full loading={loading}>{loading ? "Speichert …" : "Passwort speichern"}{!loading && <ArrowRight size={16} strokeWidth={2.4} />}</Button>
           </form>
         )}
-      </div>
-    </main>
+    </AuthFrame>
   );
 }

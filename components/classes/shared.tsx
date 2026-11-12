@@ -10,9 +10,16 @@ import { generalCause } from "@/lib/ux";
 import type { ApplicationStatus, StatusCounts } from "@/types";
 
 export { STATUS_ORDER } from "@/lib/status";
+// Flat token fills, same family as the status badges: open = paper/yellow, sent = blue, talk = coral, placed = green, closed = sand (never red).
 export const STATUS_COLORS: Record<ApplicationStatus, string> = {
-  saved: "#a7a9b2", preparing: "#c7a14a", applied: "#4a90e2", schnupper_planned: "#e0a458", schnupper_done: "#3bb0a6", aptitude_test: "#8aa4d6", interview: "#7a6be0", final_interview: "#5b4bc4", offer: "#2f9e62", contract_signed: "#1f7a49", rejected: "#d65a5a", withdrawn: "#c9c9d0",
+  saved: "var(--surface)", preparing: "var(--sun)", applied: "var(--brand)", schnupper_planned: "var(--info-line)", schnupper_done: "var(--info-line)", aptitude_test: "var(--brand-soft)", interview: "var(--coral)", final_interview: "var(--coral)", offer: "var(--mint)", contract_signed: "var(--success-line)", rejected: "var(--sand)", withdrawn: "var(--sand)",
 };
+
+// Plain data table on paper: ink line under the head, dashed row dividers (shared by the class and teacher tables).
+export const TABLE_HEAD = "border-b-[length:var(--border-w)] border-[var(--outline)] text-small text-muted [&_th]:font-semibold";
+export const TABLE_ROW = "border-b-[1.5px] border-dashed border-[var(--line)] last:border-0 hover:bg-[var(--surface-2)]";
+// Join code as a small flat label with ink contour.
+export const CODE_CHIP = "tabular break-all rounded-[var(--radius-md)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--sun-soft)] px-3 py-1.5 text-[15px] font-bold tracking-[.18em] text-[var(--ink)]";
 
 export function errorMessage(reason: unknown): string {
   switch (classErrorCode(reason)) {
@@ -37,21 +44,19 @@ export function formatDate(value?: string) {
   return Number.isNaN(date.getTime()) ? "–" : date.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-const HATCHED: ApplicationStatus[] = ["rejected", "withdrawn"];
-/** Stacked status bar. Segments are separated by a thin gap and closed statuses are hatched, so it never relies on colour alone. `legend` adds a text key. */
+/** Stacked status bar: flat segments with ink dividers inside an ink contour, so it never relies on colour alone. `legend` adds a text key. */
 export function StatusBar({ counts, total, legend = false }: { counts: StatusCounts; total: number; legend?: boolean }) {
-  if (!total) return <div className="h-2 w-full rounded-full bg-[var(--neutral-bg)]" aria-label="Keine Bewerbungen" />;
+  if (!total) return <div className="h-3 w-full rounded-full border-[length:var(--border-w)] border-dashed border-[var(--neutral-line)]" aria-label="Keine Bewerbungen" />;
   const present = STATUS_ORDER.filter((s) => counts[s]);
   const summary = present.map((s) => `${statusLabels[s]}: ${counts[s]}`).join(", ");
-  const fill = (s: ApplicationStatus) => HATCHED.includes(s) ? `repeating-linear-gradient(45deg, ${STATUS_COLORS[s]} 0 3px, rgba(255,255,255,.55) 3px 5px)` : STATUS_COLORS[s];
   return (
     <div>
-      <div role="img" aria-label={summary} title={summary} className="flex h-2 w-full gap-px overflow-hidden rounded-full bg-[var(--neutral-bg)]">
-        {present.map((s) => <span key={s} style={{ width: `${((counts[s] ?? 0) / total) * 100}%`, background: fill(s) }} />)}
+      <div role="img" aria-label={summary} title={summary} className="flex h-3 w-full overflow-hidden rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface-2)] [&>*+*]:border-l-[length:var(--border-w)] [&>*+*]:border-[var(--outline)]">
+        {present.map((s) => <span key={s} className="min-w-1.5" style={{ width: `${((counts[s] ?? 0) / total) * 100}%`, background: STATUS_COLORS[s] }} />)}
       </div>
       {legend && (
-        <ul aria-hidden className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
-          {present.map((s) => <li key={s} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: fill(s) }} />{statusLabels[s]} {counts[s]}</li>)}
+        <ul aria-hidden className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+          {present.map((s) => <li key={s} className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full border border-[var(--outline)]" style={{ background: STATUS_COLORS[s] }} />{statusLabels[s]} <span className="tabular font-bold text-[var(--ink)]">{counts[s]}</span></li>)}
         </ul>
       )}
     </div>
@@ -71,7 +76,7 @@ export function CodeActions({ code, name }: { code: string; name: string }) {
   }
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <code className="tabular break-all rounded-[var(--radius-md)] border border-[var(--neutral-line)] bg-[var(--neutral-bg)] px-3 py-1.5 text-[15px] font-semibold tracking-[.18em]">{code}</code>
+      <code className={CODE_CHIP}>{code}</code>
       <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={copy} icon={copied ? <Check size={14} /> : <Copy size={14} />}>{copied ? "Kopiert" : "Kopieren"}</Button>
       <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" onClick={share} icon={<Share2 size={14} />}>Teilen</Button>
     </div>

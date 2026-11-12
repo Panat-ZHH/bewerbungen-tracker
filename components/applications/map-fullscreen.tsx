@@ -111,7 +111,7 @@ export function MapTopBar({ left, right }: { left: ReactNode; right?: ReactNode 
   );
 }
 
-/** Compact glass chip that expands to a panel under the top bar. Collapsed by default; collapses to an icon on very narrow screens. */
+/** Compact sticker chip that expands to a panel under the top bar. Collapsed by default; collapses to an icon on very narrow screens. */
 export function MapChip({ id, icon, label, meta, panelLabel, children, iconOnlyNarrow = true }: { id: string; icon: ReactNode; label: string; meta?: ReactNode; panelLabel: string; children: ReactNode; iconOnlyNarrow?: boolean }) {
   const context = useContext(PanelContext);
   const panelId = useId();
@@ -119,14 +119,14 @@ export function MapChip({ id, icon, label, meta, panelLabel, children, iconOnlyN
   const open = context?.open === id;
   return (
     <div className={styles.chipWrap}>
-      <button ref={button} type="button" className={`${styles.chip} ${styles.glass}`} data-open={open} aria-expanded={open} aria-controls={open ? panelId : undefined} onClick={() => context?.toggle(id)}>
+      <button ref={button} type="button" className={`${styles.chip} ${styles.sticker}`} data-open={open} aria-expanded={open} aria-controls={open ? panelId : undefined} onClick={() => context?.toggle(id)}>
         <span className={styles.chipIcon} aria-hidden>{icon}</span>
         <span className={iconOnlyNarrow ? styles.chipLabel : undefined}>{label}</span>
         {meta !== undefined && <span className={styles.chipMeta}>{meta}</span>}
         <ChevronDown size={14} aria-hidden className={styles.chev} />
       </button>
       {open && (
-        <div id={panelId} role="group" aria-label={panelLabel} className={`${styles.panel} ${styles.glass}`} onKeyDown={(event: ReactKeyboardEvent) => { if (event.key === "Escape") { event.stopPropagation(); context?.close(); button.current?.focus(); } }}>
+        <div id={panelId} role="group" aria-label={panelLabel} className={`${styles.panel} ${styles.sticker}`} onKeyDown={(event: ReactKeyboardEvent) => { if (event.key === "Escape") { event.stopPropagation(); context?.close(); button.current?.focus(); } }}>
           {children}
         </div>
       )}
@@ -134,13 +134,13 @@ export function MapChip({ id, icon, label, meta, panelLabel, children, iconOnlyN
   );
 }
 
-/** Static (non-expanding) glass chip, e.g. points balance or the "Nur ansehen" badge. */
+/** Static (non-expanding) sticker chip, e.g. points balance or the "Nur ansehen" badge. */
 export function MapBadge({ children, label, className = "" }: { children: ReactNode; label?: string; className?: string }) {
-  return <div className={`${styles.badge} ${styles.glass} ${className}`} role={label ? "group" : undefined} aria-label={label}>{children}</div>;
+  return <div className={`${styles.badge} ${styles.sticker} ${className}`} role={label ? "group" : undefined} aria-label={label}>{children}</div>;
 }
 
-/** Round 44px glass icon button / link wrapper class names for pages that need their own buttons in the overlays. */
-export const overlayClasses = { iconButton: `${styles.iconButton} ${styles.glass}`, glass: styles.glass, chipLabel: styles.chipLabel, hideNarrow: styles.hideNarrow };
+/** Round 44px sticker icon button / link wrapper class names for pages that need their own buttons in the overlays. */
+export const overlayClasses = { iconButton: `${styles.iconButton} ${styles.sticker}`, sticker: styles.sticker, chipLabel: styles.chipLabel, hideNarrow: styles.hideNarrow };
 
 /* ---------- right-hand controls ---------- */
 
@@ -149,10 +149,10 @@ export function MapControls({ camera, night, onToggleNight, onRefresh, refreshin
   const bodyId = useId();
   return (
     <div className={styles.controls} role="group" aria-label="Kartensteuerung">
-      <button type="button" className={`${styles.iconButton} ${styles.glass}`} aria-expanded={!collapsed} aria-controls={bodyId} aria-label={collapsed ? "Kartensteuerung einblenden" : "Kartensteuerung ausblenden"} title={collapsed ? "Kartensteuerung einblenden" : "Kartensteuerung ausblenden"} onClick={() => setCollapsed(!collapsed)}>
+      <button type="button" className={`${styles.iconButton} ${styles.sticker}`} aria-expanded={!collapsed} aria-controls={bodyId} aria-label={collapsed ? "Kartensteuerung einblenden" : "Kartensteuerung ausblenden"} title={collapsed ? "Kartensteuerung einblenden" : "Kartensteuerung ausblenden"} onClick={() => setCollapsed(!collapsed)}>
         <SlidersHorizontal size={18} aria-hidden />
       </button>
-      <div id={bodyId} className={`${styles.controlsBody} ${styles.glass}`} hidden={collapsed}>
+      <div id={bodyId} className={`${styles.controlsBody} ${styles.sticker}`} hidden={collapsed}>
         <button type="button" title="Vergrössern" aria-label="Vergrössern" onClick={camera.zoomIn} disabled={!camera.canZoomIn}><Plus size={18} aria-hidden /></button>
         <button type="button" title="Zoom zurücksetzen" aria-label={`Zoom zurücksetzen, aktuell ${Math.round(camera.zoom * 100)} Prozent`} onClick={camera.reset} className={styles.zoomValue}>{Math.round(camera.zoom * 100)}%</button>
         <button type="button" title="Verkleinern" aria-label="Verkleinern" onClick={camera.zoomOut} disabled={!camera.canZoomOut}><Minus size={18} aria-hidden /></button>
@@ -235,7 +235,7 @@ export function MapSheet({ id, open, onClose, title, subtitle, icon, children, c
       data-sheet={id}
       data-collapsed={collapsed}
       data-tall={tall}
-      className={`${styles.sheet} ${styles.glass}`}
+      className={`${styles.sheet} ${styles.sticker}`}
       style={dragY ? ({ transform: `translateY(${Math.max(0, dragY)}px)`, transition: "none" } as CSSProperties) : undefined}
     >
       <div className={styles.sheetHead} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={() => { drag.current = null; setDragY(0); }}>

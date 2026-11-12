@@ -2,24 +2,23 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BriefcaseBusiness, CalendarClock, EyeOff, Search, Settings2, Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowLeft, CalendarClock, ChevronRight, EyeOff, Search, Settings2, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useAvatarUrls } from "@/components/ui/use-avatars";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { Segmented } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { StatTile } from "@/components/ui/stat-tile";
+import { Figures } from "@/components/ui/figures";
 import { getClassOverview, listMyClasses } from "@/lib/classes";
 import { ClassSettings } from "./class-settings";
 import { listStudentAliases, shownName } from "@/lib/profile-names";
 import { statusLabels } from "@/lib/utils";
 import type { ClassStudentOverview, SchoolClass } from "@/types";
-import { CodeActions, StatusBar, errorMessage, formatDate } from "./shared";
+import { CodeActions, StatusBar, TABLE_HEAD, TABLE_ROW, errorMessage, formatDate } from "./shared";
 import { StudentDrilldown } from "./student-drilldown";
 
 type SortKey = "activity" | "name" | "total";
@@ -79,30 +78,25 @@ export function ClassDetail({ classId }: { classId: string }) {
   const counts = useMemo(() => Object.fromEntries(FILTERS.map((f) => [f.value, (students ?? []).filter(matches[f.value]).length])) as Record<FilterKey, number>, [students]);
 
   return (
-    <div className="space-y-6 pb-safe">
-      <Link href="/classes" className="text-small inline-flex min-h-11 items-center gap-1.5 text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} /> Alle Klassen</Link>
-      <PageHeader eyebrow={cls?.schoolYear ? `Schuljahr ${cls.schoolYear}` : "Klasse"} title={cls?.name ?? "Klassenübersicht"} description="Bewerbungsaktivität deiner Schülerinnen und Schüler. Nur Daten von Personen, die ihre Freigabe aktiviert haben." actions={cls && <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Settings2 size={16} />} onClick={() => setSettingsOpen(true)}>Verwalten</Button>} />
+    <div className="space-y-6">
+      <Link href="/classes" className="text-small -mb-4 inline-flex min-h-11 items-center gap-1.5 font-semibold text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} /> Alle Klassen</Link>
+      <PageHeader title={cls?.name ?? "Klassenübersicht"} description={<>{cls?.schoolYear && <span className="font-semibold text-[var(--ink)]">Schuljahr {cls.schoolYear} · </span>}Bewerbungsaktivität deiner Schülerinnen und Schüler. Nur Daten von Personen, die ihre Freigabe aktiviert haben.</>} actions={cls && <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Settings2 size={16} />} onClick={() => setSettingsOpen(true)}>Verwalten</Button>} />
 
-      {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
+      {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 shrink-0 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
 
       {!students && !error && (
-        <div className="space-y-4"><div className="grid grid-cols-2 gap-3 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-[var(--radius-lg)]" />)}</div>{[0, 1, 2].map((i) => <Skeleton key={i} className="h-24 rounded-[var(--radius-lg)]" />)}</div>
+        <div className="space-y-3"><Skeleton className="h-20 w-2/3 rounded-[var(--radius-lg)]" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />)}</div>
       )}
 
       {students && (
         <>
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatTile label="Schüler:innen" value={summary.students} icon={<Users size={16} />} />
-            <StatTile label="Bewerbungen" value={summary.total} icon={<BriefcaseBusiness size={16} />} />
-            <StatTile label="Aktiv diese Woche" value={summary.activeWeek} icon={<Sparkles size={16} />} />
-            <StatTile label="Zusagen" value={summary.offers} icon={<Trophy size={16} />} />
-          </div>
+          <Figures label="Kennzahlen der Klasse" items={[{ label: "Schüler:innen", value: summary.students }, { label: "Bewerbungen", value: summary.total }, { label: "Aktiv diese Woche", value: summary.activeWeek }, { label: "Zusagen", value: summary.offers, tone: "success" }]} />
 
           {cls && (
-            <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
-              <div><p className="text-eyebrow">Beitrittscode</p><p className="text-small text-muted">Teile den Code, damit weitere Schüler:innen beitreten können.</p></div>
+            <div className="inset flex flex-wrap items-center justify-between gap-3 p-4">
+              <div><p className="text-sm font-bold">Beitrittscode</p><p className="text-small text-muted">Teile den Code, damit weitere Schüler:innen beitreten können.</p></div>
               <CodeActions code={cls.joinCode} name={cls.name} />
-            </Card>
+            </div>
           )}
 
           {students.length === 0 ? (
@@ -122,64 +116,64 @@ export function ClassDetail({ classId }: { classId: string }) {
 
               {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler:innen zu sehen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
 
-              {/* Mobile: cards */}
-              <ul className="space-y-3 md:hidden">
+              {/* Mobile: plain rows */}
+              {rows.length > 0 && <ul className="rows border-y-[length:var(--border-w)] border-[var(--outline)] md:hidden">
                 {rows.map((s) => (
                   <li key={s.studentId}>
-                    <button type="button" onClick={() => setSelected(s)} className="card-interactive panel w-full space-y-3 rounded-[var(--radius-lg)] p-4 text-left">
+                    <button type="button" onClick={() => setSelected(s)} className="w-full space-y-2.5 py-4 text-left active:translate-y-px">
                       <div className="flex items-center gap-3">
                         <Avatar name={nameOf(s)} src={avatars[s.studentId]} size="sm" />
-                        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{nameOf(s)}</p>{s.hidden ? <p className="text-small text-muted">Teilt keine Daten</p> : <p className="text-small text-muted tabular">{s.total} Bewerbungen · 7 T: {s.last7Days} · 30 T: {s.last30Days}</p>}</div>
-                        {s.hidden && <EyeOff size={16} className="text-muted" />}
+                        <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-bold">{nameOf(s)}</p>{s.hidden ? <p className="text-small text-muted">Teilt keine Daten</p> : <p className="text-small text-muted tabular">{s.total} Bewerbungen · 7 T: {s.last7Days} · 30 T: {s.last30Days}</p>}</div>
+                        {s.hidden ? <EyeOff size={16} className="shrink-0 text-muted" /> : <ChevronRight size={18} strokeWidth={2.4} className="shrink-0" aria-hidden />}
                       </div>
                       {!s.hidden && (
                         <>
                           <StatusBar counts={s.statusCounts} total={s.total} />
                           {s.latest && <p className="text-small truncate text-muted">Zuletzt: {s.latest.company} · {statusLabels[s.latest.status]} · {formatDate(s.latest.date)}</p>}
-                          {s.upcomingDeadlines.length > 0 && <p className="text-small inline-flex items-center gap-1.5 text-[var(--warning-fg)]"><CalendarClock size={13} /> Nächste Frist {formatDate(s.upcomingDeadlines[0].deadline)} ({s.upcomingDeadlines[0].company})</p>}
+                          {s.upcomingDeadlines.length > 0 && <p className="text-small flex items-center gap-1.5 font-medium text-[var(--warning-fg)]"><CalendarClock size={13} className="shrink-0" /> Nächste Frist {formatDate(s.upcomingDeadlines[0].deadline)} ({s.upcomingDeadlines[0].company})</p>}
                           {s.last30Days === 0 && <Badge tone="warning">Keine Bewerbung seit 30 Tagen</Badge>}
                         </>
                       )}
                     </button>
                   </li>
                 ))}
-              </ul>
+              </ul>}
 
-              {/* Desktop: table */}
-              <Card className="hidden overflow-hidden md:block">
+              {/* Desktop: table on paper */}
+              {rows.length > 0 && <div className="hidden overflow-x-auto md:block">
                 <table className="w-full text-left text-sm">
-                  <thead className="text-eyebrow border-b border-[var(--line)]">
+                  <thead className={TABLE_HEAD}>
                     <tr>
-                      <th scope="col" className="px-4 py-3 font-medium">Name</th>
-                      <th scope="col" className="px-3 py-3 text-right font-medium">Gesamt</th>
-                      <th scope="col" className="w-44 px-3 py-3 font-medium">Status</th>
-                      <th scope="col" className="px-3 py-3 text-right font-medium">7 / 30 Tage</th>
-                      <th scope="col" className="px-3 py-3 font-medium">Letzte Bewerbung</th>
-                      <th scope="col" className="px-3 py-3 font-medium">Nächste Fristen</th>
+                      <th scope="col" className="py-3 pr-3">Name</th>
+                      <th scope="col" className="px-3 py-3 text-right">Gesamt</th>
+                      <th scope="col" className="w-44 px-3 py-3">Status</th>
+                      <th scope="col" className="px-3 py-3 text-right">7 / 30 Tage</th>
+                      <th scope="col" className="px-3 py-3">Letzte Bewerbung</th>
+                      <th scope="col" className="py-3 pl-3">Nächste Fristen</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rows.map((s) => (
-                      <tr key={s.studentId} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--hover)]">
-                        <th scope="row" className="px-4 py-3 font-medium">
-                          <button type="button" onClick={() => setSelected(s)} className="inline-flex min-h-11 items-center gap-2.5 text-left hover:text-[var(--brand-strong)]"><Avatar name={nameOf(s)} src={avatars[s.studentId]} size="xs" />{nameOf(s)}</button>
+                      <tr key={s.studentId} className={TABLE_ROW}>
+                        <th scope="row" className="py-2 pr-3 font-bold">
+                          <button type="button" onClick={() => setSelected(s)} className="inline-flex min-h-11 items-center gap-2.5 text-left hover:underline hover:decoration-2 hover:underline-offset-4"><Avatar name={nameOf(s)} src={avatars[s.studentId]} size="xs" />{nameOf(s)}</button>
                         </th>
                         {s.hidden ? (
-                          <td colSpan={5} className="px-3 py-3 text-muted"><span className="inline-flex items-center gap-1.5"><EyeOff size={14} /> Teilt keine Daten</span></td>
+                          <td colSpan={5} className="px-3 py-2 text-muted"><span className="inline-flex items-center gap-1.5"><EyeOff size={14} /> Teilt keine Daten</span></td>
                         ) : (
                           <>
-                            <td className="tabular px-3 py-3 text-right">{s.total}</td>
-                            <td className="px-3 py-3"><StatusBar counts={s.statusCounts} total={s.total} /></td>
-                            <td className="tabular px-3 py-3 text-right">{s.last7Days} / {s.last30Days}{s.last30Days === 0 && <Badge tone="warning" className="ml-2">inaktiv</Badge>}</td>
-                            <td className="max-w-[220px] px-3 py-3">{s.latest ? <><p className="truncate">{s.latest.company}</p><p className="text-small text-muted">{statusLabels[s.latest.status]} · {formatDate(s.latest.date)}</p></> : <span className="text-muted">–</span>}</td>
-                            <td className="px-3 py-3">{s.upcomingDeadlines.length ? <ul className="text-small space-y-0.5">{s.upcomingDeadlines.slice(0, 2).map((d) => <li key={d.applicationId} className="tabular">{formatDate(d.deadline)} · <span className="text-muted">{d.company}</span></li>)}</ul> : <span className="text-muted">–</span>}</td>
+                            <td className="tabular px-3 py-2 text-right font-bold">{s.total}</td>
+                            <td className="px-3 py-2"><StatusBar counts={s.statusCounts} total={s.total} /></td>
+                            <td className="tabular px-3 py-2 text-right whitespace-nowrap">{s.last7Days} / {s.last30Days}{s.last30Days === 0 && <Badge tone="warning" className="ml-2">inaktiv</Badge>}</td>
+                            <td className="max-w-[220px] px-3 py-2">{s.latest ? <><p className="truncate">{s.latest.company}</p><p className="text-small text-muted">{statusLabels[s.latest.status]} · {formatDate(s.latest.date)}</p></> : <span className="text-muted">–</span>}</td>
+                            <td className="py-2 pl-3">{s.upcomingDeadlines.length ? <ul className="text-small space-y-0.5">{s.upcomingDeadlines.slice(0, 2).map((d) => <li key={d.applicationId} className="tabular">{formatDate(d.deadline)} · <span className="text-muted">{d.company}</span></li>)}</ul> : <span className="text-muted">–</span>}</td>
                           </>
                         )}
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </Card>
+              </div>}
             </section>
           )}
         </>

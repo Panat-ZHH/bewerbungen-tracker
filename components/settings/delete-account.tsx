@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Eye, EyeOff, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { StatusMessage } from "@/components/ui/skeleton";
@@ -104,17 +103,13 @@ export function DeleteAccountCard() {
 
   return (
     <>
-      <Card className="animate-rise mt-4 !border-[var(--danger-line)]"><CardContent>
-        <div className="flex items-start gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--danger-bg)] text-[var(--danger-fg)]"><ShieldAlert size={18} /></span>
-          <div className="min-w-0">
-            <h2 className="text-heading">Konto löschen</h2>
-            <p className="mt-1 text-body text-muted">Löscht dein Konto samt Anmeldung, allen Daten und Dateien dauerhaft. Das kann nicht rückgängig gemacht werden.</p>
-          </div>
-        </div>
+      {/* The only danger area of the settings: flat, calm, one contour in the danger tone. */}
+      <div className="rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--danger-fg)] bg-[var(--surface)] p-4 sm:p-5">
+        <h3 className="font-display text-lg font-bold leading-tight tracking-[-.02em] text-[var(--danger-fg)]">Konto löschen</h3>
+        <p className="mt-1.5 text-body text-muted">Löscht dein Konto samt Anmeldung, allen Daten und Dateien dauerhaft. Das kann nicht rückgängig gemacht werden.</p>
         <Button variant="danger" onClick={show} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<AlertTriangle size={16} />}>Konto löschen…</Button>
-        <p className="mt-2 text-small text-muted">Tipp: Lade vorher oben eine Sicherung deiner Daten herunter.</p>
-      </CardContent></Card>
+        <p className="mt-3 text-small text-muted">Tipp: Lade vorher oben eine Sicherung deiner Daten herunter.</p>
+      </div>
 
       <Modal open={open} onClose={() => !busy && setOpen(false)} title="Konto endgültig löschen?" description="Dein Konto und alle Daten werden sofort und dauerhaft gelöscht."
         footer={<><Button variant="ghost" onClick={() => setOpen(false)} disabled={busy}>Abbrechen</Button><Button variant="danger" onClick={deleteNow} loading={busy} disabled={!canDelete}>Konto endgültig löschen</Button></>}>
@@ -134,7 +129,7 @@ export function DeleteAccountCard() {
             <Field label="Dein Passwort" htmlFor="delete-password" hint="Zur Sicherheit fragen wir noch einmal nach deinem Passwort.">
               <div className="relative">
                 <Input id="delete-password" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" className="pr-12" />
-                <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-muted">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center text-muted hover:text-[var(--ink)]">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
               </div>
             </Field>
           ) : identity ? (

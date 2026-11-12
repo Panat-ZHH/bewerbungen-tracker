@@ -2,19 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Plus, Search, X } from "lucide-react";
+import { ArrowRight, Plus, Search, X } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { fieldClasses } from "@/components/ui/input";
+import { DoodleSparkle } from "@/components/ui/doodles";
 import { getApplications } from "@/lib/storage";
 import { cn, statusLabels } from "@/lib/utils";
 import { friendlyMessage } from "@/lib/ux";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
 import type { Application, ApplicationStatus } from "@/types";
 
-
-const addLink = "inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[image:var(--brand-gradient)] px-5 text-sm font-semibold text-white shadow-[var(--shadow-brand)] transition hover:brightness-110 active:scale-[.98] sm:w-fit";
 
 export default function ApplicationsPage() {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -53,72 +54,70 @@ export default function ApplicationsPage() {
 
   return (
     <WorkspaceShell active="Bewerbungen">
-      <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-[28px] font-semibold tracking-[-1px] md:text-[38px]">Bewerbungen</h1>
-          <p className="mt-2 text-base text-muted">Alles, was du dir merken oder schon abgeschickt hast.</p>
-        </div>
-        <Link href="/applications/new" className={addLink}>
-          <Plus size={17} /> Bewerbung hinzufügen
-        </Link>
-      </div>
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        title={<>Bewerbungen<DoodleSparkle className="ml-2 inline-block h-[.55em] w-[.55em] -translate-y-[.45em] text-[var(--sun)]" /></>}
+        description="Alles, was du dir merken oder schon abgeschickt hast."
+        actions={<ButtonLink href="/applications/new" variant="sun" className="w-full sm:w-fit" icon={<Plus size={17} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>}
+      />
 
       {error && <StatusMessage tone="danger" className="mt-6"><p>{error}</p><Button size="sm" variant="secondary" className="mt-2" onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Erneut versuchen</Button></StatusMessage>}
 
       <div className="mt-7 space-y-3">
-        <label className="relative block">
-          <Search size={17} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-muted" />
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma oder Stelle suchen" aria-label="Firma oder Stelle suchen" className="min-h-11 w-full rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] py-2.5 pl-11 pr-11 text-base text-[var(--ink)] outline-none pointer-fine:text-sm transition placeholder:text-[var(--placeholder)] focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand)]/15 [&::-webkit-search-cancel-button]:hidden" />
+        <label className="relative block max-w-xl">
+          <Search size={17} strokeWidth={2.4} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ink)]" />
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma oder Stelle suchen" aria-label="Firma oder Stelle suchen" className={cn(fieldClasses, "pl-10 pr-11 [&::-webkit-search-cancel-button]:hidden")} />
           {query && (
-            <button type="button" onClick={() => setQuery("")} aria-label="Suche löschen" className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]"><X size={16} /></button>
+            <button type="button" onClick={() => setQuery("")} aria-label="Suche löschen" className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]"><X size={16} /></button>
           )}
         </label>
-        <div role="group" aria-label="Nach Status filtern" className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-1 min-[381px]:-mx-3.5 min-[381px]:px-3.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
+        <div role="group" aria-label="Nach Status filtern" className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 min-[381px]:-mx-3.5 min-[381px]:px-3.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
           {chips.map((chip) => {
             const selected = status === chip.value;
             return (
-              <button key={chip.value} type="button" aria-pressed={selected} onClick={() => setStatus(chip.value)} className={cn("inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-4 text-sm font-medium transition active:scale-[.97]", selected ? "border-[var(--brand)] bg-[var(--brand)] text-[var(--on-brand)]" : "border-[var(--glass-border)] bg-[var(--raised)] text-[var(--ink)] hover:bg-[var(--raised-hover)]")}>
+              <button key={chip.value} type="button" aria-pressed={selected} onClick={() => setStatus(chip.value)} className={cn("inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border-[length:var(--border-w)] px-3.5 text-sm font-semibold transition-colors duration-150 active:translate-y-px", selected ? "border-[var(--ink)] bg-[var(--ink)] text-[var(--paper)]" : "border-[var(--line)] text-[var(--muted)] hover:border-[var(--outline)] hover:text-[var(--ink)]")}>
                 {chip.label}
-                <span className={cn("text-xs tabular-nums", selected ? "text-white/80" : "text-muted")}>{chip.count}</span>
+                <span className={cn("tabular rounded-full px-1.5 text-xs", selected ? "bg-[var(--sun)] text-[var(--on-sun)]" : "bg-[var(--surface-2)]")}>{chip.count}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <p className="mt-5 text-sm text-muted" aria-live="polite">{loading ? "Lädt …" : `${filtered.length} ${filtered.length === 1 ? "Bewerbung" : "Bewerbungen"}`}</p>
+      <p className="mt-6 text-sm text-muted" aria-live="polite">{loading ? "Lädt …" : `${filtered.length} ${filtered.length === 1 ? "Bewerbung" : "Bewerbungen"}`}</p>
 
       {loading ? (
         <div className="mt-3 space-y-3" role="status" aria-label="Bewerbungen werden geladen">
-          {[0, 1, 2, 3].map((item) => <div key={item} className="h-[84px] skeleton rounded-[14px]" />)}
+          {[0, 1, 2, 3].map((item) => <div key={item} className="skeleton h-16" />)}
         </div>
       ) : filtered.length ? (
-        <ul className="mt-3 space-y-2.5">
+        <ul className="rows mt-2 border-y-[length:var(--border-w)] border-[var(--outline)]">
           {filtered.map((application) => (
             <li key={application.id}>
-              <Link href={`/applications/${application.id}`} className="glass-surface group flex min-h-[84px] items-center justify-between gap-3 rounded-[14px] px-4 py-3.5 transition hover:-translate-y-px hover:bg-[var(--raised-hover)] active:scale-[.99] sm:px-5">
+              <Link href={`/applications/${application.id}`} className="row-link group min-h-[4.5rem] justify-between">
                 <span className="min-w-0">
-                  <span className="block truncate text-[15px] font-semibold">{application.company}</span>
-                  <span className="mt-1 block truncate text-sm text-muted">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
+                  <span className="font-display block truncate text-[17px] font-bold tracking-[-.01em]">{application.company}</span>
+                  <span className="mt-0.5 block truncate text-sm text-muted">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <StatusBadge status={application.status} />
-                  <ChevronRight size={16} className="hidden text-muted transition group-hover:translate-x-0.5 sm:block" />
+                  <ArrowRight size={17} strokeWidth={2.4} aria-hidden className="hidden transition-transform duration-200 group-hover:translate-x-1 sm:block" />
                 </span>
               </Link>
             </li>
           ))}
         </ul>
       ) : (
-        <Card className="mt-3 border-dashed px-6 py-10 text-center">
-          <h2 className="text-base font-semibold">{applications.length ? "Dazu gibt es keine Bewerbung." : "Noch keine Bewerbungen"}</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-muted">{applications.length ? "Prüfe die Schreibweise oder wähle einen anderen Stand." : "Füge deine erste Stelle hinzu, damit du sie nicht aus dem Blick verlierst."}</p>
-          {applications.length ? (
-            <button type="button" onClick={() => { setQuery(""); setStatus("all"); }} className="mt-5 inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--glass-border)] bg-[var(--raised)] px-5 text-sm font-semibold hover:bg-[var(--raised-hover)]">Filter zurücksetzen</button>
+        <EmptyState
+          className="mt-3"
+          title={applications.length ? "Dazu gibt es keine Bewerbung." : "Noch keine Bewerbungen"}
+          description={applications.length ? "Prüfe die Schreibweise oder wähle einen anderen Stand." : "Füge deine erste Stelle hinzu, damit du sie nicht aus dem Blick verlierst."}
+          action={applications.length ? (
+            <Button type="button" variant="secondary" onClick={() => { setQuery(""); setStatus("all"); }}>Filter zurücksetzen</Button>
           ) : (
-            <Link href="/applications/new" className={cn(addLink, "mx-auto mt-5 sm:w-fit")}><Plus size={16} /> Bewerbung hinzufügen</Link>
+            <ButtonLink href="/applications/new" icon={<Plus size={16} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>
           )}
-        </Card>
+        />
       )}
     </WorkspaceShell>
   );

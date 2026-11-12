@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RoleCards } from "@/components/onboarding/role-cards";
+import { AuthFrame, AuthTitle } from "@/components/onboarding/auth-frame";
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
@@ -44,21 +44,15 @@ export default function ChooseRolePage() {
   }
 
   return (
-    <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-4 py-8">
-      <div className="animate-rise w-full max-w-[520px]">
-        <Image src="/logo.png" alt="WendApply" width={56} height={56} className="logo-tile mx-auto rounded-[16px] bg-[#f2f7ff] p-1 shadow-[var(--shadow-md)]" priority />
-        {!ready ? <p role="status" className="mt-6 text-center text-sm text-muted">Einen Moment …</p> : (
-          <div className="glass-surface mt-6 space-y-5 p-5 sm:p-7">
-            <div className="text-center">
-              <h1 className="text-title">Wie nutzt du WendApply?</h1>
-              <p className="mt-2 text-sm text-muted">Das fragen wir nur einmal. So zeigen wir dir die passende Ansicht.</p>
-            </div>
+    <AuthFrame className="max-w-[600px]">
+        {!ready ? <p role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einen Moment …</p> : (
+          <div className="space-y-6">
+            <AuthTitle title={<>Wie nutzt du <span className="marker">WendApply</span>?</>}>Das fragen wir nur einmal. So zeigen wir dir die passende Ansicht.</AuthTitle>
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             <RoleCards value={role} onChange={setRole} disabled={busy} />
-            <Button full size="lg" disabled={!role} loading={busy} onClick={confirm}>Weiter</Button>
+            <Button size="lg" disabled={!role} loading={busy} onClick={confirm} className="w-full sm:w-auto sm:min-w-48">Weiter</Button>
           </div>
         )}
-      </div>
-    </main>
+    </AuthFrame>
   );
 }

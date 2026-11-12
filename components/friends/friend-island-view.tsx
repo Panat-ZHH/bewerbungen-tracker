@@ -58,7 +58,7 @@ export function FriendIslandView({ friendId }: { friendId: string }) {
       >
         <MapTopBar
           left={<>
-            <Link href="/friends" className={`${layout.chip} ${layout.friendBack} ${overlayClasses.glass}`} aria-label="Zurück zu Freunden"><ArrowLeft size={16} aria-hidden /><span className={layout.chipLabel}>Freunde</span></Link>
+            <Link href="/friends" className={`${layout.chip} ${layout.friendBack} ${overlayClasses.sticker}`} aria-label="Zurück zu Freunden"><ArrowLeft size={16} aria-hidden /><span className={layout.chipLabel}>Freunde</span></Link>
             <MapChip id="friend" icon={<Avatar name={island?.displayName} src={avatars[friendId]} size="sm" />} label={name} meta={<Eye size={14} aria-label="Nur ansehen" />} panelLabel={`Info zur Insel von ${name}`}>
               <h2 className={layout.panelHeading}>Nur ansehen</h2>
               <p className={layout.friendNote}>{island?.companiesShared ? `Du siehst nur die Karte und die Firmennamen, bei denen sich ${name} beworben hat.` : `Du siehst nur die Karte, ohne Firmennamen.`} Stellen, Daten und Notizen bleiben privat.</p>
@@ -77,7 +77,7 @@ export function FriendIslandView({ friendId }: { friendId: string }) {
         />
         <MapControls camera={camera} night={night} onToggleNight={() => setNight(!night)} />
         <MapDock>
-          {error && <div className={`${layout.notice} ${layout.noticeDanger} ${overlayClasses.glass}`} role="alert"><p>{error}</p><button type="button" onClick={() => setAttempt(attempt + 1)}>Erneut versuchen</button></div>}
+          {error && <div className={`${layout.notice} ${layout.noticeDanger} ${overlayClasses.sticker}`} role="alert"><p>{error}</p><button type="button" onClick={() => setAttempt(attempt + 1)}>Erneut versuchen</button></div>}
         </MapDock>
       </MapFullscreen>
     </>

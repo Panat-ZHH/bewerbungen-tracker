@@ -2,24 +2,27 @@ import Link from "next/link";
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+export type ButtonVariant = "primary" | "sun" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
+// Sticker buttons: flat fill, ink contour, hard shadow. `pressable` makes them sink on press (shadow gone, 2px down).
+const sticker = "border-[length:var(--border-w)] shadow-[var(--shadow-sm)] pressable";
 const variants: Record<ButtonVariant, string> = {
-  primary: "text-white bg-[image:var(--brand-gradient)] shadow-[var(--shadow-brand)] hover:brightness-110 hover:-translate-y-px",
-  secondary: "border border-[var(--glass-border)] bg-[var(--raised)] text-[var(--ink)] shadow-[var(--shadow-xs)] backdrop-blur-xl hover:bg-[var(--raised-hover)] hover:shadow-[var(--shadow-sm)]",
-  ghost: "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
-  danger: "border border-[var(--danger-line)] bg-[var(--danger-bg)] text-[var(--danger-fg)] hover:brightness-95",
+  primary: cn(sticker, "border-[var(--outline-fill)] bg-[var(--brand)] text-[var(--on-brand)]"),
+  sun: cn(sticker, "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)]"),
+  secondary: cn(sticker, "border-[var(--outline)] bg-[var(--surface)] text-[var(--ink)]"),
+  ghost: "text-[var(--ink)] underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:bg-[var(--hover)] hover:decoration-[var(--ink)] active:translate-y-px",
+  danger: "border-[length:var(--border-w)] border-[var(--danger-fg)] bg-[var(--danger-bg)] text-[var(--danger-fg)] transition-transform hover:brightness-95 active:translate-y-px",
 };
 const sizes: Record<ButtonSize, string> = {
   sm: "min-h-9 px-3.5 text-[13px] pointer-coarse:min-h-11",
   md: "min-h-11 px-5 text-sm sm:min-h-10 sm:px-4 pointer-coarse:min-h-11",
-  lg: "min-h-12 px-6 text-[15px]",
+  lg: "min-h-12 px-6 text-base",
 };
 
 export function buttonClasses({ variant = "primary", size = "md", full, className }: { variant?: ButtonVariant; size?: ButtonSize; full?: boolean; className?: string }) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-full font-semibold leading-none whitespace-nowrap select-none transition duration-200 ease-out active:translate-y-0 active:scale-[.97] disabled:pointer-events-none disabled:opacity-50 aria-busy:pointer-events-none",
+    "inline-flex items-center justify-center gap-2 rounded-full font-semibold leading-none whitespace-nowrap select-none disabled:pointer-events-none disabled:opacity-50 aria-busy:pointer-events-none",
     variants[variant], sizes[size], full && "w-full", className,
   );
 }

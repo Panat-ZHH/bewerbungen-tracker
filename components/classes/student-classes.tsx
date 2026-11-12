@@ -85,48 +85,50 @@ export function StudentClasses() {
   }
 
   return (
-    <div className="space-y-6 pb-safe">
-      <PageHeader eyebrow="Schüler:in" title="Meine Klassen" description="Tritt der Klasse deiner Lehrperson bei, damit sie deinen Bewerbungsfortschritt begleiten kann." />
+    <div>
+      <PageHeader title="Meine Klassen" description="Tritt der Klasse deiner Lehrperson bei, damit sie deinen Bewerbungsfortschritt begleiten kann." />
 
-      <Card className="space-y-4 p-5">
-        <form onSubmit={lookup}>
-          <Field label="Klassencode" htmlFor="join-code" hint="Code oder Link bekommst du von deiner Lehrperson." error={joinError}>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code oder Einladungslink" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! sm:max-w-sm sm:text-base!" />
-              <Button type="submit" className="min-h-11 sm:min-h-11" loading={joining && !pending}>Weiter</Button>
-            </div>
-          </Field>
-        </form>
-        <PrivacyPanel variant="class" />
-        {notice && <p role="status" className="text-small text-[var(--success-fg)]">{notice}</p>}
-      </Card>
+      {(error || actionError) && !leaving && !pending && <div role="alert" className="status status-danger mb-6 flex items-center justify-between gap-3 text-sm"><span>{error || actionError}</span>{error && <Button size="sm" variant="secondary" className="min-h-11 shrink-0 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button>}</div>}
 
-      {(error || actionError) && !leaving && !pending && <div role="alert" className="status status-danger flex items-center justify-between gap-3 rounded-[var(--radius-md)] p-3 text-sm"><span>{error || actionError}</span>{error && <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button>}</div>}
-      {!items && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
-      {items && items.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Du bist in keiner Klasse" description="Gib oben den Code deiner Lehrperson ein, um beizutreten." />}
-      {items && items.length > 0 && (
-        <div className="space-y-3">
-          {items.map((m) => (
-            <Card key={m.classId} className="space-y-3 p-5">
-              <div className="flex flex-wrap items-start justify-between gap-2">
+      {/* Uneven columns: the classes (sticker) lead, joining another class stays calm on paper. With no class yet the join form comes first. */}
+      <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-6">
+          {!items && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
+          {items && items.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Du bist in keiner Klasse" description="Gib den Code deiner Lehrperson ein, um beizutreten." />}
+          {items && items.length > 0 && items.map((m) => (
+            <Card key={m.classId} className="p-4 pb-2 sm:p-6 sm:pb-3">
+              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
                 <div className="min-w-0">
-                  <h2 className="text-heading truncate">{m.name}</h2>
-                  <p className="text-small text-muted">{m.teacherName} · {m.schoolYear ? `Schuljahr ${m.schoolYear} · ` : ""}beigetreten am {formatDate(m.joinedAt)}</p>
+                  <h2 className="font-display truncate text-2xl font-extrabold tracking-[-.02em]">{m.name}</h2>
+                  <p className="text-small mt-1 text-muted">{m.teacherName} · {m.schoolYear ? `Schuljahr ${m.schoolYear} · ` : ""}beigetreten am {formatDate(m.joinedAt)}</p>
                 </div>
                 <Badge tone={m.shareApplications ? "success" : "neutral"}>{m.shareApplications ? <><Eye size={12} /> Freigabe aktiv</> : <><EyeOff size={12} /> Nicht geteilt</>}</Badge>
               </div>
-              {m.lastNudgeAt && <p className="text-small text-muted">Letzte Erinnerung deiner Lehrperson: {formatDate(m.lastNudgeAt)}</p>}
-              <div className="space-y-2.5 rounded-[var(--radius-md)] border border-[var(--line)] p-3.5">
+              {m.lastNudgeAt && <p className="text-small mt-2 text-muted">Letzte Erinnerung deiner Lehrperson: {formatDate(m.lastNudgeAt)}</p>}
+              <div className="rows mt-3 border-y-[length:var(--border-w)] border-[var(--outline)]">
                 <ConsentSwitches value={{ share: m.shareApplications, status: m.shareStatus, companies: m.shareCompanies }} disabled={busy === m.classId} onChange={(next) => update(m, next)} />
               </div>
               <Announcements classId={m.classId} count={m.announcementsCount} />
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" onClick={() => { setActionError(""); setLeaving(m); }} icon={<LogOut size={14} />}>Klasse verlassen</Button>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" className="-ml-2 min-h-11 sm:min-h-11" onClick={() => { setActionError(""); setLeaving(m); }} icon={<LogOut size={14} />}>Klasse verlassen</Button>
               </div>
             </Card>
           ))}
         </div>
-      )}
+
+        <div className={`min-w-0 space-y-5 ${items && items.length > 0 ? "" : "max-lg:order-first"}`}>
+          <form onSubmit={lookup}>
+            <Field label="Klassencode" htmlFor="join-code" hint="Code oder Link bekommst du von deiner Lehrperson." error={joinError}>
+              <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
+                <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code oder Einladungslink" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! sm:max-w-sm sm:text-base!" />
+                <Button type="submit" className="min-h-11 shrink-0 sm:min-h-11" loading={joining && !pending}>Weiter</Button>
+              </div>
+            </Field>
+          </form>
+          {notice && <p role="status" className="status status-success text-sm">{notice}</p>}
+          <PrivacyPanel variant="class" />
+        </div>
+      </div>
 
       <Modal open={!!pending} onClose={() => setPending(null)} title={pending ? `Klasse "${pending.name}" beitreten?` : ""} description={pending ? `${pending.teacherName}${pending.schoolYear ? ` · Schuljahr ${pending.schoolYear}` : ""} · ${pending.memberCount} Schüler:innen` : undefined}
         footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} disabled={!consent.ready} onClick={confirmJoin}>Beitreten</Button></div>}>
@@ -164,12 +166,12 @@ function Announcements({ classId, count }: { classId: string; count: number }) {
   if (count === 0) return null;
   const visible = all ? items : items?.slice(0, 3);
   return (
-    <div>
-      <p className="flex items-center gap-2 text-sm font-semibold text-[var(--brand)]"><Megaphone size={15} aria-hidden />{count === 1 ? "1 Mitteilung" : `${count} Mitteilungen`} der Lehrperson</p>
-      <ul className="mt-1 space-y-2">
-        {failed && <li className="text-small text-[var(--danger-fg)]">Die Mitteilungen konnten nicht geladen werden.</li>}
-        {!items && !failed && <li><Skeleton className="h-12 rounded-[var(--radius-md)]" /></li>}
-        {visible?.map((a) => <li key={a.id} className="rounded-[var(--radius-md)] border border-[var(--info-line)] bg-[var(--info-bg)] p-3 text-sm text-[var(--info-fg)]"><p className="whitespace-pre-wrap break-words">{a.text}</p><p className="text-small mt-1 opacity-90">{a.authorName} · {formatDate(a.createdAt)}</p></li>)}
+    <div className="mt-4">
+      <p className="flex items-center gap-2 text-sm font-bold"><Megaphone size={16} strokeWidth={2.2} className="text-[var(--brand)]" aria-hidden />{count === 1 ? "1 Mitteilung" : `${count} Mitteilungen`} der Lehrperson</p>
+      <ul className="rows mt-1">
+        {failed && <li className="text-small py-2.5 text-[var(--danger-fg)]">Die Mitteilungen konnten nicht geladen werden.</li>}
+        {!items && !failed && <li className="py-2.5"><Skeleton className="h-12 rounded-[var(--radius-md)]" /></li>}
+        {visible?.map((a) => <li key={a.id} className="py-2.5 text-sm"><p className="whitespace-pre-wrap break-words">{a.text}</p><p className="text-small mt-0.5 text-muted">{a.authorName} · {formatDate(a.createdAt)}</p></li>)}
       </ul>
       {items && items.length > 3 && !all && <button type="button" onClick={() => setAll(true)} className="mt-1 inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] hover:underline">Ältere Mitteilungen anzeigen</button>}
     </div>

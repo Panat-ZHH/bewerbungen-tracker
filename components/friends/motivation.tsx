@@ -12,17 +12,21 @@ export function Motivation({ activity, me }: { activity: FriendActivity[]; me: S
   if (shared.length === 0) return null;
   const total = shared.reduce((sum, a) => sum + (a.total ?? 0), 0);
   return (
-    <section aria-labelledby="motivation-title" className="animate-rise panel p-4 sm:p-5">
-      <div className="flex items-center gap-2"><Flame size={18} className="text-[var(--warning-fg)]" aria-hidden /><h2 id="motivation-title" className="text-heading">Gemeinsam dranbleiben</h2></div>
-      <p className="mt-1 text-small text-muted">{me.displayName}, deine Freunde haben zusammen {total} Bewerbung{total === 1 ? "" : "en"} auf dem Weg. Jede zählt, jeder in seinem Tempo.</p>
-      <ul className="mt-3 flex flex-wrap gap-2" aria-label="Freunde, die ihren Fortschritt teilen">
-        {shared.map((a) => (
-          <li key={a.userId} className="flex items-center gap-2 rounded-full border border-[var(--line)] bg-white/60 py-1 pl-1 pr-3">
-            <Avatar name={a.displayName} src={avatars[a.userId]} size="sm" />
-            <span className="max-w-[10rem] truncate text-small font-semibold">{a.displayName}</span>
-          </li>
-        ))}
-      </ul>
+    <section aria-labelledby="motivation-title" className="animate-rise flex items-start gap-4 sm:gap-6">
+      {/* The shared number, loud. Decorative: the sentence next to it says the same. */}
+      <span aria-hidden className="num-display shrink-0 text-[var(--brand)]">{total}</span>
+      <div className="min-w-0 flex-1 pt-1">
+        <h2 id="motivation-title" className="text-heading flex items-center gap-2"><span className="marker">Gemeinsam dranbleiben</span><Flame size={19} strokeWidth={2.3} className="shrink-0 text-[var(--coral)]" aria-hidden /></h2>
+        <p className="mt-1.5 text-small text-muted">{me.displayName}, deine Freunde haben zusammen {total} Bewerbung{total === 1 ? "" : "en"} auf dem Weg. Jede zählt, jeder in seinem Tempo.</p>
+        <ul className="mt-3 flex flex-wrap gap-2" aria-label="Freunde, die ihren Fortschritt teilen">
+          {shared.map((a) => (
+            <li key={a.userId} className="flex items-center gap-2 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] py-0.5 pl-0.5 pr-3">
+              <Avatar name={a.displayName} src={avatars[a.userId]} size="sm" />
+              <span className="max-w-[10rem] truncate text-small font-semibold">{a.displayName}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   );
 }

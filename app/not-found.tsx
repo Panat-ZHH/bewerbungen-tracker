@@ -1,18 +1,21 @@
 import type { Metadata } from "next";
-import { Compass } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
+import { DoodleLoopArrow } from "@/components/ui/doodles";
 
 export const metadata: Metadata = { title: "Seite nicht gefunden" };
 
 export default function NotFound() {
   return (
-    <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center px-5 text-center">
-      <div className="panel animate-pop flex w-full max-w-md flex-col items-center px-6 py-10 sm:py-12">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand)] shadow-[var(--shadow-sm)]"><Compass size={26} /></span>
-        <p className="text-eyebrow mt-6">Fehler 404</p>
-        <h1 className="text-title mt-3">Diese Seite gibt es nicht.</h1>
-        <p className="text-body mt-2 text-muted">Vielleicht hat sich der Link geändert.</p>
-        <ButtonLink href="/dashboard" size="lg" className="mt-7">Zur Startseite</ButtonLink>
+    <main className="workspace-bg flex min-h-[100dvh] flex-col justify-center overflow-x-clip px-5 py-10">
+      <div className="animate-rise mx-auto w-full max-w-lg">
+        <div className="flex items-end gap-3" aria-hidden>
+          <span className="num-display tilt-l3 inline-block rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] px-4 pb-2 pt-3 text-[var(--on-sun)] shadow-[var(--shadow-lg)]">404</span>
+          <DoodleLoopArrow className="mb-2 h-10 w-20 text-[var(--brand)]" />
+        </div>
+        <h1 className="text-display mt-8">Diese Seite gibt es nicht.</h1>
+        <p className="mt-4 text-lg text-muted">Vielleicht hat sich der Link geändert.</p>
+        <ButtonLink href="/dashboard" size="lg" className="mt-8" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zur Startseite</ButtonLink>
       </div>
     </main>
   );

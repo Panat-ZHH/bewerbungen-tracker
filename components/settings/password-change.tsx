@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, KeyRound } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { passwordChangeProblem, withSupport } from "@/lib/account-deletion";
+import { SettingsSection } from "./section";
 
 /** Only shown for accounts that sign in with e-mail + password (Google accounts have no password here). */
 export function PasswordChangeCard() {
@@ -51,21 +51,14 @@ export function PasswordChangeCard() {
   }
 
   return (
-    <Card className="animate-rise mt-4" data-testid="password-card"><CardContent>
-      <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-soft)] text-[var(--brand)]"><KeyRound size={18} /></span>
-        <div className="min-w-0">
-          <h2 className="text-heading">Passwort ändern</h2>
-          <p className="mt-1 text-body text-muted">Wähle ein neues Passwort mit mindestens 8 Zeichen.</p>
-        </div>
-      </div>
-      <form onSubmit={submit} className="mt-4 space-y-3" noValidate>
+    <SettingsSection data-testid="password-card" title="Passwort ändern" description="Wähle ein neues Passwort mit mindestens 8 Zeichen.">
+      <form onSubmit={submit} className="max-w-md space-y-3" noValidate>
         <Field label="Aktuelles Passwort" htmlFor="pw-current"><Input id="pw-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
         <Field label="Neues Passwort" htmlFor="pw-new"><Input id="pw-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} /></Field>
         <Field label="Neues Passwort wiederholen" htmlFor="pw-repeat"><Input id="pw-repeat" type="password" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} /></Field>
         <div id="password-notice">{notice && <StatusMessage tone={notice.tone} icon={notice.tone === "success" ? <CheckCircle2 /> : undefined}>{notice.text}</StatusMessage>}</div>
-        <Button type="submit" loading={busy} className="sm:min-h-11">Passwort ändern</Button>
+        <Button type="submit" variant="secondary" loading={busy} className="sm:min-h-11">Passwort ändern</Button>
       </form>
-    </CardContent></Card>
+    </SettingsSection>
   );
 }

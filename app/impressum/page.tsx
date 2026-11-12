@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function ImpressumPage() {
   return (
-    <TextPage eyebrow="Rechtliches" title="Impressum">
+    <TextPage title="Impressum">
       <section aria-labelledby="anbieter"><h2 id="anbieter" className="text-heading">Anbieterin</h2>
         <p className="mt-2">Wendico, Kollektivgesellschaft<br />Kleinandelfingen, Schweiz<br /><Todo>Strasse, PLZ und genauen Firmennamen bestätigen</Todo></p></section>
       <section aria-labelledby="vertretung"><h2 id="vertretung" className="text-heading">Vertretungsberechtigte</h2>

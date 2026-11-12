@@ -28,9 +28,9 @@ function ToastCard({ item }: { item: ToastItem }) {
       <Icon aria-hidden size={17} className="shrink-0" />
       <p className="min-w-0 flex-1 py-1.5 font-medium">{item.message}</p>
       {item.action && (
-        <button type="button" onClick={async () => { dismissToast(item.id); await item.action?.onClick(); }} className="min-h-11 shrink-0 rounded-full px-4 text-sm font-semibold underline underline-offset-2 hover:bg-black/5">{item.action.label}</button>
+        <button type="button" onClick={async () => { dismissToast(item.id); await item.action?.onClick(); }} className="min-h-11 shrink-0 rounded-full px-4 text-sm font-semibold underline underline-offset-2 hover:bg-[var(--hover)]">{item.action.label}</button>
       )}
-      <button type="button" onClick={() => dismissToast(item.id)} aria-label="Hinweis schliessen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-black/5"><X size={16} /></button>
+      <button type="button" onClick={() => dismissToast(item.id)} aria-label="Hinweis schliessen" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-[var(--hover)]"><X size={16} /></button>
     </div>
   );
 }

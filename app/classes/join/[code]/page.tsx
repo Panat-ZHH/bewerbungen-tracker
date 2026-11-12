@@ -46,12 +46,11 @@ function JoinContent({ code }: { code: string }) {
   if (!preview || (!preview.valid && !preview.alreadyMember)) return <EmptyState className="mx-auto max-w-md" title={token ? "Einladung nicht gültig" : "Klassencode nicht gefunden"} description={invalidReason || error || "Dieser Link ist nicht mehr gültig. Frag deine Lehrperson nach einem neuen Link."} action={<ButtonLink href="/classes" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
 
   return (
-    <Card className="animate-rise mx-auto max-w-md space-y-5 p-6 text-center sm:p-8">
-      <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--brand-soft)] text-[var(--brand)]"><GraduationCap size={30} /></span>
+    <Card className="animate-rise relative mx-auto mt-4 max-w-md space-y-5 p-6 shadow-[var(--shadow-lg)] sm:p-8">
+      <span className="sticker tilt-l3 absolute -left-2 -top-3.5"><GraduationCap size={15} strokeWidth={2.4} aria-hidden />Klasseneinladung</span>
       <div>
-        <p className="text-eyebrow">Klasseneinladung</p>
-        <h1 className="text-title mt-1 break-words">{preview.name}</h1>
-        <p className="mt-1 text-body text-muted">{preview.teacherName}{preview.schoolYear ? ` · Schuljahr ${preview.schoolYear}` : ""}</p>
+        <h1 className="text-title break-words">{preview.name}</h1>
+        <p className="mt-2 text-body text-muted">{preview.teacherName}{preview.schoolYear ? ` · Schuljahr ${preview.schoolYear}` : ""}</p>
       </div>
       {joined || preview.alreadyMember ? (
         <div className="space-y-3">
@@ -88,6 +87,6 @@ export default function ClassJoinPage() {
     return () => { alive = false; };
   }, [code, router]);
 
-  if (!signedIn) return <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5"><p className="text-sm text-muted">Einladung wird geöffnet …</p></main>;
+  if (!signedIn) return <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5"><p role="status" className="flex items-center gap-3 font-display text-xl font-bold tracking-[-.01em]"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einladung wird geöffnet …</p></main>;
   return <WorkspaceShell active="Klassen"><JoinContent code={code} /></WorkspaceShell>;
 }

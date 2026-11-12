@@ -1,12 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
+import { DoodleSparkle } from "@/components/ui/doodles";
+import { AuthFrame, AuthSteps, AuthTitle } from "./auth-frame";
 import { CANTONS } from "@/lib/job-filters/geo";
 import { addProfession, emptyAnswers, loadOnboarding, MAX_PROFESSIONS, PROFESSION_SUGGESTIONS, removeProfession, saveOnboarding, SCHOOL_LEVELS, skipOnboarding, startYearOptions, type OnboardingAnswers } from "@/lib/onboarding";
 import { clearRoleCache, landingPath } from "@/lib/role";
@@ -53,28 +54,19 @@ export function StudentOnboarding() {
   const next2 = (event: FormEvent) => { event.preventDefault(); setError(""); setStep(2); };
   const finish = (event: FormEvent) => { event.preventDefault(); void run(async () => { await saveOnboarding({ ...a, professions: chip.trim() ? addProfession(a.professions, chip) : a.professions }, true); leave(); }); };
 
-  if (!ready) return <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5"><p className="text-sm text-muted">Einen Moment …</p></main>;
+  if (!ready) return <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-5"><p role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einen Moment …</p></main>;
 
   return (
-    <main className="workspace-bg flex min-h-[100dvh] items-center justify-center px-4 py-8">
-      <div className="animate-rise w-full max-w-[520px]">
-        <Image src="/logo.png" alt="WendApply" width={56} height={56} className="logo-tile mx-auto rounded-[16px] bg-[#f2f7ff] p-1 shadow-[var(--shadow-md)]" priority />
-        <ol className="mx-auto mt-6 flex max-w-sm items-center justify-center gap-2" aria-label="Fortschritt">
-          {STEPS.map((label, i) => (
-            <li key={label} aria-current={i === step ? "step" : undefined} className="flex items-center gap-2">
-              <span className={`flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-xs font-bold ${i <= step ? "bg-[var(--brand)] text-white" : "bg-[var(--neutral-bg)] text-muted"}`}>{i < step ? <Check size={13} /> : i + 1}</span>
-              <span className={`text-small hidden sm:inline ${i === step ? "font-semibold" : "text-muted"}`}>{label}</span>
-              {i < STEPS.length - 1 && <span aria-hidden className="h-px w-5 bg-[var(--line)]" />}
-            </li>
-          ))}
-        </ol>
+    <AuthFrame>
+        <AuthSteps steps={STEPS} current={step}>{(state, i) => (state === "done" ? <Check size={14} strokeWidth={3} /> : i + 1)}</AuthSteps>
 
-        <div className="glass-surface mt-5 space-y-5 p-5 sm:p-7">
+        <div className="panel relative space-y-5 p-5 sm:p-7">
+          <DoodleSparkle className="absolute -right-3 -top-4 h-9 w-9 text-[var(--sun)]" />
           {error && <StatusMessage tone="danger">{error}</StatusMessage>}
 
           {step === 0 && (
             <form onSubmit={next1} className="space-y-5">
-              <div className="text-center"><h1 className="text-title">Schön, dass du da bist!</h1><p className="mt-2 text-sm text-muted">Drei kurze Fragen, dann zeigen wir dir passende Lehrstellen.</p></div>
+              <AuthTitle title={<>Schön, dass du <span className="marker">da bist!</span></>}>Drei kurze Fragen, dann zeigen wir dir passende Lehrstellen.</AuthTitle>
               <Field label="Vorname" htmlFor="ob-first"><Input id="ob-first" value={a.firstName} onChange={(e) => patch({ firstName: e.target.value })} maxLength={40} autoComplete="given-name" data-autofocus /></Field>
               <Field label="Nachname (oder nur der erste Buchstabe)" htmlFor="ob-last" hint="Optional. Deine Lehrperson sieht diesen Namen nur, wenn du einer Klasse beitrittst."><Input id="ob-last" value={a.lastName} onChange={(e) => patch({ lastName: e.target.value })} maxLength={40} autoComplete="family-name" /></Field>
               <Field label="In welcher Klasse / welchem Niveau bist du?" htmlFor="ob-level">
@@ -89,7 +81,7 @@ export function StudentOnboarding() {
 
           {step === 1 && (
             <form onSubmit={next2} className="space-y-5">
-              <div className="text-center"><h1 className="text-title">Was möchtest du werden?</h1><p className="mt-2 text-sm text-muted">Tippe deine Wunschberufe ein oder wähle Vorschläge. Es dürfen mehrere sein (bis {MAX_PROFESSIONS}).</p></div>
+              <AuthTitle title={<>Was möchtest du <span className="marker">werden</span>?</>}>Tippe deine Wunschberufe ein oder wähle Vorschläge. Es dürfen mehrere sein (bis {MAX_PROFESSIONS}).</AuthTitle>
               <div className="flex gap-2">
                 <Input aria-label="Wunschberuf eingeben" value={chip} onChange={(e) => setChip(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addChip(chip); } }} placeholder="z. B. Informatiker:in" maxLength={60} data-autofocus />
                 <Button type="button" variant="secondary" onClick={() => addChip(chip)} disabled={!chip.trim()} icon={<Plus size={16} />} aria-label="Hinzufügen" />
@@ -97,18 +89,18 @@ export function StudentOnboarding() {
               {a.professions.length > 0 && (
                 <ul className="flex flex-wrap gap-2" aria-label="Deine Wunschberufe">
                   {a.professions.map((p) => (
-                    <li key={p} className="inline-flex min-h-9 items-center gap-1 rounded-full bg-[var(--brand-soft)] py-1 pl-3.5 pr-1.5 text-sm font-medium text-[var(--brand-strong)]">
+                    <li key={p} className="inline-flex min-h-9 items-center gap-1 rounded-full border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] py-0.5 pl-3.5 pr-1 text-sm font-semibold text-[var(--on-sun)] shadow-[var(--shadow-xs)]">
                       {p}
-                      <button type="button" onClick={() => patch({ professions: removeProfession(a.professions, p) })} aria-label={`${p} entfernen`} className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-[var(--hover)]"><X size={14} /></button>
+                      <button type="button" onClick={() => patch({ professions: removeProfession(a.professions, p) })} aria-label={`${p} entfernen`} className="flex h-8 w-8 items-center justify-center rounded-full pointer-coarse:h-10 pointer-coarse:w-10"><X size={15} strokeWidth={2.6} /></button>
                     </li>
                   ))}
                 </ul>
               )}
               <div>
-                <p className="mb-2 text-small text-muted">Vorschläge</p>
+                <p className="mb-2 text-small font-semibold text-muted">Vorschläge</p>
                 <div className="flex flex-wrap gap-2">
                   {PROFESSION_SUGGESTIONS.filter((s) => !a.professions.some((p) => p.toLowerCase() === s.toLowerCase())).map((s) => (
-                    <button key={s} type="button" onClick={() => addChip(s)} disabled={a.professions.length >= MAX_PROFESSIONS} className="min-h-9 rounded-full border border-[var(--field-border)] bg-[var(--field-bg)] px-3.5 text-sm transition hover:border-[var(--brand)] active:scale-[.97] disabled:opacity-50">+ {s}</button>
+                    <button key={s} type="button" onClick={() => addChip(s)} disabled={a.professions.length >= MAX_PROFESSIONS} className="min-h-9 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-3.5 text-sm font-medium transition-colors hover:bg-[var(--surface-2)] active:translate-y-px disabled:opacity-50 pointer-coarse:min-h-11">+ {s}</button>
                   ))}
                 </div>
               </div>
@@ -121,7 +113,7 @@ export function StudentOnboarding() {
 
           {step === 2 && (
             <form onSubmit={finish} className="space-y-5">
-              <div className="text-center"><h1 className="text-title">Wo und ab wann?</h1><p className="mt-2 text-sm text-muted">Damit suchen wir in deiner Nähe. Alles kannst du später ändern.</p></div>
+              <AuthTitle title={<>Wo und <span className="marker">ab wann</span>?</>}>Damit suchen wir in deiner Nähe. Alles kannst du später ändern.</AuthTitle>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Wohnort" htmlFor="ob-place"><Input id="ob-place" value={a.place} onChange={(e) => patch({ place: e.target.value })} maxLength={80} autoComplete="address-level2" placeholder="z. B. Winterthur" data-autofocus /></Field>
                 <Field label="Kanton" htmlFor="ob-canton">
@@ -139,14 +131,13 @@ export function StudentOnboarding() {
               </Field>
               <div className="flex gap-3">
                 <Button type="button" variant="ghost" onClick={() => setStep(1)}>Zurück</Button>
-                <Button type="submit" full size="lg" loading={busy}>Los geht’s <ArrowRight size={16} /></Button>
+                <Button type="submit" variant="sun" full size="lg" loading={busy}>Los geht’s <ArrowRight size={16} strokeWidth={2.4} /></Button>
               </div>
             </form>
           )}
 
-          <button type="button" onClick={() => void skipAll()} disabled={busy} className="mx-auto flex min-h-11 items-center px-3 text-sm font-medium text-muted hover:underline disabled:opacity-60">Später</button>
+          <button type="button" onClick={() => void skipAll()} disabled={busy} className="mx-auto flex min-h-11 items-center px-3 text-sm font-medium text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)] disabled:opacity-60">Später</button>
         </div>
-      </div>
-    </main>
+    </AuthFrame>
   );
 }
