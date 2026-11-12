@@ -28,6 +28,8 @@ import { readPrefill } from "@/lib/onboarding";
 import { activeFilterCount, addRecent, applyFilters, clearRecent, companyOptions, computeFacets, DEFAULT_RADIUS_KM, deletePreset, effectiveRadiusKm, emptyFilters, loadPresets, loadRecent, paramsToState, rankJobs, savePreset, sortJobs, SORT_LABELS, stateToParams, type EnrichedJob, type JobFilters, type JobPreset, type JobSearchState, type JobSort } from "./engine";
 
 const PAGE_STEP = 20;
+// a further page failed: a temporary hiccup, shown as a calm warning instead of a red error
+const MORE_FAILED = "Weitere Stellen konnten gerade nicht geladen werden. Deine bisherigen Treffer bleiben da – tippe auf «Mehr laden», um es nochmals zu versuchen.";
 
 function tabOf(f: JobFilters): SearchTab {
   return f.kind === "apprenticeship" ? "apprenticeship" : f.jobTypes.length === 1 && f.jobTypes[0] === "praktikum" ? "praktikum" : "job";
@@ -204,7 +206,7 @@ export function JobSearchView() {
       setNotice(payload.warning ?? "");
     } catch (cause) {
       // the loaded results stay; the cursor is unchanged, so "Mehr laden" tries the same page again
-      if (!controller.signal.aborted) setError(generalCause(cause) ?? "Weitere Stellen konnten gerade nicht geladen werden. Deine bisherigen Treffer bleiben da – tippe auf «Mehr laden», um es nochmals zu versuchen.");
+      if (!controller.signal.aborted) setError(generalCause(cause) ?? MORE_FAILED);
     } finally {
       if (!controller.signal.aborted) setLoadingMore(false);
     }
@@ -283,12 +285,12 @@ export function JobSearchView() {
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="secondary" size="sm" className="md:hidden" icon={<SlidersHorizontal size={15} />} onClick={() => setSheetOpen(true)}>Filter{filterCount > 0 ? ` (${filterCount})` : ""}</Button>
             <PresetMenu presets={presets} canSave={canSavePreset} onSave={(name) => { setPresets(savePreset(name, state)); toast({ message: "Suche gespeichert." }); }} onApply={(p) => { setState(p.state); void runSearch(p.state); }} onDelete={(id) => setPresets(deletePreset(id))} />
-            <div className="ml-auto flex items-center gap-2"><div role="group" aria-label="Darstellung" className="flex gap-0.5 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] p-0.5"><button type="button" aria-pressed={!compact} aria-label="Ausführliche Liste" onClick={() => toggleCompact(false)} className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150 pointer-coarse:h-10 pointer-coarse:w-10 ${!compact ? "bg-[var(--ink)] text-[var(--paper)]" : "text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}><LayoutList size={16} /></button><button type="button" aria-pressed={compact} aria-label="Kompakte Liste" onClick={() => toggleCompact(true)} className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150 pointer-coarse:h-10 pointer-coarse:w-10 ${compact ? "bg-[var(--ink)] text-[var(--paper)]" : "text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}><Rows3 size={16} /></button></div><label htmlFor="job-sort" className="text-small font-semibold text-muted max-sm:sr-only">Sortieren</label><Select id="job-sort" className="!min-h-9 !w-auto !rounded-full !py-1 !font-semibold pointer-coarse:!min-h-11" value={state.sort} onChange={(e) => setState((s) => ({ ...s, sort: e.target.value as JobSort }))}>{Object.entries(SORT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></div>
+            <div className="ml-auto flex items-center gap-2"><div role="group" aria-label="Darstellung" className="flex gap-0.5 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] p-0.5"><button type="button" aria-pressed={!compact} aria-label="Ausführliche Liste" onClick={() => toggleCompact(false)} className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150 pointer-coarse:h-10 pointer-coarse:w-10 ${!compact ? "bg-[var(--ink)] text-[var(--paper)]" : "text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}><LayoutList size={16} /></button><button type="button" aria-pressed={compact} aria-label="Kompakte Liste" onClick={() => toggleCompact(true)} className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150 pointer-coarse:h-10 pointer-coarse:w-10 ${compact ? "bg-[var(--ink)] text-[var(--paper)]" : "text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}><Rows3 size={16} /></button></div><label htmlFor="job-sort" className="text-small font-semibold text-muted max-sm:sr-only">Sortieren</label><Select id="job-sort" className="!min-h-9 !w-auto !rounded-full !py-1 !font-semibold pointer-coarse:!min-h-11" value={state.sort} onChange={(e) => setState((s) => ({ ...s, sort: e.target.value as JobSort }))}>{Object.entries(SORT_LABELS).filter(([v]) => v !== "distance" || place || state.filters.location.trim() || state.sort === "distance").map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></div>
           </div>
 
           <div className="mt-3"><FilterChips filters={state.filters} onChange={patchFilters} onClear={clearFilters} /></div>
 
-          {error && <StatusMessage tone="danger" className="mt-4">{error}</StatusMessage>}
+          {error && <StatusMessage tone={error === MORE_FAILED ? "warning" : "danger"} className="mt-4">{error}</StatusMessage>}
           {notice && <StatusMessage tone="info" className="mt-4">{notice}</StatusMessage>}
           {softError && !loading && <StatusMessage tone="info" className="mt-4">{softError.message} <button type="button" className="font-semibold underline" onClick={() => void runSearch(softError.state)}>Nochmals versuchen</button></StatusMessage>}
           {serverDirty && !loading && !softError && <StatusMessage tone="info" className="mt-4">Du hast Ort, Umkreis oder Alter geändert – die Liste wird gleich neu gesucht. <button type="button" className="font-semibold underline" onClick={() => void runSearch(state)}>Neu suchen mit Filtern</button></StatusMessage>}
