@@ -53,9 +53,10 @@ export default function ProfilePage() {
 
   return (
     <WorkspaceShell active="Profile">
-      <div className="max-w-2xl pb-safe">
+      <div className="max-w-4xl pb-safe">
         <PageHeader title="Dein Profil" description="Deine Kontaktdaten an einem Ort." />
         {notice && <StatusMessage tone="danger" className="mb-5">{notice}</StatusMessage>}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12">
         <AvatarEditor name={[profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || profile?.email || "Profil"} />
         {loading ? (
           <Card><CardContent role="status" aria-label="Dein Profil wird geladen" className="grid gap-5 sm:grid-cols-2 sm:p-7">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="space-y-2"><Skeleton className="h-3.5 w-20" /><Skeleton className="h-11" /></div>)}</CardContent></Card>
@@ -68,9 +69,10 @@ export default function ProfilePage() {
                 </Field>
               ))}
             </div>
-            <Button loading={saving} full className="mt-6 sm:w-auto">{saving ? "Speichert …" : "Änderungen speichern"}</Button>
+            <Button loading={saving} full className="mt-7 sm:w-auto">{saving ? "Speichert …" : "Änderungen speichern"}</Button>
           </form></Card>
         )}
+        </div>
       </div>
     </WorkspaceShell>
   );

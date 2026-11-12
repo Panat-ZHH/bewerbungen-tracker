@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, ImagePlus, Minus, Plus, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { DoodleSparkle } from "@/components/ui/doodles";
 import { Modal } from "@/components/ui/modal";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { useMyAvatar } from "@/components/ui/use-avatars";
@@ -13,7 +14,7 @@ import { removeAvatar, uploadAvatar } from "@/lib/avatar-storage";
 
 const KEY_STEP = 12;
 
-/** Profile picture card: choose/take a photo, crop with zoom, save or remove. */
+/** Profile picture block (plain on paper, big avatar with ink contour): choose/take a photo, crop with zoom, save or remove. */
 export function AvatarEditor({ name }: { name: string }) {
   const current = useMyAvatar();
   const pickRef = useRef<HTMLInputElement>(null);
@@ -108,14 +109,21 @@ export function AvatarEditor({ name }: { name: string }) {
   const shown = size ? { width: size.width * scale, height: size.height * scale } : { width: 0, height: 0 };
 
   return (
-    <section aria-labelledby="avatar-title" className="mb-5 flex flex-col gap-4 rounded-[var(--radius-lg)] border border-[var(--outline)] bg-[var(--surface)] p-5 shadow-[var(--shadow-xs)] sm:flex-row sm:items-center sm:p-6">
-      <Avatar name={name} src={current} size="xl" className="self-start" />
-      <div className="min-w-0 flex-1">
-        <h2 id="avatar-title" className="text-heading">Profilbild</h2>
-        <p className="mt-1 text-small text-muted">PNG, JPEG oder WebP bis 5 MB. Du kannst den Ausschnitt gleich anpassen.</p>
+    <section aria-labelledby="avatar-title" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
+      <div className="flex items-center gap-5 lg:flex-col lg:items-start">
+        <div className="relative shrink-0">
+          <Avatar name={name} src={current} size="xl" className="h-24 w-24 text-3xl shadow-[var(--shadow-md)] lg:h-40 lg:w-40 lg:text-6xl lg:shadow-[var(--shadow-lg)]" />
+          <DoodleSparkle className="absolute -right-3 -top-2 h-7 w-7 text-[var(--sun)] lg:-right-4 lg:h-9 lg:w-9" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 id="avatar-title" className="text-heading">Profilbild</h2>
+          <p className="mt-1 text-small text-muted">PNG, JPEG oder WebP bis 5 MB. Du kannst den Ausschnitt gleich anpassen.</p>
+        </div>
+      </div>
+      <div className="min-w-0">
         {error && <StatusMessage tone="danger" className="mt-3">{error}</StatusMessage>}
         {notice && <StatusMessage tone="success" className="mt-3">{notice}</StatusMessage>}
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2.5">
           <Button type="button" variant="secondary" loading={busy === "decode"} icon={<ImagePlus size={16} />} onClick={() => pickRef.current?.click()}>Profilbild ändern</Button>
           <Button type="button" variant="secondary" className="hidden pointer-coarse:inline-flex" disabled={Boolean(busy)} icon={<Camera size={16} />} onClick={() => cameraRef.current?.click()}>Foto aufnehmen</Button>
           {current && <Button type="button" variant="ghost" loading={busy === "remove"} icon={<Trash2 size={16} />} onClick={remove}>Entfernen</Button>}
@@ -146,20 +154,20 @@ export function AvatarEditor({ name }: { name: string }) {
           onPointerUp={() => { drag.current = null; }}
           onPointerCancel={() => { drag.current = null; }}
           onKeyDown={onKeyDown}
-          className="relative mx-auto aspect-square w-full max-w-[280px] cursor-grab touch-none select-none overflow-hidden rounded-[var(--radius-lg)] bg-black active:cursor-grabbing"
+          className="relative mx-auto aspect-square w-full max-w-[280px] cursor-grab touch-none select-none overflow-hidden rounded-[var(--radius-lg)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--outline-fill)] active:cursor-grabbing"
         >
           {image && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={image.src} alt="" draggable={false} width={Math.round(shown.width)} height={Math.round(shown.height)} className="pointer-events-none absolute max-w-none" style={{ maxWidth: "none", width: shown.width, height: shown.height, left: viewport / 2 - shown.width / 2 + offset.x, top: viewport / 2 - shown.height / 2 + offset.y }} />
           )}
-          <div className="pointer-events-none absolute inset-[6%] rounded-full shadow-[0_0_0_999px_rgba(0,0,0,.55)] ring-2 ring-white/80" aria-hidden />
+          <div className="pointer-events-none absolute inset-[6%] rounded-full shadow-[0_0_0_999px_var(--overlay)] ring-[3px] ring-[var(--sun)]" aria-hidden />
         </div>
         <div className="mx-auto mt-4 flex max-w-[280px] items-center gap-2">
-          <button type="button" aria-label="Verkleinern" onClick={() => applyZoom(zoom - 0.2)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)]"><Minus size={18} /></button>
+          <button type="button" aria-label="Verkleinern" onClick={() => applyZoom(zoom - 0.2)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink)] hover:bg-[var(--hover)] active:translate-y-px"><Minus size={18} strokeWidth={2.4} /></button>
           <input type="range" aria-label="Zoom" min={AVATAR_MIN_ZOOM} max={AVATAR_MAX_ZOOM} step={0.01} value={zoom} onChange={(event) => applyZoom(Number(event.target.value))} className="h-11 min-w-0 flex-1 accent-[var(--brand)]" />
-          <button type="button" aria-label="Vergrössern" onClick={() => applyZoom(zoom + 0.2)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)]"><Plus size={18} /></button>
+          <button type="button" aria-label="Vergrössern" onClick={() => applyZoom(zoom + 0.2)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink)] hover:bg-[var(--hover)] active:translate-y-px"><Plus size={18} strokeWidth={2.4} /></button>
         </div>
-        <div className="mt-3 flex items-center justify-center gap-3 text-small text-muted"><canvas ref={previewRef} width={64} height={64} aria-label="Vorschau" role="img" className="h-16 w-16 rounded-full bg-[var(--hover)] ring-2 ring-[var(--surface)]" />Vorschau</div>
+        <div className="mt-3 flex items-center justify-center gap-3 text-small text-muted"><canvas ref={previewRef} width={64} height={64} aria-label="Vorschau" role="img" className="h-16 w-16 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface-2)]" />Vorschau</div>
       </Modal>
     </section>
   );
