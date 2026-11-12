@@ -1,0 +1,106 @@
+{
+  "sample": "01-detailhandel-kurz-weak",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "weak",
+    "score": "15-45"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 37,
+  "issues": [],
+  "result": {
+    "score": 37,
+    "summary": "Du hast einen guten Anfang gemacht: Anrede, Gruss und zwei starke Eigenschaften sind schon drin. Mit einem konkreten Erlebnis und ein paar Angaben zur Firma wird dein Brief deutlich stärker.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 8,
+        "comment": "Anrede und Gruss sind da. Absender, Datum und Betreff fehlen, und der Text ist mit ca. 35 Wörtern sehr kurz."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 7,
+        "comment": "Der Text ist verständlich, aber holprig, zum Beispiel «ich arbeite gern mit Leute». Die Sätze sind sehr kurz."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 6,
+        "comment": "Du nennst Eigenschaften wie «pünktlich und zuverlässig», aber ohne Beispiel. Ein konkretes Erlebnis fehlt."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 6,
+        "comment": "Der Brief nennt den Beruf Detailhandel, aber nicht die Firma. Er könnte an jede Firma gehen."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 10,
+        "comment": "Ich zähle 5 Fehler, zum Beispiel «ihnen» statt «Ihnen» und «Leute» statt «Leuten»."
+      }
+    ],
+    "good": [
+      "Du nennst zwei wichtige Eigenschaften: «pünktlich und zuverlässig». Das zeigt, was dir im Beruf wichtig ist.",
+      "Du schreibst, dass du gern mit Leuten arbeitest. Das passt zum Inserat, wo es um Kontakt mit Menschen geht.",
+      "Anrede «Sehr geehrte Damen und Herren» und Gruss «Freundliche Grüsse» sind richtig gesetzt."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreibe, warum du genau diese Lehre willst, und nenne ein konkretes Erlebnis. Ein Beispiel macht den Brief glaubwürdig.",
+        "beispiel": {
+          "vorher": "Ich will bei ihnen eine Lehre machen als Detailhandel.",
+          "nachher": "Ich möchte im Detailhandel eine Lehre machen, weil ich gern Menschen berate. Zum Beispiel habe ich in [Situation] [Aufgabe] übernommen.",
+          "warum": "Ein echtes Beispiel zeigt, dass du dich für den Beruf interessierst."
+        }
+      },
+      {
+        "tipp": "Ergänze Absender, Datum und Betreff oben im Brief. Der Betreff sagt sofort, worum es geht.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Betreff: Bewerbung als Detailhandelsfachfrau EFZ",
+          "warum": "So sieht die Firma sofort, für welche Stelle du dich bewirbst."
+        }
+      },
+      {
+        "tipp": "Schreibe Sie und Ihnen gross, wenn du die Firma direkt ansprichst. Achte auch auf den Satzanfang.",
+        "beispiel": {
+          "vorher": "Ich will bei ihnen eine Lehre machen als Detailhandel.",
+          "nachher": "Ich möchte bei Ihnen eine Lehre im Detailhandel machen.",
+          "warum": "In einem Brief werden Sie und Ihnen immer gross geschrieben."
+        }
+      }
+    ],
+    "company": [
+      {
+        "tipp": "Das Inserat wünscht eine Schnupperlehre. Schreibe, dass du gern schnuppern würdest.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Ich würde gern eine Schnupperlehre bei Ihnen machen, um den Beruf kennenzulernen.",
+          "warum": "Die Firma wünscht eine Schnupperlehre, und so zeigst du dein Interesse."
+        }
+      },
+      {
+        "tipp": "Das Inserat spricht über Sportartikel. Erzähle, was dich daran interessiert.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Ich treibe gern Sport, zum Beispiel [Sportart], und würde Ihre Kundinnen und Kunden gern zu Sportartikeln beraten.",
+          "warum": "So verbindest du deine Interessen mit den Aufgaben im Inserat."
+        }
+      },
+      {
+        "tipp": "Verbinde deine Freude am Kontakt mit Menschen mit den Aufgaben im Inserat.",
+        "beispiel": {
+          "vorher": "ich arbeite gern mit Leute",
+          "nachher": "Ich arbeite gern mit Menschen und freue mich auf den Kontakt mit Ihren Kundinnen und Kunden.",
+          "warum": "Das greift direkt die Anforderung aus dem Inserat auf."
+        }
+      }
+    ],
+    "nextStep": "Schreibe den Brief neu mit Absender, Datum und Betreff, und ergänze ein Beispiel, warum du im Sportshop arbeiten möchtest."
+  }
+}

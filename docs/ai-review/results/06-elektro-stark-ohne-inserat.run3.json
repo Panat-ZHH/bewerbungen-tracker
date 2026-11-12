@@ -1,0 +1,82 @@
+{
+  "sample": "06-elektro-stark-ohne-inserat",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "strong",
+    "score": "75-90"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 89,
+  "issues": [],
+  "result": {
+    "score": 89,
+    "summary": "Dein Brief ist sehr stark. Er hat alle wichtigen Teile, und du erzählst konkret und ehrlich von deiner Schnupperwoche. Mit ein paar kleinen Ergänzungen wird er noch besser.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 18,
+        "comment": "Absender, Firma, Datum, Betreff, Anrede, drei Hauptabsätze, Schluss und Beilagen sind alle da. Der Hauptteil hat rund 175 Wörter. Im Absender fehlen Telefon und E-Mail."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 16,
+        "comment": "Der Text ist klar, höflich und in eigenen Worten geschrieben. «Mir» kommt aber mehrmals vor, zum Beispiel in «hat mir gezeigt» und «Mir hat gefallen»."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 17,
+        "comment": "Du nennst mehrere konkrete Erlebnisse, zum Beispiel das Messgerät, das Velo und die Lampe. Der eigene Grund, warum dich der Beruf reizt, fehlt noch."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 18,
+        "comment": "Du nennst Beruf und Firma und gehst auf die Baustelle in Buochs und den Ablauf der Schnupperwoche ein. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 20,
+        "comment": "Ich finde 0 Fehler. Auch Gross- und Kleinschreibung und die Kommas vor «ob», «wie» und «dass» stimmen."
+      }
+    ],
+    "good": [
+      "Du erzählst konkret von der Schnupperwoche: Leerrohre verlegen, Steckdosen anschliessen und mit dem Messgerät prüfen.",
+      "Du nennst im ersten Satz den Zeitpunkt der Schnupperwoche und den Lehrbeginn August 2027. Das ist klar und gut verständlich.",
+      "Du zeigst eigene Erfahrungen: Das Velo, das du mit deinem Vater zerlegt hast, und die Lampe mit Schalter aus dem Werkunterricht.",
+      "Du zeigst, dass du den Alltag kennst: früh aufstehen und bei Kälte draussen arbeiten. Du warst jeden Tag um 6.45 Uhr da."
+    ],
+    "improve": [
+      {
+        "tipp": "Ergänze im Absender deine Telefonnummer und deine E-Mail-Adresse. So kann Herr Huber dich leicht erreichen.",
+        "beispiel": {
+          "vorher": "Dorfstrasse 21",
+          "nachher": "Dorfstrasse 21, 6370 Stans, Telefon [Nummer], E-Mail [Adresse]",
+          "warum": "Mit Kontakt kann die Firma dich schnell zurückrufen oder anschreiben."
+        }
+      },
+      {
+        "tipp": "Schreibe «mir» nicht so oft. Du hast es in den ersten Sätzen dreimal verwendet. Nimm andere Wörter.",
+        "beispiel": {
+          "vorher": "Am Freitag hat er mir gezeigt, wie man mit dem Messgerät prüft, ob alles richtig angeschlossen ist.",
+          "nachher": "Am Freitag erklärte er mir, wie man mit dem Messgerät prüft, ob alles richtig angeschlossen ist.",
+          "warum": "Der Satz wird abwechslungsreicher und klingt natürlicher."
+        }
+      },
+      {
+        "tipp": "Sag genauer, warum dich dieser Beruf interessiert. Ein eigener Grund macht den Brief persönlicher.",
+        "beispiel": {
+          "vorher": "Diese Woche hat mir gezeigt, dass Elektroinstallateurin genau der richtige Beruf für mich ist.",
+          "nachher": "Diese Woche hat mir gezeigt, dass Elektroinstallateurin genau der richtige Beruf für mich ist, weil mich [dein Grund, z. B. wie der Strom in die Leitungen kommt] besonders interessiert.",
+          "warum": "Ein eigener Grund zeigt, dass du den Beruf wirklich kennst."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Ergänze im Absender deine Telefonnummer und deine E-Mail-Adresse, und überprüfe den Brief noch einmal vor dem Versand."
+  }
+}

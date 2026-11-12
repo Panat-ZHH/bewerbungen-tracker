@@ -1,0 +1,97 @@
+{
+  "sample": "11-baecker-chatsprache-weak",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "weak",
+    "score": "15-45"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 43,
+  "issues": [],
+  "result": {
+    "score": 43,
+    "summary": "Du hast ein echtes Erlebnis: das Zopfbacken mit deiner Mutter. Das zeigt, dass dir Backen wirklich Freude macht. Jetzt braucht dein Brief die richtige Firma, eine passende Form und eine ruhigere Sprache.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 6,
+        "comment": "Es fehlen Absender, Datum, Betreff und ein förmlicher Schluss; der Text ist kurz, nur etwa 60 Wörter."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 6,
+        "comment": "Chat-Wörter wie «haha», «hab», «lg» und «mega cool» machen den Text zu locker; «ich» steht oft am Satzanfang."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 11,
+        "comment": "Das Zopfbacken mit deiner Mutter ist ein echtes Erlebnis; «weil das nah bei mir ist» zählt aber nicht als Grund."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 5,
+        "comment": "Der Brief nennt «Müller AG» statt Bäckerei Moser, deshalb passt er nicht zur Firma. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 15,
+        "comment": "Ich finde 2 Fehler: Es fehlen Kommas vor «weil» und «wenn»."
+      }
+    ],
+    "good": [
+      "Du nennst ein echtes Erlebnis: «Ich hab schon mal Zopf gemacht mit meiner Mutter».",
+      "Du zeigst Freude am Backen: «Ich finde backen mega cool».",
+      "Du schreibst etwas, das für den Beruf wichtig ist: «Ich kann früh aufstehen wenn ich muss»."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreib den richtigen Firmennamen. Im Brief steht «Müller AG», dein Brief geht aber an die Bäckerei Moser.",
+        "beispiel": {
+          "vorher": "Ich möchte bei der Firma Müller AG eine Lehre machen weil das nah bei mir ist.",
+          "nachher": "Ich möchte bei der Bäckerei Moser meine Lehre als Bäcker-Konditor-Confiseur machen.",
+          "warum": "Die Firma muss stimmen, sonst wirkt der Brief wie aus einer anderen Bewerbung."
+        }
+      },
+      {
+        "tipp": "Gib dem Brief eine richtige Form: Absender, Datum, Betreff, eine höfliche Anrede und einen Schluss mit «Freundliche Grüsse».",
+        "beispiel": {
+          "vorher": "Hallo",
+          "nachher": "Sehr geehrte Damen und Herren",
+          "warum": "Eine höfliche Anrede zeigt, dass du den Brief ernst meinst."
+        }
+      },
+      {
+        "tipp": "Lass Chat-Wörter weg wie «haha», «lg», «hab» und «voll». Schreib ganze, einfache Sätze.",
+        "beispiel": {
+          "vorher": "Ich hab schon mal Zopf gemacht mit meiner Mutter und der war voll fein.",
+          "nachher": "Ich habe schon einmal mit meiner Mutter einen Zopf gebacken, und er hat sehr gut geschmeckt.",
+          "warum": "Ganze Sätze klingen reif und sind leichter zu lesen."
+        }
+      },
+      {
+        "tipp": "Erkläre genauer, warum dich genau dieser Beruf interessiert. Nenne ein Beispiel, was du am Backen spannend findest.",
+        "beispiel": {
+          "vorher": "Ich finde backen mega cool und esse auch gern Kuchen haha.",
+          "nachher": "Ich finde backen spannend, weil ich beim Zopfbacken gesehen habe, wie aus einfachem Teig etwas Feines wird.",
+          "warum": "Ein Grund mit einem echten Erlebnis zeigt echtes Interesse."
+        }
+      },
+      {
+        "tipp": "Setze Kommas vor «weil» und «wenn».",
+        "beispiel": {
+          "vorher": "Ich kann früh aufstehen wenn ich muss.",
+          "nachher": "Ich kann früh aufstehen, wenn ich muss.",
+          "warum": "Vor «wenn» und «weil» steht im Deutschen immer ein Komma."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Ändere zuerst den Firmennamen auf Bäckerei Moser und schreib den Brief mit ganzen Sätzen neu."
+  }
+}

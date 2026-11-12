@@ -1,0 +1,90 @@
+{
+  "sample": "10-detailhandel-englisch",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "other_language",
+    "score": "35-62"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 52,
+  "issues": [],
+  "result": {
+    "score": 52,
+    "summary": "Du zeigst echtes Interesse und hast schöne Erlebnisse, zum Beispiel am Flohmarkt. Der Brief ist aber fast ganz auf Englisch. Schreib ihn auf Deutsch, dann wird er stark.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 14,
+        "comment": "Alle Teile sind da: Absender, Empfänger, Datum, Anrede, Text und Gruss. Der Betreff ist aber auf Englisch."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 5,
+        "comment": "Der Text ist fast ganz auf Englisch. Die Sätze sind kurz, und «I» steht sehr oft am Satzanfang."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 15,
+        "comment": "Du nennst konkrete Erlebnisse: Videoanruf für die Grossmutter und Verkauf am Flohmarkt. Das passt zum Beruf."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 8,
+        "comment": "Beruf und Firma stehen im Brief. Der Grund ist Elektronik, aber du schreibst nicht, was dich bei TechWorld besonders anspricht. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 10,
+        "comment": "5 Fehler: Datum, Betreff, Anrede, Herr und Gruss sind auf Englisch. Dazu kommt, dass der ganze Körpertext auf Englisch ist."
+      }
+    ],
+    "good": [
+      "Du nennst konkrete Erlebnisse: Videoanrufe für deine Grossmutter und den Verkauf am Flohmarkt in Oerlikon.",
+      "Du schreibst, dass du gern mit Kunden sprichst. Das passt gut zum Detailhandel.",
+      "Du hilfst zu Hause und den Nachbarn bei Handyproblemen. Das zeigt Interesse an Technik.",
+      "Der Brief hat Absender, Empfänger, Ort, Datum, Anrede und einen klaren Schluss."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreibe den ganzen Brief auf Deutsch. Firmen in der Deutschschweiz erwarten eine Bewerbung in deiner Sprache. Beginne mit der Anrede.",
+        "beispiel": {
+          "vorher": "Dear Mr. Brunner",
+          "nachher": "Sehr geehrter Herr Brunner",
+          "warum": "Das ist die richtige Anrede auf Deutsch."
+        }
+      },
+      {
+        "tipp": "Schreibe auch den Betreff auf Deutsch. So weiss die Firma sofort, worum es geht.",
+        "beispiel": {
+          "vorher": "Application for an apprenticeship as Detailhandelsfachmann EFZ",
+          "nachher": "Bewerbung als Detailhandelsfachmann EFZ",
+          "warum": "Der Betreff sagt in einem Satz, was du willst."
+        }
+      },
+      {
+        "tipp": "Erkläre genauer, was dich an Elektronik reizt. Nenne ein Beispiel aus deinem Alltag.",
+        "beispiel": {
+          "vorher": "because I love electronics and I like to talk to people",
+          "nachher": "Ich interessiere mich sehr für Elektronik, zum Beispiel für [Gerät oder Thema]. Ich spreche auch gern mit Menschen.",
+          "warum": "Ein konkretes Beispiel zeigt echtes Interesse."
+        }
+      },
+      {
+        "tipp": "Formuliere den Wunsch nach einer Schnupperlehre höflich auf Deutsch.",
+        "beispiel": {
+          "vorher": "I would be very happy to come for a Schnupperlehre.",
+          "nachher": "Ich würde mich sehr freuen, bei Ihnen schnuppern zu dürfen.",
+          "warum": "Der Satz klingt höflich und passt zu einer Schnupperlehre."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Schreibe den Brief auf Deutsch neu und beginne mit «Sehr geehrter Herr Brunner»."
+  }
+}

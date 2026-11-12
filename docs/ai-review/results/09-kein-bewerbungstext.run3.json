@@ -1,0 +1,74 @@
+{
+  "sample": "09-kein-bewerbungstext",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "not_application",
+    "score": "0-15"
+  },
+  "dokumentart": "anderes",
+  "rawScore": 7,
+  "issues": [],
+  "result": {
+    "score": 7,
+    "summary": "Dein Text erzählt lebendig und klar von deinen Ferien im Tessin. Eine Bewerbung ist es aber noch nicht, deshalb gibt es heute wenig Punkte. Mit einem Brief an einen Betrieb bist du schnell auf dem richtigen Weg.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 1,
+        "comment": "Es gibt keinen Brief, nur einen Erzähltext ohne Anrede und Gruss. Es gibt wenig Punkte, weil es keine Bewerbung ist."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 3,
+        "comment": "Die Sätze sind klar und einfach, z. B. «Es waren die besten Ferien, die ich je hatte.» Es gibt wenig Punkte, weil es keine Bewerbung ist."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 0,
+        "comment": "Es steht kein Grund da, warum du diesen Beruf lernen willst. Es gibt wenig Punkte, weil es keine Bewerbung ist."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 0,
+        "comment": "Der Text nennt weder den Beruf Fachmann Betriebsunterhalt noch eine Firma. Es gibt wenig Punkte, weil es keine Bewerbung ist. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 3,
+        "comment": "Ich finde keine Fehler. Es gibt wenig Punkte, weil es keine Bewerbung ist."
+      }
+    ],
+    "good": [
+      "Die Geschichte ist lebendig: Du schreibst, dass das Zelt «fast weggeschwommen ist».",
+      "Die Sätze sind kurz und leicht zu lesen, z. B. «Am Abend haben wir Gelati in Locarno gegessen.»",
+      "Du hast beim Schreiben keine Rechtschreibfehler gemacht."
+    ],
+    "improve": [
+      {
+        "tipp": "Dein Text ist kein Bewerbungsschreiben. Er erzählt von den Ferien. Schreibe einen Brief an einen Betrieb, der zeigt, dass du eine Schnupperlehre suchst.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Sehr geehrte Damen und Herren, ich bewerbe mich für eine Schnupperlehre als Fachmann Betriebsunterhalt bei [Firma].",
+          "warum": "Der Betrieb sieht sofort, worum es geht und was du willst."
+        }
+      },
+      {
+        "tipp": "Schreibe, warum dich dieser Beruf interessiert. Nenne einen eigenen Grund und ein kleines Erlebnis dazu, z. B. aus deinem Alltag oder einem Hobby."
+      },
+      {
+        "tipp": "Nutze deine Erfahrung mit dem Zelt. Überlege, was du dabei gelernt hast, das zum Beruf passt, z. B. Probleme anpacken."
+      },
+      {
+        "tipp": "Baue den Brief aus: Absender, Datum, Betreff, Anrede, zwei bis drei Absätze und ein Gruss am Schluss."
+      }
+    ],
+    "company": [],
+    "nextStep": "Schreibe heute einen kurzen Brief an einen Betrieb mit Anrede, einem Grund für den Beruf und einem Gruss am Schluss."
+  }
+}
