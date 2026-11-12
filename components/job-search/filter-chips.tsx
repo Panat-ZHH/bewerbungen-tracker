@@ -32,12 +32,12 @@ export function FilterChips({ filters, onChange, onClear }: { filters: JobFilter
     <ul aria-label="Aktive Filter" className="flex flex-wrap items-center gap-2">
       {chips.map((chip) => (
         <li key={chip.key}>
-          <button type="button" onClick={() => onChange(chip.patch)} aria-label={`Filter entfernen: ${chip.label}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-[var(--info-line)] bg-[var(--brand-soft)] px-3 text-[13px] font-medium text-[var(--brand-strong)] transition hover:brightness-95 pointer-coarse:min-h-11">
+          <button type="button" onClick={() => onChange(chip.patch)} aria-label={`Filter entfernen: ${chip.label}`} className="inline-flex min-h-9 items-center gap-1.5 rounded-full border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] px-3 text-[13px] font-semibold text-[var(--on-sun)] transition-transform duration-150 hover:-translate-y-px active:translate-y-px pointer-coarse:min-h-11">
             {chip.label}<X size={13} aria-hidden />
           </button>
         </li>
       ))}
-      <li><button type="button" onClick={onClear} className="min-h-9 px-2 text-[13px] font-semibold text-muted underline-offset-2 hover:text-[var(--ink)] hover:underline pointer-coarse:min-h-11">Alle löschen</button></li>
+      <li><button type="button" onClick={onClear} className="min-h-9 px-2 text-[13px] font-semibold text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)] hover:decoration-[var(--ink)] pointer-coarse:min-h-11">Alle löschen</button></li>
     </ul>
   );
 }

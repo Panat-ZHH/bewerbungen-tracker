@@ -252,7 +252,7 @@ export function JobSearchView() {
       <div className="mt-6 grid gap-6 md:grid-cols-[17rem_minmax(0,1fr)] lg:grid-cols-[19rem_minmax(0,1fr)]">
         <aside aria-label="Filter" className="hidden md:block">
           <Card className="sticky top-[84px] max-h-[calc(100dvh-110px)] overflow-y-auto p-5">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-heading">Filter</h2>{filterCount > 0 && <button type="button" onClick={clearFilters} className="inline-flex min-h-9 items-center px-1 text-[13px] font-semibold text-muted hover:text-[var(--ink)] hover:underline">Zurücksetzen</button>}</div>
+            <div className="mb-4 flex items-center justify-between"><h2 className="text-heading">Filter</h2>{filterCount > 0 && <button type="button" onClick={clearFilters} className="inline-flex min-h-9 items-center px-1 text-[13px] font-semibold text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)] hover:decoration-[var(--ink)]">Zurücksetzen</button>}</div>
             {panel("d")}
           </Card>
         </aside>
@@ -261,7 +261,7 @@ export function JobSearchView() {
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="secondary" size="sm" className="md:hidden" icon={<SlidersHorizontal size={15} />} onClick={() => setSheetOpen(true)}>Filter{filterCount > 0 ? ` (${filterCount})` : ""}</Button>
             <PresetMenu presets={presets} canSave={canSavePreset} onSave={(name) => { setPresets(savePreset(name, state)); toast({ message: "Suche gespeichert." }); }} onApply={(p) => { setState(p.state); void runSearch(p.state); }} onDelete={(id) => setPresets(deletePreset(id))} />
-            <div className="ml-auto flex items-center gap-2"><div role="group" aria-label="Darstellung" className="flex overflow-hidden rounded-lg border border-[var(--outline)]"><button type="button" aria-pressed={!compact} aria-label="Ausführliche Liste" onClick={() => toggleCompact(false)} className={`flex h-9 w-9 items-center justify-center ${!compact ? "bg-[var(--hover)] text-[var(--ink)]" : "text-muted"}`}><LayoutList size={16} /></button><button type="button" aria-pressed={compact} aria-label="Kompakte Liste" onClick={() => toggleCompact(true)} className={`flex h-9 w-9 items-center justify-center ${compact ? "bg-[var(--hover)] text-[var(--ink)]" : "text-muted"}`}><Rows3 size={16} /></button></div><label htmlFor="job-sort" className="text-xs text-muted">Sortieren</label><Select id="job-sort" className="!min-h-9 !w-auto" value={state.sort} onChange={(e) => setState((s) => ({ ...s, sort: e.target.value as JobSort }))}>{Object.entries(SORT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></div>
+            <div className="ml-auto flex items-center gap-2"><div role="group" aria-label="Darstellung" className="flex gap-0.5 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] p-0.5"><button type="button" aria-pressed={!compact} aria-label="Ausführliche Liste" onClick={() => toggleCompact(false)} className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150 pointer-coarse:h-10 pointer-coarse:w-10 ${!compact ? "bg-[var(--ink)] text-[var(--paper)]" : "text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}><LayoutList size={16} /></button><button type="button" aria-pressed={compact} aria-label="Kompakte Liste" onClick={() => toggleCompact(true)} className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors duration-150 pointer-coarse:h-10 pointer-coarse:w-10 ${compact ? "bg-[var(--ink)] text-[var(--paper)]" : "text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}><Rows3 size={16} /></button></div><label htmlFor="job-sort" className="text-small font-semibold text-muted max-sm:sr-only">Sortieren</label><Select id="job-sort" className="!min-h-9 !w-auto !rounded-full !py-1 !font-semibold pointer-coarse:!min-h-11" value={state.sort} onChange={(e) => setState((s) => ({ ...s, sort: e.target.value as JobSort }))}>{Object.entries(SORT_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Select></div>
           </div>
 
           <div className="mt-3"><FilterChips filters={state.filters} onChange={patchFilters} onClear={clearFilters} /></div>
@@ -271,22 +271,22 @@ export function JobSearchView() {
           {softError && !loading && <StatusMessage tone="info" className="mt-4">{softError.message} <button type="button" className="font-semibold underline" onClick={() => void runSearch(softError.state)}>Nochmals versuchen</button></StatusMessage>}
           {serverDirty && !loading && !softError && <StatusMessage tone="info" className="mt-4">Du hast Ort, Umkreis oder Alter geändert – die Liste wird gleich neu gesucht. <button type="button" className="font-semibold underline" onClick={() => void runSearch(state)}>Neu suchen mit Filtern</button></StatusMessage>}
 
-          {loading && <div role="status" aria-live="polite" className="mt-5 space-y-3"><p className="text-body text-muted">Passende Anzeigen werden gesucht …</p>{[0, 1, 2, 3].map((i) => <Card key={i} className="space-y-3 p-5" aria-hidden><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-1/2" /></Card>)}</div>}
+          {loading && <div role="status" aria-live="polite" className="mt-5 space-y-3"><p className="text-body text-muted">Passende Anzeigen werden gesucht …</p>{[0, 1, 2, 3].map((i) => <Card key={i} className="space-y-3 p-5 !shadow-none" aria-hidden><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-4 w-1/2" /></Card>)}</div>}
 
           {!searched && !loading && !error && (
-            <Card className="mt-5 border-dashed p-5 text-sm text-muted"><p className="font-semibold text-[var(--ink)]">So geht die Suche</p><ul className="mt-2 list-disc space-y-1 pl-5"><li>Wähle Lehrstelle, Praktikum oder Job und tippe einen Beruf ein – gern mit Ort, z. B. „Informatiker Zürich“.</li><li>Mit den Filtern grenzt du Ort, Kanton, Pensum, Berufsfeld und mehr ein – ohne neu zu laden.</li>{hasKeyboard && <li>Drücke „/“, um schnell ins Suchfeld zu springen.</li>}</ul></Card>
+            <Card className="mt-5 max-w-2xl !border-dashed !bg-transparent p-5 text-[15px] text-muted !shadow-none"><p className="text-heading text-[var(--ink)]">So geht die Suche</p><ul className="mt-3 list-disc space-y-1.5 pl-5 marker:text-[var(--ink)]"><li>Wähle Lehrstelle, Praktikum oder Job und tippe einen Beruf ein – gern mit Ort, z. B. „Informatiker Zürich“.</li><li>Mit den Filtern grenzt du Ort, Kanton, Pensum, Berufsfeld und mehr ein – ohne neu zu laden.</li>{hasKeyboard && <li>Drücke „/“, um schnell ins Suchfeld zu springen.</li>}</ul></Card>
           )}
 
           {searched && !loading && (
             <div className="mt-4">
-              <p className="text-small text-muted" aria-live="polite"><strong className="text-[var(--ink)]">{ranked.length}</strong> {ranked.length === 1 ? "Treffer" : "Treffer"}{filtered.length !== results.length ? ` (von ${results.length} geladenen)` : ""} für „{searched.query}“{searched.location ? ` in ${searched.location}` : " · ganze Schweiz"}</p>
+              <p className="text-body text-muted" aria-live="polite"><strong className="marker font-display text-xl font-extrabold text-[var(--ink)] tabular">{ranked.length}</strong> {ranked.length === 1 ? "Treffer" : "Treffer"}{filtered.length !== results.length ? ` (von ${results.length} geladenen)` : ""} für „{searched.query}“{searched.location ? ` in ${searched.location}` : " · ganze Schweiz"}</p>
               {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-2 flex flex-wrap gap-2">{sourceStatuses.map((s) => <li key={s.name}><Badge tone="neutral">{s.name}{s.status === "unavailable" ? " · antwortet gerade langsam" : ` · ${facets.sources[s.name] ?? 0}`}</Badge></li>)}</ul>}
 
               {ranked.length === 0 ? (
-                <Card className="mt-5 flex flex-col items-center px-6 py-10 text-center">
-                  <SearchX size={28} className="text-muted" aria-hidden />
-                  <p className="mt-3 font-semibold">Keine passenden Anzeigen gefunden</p>
-                  <p className="mt-1 max-w-md text-sm text-muted">{results.length > 0 ? "Deine Filter sind für diese Treffer zu streng." : "Versuche einen verwandten Beruf oder einen anderen Ort."}</p>
+                <Card className="mt-5 flex flex-col items-center !border-dashed !bg-transparent px-6 py-10 text-center !shadow-none">
+                  <SearchX size={28} className="text-[var(--ink)]" aria-hidden />
+                  <p className="mt-3 text-heading">Keine passenden Anzeigen gefunden</p>
+                  <p className="mt-1.5 max-w-md text-body text-muted">{results.length > 0 ? "Deine Filter sind für diese Treffer zu streng." : "Versuche einen verwandten Beruf oder einen anderen Ort."}</p>
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     {filterCount > 0 && <Button type="button" variant="secondary" icon={<Lightbulb size={15} />} onClick={clearFilters}>Suche erweitern: Filter löschen</Button>}
                     {state.filters.location && <Button type="button" variant="secondary" onClick={() => { const next = { ...state, filters: { ...state.filters, location: "", radiusKm: undefined } }; setState(next); void runSearch(next); }}>In der ganzen Schweiz suchen</Button>}
@@ -301,7 +301,7 @@ export function JobSearchView() {
               )}
 
               <div ref={sentinelRef} className="mt-6 flex min-h-11 flex-col items-start gap-2">
-                {loadingMore && <div role="status" className="w-full space-y-3"><Card className="space-y-3 p-5" aria-hidden><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /></Card></div>}
+                {loadingMore && <div role="status" className="w-full space-y-3"><Card className="space-y-3 p-5 !shadow-none" aria-hidden><Skeleton className="h-5 w-2/3" /><Skeleton className="h-4 w-1/3" /></Card></div>}
                 {(hasMoreLocal || nextCursor) && !loadingMore && <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={more} icon={<Plus size={16} />}>Mehr laden</Button>}
                 {!hasMoreLocal && !nextCursor && ranked.length > 0 && <p className="text-sm text-muted">Alle passenden Stellen der durchsuchten Quellen sind angezeigt.</p>}
               </div>

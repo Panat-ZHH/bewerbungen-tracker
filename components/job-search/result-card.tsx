@@ -15,7 +15,7 @@ export function Highlight({ text, ranges }: { text: string; ranges?: [number, nu
   ranges.forEach(([start, end], i) => {
     if (start < at || end > text.length) return;
     if (start > at) parts.push(text.slice(at, start));
-    parts.push(<mark key={i} className="rounded bg-[var(--brand-soft)] px-0.5 text-inherit">{text.slice(start, end)}</mark>);
+    parts.push(<mark key={i} className="rounded-sm bg-[var(--sun)] px-0.5 text-[var(--on-sun)]">{text.slice(start, end)}</mark>);
     at = end;
   });
   parts.push(text.slice(at));
@@ -40,10 +40,10 @@ export function ResultCard({ item, saved, saving, onSave, compact = false }: { i
     <Card interactive className="animate-rise">
       <article className={`flex flex-col md:flex-row md:items-center md:justify-between ${compact ? "gap-2 p-3 md:min-h-[150px]" : "gap-4 p-4 sm:p-5"}`}>
         <div className="min-w-0">
-          <h3 className="break-words text-base font-semibold"><Highlight text={job.title} ranges={match("title")} /></h3>
-          {job.company && <p className="mt-1 break-words text-sm"><Highlight text={job.company} ranges={match("company")} /></p>}
+          <h3 className="break-words font-display text-lg font-bold leading-snug tracking-[-.015em]"><Highlight text={job.title} ranges={match("title")} /></h3>
+          {job.company && <p className="mt-1 break-words text-sm font-semibold"><Highlight text={job.company} ranges={match("company")} /></p>}
           {job.snippet && !compact && <p className="mt-1.5 line-clamp-2 break-words text-sm text-muted"><Highlight text={job.snippet} ranges={match("snippet")} /></p>}
-          <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+          <p className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted">
             {job.location && <Badge><MapPin size={12} aria-hidden /><Highlight text={job.location} ranges={match("location")} /></Badge>}
             {job.jobType && <Badge tone="brand">{JOB_TYPE_LABELS[job.jobType]}</Badge>}
             {workload && <Badge>{workload}</Badge>}
@@ -54,8 +54,8 @@ export function ResultCard({ item, saved, saving, onSave, compact = false }: { i
             {posted && <Badge>{posted}</Badge>}
             <Badge>{sources.length > 1 ? `${sources.length} Quellen` : job.source}</Badge>
           </p>
-          <ul aria-label="Originalanzeigen" hidden={compact && sources.length <= 1} className="mt-1 flex flex-wrap gap-x-4 text-xs text-[var(--brand-strong)]">
-            {sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 hover:underline">{s.name}<ExternalLink size={12} aria-hidden /></a></li>)}
+          <ul aria-label="Originalanzeigen" hidden={compact && sources.length <= 1} className="-mb-2 mt-1 flex flex-wrap gap-x-4 text-[13px] font-semibold text-[var(--brand-strong)]">
+            {sources.map((s) => <li key={s.url}><a href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:decoration-current">{s.name}<ExternalLink size={12} aria-hidden /></a></li>)}
           </ul>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:flex-row">

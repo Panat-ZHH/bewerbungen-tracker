@@ -18,13 +18,13 @@ export function PresetMenu({ presets, onSave, onApply, onDelete, canSave }: { pr
           <Input data-autofocus aria-label="Name der Suche" maxLength={40} value={name} onChange={(e) => setName(e.target.value)} placeholder="Name, z. B. Informatik Zürich" />
           <Button type="submit" disabled={!canSave}>Speichern</Button>
         </form>
-        {!canSave && <p className="mt-2 text-xs text-muted">Gib zuerst einen Suchbegriff ein oder setze einen Filter.</p>}
-        {presets.length === 0 ? <p className="mt-4 text-sm text-muted">Noch nichts gespeichert.</p> : (
-          <ul className="mt-4 space-y-1.5">
+        {!canSave && <p className="mt-2 text-small text-muted">Gib zuerst einen Suchbegriff ein oder setze einen Filter.</p>}
+        {presets.length === 0 ? <p className="mt-5 border-t-[length:var(--border-w)] border-dashed border-[var(--line)] pt-4 text-body text-muted">Noch nichts gespeichert.</p> : (
+          <ul className="rows mt-4">
             {presets.map((preset) => (
-              <li key={preset.id} className="flex items-center gap-1">
-                <button type="button" onClick={() => { onApply(preset); setOpen(false); }} className="min-h-11 min-w-0 flex-1 rounded-xl px-3 text-left text-sm font-medium hover:bg-[var(--hover)]"><span className="block truncate">{preset.name}</span><span className="block truncate text-xs font-normal text-muted">{preset.state.query || "ohne Suchbegriff"}</span></button>
-                <button type="button" aria-label={`${preset.name} löschen`} onClick={() => onDelete(preset.id)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)] hover:text-[var(--danger-fg)]"><Trash2 size={16} /></button>
+              <li key={preset.id} className="flex items-center gap-1 py-1">
+                <button type="button" onClick={() => { onApply(preset); setOpen(false); }} className="min-h-12 min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-[var(--surface-2)]"><span className="block truncate font-display text-base font-bold">{preset.name}</span><span className="block truncate text-small text-muted">{preset.state.query || "ohne Suchbegriff"}</span></button>
+                <button type="button" aria-label={`${preset.name} löschen`} onClick={() => onDelete(preset.id)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-[var(--hover)] hover:text-[var(--danger-fg)]"><Trash2 size={16} /></button>
               </li>
             ))}
           </ul>
