@@ -77,6 +77,13 @@ Tailwind aliases: `bg-paper bg-surface bg-surface-2 text-ink text-muted border-l
 | `BrandMark` | logo straight on paper (dark glyph variant in dark mode); `fixedTile`/`white` = white sticker tile |
 | `doodles.tsx` | `DoodleArrow, DoodleLoopArrow, DoodleStar, DoodleSparkle, DoodleSquiggle, DoodleUnderline, DoodleBurst, DoodleSmile, DoodlePlane, DoodleTrail` – hand-drawn SVGs, `currentColor`, size by className. A few per screen at most. |
 
+## Location search (`components/job-search/`)
+Styled in `app/globals.css` (unlayered block "Location search", so it beats the `Input`/`Select`/`Badge` utilities). Class names, `data-*` and ARIA come from the search logic: do not rename them (`scripts/jobsearch-e2e.mjs` selects by them).
+- `LocationAutocomplete`: `.location-autocomplete` (grid, `position: relative`), list `.location-autocomplete__list` floats below the field as a sticker (ink contour, hard shadow, no inner scroll: max. 8 rows). Rows are 40px, 44px on touch. Active row (`[data-active]` / `aria-selected="true"`): flat sun yellow with ink contour. `[data-loading]`: small brand spinner at the right edge of the field. Never set `display` on the list, it is closed with `hidden`.
+- `RadiusSelect`: the `<select>` itself has `.radius-select`. Disabled (no place yet): dashed neutral contour on `--surface-2`, muted but fully readable text, no opacity.
+- `DistanceBadge`: `.distance-badge`, sun-yellow pill with ink contour and a small `Navigation` icon ("12 km").
+- Sort entry «Nächste zuerst» is only listed while a place is set. A failed «Mehr laden» is a `warning` message, not `danger`.
+
 ## Joy moments (`lib/joy.ts`, `lib/rewards.ts`)
 - `reward("applied")` → toast + rubber stamp «ABGESCHICKT!» (`stamp()`), counts for the weekly goal.
 - `celebrateStatus(status, previous, { position, location })` after a saved status change: Gespräch / Zusage / Vertrag → `confetti()` + motivating toast (+ stamp «ZUSAGE!»);

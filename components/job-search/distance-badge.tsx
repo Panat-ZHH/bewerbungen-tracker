@@ -1,3 +1,4 @@
+import { Navigation } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDistance } from "./engine";
 
@@ -9,5 +10,5 @@ export function DistanceBadge({ km, from }: { km?: number; from?: string }) {
   const text = formatDistance(km);
   if (!text) return null;
   const hint = from ? `Luftlinie ab ${from}` : "Luftlinie ab deinem Ort";
-  return <Badge className="distance-badge" title={hint}><span className="sr-only">Entfernung: </span>{text}</Badge>;
+  return <Badge className="distance-badge" title={hint}><Navigation size={11} strokeWidth={2.6} aria-hidden /><span className="sr-only">Entfernung: </span>{text}</Badge>;
 }
