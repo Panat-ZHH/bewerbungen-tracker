@@ -39,9 +39,9 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
 
 export default function HilfePage() {
   return (
-    <TextPage eyebrow="Hilfe" title="Häufige Fragen" intro="Antworten auf die wichtigsten Fragen. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
+    <TextPage title={<>Häufige <span className="marker">Fragen</span></>} intro="Antworten auf die wichtigsten Fragen. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
       <nav aria-label="Themen" className="flex flex-wrap gap-2">
-        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="rounded-full border border-[var(--line)] bg-[var(--surface)] px-3.5 py-2 text-[13px] font-medium hover:bg-[var(--surface-2)]">{g.title.replace("Erste Schritte für ", "Start: ")}</a>)}
+        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="inline-flex min-h-10 items-center rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold hover:bg-[var(--sun)] hover:text-[var(--on-sun)] pointer-coarse:min-h-11">{g.title.replace("Erste Schritte für ", "Start: ")}</a>)}
       </nav>
       {groups.map((g) => (
         <section key={g.id} id={g.id} aria-labelledby={`${g.id}-h`} className="scroll-mt-24">

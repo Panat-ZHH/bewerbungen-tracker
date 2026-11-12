@@ -21,7 +21,7 @@ export async function LegalPage({ docKey, downloadHref }: { docKey: LegalKey; do
   return (
     <div className="legal-root">
       <header className="legal-top no-print">
-        <Link href="/" className="legal-brand" aria-label="WendApply, zur Startseite"><BrandMark size={30} radius={9} /><span>WendApply</span></Link>
+        <Link href="/" className="legal-brand" aria-label="WendApply, zur Startseite"><BrandMark size={30} /><span>WendApply</span></Link>
         <nav aria-label="Rechtliche Informationen" className="legal-nav">
           {LEGAL_DOCS.map((d) => <Link key={d.key} href={d.path} aria-current={d.key === docKey ? "page" : undefined}>{d.short}</Link>)}
         </nav>
