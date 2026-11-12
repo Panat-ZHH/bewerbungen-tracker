@@ -71,9 +71,14 @@ for (const theme of ["light", "dark"]) for (const size of SIZES) for (const shot
       const overflow = await page.evaluate(() => document.scrollingElement.scrollWidth - innerWidth);
       await page.addStyleTag({ content: "nextjs-portal{display:none!important}" });
       const fullPage = shot.fullPage !== false;
-      // on full-page shots the fixed tab bar would float mid-page: pin it to the end of the document instead
-      if (fullPage && size.mobile) await page.addStyleTag({ content: 'nav[aria-label="Hauptmenü mobil"]{position:absolute!important}' });
-      await page.screenshot({ path: file, fullPage, timeout: 120000 });
+      // Mobile full-page shots: grow the viewport to the document (max 3000px) instead of Chrome's stitched capture,
+      // so the fixed tab bar sits at the bottom and long lists are not tiled.
+      if (fullPage && size.mobile) {
+        const height = await page.evaluate(() => document.scrollingElement.scrollHeight);
+        await page.setViewportSize({ width: size.width, height: Math.min(Math.max(height, size.height), 3000) });
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: file, timeout: 120000 });
+      } else await page.screenshot({ path: file, fullPage, timeout: 120000 });
       log.push(`${shot.name} ${size.name} ${theme} overflowX=${overflow}${errors.length ? " ERR " + errors[0] : ""}`);
     } catch (error) { log.push(`${shot.name} ${size.name} ${theme} FAILED ${String(error.message).slice(0, 140)}`); }
     await ctx.close();
