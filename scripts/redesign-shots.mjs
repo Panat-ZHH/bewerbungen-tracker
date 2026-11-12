@@ -25,6 +25,19 @@ const search = async (page) => {
   await page.waitForTimeout(700);
 };
 
+const ORT = "/search?q=Informatiker&k=a&l=Winterthur";
+const results = async (page) => { await page.locator('section[aria-label="Suchergebnisse"] ol > li').first().waitFor({ timeout: 120000 }); await page.waitForTimeout(700); };
+const openFilter = async (page, size) => {
+  if (size.mobile) { await page.getByRole("button", { name: /^Filter( \(\d+\))?$/ }).click(); await page.getByRole("dialog", { name: "Filter" }).waitFor(); }
+  else await page.getByRole("complementary", { name: "Filter" }).scrollIntoViewIfNeeded();
+};
+const suggest = async (page, size, text, wait = true) => {
+  await openFilter(page, size);
+  const field = page.locator(size.mobile ? "#m-loc" : "#d-loc");
+  await field.click(); await field.press("ControlOrMeta+a"); await field.pressSequentially(text, { delay: 40 });
+  if (wait) await page.locator(".location-autocomplete__list:not([hidden]) .location-autocomplete__option").first().waitFor({ timeout: 30000 });
+};
+
 /** name, path, mock options, optional prepare(page, size), fullPage (default true) */
 const SHOTS = [
   { name: "01-login", path: "/login", mock: { authed: false } },
@@ -46,6 +59,13 @@ const SHOTS = [
   { name: "12-einstellungen", path: "/settings", mock: { apps: filled(), profile } },
   { name: "13-klassen", path: "/classes", mock: { role: "student", apps: filled(), profile } },
   { name: "14-landing", path: "/", mock: { authed: false } },
+  // Ort-Suche: results with distance stickers, the open suggestion list (second option active), loading spinner, unknown place, Impressum source line
+  { name: "15-ort-treffer", path: ORT, mock: { apps: [], profile }, prepare: results },
+  { name: "16-ort-vorschlaege", path: ORT, mock: { apps: [], profile }, fullPage: false, prepare: async (page, size) => { await results(page); await suggest(page, size, "Wint"); await page.keyboard.press("ArrowDown"); await page.keyboard.press("ArrowDown"); await page.waitForTimeout(300); } },
+  { name: "17-ort-laedt", path: ORT, mock: { apps: [], profile }, fullPage: false, prepare: async (page, size) => { await results(page); await page.route("**/api/places**", async (route) => { await new Promise((r) => setTimeout(r, 6000)); await route.continue().catch(() => {}); }); await suggest(page, size, "Us", false); await page.waitForTimeout(600); } },
+  { name: "18-ort-unbekannt", path: "/search?q=Informatiker&k=a&l=nirgendwo", mock: { apps: [], profile }, prepare: async (page) => { await page.getByText(/kennen wir leider nicht/).first().waitFor({ timeout: 120000 }); await page.waitForTimeout(500); } },
+  { name: "19-ort-filter-dialog", path: ORT, mock: { apps: [], profile }, fullPage: false, prepare: async (page, size) => { await results(page); await openFilter(page, size); await page.waitForTimeout(500); } },
+  { name: "20-impressum", path: "/impressum", mock: { authed: false } },
 ];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
