@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { ArrowUpRight, CalendarDays, Check, LocateFixed, MapPin, Save } from "lucide-react";
 import { updateApplication } from "@/lib/storage";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { statusLabels } from "@/lib/utils";
 import type { Application, ApplicationStatus } from "@/types";
 import { MapSheet } from "./map-fullscreen";
@@ -43,7 +44,7 @@ export function MapApplicationDialog({ application, onClose, onUpdated, onMove, 
 
   return (
     <MapSheet id="application" open onClose={onClose} title={application.position} subtitle={application.company} closeDisabled={busy}>
-      <p className={styles.sheetStatus}>{statusLabels[application.status]}</p>
+      <p className={styles.sheetStatus}><StatusBadge status={application.status} /></p>
       {application.location && <p className={styles.sheetMeta}><MapPin size={16} aria-hidden />{application.location}</p>}
       <dl className={styles.sheetDates}>
         <div><dt><CalendarDays size={15} aria-hidden /> Letzte Änderung</dt><dd><time dateTime={application.updatedAt}>{date(application.updatedAt)}</time></dd></div>
