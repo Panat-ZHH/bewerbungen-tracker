@@ -123,6 +123,11 @@ export function StudentOnboarding() {
     }, "Dein Profil konnte nicht gespeichert werden. Du kannst es später im Profil nachtragen.");
   };
 
+  /** Typing into the field that caused the error clears the error message. */
+  const editApp = (change: Partial<FirstApplicationInput>) => {
+    setApp((current) => ({ ...current, ...change }));
+    if (appInvalid && appInvalid in change) { setAppInvalid(null); setError(""); }
+  };
   const saveApp = (event: FormEvent) => {
     event.preventDefault();
     const checked = checkFirstApplication(app);
@@ -184,7 +189,7 @@ export function StudentOnboarding() {
               {part === 0 && (
                 <>
                   {title(<>Wer <span className="marker">bist du</span>?</>, `Teil 1 von ${PROFILE_PARTS}. So können wir dich begrüssen.`)}
-                  <Field label="Vorname" htmlFor="ob-first"><Input id="ob-first" value={a.firstName} onChange={(e) => patch({ firstName: e.target.value })} maxLength={40} autoComplete="given-name" required aria-invalid={!!error && !a.firstName.trim()} /></Field>
+                  <Field label="Vorname" htmlFor="ob-first"><Input id="ob-first" value={a.firstName} onChange={(e) => { patch({ firstName: e.target.value }); if (error && e.target.value.trim()) setError(""); }} maxLength={40} autoComplete="given-name" required aria-invalid={!!error && !a.firstName.trim()} /></Field>
                   <Field label="Nachname (oder nur der erste Buchstabe)" htmlFor="ob-last" hint="Optional. Deine Lehrperson sieht diesen Namen nur, wenn du einer Klasse beitrittst."><Input id="ob-last" value={a.lastName} onChange={(e) => patch({ lastName: e.target.value })} maxLength={40} autoComplete="family-name" /></Field>
                   <Field label="In welcher Klasse / welchem Niveau bist du?" htmlFor="ob-level">
                     <Select id="ob-level" value={a.schoolLevel} onChange={(e) => patch({ schoolLevel: e.target.value })}>
@@ -248,8 +253,8 @@ export function StudentOnboarding() {
           {step === 2 && !savedApp && (
             <form onSubmit={saveApp} className="space-y-5" noValidate>
               {title(<>Deine erste <span className="marker">Bewerbung</span></>, "Hast du schon eine Firma im Kopf? Trag sie ein. Mehr Details kannst du später ergänzen.")}
-              <Field label="Firma" htmlFor="tour-company"><Input id="tour-company" value={app.company} onChange={(e) => setApp({ ...app, company: e.target.value })} maxLength={120} autoComplete="organization" placeholder="z. B. Migros" aria-invalid={appInvalid === "company" || undefined} /></Field>
-              <Field label="Beruf" htmlFor="tour-position"><Input id="tour-position" value={app.position} onChange={(e) => setApp({ ...app, position: e.target.value })} maxLength={120} placeholder="z. B. Detailhandelsfachfrau / -mann" list="tour-professions" aria-invalid={appInvalid === "position" || undefined} /></Field>
+              <Field label="Firma" htmlFor="tour-company"><Input id="tour-company" value={app.company} onChange={(e) => editApp({ company: e.target.value })} maxLength={120} autoComplete="organization" placeholder="z. B. Migros" aria-invalid={appInvalid === "company" || undefined} /></Field>
+              <Field label="Beruf" htmlFor="tour-position"><Input id="tour-position" value={app.position} onChange={(e) => editApp({ position: e.target.value })} maxLength={120} placeholder="z. B. Detailhandelsfachfrau / -mann" list="tour-professions" aria-invalid={appInvalid === "position" || undefined} /></Field>
               <datalist id="tour-professions">{[...a.professions, ...PROFESSION_SUGGESTIONS].map((p) => <option key={p} value={p} />)}</datalist>
               <fieldset className="min-w-0 border-0 p-0">
                 <legend className="mb-2 text-sm font-semibold">Wie weit bist du?</legend>

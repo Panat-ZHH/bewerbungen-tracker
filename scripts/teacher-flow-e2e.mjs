@@ -81,8 +81,9 @@ await scenario("role-picker", async () => {
     check(path(page) === "/auth/role", `Google user without role is asked once (${tag})`);
     await page.getByText("Ich begleite Klassen").click(); await shot(page, `role-picker-${tag}`);
     await page.getByText("Ich suche eine Lehrstelle").click(); await page.getByRole("button", { name: "Weiter" }).click();
-    await page.waitForURL("**/dashboard");
-    check(state.calls.some((c) => c.rpc === "set_my_role" && c.body.p_role === "student"), `set_my_role called, then /dashboard (${tag})`);
+    // a freshly chosen student starts the first-login tour (components/onboarding/student-onboarding.tsx)
+    await page.waitForURL("**/onboarding**");
+    check(state.calls.some((c) => c.rpc === "set_my_role" && c.body.p_role === "student"), `set_my_role called, then the onboarding tour (${tag})`);
     await ctx.close();
   }
 });
