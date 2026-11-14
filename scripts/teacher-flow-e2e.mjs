@@ -61,8 +61,8 @@ await scenario("onboarding", async () => {
   for (const [w, h, dark, tag] of [[375, 812, false, "mobile"], [375, 812, true, "mobile-dark"], [1280, 800, false, "desktop"]]) {
     const { ctx, page, state } = await session({ role: "teacher", meta: { role: "teacher" }, opts: { rpc: { class_list_mine: [], social_update_profile: [{ user_id: "t1", role: "teacher", display_name: "Frau Keller", avatar_seed: "x", invite_code: "T-1", share_with_friends: true, email: "t@x.ch" }], class_create: [{ id: "c9", name: "Mediamatik 3b", school_year: "2026/27", join_code: "ABCD2345", created_at: iso(0), member_count: 0 }] } }, vp: { w, h, dark } });
     await page.goto(BASE + "/teacher/onboarding");
-    await page.getByRole("heading", { name: /Willkommen/ }).waitFor(); await shot(page, `onboarding-1-role-${tag}`);
-    await page.getByRole("button", { name: "Weiter" }).click();
+    // No role step any more (role comes from sign-up / role picker): the onboarding starts with the display name.
+    await page.getByRole("heading", { name: /nennen/ }).waitFor();
     await page.getByLabel("Anzeigename").waitFor(); await shot(page, `onboarding-2-name-${tag}`);
     await page.getByLabel("Anzeigename").fill("Frau Keller"); await page.getByRole("button", { name: /Weiter/ }).click();
     await page.getByLabel("Klassenname").waitFor(); await page.getByLabel("Klassenname").fill("Mediamatik 3b");

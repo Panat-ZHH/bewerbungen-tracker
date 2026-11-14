@@ -14,6 +14,7 @@ import { DeleteAccountCard } from "@/components/settings/delete-account";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PasswordChangeCard } from "@/components/settings/password-change";
 import { SettingsSection } from "@/components/settings/section";
+import { TourReplaySection } from "@/components/settings/tour-replay";
 import { withSupport } from "@/lib/account-deletion";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
@@ -103,6 +104,8 @@ export default function SettingsPage() {
               <input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" />
             </div>
           </SettingsSection>
+
+          <TourReplaySection />
 
           <NotificationSettings />
 

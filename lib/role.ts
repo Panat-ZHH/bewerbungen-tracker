@@ -1,6 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { safeNextPath } from "@/lib/ux";
+import { interpretTourRow, needsTour, tourDoneInMeta, UNKNOWN_TOUR, type TourStatus } from "@/lib/onboarding-tour-core";
 import type { UserRole } from "@/types";
 
 /** Pure routing rules (unit tested in tests/role.test.mjs). */
@@ -95,6 +96,14 @@ export async function resolveLanding(next?: string | null): Promise<string> {
   if (needsRoleChoice(user)) return rolePickerHref(next);
   const { role } = await loadMyRole(user);
   if (role === "teacher" && !teacherOnboarded(user.user_metadata) && !safeNextPath(next)?.startsWith("/classes/join")) return TEACHER_HOME;
-  if (role === "student" && !studentOnboarded(user.user_metadata)) return studentOnboardingHref(next);
+  if (role === "student" && !tourDoneInMeta(user.user_metadata) && needsTour(role, user.user_metadata, await readTourStatus(user.id))) return studentOnboardingHref(next);
   return landingPath(role, next);
+}
+
+/** Tour state straight from profiles (inline so this module stays light). Old DB without the column: UNKNOWN_TOUR. */
+async function readTourStatus(userId: string): Promise<TourStatus> {
+  try {
+    const { data, error } = await supabase.from("profiles").select("onboarding_tour_completed_at,onboarding_tour_step").eq("user_id", userId).maybeSingle();
+    return interpretTourRow(data as { onboarding_tour_completed_at: string | null; onboarding_tour_step: number | null } | null, error);
+  } catch { return UNKNOWN_TOUR; }
 }
