@@ -131,6 +131,7 @@ async function run(browser, vp, tag) {
     await page.getByRole("heading", { name: /KI-Check/ }).waitFor();
     check((await step(page)) === "Schritt 4 von 5", "progress shows 'Schritt 4 von 5'");
     await shot(page, "04-ai-check", 2600);
+    check((await page.getByRole("button", { name: "Bewerbung prüfen lassen" }).count()) === 0, "with ?next the KI-Check CTA is hidden (it would lose the next path)");
     await page.getByRole("button", { name: /^Später/ }).click();
     await page.getByRole("heading", { name: /bereit/ }).waitFor();
     check((await step(page)) === "Schritt 5 von 5", "progress shows 'Schritt 5 von 5'");
@@ -239,6 +240,14 @@ async function extras(browser) {
     await page.goto(`${BASE}/onboarding`, { waitUntil: "domcontentloaded" });
     await page.waitForURL("**/teacher**", { timeout: 60000 }).catch(() => {});
     check(new URL(page.url()).pathname.startsWith("/teacher"), "teacher opening /onboarding is sent to /teacher");
+    await ctx.close();
+  }
+  // teacher by DB role only (stale student metadata): /onboarding still sends them to /teacher
+  {
+    const { ctx, page } = await actor(browser, { w: 1280, h: 800 }, { role: "teacher", meta: { role: "student", teacher_onboarded: true } });
+    await page.goto(`${BASE}/onboarding`, { waitUntil: "domcontentloaded" });
+    await page.waitForURL("**/teacher**", { timeout: 60000 }).catch(() => {});
+    check(new URL(page.url()).pathname.startsWith("/teacher"), `teacher with stale student metadata opening /onboarding is sent to /teacher (${pathOf(page)})`);
     await ctx.close();
   }
   // reduced motion: the bar has no transition

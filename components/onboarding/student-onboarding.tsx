@@ -15,7 +15,7 @@ import {
   checkFirstApplication, completeTour, FIRST_APPLICATION_STATUSES, LAST_STEP, loadTourStatus, needsTour, parseTourParams, PROFILE_PARTS,
   resumeStep, saveFirstApplication, saveTourStep, tourDoneInMeta, tourExitPath, type FirstApplicationInput,
 } from "@/lib/onboarding-tour";
-import { clearRoleCache, landingPath } from "@/lib/role";
+import { clearRoleCache, landingPath, loadMyRole } from "@/lib/role";
 import { reward } from "@/lib/rewards";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -61,7 +61,10 @@ export function StudentOnboarding() {
       const { data } = await supabase.auth.getUser();
       if (!alive) return;
       if (!data.user) { router.replace("/login"); return; }
-      if (data.user.user_metadata?.role === "teacher") { router.replace("/teacher"); return; }
+      // Teachers never see the student tour. The DB role wins (metadata can be stale); loadMyRole falls back to metadata.
+      const { role } = await loadMyRole(data.user).catch(() => ({ role: data.user.user_metadata?.role === "teacher" ? "teacher" as const : "student" as const }));
+      if (!alive) return;
+      if (role === "teacher") { router.replace(landingPath("teacher", params.next)); return; }
       let start = 0;
       if (!params.replay) {
         if (tourDoneInMeta(data.user.user_metadata)) { leave(params); return; }
@@ -289,7 +292,9 @@ export function StudentOnboarding() {
                 <Sparkles aria-hidden size={26} strokeWidth={2.2} className="mt-0.5 shrink-0 text-[var(--brand)]" />
                 <p className="text-body">Lade dein Bewerbungsschreiben hoch. Die KI gibt dir in einer Minute konkrete Tipps, was du besser machen kannst.</p>
               </div>
-              <Button type="button" variant="sun" full size="lg" loading={busy} onClick={() => void openCheck()} icon={<Sparkles size={17} />}>Bewerbung prüfen lassen</Button>
+              {/* With a pending ?next (e.g. a class invite) the CTA would leave the flow and lose it, so it is only offered without one. */}
+              {!mode.next && <Button type="button" variant="sun" full size="lg" loading={busy} onClick={() => void openCheck()} icon={<Sparkles size={17} />}>Bewerbung prüfen lassen</Button>}
+              {mode.next && <p className="text-small text-muted">Den KI-Check findest du jederzeit unter «Dokumente».</p>}
               {nav(<Button type="button" variant="secondary" full onClick={() => go(4)} disabled={busy}>Später <ArrowRight size={16} /></Button>)}
             </>
           )}
