@@ -258,7 +258,7 @@ export function StudentOnboarding() {
               {title(<>Deine erste <span className="marker">Bewerbung</span></>, "Hast du schon eine Firma im Kopf? Trag sie ein. Mehr Details kannst du später ergänzen.")}
               <Field label="Firma" htmlFor="tour-company"><Input id="tour-company" value={app.company} onChange={(e) => editApp({ company: e.target.value })} maxLength={120} autoComplete="organization" placeholder="z. B. Migros" aria-invalid={appInvalid === "company" || undefined} /></Field>
               <Field label="Beruf" htmlFor="tour-position"><Input id="tour-position" value={app.position} onChange={(e) => editApp({ position: e.target.value })} maxLength={120} placeholder="z. B. Detailhandelsfachfrau / -mann" list="tour-professions" aria-invalid={appInvalid === "position" || undefined} /></Field>
-              <datalist id="tour-professions">{[...a.professions, ...PROFESSION_SUGGESTIONS].map((p) => <option key={p} value={p} />)}</datalist>
+              <datalist id="tour-professions">{[...new Set([...a.professions, ...PROFESSION_SUGGESTIONS])].map((p) => <option key={p} value={p} />)}</datalist>
               <fieldset className="min-w-0 border-0 p-0">
                 <legend className="mb-2 text-sm font-semibold">Wie weit bist du?</legend>
                 <div className="grid gap-2 min-[420px]:grid-cols-3">
