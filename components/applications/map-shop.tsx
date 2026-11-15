@@ -2,15 +2,22 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Armchair, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Package, RotateCw, Route, ShoppingCart, TreePine, Undo2, Waves, X } from "lucide-react";
+import { Armchair, Bike, Car, CarFront, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Package, RotateCw, Route, ShoppingCart, Sparkles, TreePine, Undo2, Waves, X, Zap, type LucideIcon } from "lucide-react";
 import { buyMapItem, getMapShop, moveMapObject, placeMapItem } from "@/lib/storage";
 import { applyMove, dropMessages, nudgePosition, samePosition, type DropVerdict, type MoveRecord } from "@/lib/map-drag";
-import { canPlaceMapItem, findFreeMapPosition, isLockedMapObject, isMapShopSetupError, placeableCatalog, shopCatalog, villageDepth, villageObjects, type MapPosition, type MapShopState, type PlaceableItem, type Placement, type ShopItemType } from "@/lib/map-shop";
+import { canPlaceMapItem, findFreeMapPosition, isLockedMapObject, isMapShopSetupError, isUnknownShopItemError, placeableCatalog, SHOP_ITEM_SOON, shopBuyErrorMessage, shopCatalog, shopCategories, shopItemsByCategory, shopRarities, unavailableShopItems, villageDepth, villageObjects, type MapPosition, type MapShopState, type PlaceableItem, type Placement, type ShopCategory, type ShopItemType } from "@/lib/map-shop";
 import type { Application } from "@/types";
 import { supabase } from "@/lib/supabase";
 import styles from "@/app/map/map.module.css";
 
-const icons = { road: Route, flowers: Flower2, tree: TreePine, bench: Armchair, fountain: Waves, amusement_park: FerrisWheel };
+const baseIcons: Partial<Record<ShopItemType, LucideIcon>> = { road: Route, flowers: Flower2, tree: TreePine, bench: Armchair, fountain: Waves, amusement_park: FerrisWheel };
+const categoryIcons: Record<ShopCategory | "Alle", LucideIcon> = { Alle: Sparkles, Deko: Flower2, Park: Waves, Autos: Car, "E-Roller": Zap };
+function iconFor(type: ShopItemType): LucideIcon {
+  if (baseIcons[type]) return baseIcons[type];
+  if (type.startsWith("car_")) return CarFront;
+  if (type.startsWith("scooter_")) return Bike;
+  return Package;
+}
 
 export function useMapShop(refresh: number, applications: Application[], islandCount = 1) {
   const [state, setState] = useState<MapShopState | null>(null);
@@ -18,6 +25,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [hint, setHint] = useState("");
   const [retry, setRetry] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [placement, setPlacement] = useState<Placement | null>(null);
@@ -28,6 +36,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
   const pendingLoad = useRef<Promise<MapShopState> | null>(null);
   const purchase = useRef<{ itemType: ShopItemType; id: string } | null>(null);
   const [lastMove, setLastMove] = useState<MoveRecord | null>(null);
+  const [unavailable, setUnavailable] = useState<Set<ShopItemType>>(() => new Set());
   const [dragMessage, setDragMessage] = useState("");
   const objects = villageObjects(applications, state?.layouts ?? []);
   const allItems = [...(state?.items ?? []), ...objects];
@@ -56,6 +65,9 @@ export function useMapShop(refresh: number, applications: Application[], islandC
       }
     }
     function onFocus() { if (document.visibilityState === "visible") void load(); }
+    // Which items does the server catalogue already know? New items stay "bald erhältlich" until their migration is applied.
+    // If the catalogue cannot be read we assume everything is available; map_shop_buy remains the authority.
+    void Promise.resolve(supabase.from("map_shop_catalog").select("item_type")).then(({ data, error }) => { if (active && !error) setUnavailable(unavailableShopItems(data)); }, () => undefined);
     void load();
     window.addEventListener("focus", onFocus);
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
@@ -69,11 +81,13 @@ export function useMapShop(refresh: number, applications: Application[], islandC
     const position = item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : findFreeMapPosition(item as Parameters<typeof findFreeMapPosition>[0], allItems, maxZ, islandCount);
     setSelectedId(item.id);
     if (!position) { setError("Auf der Baufläche ist kein freier Platz mehr."); return; }
-    setError(""); setNotice(""); setPlacement({ item, position });
+    setError(""); setNotice(""); setHint(""); setPlacement({ item, position });
   }
 
   async function buy(itemType: ShopItemType) {
     if (locked.current || !state || state.balance < shopCatalog[itemType].price) return;
+    setHint("");
+    if (unavailable.has(itemType)) { setNotice(""); setHint(SHOP_ITEM_SOON); return; }
     locked.current = true; setBusy(true); setError(""); setNotice(""); setLoading(false);
     const request = ++operation.current;
     if (purchase.current?.itemType !== itemType) purchase.current = { itemType, id: crypto.randomUUID() };
@@ -90,7 +104,11 @@ export function useMapShop(refresh: number, applications: Application[], islandC
       }
       setNotice(`${shopCatalog[itemType].name} gekauft.`);
     } catch (reason) {
-      if (request === operation.current) setError(reason instanceof Error && reason.message.includes("INSUFFICIENT_POINTS") ? "Du hast nicht genügend Punkte. Bitte aktualisiere den Shop." : "Der Kauf konnte nicht bestätigt werden. Bitte versuche es erneut.");
+      if (request === operation.current) {
+        // Unknown item on the server (catalogue migration pending): nothing was charged, mark it as "bald erhältlich".
+        if (isUnknownShopItemError(reason)) { purchase.current = null; setUnavailable((current) => new Set(current).add(itemType)); setHint(shopBuyErrorMessage(reason)); }
+        else setError(shopBuyErrorMessage(reason));
+      }
     } finally {
       if (request === operation.current) { locked.current = false; setBusy(false); }
     }
@@ -140,7 +158,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
   function currentPosition(item: PlaceableItem): MapPosition | null { return item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : null; }
 
   return {
-    state, loading, busy, error, notice, placement, selectedId, objects, allItems, maxZ, islandCount, lastMove, dragMessage, dismissMessage,
+    state, loading, busy, error, notice, hint, unavailable, placement, selectedId, objects, allItems, maxZ, islandCount, lastMove, dragMessage, dismissMessage,
     buy, start, save,
     /** Drop of a drag gesture on a placed item. Returns false if rejected (the item stays where it was). */
     move(id: string, to: MapPosition) {
@@ -210,26 +228,36 @@ export function MapPlacementTools({ shop }: { shop: ShopController }) {
 
 export function MapShop({ shop, compact = false }: { shop: ShopController; compact?: boolean }) {
   const [previews, setPreviews] = useState<Partial<Record<ShopItemType, string>>>({});
+  const [category, setCategory] = useState<ShopCategory | "Alle">("Alle");
   useEffect(() => {
     let active = true;
     import("@/lib/map-shop-models").then(({ renderShopPreviews }) => { const result = renderShopPreviews(); if (active) setPreviews(result); }).catch(() => undefined);
     return () => { active = false; };
   }, []);
   const selected = shop.state?.items.find(({ id }) => id === shop.selectedId);
+  const items = shopItemsByCategory(category);
   return <section className={`${styles.shop} ${compact ? styles.shopCompact : ""}`} aria-labelledby="map-shop-title" aria-busy={shop.busy || shop.loading}>
     <header className={styles.shopHeading}><div><h2 id="map-shop-title" className={compact ? "sr-only" : undefined}>Laden</h2><p>{shop.state ? `${shop.state.rewardCount} Bewerbungen belohnt` : "Punktestand wird geladen"}</p></div><div className={styles.points} aria-label="Verfügbare Punkte"><Coins size={20} /><strong>{shop.state?.balance ?? "-"}</strong><span>Punkte</span></div></header>
     {shop.error && <div className={styles.shopError} role="alert">{shop.error}<button type="button" disabled={shop.busy || shop.loading} onClick={shop.retry}>Erneut laden</button></div>}
     <p className={styles.shopNotice} role="status">{shop.notice}</p>
-    <div className={styles.shopGrid}>{(Object.entries(shopCatalog) as [ShopItemType, typeof shopCatalog[ShopItemType]][]).map(([type, item]) => {
-      const Icon = icons[type];
+    {shop.hint && <p className={styles.shopHint} role="status" data-testid="shop-hint"><Sparkles size={15} aria-hidden />{shop.hint}</p>}
+    <div className={styles.shopTabs} role="group" aria-label="Kategorie">{(["Alle", ...shopCategories] as const).map((name) => {
+      const Icon = categoryIcons[name];
+      return <button type="button" key={name} aria-pressed={category === name} className={category === name ? styles.shopTabActive : undefined} onClick={() => setCategory(name)}><Icon size={14} />{name}<small>{shopItemsByCategory(name).length}</small></button>;
+    })}</div>
+    <div className={styles.shopGrid}>{items.map((item) => {
+      const { type } = item;
+      const Icon = iconFor(type);
+      const soon = shop.unavailable.has(type);
       const affordable = shop.state !== null && shop.state.balance >= item.price;
-      return <article className={styles.shopItem} key={type}><div className={`${styles.shopArt} ${styles[`art_${type}`]}`}>{previews[type] ? <Image unoptimized src={previews[type]} alt={`${item.name}, 3D-Vorschau`} width={320} height={200} /> : <Icon size={34} strokeWidth={1.5} />}</div><h3>{item.name}</h3><span className={styles.price}><Coins size={14} />{item.price}</span><button type="button" disabled={!affordable || shop.busy || shop.loading} onClick={() => void shop.buy(type)} aria-label={`${item.name} kaufen für ${item.price} Punkte`}><ShoppingCart size={14} />Kaufen</button></article>;
+      const rarity = shopRarities[item.rarity];
+      return <article className={styles.shopItem} key={type} data-item={type}><div className={`${styles.shopArt} ${styles[`art_${type}`] ?? ""} ${styles[`artCategory_${item.category === "E-Roller" ? "scooter" : item.category === "Autos" ? "car" : "deco"}`] ?? ""}`}>{previews[type] ? <Image unoptimized src={previews[type]} alt={`${item.name}, 3D-Vorschau`} width={320} height={200} /> : <Icon size={34} strokeWidth={1.5} />}</div><h3>{item.name}</h3><span className={styles.shopMeta}><span className={styles.price}><Coins size={14} />{item.price}</span><span className={`${styles.rarity} ${styles[`rarity_${item.rarity}`]}`}>{rarity}</span></span>{soon ? <button type="button" disabled aria-label={`${item.name}: bald erhältlich`}><Sparkles size={14} />Bald</button> : <button type="button" disabled={!affordable || shop.busy || shop.loading} onClick={() => void shop.buy(type)} aria-label={`${item.name} kaufen für ${item.price} Punkte (${rarity})`}><ShoppingCart size={14} />Kaufen</button>}</article>;
     })}</div>
     <div className={styles.inventoryHeading}><h3><Package size={17} />Dein Inventar</h3><span>{shop.state?.items.length ?? 0} Gegenstände</span></div>
     {!shop.state?.items.length ? <p className={styles.inventoryEmpty}>{shop.loading ? "Inventar wird geladen ..." : "Dein Inventar ist leer."}</p> : <div className={styles.inventory}>{shop.state.items.map((item, index) => {
-      const Icon = icons[item.itemType];
-      return <button type="button" key={item.id} className={item.id === shop.selectedId ? styles.inventorySelected : ""} disabled={shop.busy} onClick={() => shop.select(item.id)} aria-pressed={item.id === shop.selectedId}><Icon size={18} /><span><strong>{shopCatalog[item.itemType].name} #{index + 1}</strong><small>{item.x === null ? "Im Inventar" : `Platziert: ${item.x}, ${item.z}`}</small></span></button>;
+      const Icon = iconFor(item.itemType);
+      return <button type="button" key={item.id} className={item.id === shop.selectedId ? styles.inventorySelected : ""} disabled={shop.busy} onClick={() => shop.select(item.id)} aria-pressed={item.id === shop.selectedId}><Icon size={18} /><span><strong>{shopCatalog[item.itemType]?.name ?? "Gegenstand"} #{index + 1}</strong><small>{item.x === null ? "Im Inventar" : `Platziert: ${item.x}, ${item.z}`}</small></span></button>;
     })}</div>}
-    {selected && <div className={styles.inventoryActions}><strong>{shopCatalog[selected.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(selected)}><LocateFixed size={15} />{selected.x === null ? "Platzieren" : "Verschieben"}</button>{selected.x !== null && <button type="button" disabled={shop.busy} onClick={() => void shop.save(selected, null)}><Package size={15} />Einlagern</button>}</div>}
+    {selected && <div className={styles.inventoryActions}><strong>{shopCatalog[selected.itemType]?.name ?? "Gegenstand"}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(selected)}><LocateFixed size={15} />{selected.x === null ? "Platzieren" : "Verschieben"}</button>{selected.x !== null && <button type="button" disabled={shop.busy} onClick={() => void shop.save(selected, null)}><Package size={15} />Einlagern</button>}</div>}
   </section>;
 }

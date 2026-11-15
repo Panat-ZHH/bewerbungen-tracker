@@ -14,7 +14,7 @@ test("missing shop schema is distinguished from network and permission errors", 
 test("shop has affordable roads, decoration, a fountain and an amusement park", () => {
   assert.equal(shopCatalog.road.price, 20);
   assert.equal(shopCatalog.amusement_park.price, 500);
-  assert.equal(Object.keys(shopCatalog).length, 6);
+  assert.ok(Object.keys(shopCatalog).length >= 6); // v2 adds cars and scooters, see map-shop-v2.test.mjs
   assert.deepEqual(itemFootprint("bench", 1), { width: 1, depth: 2 });
 });
 

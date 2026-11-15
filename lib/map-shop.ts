@@ -9,14 +9,38 @@ export function isMapShopSetupError(reason: unknown) {
   return ["PGRST202", "PGRST205", "42883", "42P01"].includes(String(reason.code));
 }
 
+export const shopCategories = ["Deko", "Park", "Autos", "E-Roller"] as const;
+export type ShopCategory = typeof shopCategories[number];
+export const shopRarities = { gewoehnlich: "Gewöhnlich", selten: "Selten", episch: "Episch", legendaer: "Legendär" } as const;
+export type ShopRarity = keyof typeof shopRarities;
+
+type CatalogEntry = { name: string; price: number; width: number; depth: number; category: ShopCategory; rarity: ShopRarity };
+
+// Prices and footprints must match public.map_shop_catalog (server is authoritative for price and size).
+// Brand names are plain German text labels only; the 3D models are original stylised designs without logos.
 export const shopCatalog = {
-  road: { name: "Strasse", price: 20, width: 1, depth: 1 },
-  flowers: { name: "Blumenbeet", price: 30, width: 1, depth: 1 },
-  tree: { name: "Zierbaum", price: 40, width: 1, depth: 1 },
-  bench: { name: "Parkbank", price: 50, width: 2, depth: 1 },
-  fountain: { name: "Brunnen", price: 150, width: 2, depth: 2 },
-  amusement_park: { name: "Freizeitpark", price: 500, width: 4, depth: 4 },
-} as const;
+  road: { name: "Strasse", price: 20, width: 1, depth: 1, category: "Deko", rarity: "gewoehnlich" },
+  flowers: { name: "Blumenbeet", price: 30, width: 1, depth: 1, category: "Deko", rarity: "gewoehnlich" },
+  tree: { name: "Zierbaum", price: 40, width: 1, depth: 1, category: "Deko", rarity: "gewoehnlich" },
+  bench: { name: "Parkbank", price: 50, width: 2, depth: 1, category: "Park", rarity: "gewoehnlich" },
+  fountain: { name: "Brunnen", price: 150, width: 2, depth: 2, category: "Park", rarity: "selten" },
+  amusement_park: { name: "Freizeitpark", price: 500, width: 4, depth: 4, category: "Park", rarity: "episch" },
+  scooter_city_mint: { name: "Stadt-Roller Mint", price: 60, width: 1, depth: 1, category: "E-Roller", rarity: "gewoehnlich" },
+  scooter_city_lilac: { name: "Stadt-Roller Flieder", price: 60, width: 1, depth: 1, category: "E-Roller", rarity: "gewoehnlich" },
+  scooter_sport_black: { name: "Sport-Roller Schwarz", price: 120, width: 1, depth: 1, category: "E-Roller", rarity: "gewoehnlich" },
+  scooter_sport_lime: { name: "Sport-Roller Limette", price: 120, width: 1, depth: 1, category: "E-Roller", rarity: "gewoehnlich" },
+  scooter_retro_cream: { name: "Retro-E-Moped Creme", price: 220, width: 1, depth: 1, category: "E-Roller", rarity: "selten" },
+  scooter_retro_sky: { name: "Retro-E-Moped Himmelblau", price: 220, width: 1, depth: 1, category: "E-Roller", rarity: "selten" },
+  scooter_retro_coral: { name: "Retro-E-Moped Koralle", price: 240, width: 1, depth: 1, category: "E-Roller", rarity: "selten" },
+  car_porsche: { name: "Porsche-Sportwagen", price: 400, width: 2, depth: 1, category: "Autos", rarity: "selten" },
+  car_audi_r8: { name: "Audi-R8-Sportwagen", price: 450, width: 2, depth: 1, category: "Autos", rarity: "selten" },
+  car_amg: { name: "Mercedes-AMG-Sportwagen", price: 550, width: 2, depth: 1, category: "Autos", rarity: "selten" },
+  car_mclaren: { name: "McLaren-Sportwagen", price: 900, width: 2, depth: 1, category: "Autos", rarity: "episch" },
+  car_aston_martin: { name: "Aston-Martin-Sportwagen", price: 1100, width: 2, depth: 1, category: "Autos", rarity: "episch" },
+  car_ferrari: { name: "Ferrari-Sportwagen", price: 1600, width: 2, depth: 1, category: "Autos", rarity: "episch" },
+  car_lamborghini: { name: "Lamborghini-Sportwagen", price: 1900, width: 2, depth: 1, category: "Autos", rarity: "legendaer" },
+  car_bugatti: { name: "Bugatti-Hypersportwagen", price: 2800, width: 2, depth: 1, category: "Autos", rarity: "legendaer" },
+} as const satisfies Record<string, CatalogEntry>;
 
 export type ShopItemType = keyof typeof shopCatalog;
 export type MapPosition = { x: number; z: number; rotation: number };
@@ -27,6 +51,40 @@ export type PlaceableItem = OwnedMapItem | LayoutItem;
 export type MapLayout = MapPosition & { id: string };
 export type MapShopState = { balance: number; earned: number; rewardCount: number; items: OwnedMapItem[]; layouts: MapLayout[] };
 export type Placement = { item: PlaceableItem; position: MapPosition };
+
+export const isShopItemType = (value: unknown): value is ShopItemType => typeof value === "string" && Object.prototype.hasOwnProperty.call(shopCatalog, value);
+
+/** Catalogue entries of one category ("Alle" = everything), cheapest first; ties keep catalogue order. */
+export function shopItemsByCategory(category: ShopCategory | "Alle" = "Alle") {
+  return (Object.keys(shopCatalog) as ShopItemType[])
+    .filter((type) => category === "Alle" || shopCatalog[type].category === category)
+    .map((type, index) => ({ type, index }))
+    .sort((first, second) => shopCatalog[first.type].price - shopCatalog[second.type].price || first.index - second.index)
+    .map(({ type }) => ({ type, ...shopCatalog[type] }));
+}
+
+/** True when the server does not know the item type yet (catalogue migration not applied): map_shop_buy raises INVALID_ITEM, a missing FK row gives 23503. */
+export function isUnknownShopItemError(reason: unknown) {
+  if (!reason || typeof reason !== "object") return false;
+  const code = "code" in reason ? String(reason.code) : "";
+  const message = "message" in reason ? String(reason.message) : "";
+  return code === "23503" || message.includes("INVALID_ITEM");
+}
+
+export const SHOP_ITEM_SOON = "Dieses Modell ist bald erhältlich.";
+
+export function shopBuyErrorMessage(reason: unknown) {
+  if (isUnknownShopItemError(reason)) return SHOP_ITEM_SOON;
+  if (reason instanceof Error && reason.message.includes("INSUFFICIENT_POINTS")) return "Du hast nicht genügend Punkte. Bitte aktualisiere den Shop.";
+  return "Der Kauf konnte nicht bestätigt werden. Bitte versuche es erneut.";
+}
+
+/** Item types the server catalogue does not offer yet. Null rows (catalogue not readable) means: assume everything is available. */
+export function unavailableShopItems(rows: { item_type: string }[] | null | undefined): Set<ShopItemType> {
+  if (!rows?.length) return new Set();
+  const known = new Set(rows.map(({ item_type }) => item_type));
+  return new Set((Object.keys(shopCatalog) as ShopItemType[]).filter((type) => !known.has(type)));
+}
 
 export function villageDepth(applications: Application[]) {
   return Math.max(20, Math.ceil(createApplicationMap(applications).height / 48) - 5);
