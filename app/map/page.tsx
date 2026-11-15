@@ -9,6 +9,7 @@ import { MapChip, MapControls, MapDock, MapFullscreen, MapSheet, MapTopBar, MapB
 import { useCameraControls } from "@/components/applications/use-camera-controls";
 import { MapPlacementTools, MapShop, useMapShop } from "@/components/applications/map-shop";
 import { IslandPanel } from "@/components/applications/island-panel";
+import { PalaceCelebration, usePalaceCelebration } from "@/components/applications/palace-celebration";
 import { useIslands } from "@/components/applications/use-islands";
 import { buildingStages } from "@/lib/application-map";
 import type { MapLayout, OwnedMapItem } from "@/lib/map-shop";
@@ -43,6 +44,7 @@ function ApplicationMap() {
   const islands = useIslands(refresh, () => setShopRefresh((current) => current + 1));
   const shop = useMapShop(refresh + shopRefresh, applications, islands.unlocked);
   const balance = shop.state?.balance ?? null;
+  const palace = usePalaceCelebration(applications);
 
   useEffect(() => {
     let active = true;
@@ -96,7 +98,7 @@ function ApplicationMap() {
         busy={loading}
         map={loading && !applications.length ? <div className={styles.loading} role="status">Dein Dorf wird geladen ...</div> : (
           <Suspense fallback={<div className={styles.loading} role="status">Dein Dorf wird aufgebaut ...</div>}>
-            <ApplicationMapWorld applications={applications} visibleIds={visibleIds} selectedId={selectedId} night={night} zoom={camera.zoom} center={camera.center} onZoomChange={camera.setZoom} onCameraApi={camera.onCameraApi} onSelect={(id) => { setShopOpen(false); setSelectedId(id); }} shopItems={shop.state?.items ?? noItems} layouts={shop.state?.layouts ?? noLayouts} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} islandCount={islands.unlocked} islandFocus={islands.focus} drag={{ enabled: shop.state !== null && !shop.busy, move: (id, position) => void shop.move(id, position), reject: shop.reject, nudge: shop.nudge, confirm: () => { if (shop.placement) void shop.save(shop.placement.item, shop.placement.position); }, cancel: shop.cancel, undo: shop.undo }} />
+            <ApplicationMapWorld applications={applications} visibleIds={visibleIds} selectedId={selectedId} night={night} zoom={camera.zoom} center={camera.center} onZoomChange={camera.setZoom} onCameraApi={camera.onCameraApi} onSelect={(id) => { setShopOpen(false); setSelectedId(id); }} shopItems={shop.state?.items ?? noItems} layouts={shop.state?.layouts ?? noLayouts} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} islandCount={islands.unlocked} islandFocus={islands.focus} celebratePalaceId={palace.application?.id ?? null} drag={{ enabled: shop.state !== null && !shop.busy, move: (id, position) => void shop.move(id, position), reject: shop.reject, nudge: shop.nudge, confirm: () => { if (shop.placement) void shop.save(shop.placement.item, shop.placement.position); }, cancel: shop.cancel, undo: shop.undo }} />
           </Suspense>
         )}
       >
@@ -126,6 +128,7 @@ function ApplicationMap() {
             <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Neue Bewerbung" title="Neue Bewerbung"><Plus size={18} aria-hidden /></Link>
           </>}
         />
+        <PalaceCelebration application={palace.application} onDismiss={palace.dismiss} />
         <MapControls camera={camera} night={night} onToggleNight={() => setNight(!night)} onRefresh={() => setRefresh(refresh + 1)} refreshing={loading} />
         <MapDock>
           <MapPlacementTools shop={shop} />

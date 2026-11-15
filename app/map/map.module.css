@@ -118,3 +118,29 @@
   .shopItem { padding-top: 8px; padding-bottom: 8px; }
   .shopItem h3 { font-size: 13px; }
 }
+
+/* === Palace (shop-v2) === */
+/* Celebration card when an accepted application's house turns into a palace. Lives in the map overlay layer. */
+.palaceLive { position: absolute; inset: 0; z-index: 40; display: grid; place-items: end center; padding: 72px 16px 32px; pointer-events: none; }
+/* The card sits low so the new palace (camera glides to it) stays visible above it. */
+@media (max-width: 767px) { .palaceLive { padding-bottom: calc(var(--dock-offset, 96px) + 8px); } }
+.palaceCelebrate { position: relative; overflow: hidden; display: grid; justify-items: center; gap: 6px; width: min(360px, 100%); padding: 22px 18px 18px; text-align: center; border: var(--border-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-lg); color: var(--ink); pointer-events: auto; }
+.palaceCelebrate strong { position: relative; font-family: var(--font-title), var(--font-body), sans-serif; font-size: 22px; font-weight: 800; line-height: 1.15; letter-spacing: -.02em; }
+.palaceCompany { position: relative; font-size: 13px; color: var(--muted); }
+.palaceIcon { position: relative; display: grid; place-items: center; width: 52px; height: 52px; border: var(--border-w) solid var(--outline-fill, var(--outline)); border-radius: var(--radius-full); background: var(--sun); color: var(--on-sun, var(--ink)); box-shadow: var(--shadow-sm); }
+.palaceDismiss { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; margin-top: 8px; padding: 6px 18px; border: var(--border-w) solid var(--outline); border-radius: var(--radius-full); background: var(--sun); color: var(--on-sun, var(--ink)); box-shadow: var(--shadow-sm); font-size: 14px; font-weight: 700; }
+.palaceDismiss:hover { background: var(--surface-2); }
+.palaceDismiss:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
+.palaceConfetti { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.palaceConfetti i { position: absolute; top: 40%; left: 50%; width: 8px; height: 12px; border-radius: 2px; background: var(--sun); opacity: 0; }
+.palaceConfetti i:nth-child(4n + 1) { background: var(--coral); }
+.palaceConfetti i:nth-child(4n + 2) { background: var(--mint); }
+.palaceConfetti i:nth-child(4n + 3) { background: var(--brand); }
+@media (prefers-reduced-motion: no-preference) {
+  .palaceCelebrate { animation: palaceIn 420ms var(--ease) both; }
+  .palaceIcon { animation: palaceCrown 1.5s var(--ease) both; }
+  .palaceConfetti i { animation: palaceConfetti 1.6s var(--ease) both; animation-delay: calc(var(--i) * 22ms); }
+}
+@keyframes palaceIn { from { opacity: 0; transform: translateY(16px) scale(.94); } to { opacity: 1; transform: rotate(-1deg); } }
+@keyframes palaceCrown { 0% { transform: translateY(-18px) rotate(-20deg) scale(.6); } 45% { transform: translateY(2px) rotate(8deg) scale(1.12); } 100% { transform: none; } }
+@keyframes palaceConfetti { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(calc((var(--i) - 11) * 18px), calc(((var(--i) % 5) - 2) * 30px - 60px)) rotate(calc(var(--i) * 70deg)); } }
