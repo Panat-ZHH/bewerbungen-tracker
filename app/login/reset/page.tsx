@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/lib/toast";
+import { parseRecoveryLink } from "@/lib/recovery-link";
 import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -20,11 +21,34 @@ export default function ResetPasswordPage() {
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [tokenHash, setTokenHash] = useState<string | null>(null);
+  const [invalidReason, setInvalidReason] = useState<"used" | "other-browser" | "other">("used");
 
   useEffect(() => {
+    const link = parseRecoveryLink(window.location.search, window.location.hash);
+    if (link.kind === "error") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
+      setInvalidReason(link.code === "otp_expired" || link.code === "access_denied" ? "used" : "other");
+      setReady("invalid");
+      return;
+    }
+    if (link.kind === "token_hash") {
+      // New link format: the token is redeemed with verifyOtp only when the form is submitted, so it works on any
+      // device and mail scanners that open the link don't use it up. Hide it from the address bar / history.
+      setTokenHash(link.tokenHash);
+      window.history.replaceState(null, "", window.location.pathname);
+      setReady("ok");
+      return;
+    }
+    // Old PKCE link (?code=): the client exchanges it on load, which only works in the browser that asked for the reset.
     const { data } = supabase.auth.onAuthStateChange((event) => { if (event === "PASSWORD_RECOVERY") setReady("ok"); });
     // the recovery session may already be established when we get here
-    const timer = window.setTimeout(() => { supabase.auth.getSession().then(({ data: s }) => setReady((state) => (state === "checking" ? (s.session ? "ok" : "invalid") : state))); }, 800);
+    const timer = window.setTimeout(() => {
+      supabase.auth.getSession().then(({ data: s }) => {
+        if (!s.session && link.kind === "code") setInvalidReason("other-browser");
+        setReady((state) => (state === "checking" ? (s.session ? "ok" : "invalid") : state));
+      });
+    }, 800);
     return () => { data.subscription.unsubscribe(); window.clearTimeout(timer); };
   }, []);
 
@@ -35,6 +59,11 @@ export default function ResetPasswordPage() {
     if (password !== confirm) { setError("Die Passwörter stimmen nicht überein."); return; }
     setLoading(true);
     try {
+      if (tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "recovery" });
+        if (verifyError) { setInvalidReason("used"); setReady("invalid"); setLoading(false); return; }
+        setTokenHash(null); // now signed in with a recovery session; a retry only needs updateUser
+      }
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) { setError(authMessage(updateError)); setLoading(false); return; }
       toast({ message: "Dein neues Passwort ist gespeichert." });
@@ -49,7 +78,9 @@ export default function ResetPasswordPage() {
           <div role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Link wird geprüft …</div>
         ) : ready === "invalid" ? (
           <div className="panel space-y-4 p-5 sm:p-7">
-            <StatusMessage tone="warning">Dieser Link ist abgelaufen oder wurde schon benutzt.</StatusMessage>
+            <StatusMessage tone="warning">{invalidReason === "other-browser"
+              ? "Dieser Link funktioniert nur im Browser, in dem du ihn angefordert hast. Fordere auf der Anmeldeseite einfach einen neuen an."
+              : "Dieser Link ist abgelaufen oder wurde schon benutzt. Fordere auf der Anmeldeseite einfach einen neuen an."}</StatusMessage>
             <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]">Zurück zur Anmeldung</Link>
           </div>
         ) : (
