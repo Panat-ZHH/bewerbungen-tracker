@@ -1,0 +1,476 @@
+{
+  "measurements": {
+    "shop-375-autos": {
+      "panel": {
+        "top": 470,
+        "height": 886,
+        "width": 321
+      },
+      "listVisibleHeight": 714,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-375-scooter": {
+      "panel": {
+        "top": 470,
+        "height": 803,
+        "width": 321
+      },
+      "listVisibleHeight": 631,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-375-dark-autos": {
+      "panel": {
+        "top": 470,
+        "height": 886,
+        "width": 321
+      },
+      "listVisibleHeight": 714,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-375-dark-scooter": {
+      "panel": {
+        "top": 470,
+        "height": 803,
+        "width": 321
+      },
+      "listVisibleHeight": 631,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-autos": {
+      "panel": {
+        "top": 639,
+        "height": 851,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-scooter": {
+      "panel": {
+        "top": 639,
+        "height": 766,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-dark-autos": {
+      "panel": {
+        "top": 639,
+        "height": 851,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-dark-scooter": {
+      "panel": {
+        "top": 639,
+        "height": 766,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-autos": {
+      "panel": {
+        "top": 516,
+        "height": 851,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-scooter": {
+      "panel": {
+        "top": 516,
+        "height": 766,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-dark-autos": {
+      "panel": {
+        "top": 516,
+        "height": 851,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-dark-scooter": {
+      "panel": {
+        "top": 516,
+        "height": 766,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [
+        {
+          "label": "Alle\n21",
+          "w": 101,
+          "h": 40
+        },
+        {
+          "label": "Deko\n3",
+          "w": 104,
+          "h": 40
+        },
+        {
+          "label": "Park\n3",
+          "w": 100,
+          "h": 40
+        },
+        {
+          "label": "Autos\n8",
+          "w": 109,
+          "h": 40
+        },
+        {
+          "label": "E-Roller\n7",
+          "w": 121,
+          "h": 40
+        }
+      ],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "palace-768-celebration-button": {
+      "w": 148,
+      "h": 47
+    },
+    "palace-1280-dark-celebration-button": {
+      "w": 148,
+      "h": 47
+    },
+    "palace-375-dark-celebration-button": {
+      "w": 148,
+      "h": 47
+    }
+  },
+  "errors": {
+    "shop-375": [],
+    "shop-375-dark": [],
+    "shop-768": [],
+    "shop-768-dark": [],
+    "shop-1280": [],
+    "shop-1280-dark": [],
+    "placed-375": [],
+    "placed-375-dark": [],
+    "placed-768": [],
+    "placed-1280": [],
+    "placed-1280-dark": [],
+    "palace-768": [],
+    "palace-1280-dark": [],
+    "palace-375-dark": []
+  }
+}
