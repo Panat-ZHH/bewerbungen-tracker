@@ -1,0 +1,74 @@
+{
+  "sample": "06-elektro-stark-ohne-inserat",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "strong",
+    "score": "75-90"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 89,
+  "issues": [],
+  "result": {
+    "score": 89,
+    "summary": "Dein Brief ist stark. Du beschreibst deine Schnupperwoche konkret und zeigst echtes Interesse am Beruf. Mit wenig Aufwand wird er noch besser.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 18,
+        "comment": "Der Brief hat Absender, Datum, Betreff, Anrede, drei Hauptabsätze und einen Schluss; die Länge passt gut zu einer Seite."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 15,
+        "comment": "Der Text ist klar und höflich, viele Sätze beginnen aber mit «Ich» und wirken dadurch etwas gleichförmig."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 18,
+        "comment": "Du nennst mehrere konkrete Erlebnisse wie Schnupperwoche, Velo und Lampe, die zum Elektroberuf passen."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 18,
+        "comment": "Du gehst auf Schnuppererfahrung, Aufgaben im Betrieb und die Arbeitszeiten auf der Baustelle ein. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 20,
+        "comment": "Ich finde keine Fehler: Kommas, Grossschreibung und Schreibweise von «weiss» und «Grüsse» stimmen."
+      }
+    ],
+    "good": [
+      "Du beschreibst deine Schnupperwoche konkret: «Auf der Baustelle in Buochs durfte ich mit Herrn Odermatt Leerrohre verlegen und Steckdosen anschliessen.»",
+      "Du zeigst echtes Interesse mit eigenen Beispielen: «Mit meinem Vater habe ich letzten Sommer ein Velo komplett zerlegt und wieder zusammengebaut.»",
+      "Du sprichst die Schwierigkeiten ehrlich an: «Ich weiss, dass man auf der Baustelle früh aufstehen muss und auch bei Kälte draussen arbeitet.»",
+      "Der Brief hat alle wichtigen Teile: Absender, Datum, Betreff, Anrede, Hauptteil und Gruss in klaren Absätzen."
+    ],
+    "improve": [
+      {
+        "tipp": "Fang nicht mehrere Sätze mit «Ich» an. Formuliere den Satz über die Hände um, damit der Brief lebendiger klingt.",
+        "beispiel": {
+          "vorher": "Ich arbeite gerne mit den Händen.",
+          "nachher": "Am liebsten arbeite ich mit den Händen.",
+          "warum": "Der Satz beginnt anders und klingt natürlicher."
+        }
+      },
+      {
+        "tipp": "Verbinde deine Stärke in Mathematik mit dem Beruf. So sieht die Firma, warum dir das hilft.",
+        "beispiel": {
+          "vorher": "In der Schule ist Mathematik mein bestes Fach",
+          "nachher": "Mathematik ist mein bestes Schulfach, und das hilft mir beim Rechnen mit Strom und Spannung.",
+          "warum": "Der Bezug zum Elektroberuf zeigt, dass du deine Stärke gezielt einsetzen willst."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Lies deinen Brief laut vor, ändere den Satz über die Hände und schick ihn dann ab."
+  }
+}

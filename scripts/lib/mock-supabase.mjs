@@ -9,7 +9,7 @@ const day = (offset = 0) => new Date(Date.now() + offset * 864e5).toISOString().
 
 export function makeUser(role = "student") {
   const teacher = role === "teacher";
-  return { id: teacher ? "t1" : "u1", aud: "authenticated", role: "authenticated", email: teacher ? "lehrer@beispiel.ch" : "lena@beispiel.ch", user_metadata: { role, full_name: teacher ? "Herr Keller" : "Lena Müller" }, app_metadata: {}, created_at: "2026-01-01T00:00:00Z" };
+  return { id: teacher ? "t1" : "u1", aud: "authenticated", role: "authenticated", email: teacher ? "lehrer@beispiel.ch" : "lena@beispiel.ch", user_metadata: { role, full_name: teacher ? "Herr Keller" : "Lena Müller", ...(teacher ? {} : { student_onboarded: true, onboarding_tour_done: true }) }, app_metadata: {}, created_at: "2026-01-01T00:00:00Z" };
 }
 export function makeSession(user) { return { access_token: "a.b.c", refresh_token: "r", token_type: "bearer", expires_in: 99999, expires_at: Math.floor(Date.now() / 1000) + 99999, user }; }
 

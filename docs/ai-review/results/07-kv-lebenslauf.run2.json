@@ -1,0 +1,81 @@
+{
+  "sample": "07-kv-lebenslauf",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "cv",
+    "score": "10-35"
+  },
+  "dokumentart": "lebenslauf",
+  "rawScore": 25,
+  "issues": [],
+  "result": {
+    "score": 25,
+    "summary": "Das ist ein Lebenslauf, und für ihn gibt es weniger Punkte, weil der Brief fehlt. Deine zwei Schnupperlehren, auch bei der Gemeindeverwaltung Seedorf, sind eine gute Grundlage. Jetzt fehlt nur noch der Brief, in dem du erklärst, warum du Kauffrau werden willst.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 4,
+        "comment": "Der Lebenslauf hat klare Abschnitte, aber kein Bewerbungsschreiben. Anrede, Betreff und Gruss fehlen; die Punkte gelten für einen Brief."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 4,
+        "comment": "Die Angaben sind klar, aber stichwortartig, ohne ganze Sätze. Die Punkte gelten für einen Brief."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 5,
+        "comment": "Die zwei Schnupperlehren sind konkrete Erlebnisse. Es steht aber nirgends, warum du Kauffrau werden willst. Die Punkte gelten für einen Brief."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 6,
+        "comment": "Beruf und Gemeindeverwaltung Seedorf stehen klar drin, mit Schnupperlehre dort. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 6,
+        "comment": "Ich habe keine Fehler gefunden. Die Punkte gelten für einen Brief, den es hier noch nicht gibt."
+      }
+    ],
+    "good": [
+      "Die Überschriften «Schulbildung», «Schnupperlehren» und «Sprachen» machen den Lebenslauf übersichtlich.",
+      "Du hast zwei Schnupperlehren gemacht, eine davon bei der Gemeindeverwaltung Seedorf. Das zeigt echtes Interesse am Beruf.",
+      "Word, Excel und PowerPoint sind im kaufmännischen Bereich nützlich, und du nennst sie klar."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreibe zusätzlich ein Bewerbungsschreiben mit Anrede, Einleitung, Hauptteil und Gruss. Der Lebenslauf allein reicht nicht.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Sehr geehrte Damen und Herren Im März 2026 habe ich drei Tage in der Gemeindeverwaltung Seedorf geschnuppert. Dabei habe ich [Aufgabe, z. B. Dokumente abgelegt] kennengelernt.",
+          "warum": "Die Firma sieht so, dass du dich bewusst für sie interessierst."
+        }
+      },
+      {
+        "tipp": "Schreibe im Brief, warum du Kauffrau werden willst. Nenne dafür ein konkretes Erlebnis.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Ich möchte Kauffrau werden, weil mir die Arbeit mit Zahlen und Menschen gefällt. Beim Volleyball im VBC Aarberg arbeite ich im Team, das möchte ich auch im Büro tun.",
+          "warum": "Ein Grund mit einem echten Beispiel zeigt, warum der Beruf zu dir passt."
+        }
+      },
+      {
+        "tipp": "Schreibe bei jeder Schnupperlehre, was du dort gemacht hast. Das macht die Angaben lebendiger.",
+        "beispiel": {
+          "vorher": "März 2026: Kauffrau, Gemeindeverwaltung Seedorf (3 Tage)",
+          "nachher": "März 2026: Schnupperlehre als Kauffrau bei der Gemeindeverwaltung Seedorf (3 Tage), dabei [Aufgabe].",
+          "warum": "Die Angabe zeigt, was du kennengelernt hast, nicht nur, dass du dort warst."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Schreibe heute einen kurzen Brief mit Anrede und drei Absätzen, zuerst zur Schnupperlehre, dann zu deinem Grund."
+  }
+}

@@ -89,8 +89,8 @@ async function flow(tag, vp) {
   await tp.goto(BASE + "/teacher", { waitUntil: "domcontentloaded" });
   await tp.waitForURL("**/teacher/onboarding**", { timeout: 90000 }).catch(() => {});
   check(tp.url().includes("/teacher/onboarding"), "first teacher visit is routed to onboarding");
-  await tp.getByRole("heading", { name: /Willkommen/ }).waitFor(); await shot(tp, "01-onboarding-role");
-  await tp.getByRole("button", { name: "Weiter" }).click();
+  // The role is chosen at sign-up / in the role picker, so the teacher onboarding starts directly with the display name.
+  await tp.getByRole("heading", { name: /nennen/ }).waitFor();
   await tp.getByLabel("Anzeigename").fill("Frau Keller"); await shot(tp, "02-onboarding-name");
   await tp.getByRole("button", { name: /Weiter/ }).click();
   await tp.getByLabel("Klassenname").fill("Informatik 4a"); await shot(tp, "03-onboarding-class");

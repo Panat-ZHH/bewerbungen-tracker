@@ -1,0 +1,89 @@
+{
+  "sample": "11-baecker-chatsprache-weak",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "weak",
+    "score": "15-45"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 44,
+  "issues": [],
+  "result": {
+    "score": 44,
+    "summary": "Du zeigst, dass du Bäcker werden willst, und hast ein echtes Erlebnis mit dem Zopf. Der Brief braucht noch eine richtige Form, den richtigen Firmennamen und weniger Chat-Wörter. Das schaffst du gut.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 7,
+        "comment": "Der Brief hat nur «Hallo» und «lg Timo». Betreff, Absender, Datum und Firmenanrede fehlen. Der Hauptteil ist unter 80 Wörtern."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 6,
+        "comment": "Chat-Wörter wie «haha», «lg», «hab» und «voll fein» passen nicht in eine Bewerbung. Der Satz «Ich bin nett und hilfsbereit» ist sehr kurz."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 11,
+        "comment": "Du nennst das Zopf-Backen mit deiner Mutter als echtes Erlebnis. Die anderen Gründe sind allgemein, zum Beispiel «mega cool»."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 5,
+        "comment": "Der Brief nennt «Müller AG», die Stelle ist aber bei der Bäckerei Moser. Der Beruf ist genannt, aber nicht ganz genau. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 15,
+        "comment": "Ich habe 3 kleine Fehler gefunden: ein kleines «ich» am Satzanfang und zwei fehlende Kommas vor «weil» und «wenn»."
+      }
+    ],
+    "good": [
+      "Du schreibst klar, dass du Bäcker werden willst: «ich will Bäcker werden».",
+      "Du erzählst ein echtes Erlebnis: «Ich hab schon mal Zopf gemacht mit meiner Mutter».",
+      "Du schreibst, dass du früh aufstehen kannst. Das passt gut zum Bäckerberuf."
+    ],
+    "improve": [
+      {
+        "tipp": "Der Firmenname stimmt nicht. Im Text steht «Müller AG», die Stelle ist aber bei der Bäckerei Moser. Schreib den richtigen Namen und den Beruf genau hin.",
+        "beispiel": {
+          "vorher": "Ich möchte bei der Firma Müller AG eine Lehre machen weil das nah bei mir ist.",
+          "nachher": "Ich möchte bei der Bäckerei Moser eine Lehre als Bäcker-Konditor-Confiseur machen, weil ich gern backe.",
+          "warum": "Die Firma und der Beruf stimmen, und du zeigst einen echten Grund."
+        }
+      },
+      {
+        "tipp": "Der Brief hat noch keine richtige Anrede. Schreib eine höfliche Anrede und einen Gruss mit deinem vollen Namen. Ergänze auch Betreff, Absender und Datum.",
+        "beispiel": {
+          "vorher": "Hallo",
+          "nachher": "Sehr geehrte Damen und Herren",
+          "warum": "Die Anrede ist höflicher und passt zu einer Bewerbung."
+        }
+      },
+      {
+        "tipp": "Erzähl mehr über das Zopf-Backen. Was hat dir daran gefallen? So merkt die Firma, dass du es wirklich meinst.",
+        "beispiel": {
+          "vorher": "Ich hab schon mal Zopf gemacht mit meiner Mutter und der war voll fein.",
+          "nachher": "Zusammen mit meiner Mutter habe ich schon einen Zopf gebacken. Mir hat es so gut gefallen, dass ich Bäcker werden möchte.",
+          "warum": "Ein Erlebnis mit einem Grund zeigt echtes Interesse."
+        }
+      },
+      {
+        "tipp": "Schreib in ganzen Sätzen, ohne Chat-Wörter wie «haha», «lg» oder «hab».",
+        "beispiel": {
+          "vorher": "esse auch gern Kuchen haha.",
+          "nachher": "Ich esse auch gern Kuchen.",
+          "warum": "Der Satz klingt ruhiger und passt besser zu einer Bewerbung."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Schreib den Brief neu mit der richtigen Firma, einer Anrede und einem Gruss mit deinem vollen Namen."
+  }
+}

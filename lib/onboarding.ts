@@ -13,6 +13,11 @@ export function readPrefill(): SearchPrefill | null {
   try { return parsePrefill(window.localStorage.getItem(PREFILL_KEY)); } catch { return null; }
 }
 
+/**
+ * Saves the profile answers (RPC student_onboarding_save). `complete` marks the profile questions as answered; the auth
+ * flag that ends the first-login flow is set by the tour (lib/onboarding-tour.ts completeTour), not here, so an
+ * interrupted tour resumes after the profile step.
+ */
 export async function saveOnboarding(a: OnboardingAnswers, complete: boolean): Promise<void> {
   const { error } = await supabase.rpc("student_onboarding_save", {
     p_first_name: a.firstName, p_last_name: a.lastName, p_school_level: a.schoolLevel, p_professions: a.professions,
@@ -21,11 +26,7 @@ export async function saveOnboarding(a: OnboardingAnswers, complete: boolean): P
   if (error) throw error;
   clearRoleCache();
   storePrefill(searchPrefill(a));
-  if (complete) await supabase.auth.updateUser({ data: { student_onboarded: true } });
 }
-
-/** "Später": nothing is stored except the flag, so the user is not asked again at every login. */
-export async function skipOnboarding(): Promise<void> { await supabase.auth.updateUser({ data: { student_onboarded: true } }); }
 
 type Row = { first_name: string | null; last_name: string | null; school_level: string | null; desired_professions: string[] | null; canton: string | null; location: string | null; desired_start_year: number | null; onboarding_completed_at: string | null };
 /** Existing answers (RLS: own row only). `completed` is true when onboarding was finished on any device. */

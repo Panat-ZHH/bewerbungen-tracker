@@ -1,0 +1,82 @@
+{
+  "sample": "07-kv-lebenslauf",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "cv",
+    "score": "10-35"
+  },
+  "dokumentart": "lebenslauf",
+  "rawScore": 25,
+  "issues": [],
+  "result": {
+    "score": 25,
+    "summary": "Das ist ein Lebenslauf. Der Check ist für dein Bewerbungsschreiben gedacht, darum sind die Punkte hier tief. Deine Schnupperlehre bei der Gemeindeverwaltung Seedorf ist eine gute Grundlage.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 5,
+        "comment": "Der Lebenslauf ist klar gegliedert, aber ein Brief mit Anrede, Einleitung und Schluss fehlt."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 4,
+        "comment": "Die Angaben sind klar und höflich, bestehen aber nur aus Stichworten; ganze Sätze fehlen."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 4,
+        "comment": "Die zwei Schnupperlehren zeigen Interesse, aber ein Grund, warum du Kauffrau werden willst, steht nicht im Text."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 6,
+        "comment": "Die Schnupperlehre bei der Gemeindeverwaltung Seedorf im Beruf Kauffrau passt gut; im Brief solltest du das ausführen. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 6,
+        "comment": "Ich finde keine Rechtschreibfehler, also null Fehler im Text."
+      }
+    ],
+    "good": [
+      "Deine zwei Schnupperlehren stehen klar da: Raiffeisenbank Aarberg (2 Tage) und Gemeindeverwaltung Seedorf (3 Tage).",
+      "Der Lebenslauf ist übersichtlich, mit Titeln wie «Schulbildung», «Schnupperlehren» und «Sprachen».",
+      "Bei «Informatik» nennst du Word, Excel und PowerPoint. Das passt gut zur Arbeit als Kauffrau.",
+      "Bei «Hobbys» steht Volleyball im VBC Aarberg. Das zeigt, dass du gern im Team arbeitest."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreibe ein Motivationsschreiben. Der Lebenslauf allein reicht nicht; im Brief erklärst du, warum du dich bewirbst.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Sehr geehrte Damen und Herren Im März 2026 habe ich bei der Gemeindeverwaltung Seedorf drei Tage geschnuppert. Dabei habe ich [Aufgabe aus der Schnupperlehre] kennengelernt. Deshalb möchte ich gern eine Lehre als Kauffrau bei Ihnen machen.",
+          "warum": "So sieht die Firma, dass du die Schnupperlehre erlebt hast und genau diese Lehre willst."
+        }
+      },
+      {
+        "tipp": "Erkläre im Brief, warum du Kauffrau werden willst. Nenne einen Grund aus deiner Schnupperlehre.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Mir gefällt am Beruf Kauffrau, dass ich [was dir gefallen hat, z. B. mit Zahlen oder Dokumenten arbeiten] kann.",
+          "warum": "Ein konkreter Grund zeigt, dass du dich wirklich für den Beruf interessierst."
+        }
+      },
+      {
+        "tipp": "Zeige bei Volleyball, was du dort gelernt hast. Ein kurzes Erlebnis wirkt stärker als ein Wort.",
+        "beispiel": {
+          "vorher": "Volleyball im VBC Aarberg",
+          "nachher": "Beim Volleyball im VBC Aarberg habe ich gelernt, [was du gelernt hast, z. B. Verantwortung im Team zu übernehmen].",
+          "warum": "Ein konkretes Beispiel zeigt, was du kannst."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Schreibe jetzt ein kurzes Motivationsschreiben an die Gemeindeverwaltung Seedorf und nutze deine Schnupperlehre als Beispiel."
+  }
+}

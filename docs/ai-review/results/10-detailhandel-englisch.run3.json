@@ -1,0 +1,82 @@
+{
+  "sample": "10-detailhandel-englisch",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "other_language",
+    "score": "35-62"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 52,
+  "issues": [],
+  "result": {
+    "score": 52,
+    "summary": "Du zeigst echtes Interesse an Elektronik und am Kontakt mit Menschen, und deine Beispiele aus dem Alltag sind stark. Der Brief ist auf Englisch geschrieben; übersetzt ins Deutsche wird er für eine Schweizer Firma viel passender.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 13,
+        "comment": "Absender, Datum, Betreff, Anrede, vier klare Absätze und Gruss sind da; der Hauptteil ist mit rund 100 Wörtern noch kurz."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 5,
+        "comment": "Der Brief ist auf Englisch. Die Sätze sind einfach und klar, beginnen aber oft mit «I»."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 16,
+        "comment": "Du nennst Elektronik und Kundenkontakt und belegst beides mit Beispielen: Handy-Hilfe, Videoanrufe, Flohmarkt."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 8,
+        "comment": "Beruf und Firma sind genannt, der Brief bleibt aber eher allgemein. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 10,
+        "comment": "Ich finde 1 Fehler: «on a flea market» heisst «at a flea market». Da der Text auf Englisch ist, zählt die deutsche Rechtschreibung hier kaum."
+      }
+    ],
+    "good": [
+      "Du nennst konkrete Erlebnisse: Du hilfst Nachbarn bei Handy-Problemen und hast deiner Grossmutter Videoanrufe erklärt.",
+      "Du schreibst, dass du gern mit Kunden sprichst, und erzählst vom Verkauf auf dem Flohmarkt in Oerlikon.",
+      "Der Brief hat alle wichtigen Teile: Absender, Datum, Betreff, Anrede, vier kurze Absätze und Gruss.",
+      "Du sagst am Schluss klar, dass du gern eine Schnupperlehre machen möchtest."
+    ],
+    "improve": [
+      {
+        "tipp": "Schreib den ganzen Brief auf Deutsch. Firmen in der Deutschschweiz erwarten eine Bewerbung in deiner Sprache.",
+        "beispiel": {
+          "vorher": "My name is Daniel and I am 14 years old.",
+          "nachher": "Ich heisse Daniel und bin 14 Jahre alt.",
+          "warum": "So kann die Firma deinen Brief direkt lesen und versteht dich besser."
+        }
+      },
+      {
+        "tipp": "Erkläre genauer, warum dich Elektronik und der Kundenkontakt interessieren.",
+        "beispiel": {
+          "vorher": "I would like to apply for an apprenticeship at TechWorld because I love electronics and I like to talk to people.",
+          "nachher": "Ich möchte bei TechWorld eine Lehre als Detailhandelsfachmann machen, weil mich Elektronik interessiert und ich gern mit Menschen spreche.",
+          "warum": "Der Satz nennt den Beruf, die Firma und deinen Grund in einem Satz."
+        }
+      },
+      {
+        "tipp": "Schreib die Anrede und den Gruss auf Deutsch.",
+        "beispiel": {
+          "vorher": "Dear Mr. Brunner",
+          "nachher": "Sehr geehrter Herr Brunner",
+          "warum": "Das ist die übliche Anrede in einer Bewerbung in der Schweiz."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Übersetze den Brief ins Deutsche und schreib die Anrede als «Sehr geehrter Herr Brunner»."
+  }
+}

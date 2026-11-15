@@ -1,0 +1,90 @@
+{
+  "sample": "10-detailhandel-englisch",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "other_language",
+    "score": "35-62"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 56,
+  "issues": [],
+  "result": {
+    "score": 56,
+    "summary": "Du hast einen freundlichen, klaren Brief geschrieben. Du erzählst von echten Erlebnissen, zum Beispiel vom Flohmarkt in Oerlikon. Der wichtigste Schritt: Schreib die Bewerbung auf Deutsch.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 15,
+        "comment": "Der Brief hat Absender, Datum, Betreff, Anrede, Hauptteil und Gruss. Der Hauptteil ist mit rund 110 Wörtern noch kurz."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 5,
+        "comment": "Der Text ist auf Englisch, das gibt Abzug. Viele Sätze beginnen mit «I», zum Beispiel «I love», «I like», «I am»."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 16,
+        "comment": "Du nennst eigene Gründe und konkrete Erlebnisse: Handy-Hilfe bei Nachbarn und der Flohmarkt in Oerlikon."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 10,
+        "comment": "Beruf und Firma sind genannt, und du schreibst, dass du Elektronik liebst. Der Bezug zum Verkauf könnte klarer sein. Mit einem Stelleninserat kann ich dir genauere Tipps geben."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 10,
+        "comment": "Ich finde 0 Fehler. Weil der Text auf Englisch ist, kann ich die deutsche Rechtschreibung nicht prüfen, darum höchstens 10."
+      }
+    ],
+    "good": [
+      "Du erzählst von echten Erlebnissen: Du hilfst deinen Eltern und Nachbarn mit dem Handy und hast alte Spiele auf dem Flohmarkt verkauft.",
+      "Der Satz «I liked talking to the customers» zeigt, dass dir Kundengespräche Freude machen. Das passt gut zum Beruf.",
+      "Der Brief hat Absender, Datum, Betreff, Anrede und Gruss an der richtigen Stelle.",
+      "Du bittest höflich um eine Schnupperlehre: «I would be very happy to come for a Schnupperlehre.»"
+    ],
+    "improve": [
+      {
+        "tipp": "Schreibe die ganze Bewerbung auf Deutsch. In der Deutschschweiz erwartet man das. Der Brief ist jetzt auf Englisch.",
+        "beispiel": {
+          "vorher": "My German is getting better every week and I take extra lessons twice a week.",
+          "nachher": "Mein Deutsch wird jede Woche besser. Zweimal pro Woche besuche ich zusätzlichen Unterricht.",
+          "warum": "So zeigst du auf Deutsch, dass du die Sprache lernst und dranbleibst."
+        }
+      },
+      {
+        "tipp": "Schreibe Betreff, Anrede und Gruss auf Deutsch, zum Beispiel «Mit freundlichen Grüssen» am Schluss.",
+        "beispiel": {
+          "vorher": "Dear Mr. Brunner",
+          "nachher": "Sehr geehrter Herr Brunner",
+          "warum": "So spricht man Herrn Brunner im Brief höflich an."
+        }
+      },
+      {
+        "tipp": "Erkläre genauer, warum du genau bei TechWorld arbeiten möchtest.",
+        "beispiel": {
+          "vorher": "I would like to apply for an apprenticeship at TechWorld because I love electronics",
+          "nachher": "Ich möchte bei TechWorld eine Lehre machen, weil ich mich sehr für Elektronik interessiere und gern mit Leuten spreche.",
+          "warum": "Ein Grund, der zu genau dieser Firma passt, macht den Brief persönlicher."
+        }
+      },
+      {
+        "tipp": "Verbinde deine Verkaufserfahrung direkt mit dem Beruf. Sag, was du dabei gelernt hast.",
+        "beispiel": {
+          "vorher": "I also sold old games on a flea market in Oerlikon and I liked talking to the customers.",
+          "nachher": "Auf dem Flohmarkt in Oerlikon habe ich alte Spiele verkauft. Mir hat es Spass gemacht, mit den Kunden zu sprechen.",
+          "warum": "Der Satz zeigt, dass du gern mit Kundinnen und Kunden redest. Das passt zum Verkauf."
+        }
+      }
+    ],
+    "company": [],
+    "nextStep": "Schreibe den Brief auf Deutsch neu und baue die Sätze aus den Tipps ein."
+  }
+}

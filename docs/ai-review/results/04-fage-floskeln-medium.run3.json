@@ -1,0 +1,107 @@
+{
+  "sample": "04-fage-floskeln-medium",
+  "model": "claude-haiku-5-5",
+  "promptVersion": "2026-11-12.v7",
+  "expected": {
+    "quality": "medium",
+    "score": "60-76"
+  },
+  "dokumentart": "bewerbung",
+  "rawScore": 76,
+  "issues": [],
+  "result": {
+    "score": 76,
+    "summary": "Dein Brief ist vollständig und klar aufgebaut. Besonders stark ist das Erlebnis aus der Schnupperlehre mit Frau Huber.",
+    "breakdown": [
+      {
+        "key": "aufbau",
+        "label": "Aufbau",
+        "score": 14,
+        "comment": "Alle Teile sind da: Absender, Datum, Betreff, Anrede, Schluss. Der Hauptteil ist mit etwa 130 Wörtern eher kurz."
+      },
+      {
+        "key": "sprache",
+        "label": "Sprache",
+        "score": 11,
+        "comment": "Verständlich und höflich. Die Wortliste «hilfsbereit, freundlich, teamfähig und belastbar» und «Hiermit bewerbe ich mich» klingen etwas allgemein."
+      },
+      {
+        "key": "motivation",
+        "label": "Motivation",
+        "score": 15,
+        "comment": "Du nennst eigene Gründe mit Erlebnissen: Memory mit Frau Huber, der Blutdruck und deine Grossmutter."
+      },
+      {
+        "key": "passung",
+        "label": "Passung zur Firma",
+        "score": 16,
+        "comment": "Du gehst auf Schnupperlehre, Sekundarschule, Blutdruck und Aktivitäten ein. Körperpflege, Essen und Einfühlungsvermögen fehlen noch."
+      },
+      {
+        "key": "rechtschreibung",
+        "label": "Rechtschreibung",
+        "score": 20,
+        "comment": "Ich finde keine Rechtschreibfehler. Der Text ist sauber geschrieben."
+      }
+    ],
+    "good": [
+      "Der Brief hat alle wichtigen Teile: Absender, Datum, Betreff, Anrede und Schluss.",
+      "Du erzählst von deiner Schnupperlehre konkret: «Ich durfte mit Frau Huber Memory spielen».",
+      "Das Beispiel mit deiner Grossmutter zeigt, dass du im Alltag gern hilfst.",
+      "Du nennst Dinge, die im Inserat stehen: Schnupperlehre, Sekundarschule und den Blutdruck."
+    ],
+    "improve": [
+      {
+        "tipp": "Belege deine Eigenschaften mit einem Beispiel. Ein Wort allein überzeugt weniger.",
+        "beispiel": {
+          "vorher": "Ich bin hilfsbereit, freundlich, teamfähig und belastbar.",
+          "nachher": "Ich bin hilfsbereit. Zu Hause helfe ich meiner Grossmutter oft beim Einkaufen und Kochen.",
+          "warum": "Ein konkretes Beispiel zeigt die Eigenschaft besser als eine Liste von Wörtern."
+        }
+      },
+      {
+        "tipp": "Nenne die Menschen, mit denen du arbeiten willst. Das passt zum Inserat.",
+        "beispiel": {
+          "vorher": "Ich möchte Fachfrau Gesundheit werden, weil ich gerne Menschen helfe.",
+          "nachher": "Ich möchte Fachfrau Gesundheit werden, weil ich gerne älteren Menschen helfe.",
+          "warum": "Die Firma sieht sofort, dass du den Beruf und die Bewohnerinnen und Bewohner kennst."
+        }
+      },
+      {
+        "tipp": "Schreibe genauer, was du beim Blutdruckmessen gesehen oder selbst gemacht hast.",
+        "beispiel": {
+          "vorher": "Ich habe auch gesehen, wie man den Blutdruck misst.",
+          "nachher": "Ich habe auch gesehen, wie man den Blutdruck misst. [Hast du selbst etwas davon gemacht? Dann schreibe es hier.]",
+          "warum": "Konkrete Details zeigen, dass du den Tag wirklich erlebt hast."
+        }
+      },
+      {
+        "tipp": "Schreibe kürzer und direkter. «Hiermit» klingt steif.",
+        "beispiel": {
+          "vorher": "Hiermit bewerbe ich mich für die Lehrstelle als Fachfrau Gesundheit EFZ ab August 2027.",
+          "nachher": "Ich bewerbe mich für die Lehrstelle als Fachfrau Gesundheit EFZ ab August 2027.",
+          "warum": "Der Satz ist einfacher und klingt natürlicher."
+        }
+      }
+    ],
+    "company": [
+      {
+        "tipp": "Schreibe, was du bei der Körperpflege oder beim Essen gesehen hast. Das steht im Inserat, fehlt aber in deinem Brief.",
+        "beispiel": {
+          "vorher": "fehlt",
+          "nachher": "Im September habe ich gesehen, wie Sie den Bewohnerinnen und Bewohnern beim [Essen oder bei der Körperpflege] helfen.",
+          "warum": "So zeigst du, dass du das Inserat gelesen hast und die Aufgaben kennst."
+        }
+      },
+      {
+        "tipp": "Zeige, dass dir der Umgang mit älteren Menschen Freude macht. Das verlangt das Inserat.",
+        "beispiel": {
+          "vorher": "Am besten hat mir gefallen, dass ich mit Frau Huber Memory spielen durfte und sie mir von früher erzählt hat.",
+          "nachher": "Am besten hat mir gefallen, dass ich mit Frau Huber Memory spielen durfte und sie mir von früher erzählt hat. Dabei habe ich gemerkt, dass ich gern mit älteren Menschen zusammen bin.",
+          "warum": "Der Satz greift die Anforderung «Freude am Umgang mit älteren Menschen» direkt auf."
+        }
+      }
+    ],
+    "nextStep": "Ergänze einen Satz zur Körperpflege oder zum Essen und lies den Brief danach laut vor."
+  }
+}
