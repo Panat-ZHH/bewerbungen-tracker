@@ -16,6 +16,8 @@ import { islandConfig } from "@/lib/islands";
 import { createMapVillager, villageWalkingRoutes } from "@/lib/map-villager";
 import { isPalace } from "@/lib/map-palace";
 import { buildPalace } from "@/lib/map-palace-model";
+import { isRuin } from "@/lib/map-ruin";
+import { buildRuin } from "@/lib/map-ruin-model";
 import type { Application } from "@/types";
 import styles from "@/app/map/map.module.css";
 
@@ -297,6 +299,13 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     if (isPalace(application)) {
       // Accepted application (Zusage / Vertrag): the house becomes a palace. Purely derived from the status.
       animations.push(...buildPalace({ box, cylinder, mesh, windowMaterial }, group, { selected, riseStart: motion ? palaceRises.get(application.id) ?? null : null }));
+      anchors.set(application.id, new THREE.Vector3(x, 0.25, z + 2.6));
+      return;
+    }
+    if (isRuin(application)) {
+      // Rejected application (Absage): the house burnt down – charred ruin, small fire, rising smoke. Purely derived from the status.
+      const seed = application.id.split("").reduce((total, character) => total + character.charCodeAt(0), 0) % 7;
+      animations.push(...buildRuin({ box, cylinder, mesh, windowMaterial }, group, { selected, seed }));
       anchors.set(application.id, new THREE.Vector3(x, 0.25, z + 2.6));
       return;
     }
