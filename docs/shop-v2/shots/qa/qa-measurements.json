@@ -1,0 +1,164 @@
+{
+  "measurements": {
+    "shop-375-autos": {
+      "panel": {
+        "top": 470,
+        "height": 890,
+        "width": 321
+      },
+      "listVisibleHeight": 714,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-375-scooter": {
+      "panel": {
+        "top": 470,
+        "height": 807,
+        "width": 321
+      },
+      "listVisibleHeight": 631,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-375-dark-autos": {
+      "panel": {
+        "top": 470,
+        "height": 890,
+        "width": 321
+      },
+      "listVisibleHeight": 714,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-375-dark-scooter": {
+      "panel": {
+        "top": 470,
+        "height": 807,
+        "width": 321
+      },
+      "listVisibleHeight": 631,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-autos": {
+      "panel": {
+        "top": 639,
+        "height": 855,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-scooter": {
+      "panel": {
+        "top": 639,
+        "height": 770,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-dark-autos": {
+      "panel": {
+        "top": 639,
+        "height": 855,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-768-dark-scooter": {
+      "panel": {
+        "top": 639,
+        "height": 770,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-autos": {
+      "panel": {
+        "top": 516,
+        "height": 855,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-scooter": {
+      "panel": {
+        "top": 516,
+        "height": 770,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-dark-autos": {
+      "panel": {
+        "top": 516,
+        "height": 855,
+        "width": 370
+      },
+      "listVisibleHeight": 679,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "shop-1280-dark-scooter": {
+      "panel": {
+        "top": 516,
+        "height": 770,
+        "width": 370
+      },
+      "listVisibleHeight": 594,
+      "smallTargets": [],
+      "textOverflow": [],
+      "pageOverflowX": false
+    },
+    "palace-768-celebration-button": {
+      "w": 148,
+      "h": 47
+    },
+    "palace-1280-dark-celebration-button": {
+      "w": 148,
+      "h": 47
+    },
+    "palace-375-dark-celebration-button": {
+      "w": 148,
+      "h": 47
+    }
+  },
+  "errors": {
+    "shop-375": [],
+    "shop-375-dark": [],
+    "shop-768": [],
+    "shop-768-dark": [],
+    "shop-1280": [],
+    "shop-1280-dark": [],
+    "placed-375": [],
+    "placed-375-dark": [],
+    "placed-768": [],
+    "placed-1280": [],
+    "placed-1280-dark": [],
+    "palace-768": [],
+    "palace-1280-dark": [],
+    "palace-375-dark": []
+  }
+}

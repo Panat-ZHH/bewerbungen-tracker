@@ -14,6 +14,8 @@ import { attachCameraInput } from "@/components/applications/map-camera-input";
 import { buildIslands, revealProgress, type IslandParts } from "@/lib/island-scenery";
 import { islandConfig } from "@/lib/islands";
 import { createMapVillager, villageWalkingRoutes } from "@/lib/map-villager";
+import { isPalace } from "@/lib/map-palace";
+import { buildPalace } from "@/lib/map-palace-model";
 import type { Application } from "@/types";
 import styles from "@/app/map/map.module.css";
 
@@ -39,6 +41,8 @@ type WorldProps = {
   readOnly?: boolean;
   /** Receives the imperative camera controls once the 3D world exists (null again when it is torn down). */
   onCameraApi?: (api: MapCameraApi | null) => void;
+  /** Palace that just appeared for the first time: it rises out of the ground with sparkles once (skipped with prefers-reduced-motion). */
+  celebratePalaceId?: string | null;
 };
 
 /** Imperative camera controls for toolbars. All moves are animated (instant with prefers-reduced-motion) and clamped to the islands. */
@@ -59,7 +63,7 @@ export default function ApplicationMapWorld(props: WorldProps) {
   return <World {...(props.readOnly ? { ...props, onSelect: noopHandler, onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null, selectedShopItemId: null, selectedId: null } : props)} />;
 }
 
-function World({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onCameraApi, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null, readOnly = false }: WorldProps) {
+function World({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onCameraApi, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null, readOnly = false, celebratePalaceId = null }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
@@ -87,7 +91,10 @@ function World({ applications, visibleIds, selectedId, night, zoom, center, onZo
     }
     return () => { cameraApi.current?.(null); world.current?.dispose(); world.current = null; };
   }, []);
-  useEffect(() => { world.current?.populate(applications, visibleIds, selectedId, layouts, islandCount); }, [applications, visibleIds, selectedId, layouts, placementId, islandCount]);
+  useEffect(() => {
+    if (celebratePalaceId) world.current?.celebratePalace(celebratePalaceId);
+    world.current?.populate(applications, visibleIds, selectedId, layouts, islandCount);
+  }, [applications, visibleIds, selectedId, layouts, placementId, islandCount, celebratePalaceId]);
   useEffect(() => { if (islandFocus) world.current?.focusIsland(islandFocus.no, islandFocus.reveal); }, [islandFocus]);
   useEffect(() => { world.current?.lighting(night); }, [night]);
   useEffect(() => { world.current?.zoom(zoom); }, [zoom]);
@@ -210,6 +217,10 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   let boardDepth = 23;
   let islandParts = new Map<number, IslandParts>();
   let revealing: { no: number; start: number } | null = null;
+  /** Palace celebration start times (performance.now) per application, so a rebuild mid-animation continues instead of restarting. */
+  const palaceRises = new Map<string, number>();
+  /** Celebrated palace the camera glides to on the next frame. */
+  let palaceFocus: string | null = null;
 
   function material(color: string) {
     if (!materials.has(color)) materials.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.85, flatShading: true }));
@@ -283,6 +294,12 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     group.userData.applicationId = application.id;
     root.add(group);
     buildings.push(group);
+    if (isPalace(application)) {
+      // Accepted application (Zusage / Vertrag): the house becomes a palace. Purely derived from the status.
+      animations.push(...buildPalace({ box, cylinder, mesh, windowMaterial }, group, { selected, riseStart: motion ? palaceRises.get(application.id) ?? null : null }));
+      anchors.set(application.id, new THREE.Vector3(x, 0.25, z + 2.6));
+      return;
+    }
     const closed = application.status === "rejected" || application.status === "withdrawn";
     const variant = application.id.split("").reduce((total, character) => total + character.charCodeAt(0), 0) % 3;
     const roofColor = closed ? "#777e78" : ["#b86e54", "#597d9a", "#667d87"][variant];
@@ -843,6 +860,12 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   function frame(milliseconds: number) {
     const now = performance.now();
     const dt = Math.min(500, now - lastFrame); lastFrame = now; // the camera maths is exact for any dt, so slow devices do not play animations in slow motion
+    if (palaceFocus) {
+      // Done in the frame (not in populate) so the initial village centring that runs in the same commit cannot override it.
+      const palace = buildings.find((object) => object.userData.applicationId === palaceFocus);
+      if (palace) controller.focusOn({ x: palace.position.x, z: palace.position.z });
+      palaceFocus = null;
+    }
     controller.step(dt, now);
     const interacting = controller.moving || session !== null || revealing !== null;
     if (controller.state !== syncedState) cameraDirty = true;
@@ -898,6 +921,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     ground: (clientX: number, clientY: number) => { freshCamera(); const r = host.getBoundingClientRect(); const ray = new THREE.Raycaster(); ray.setFromCamera(new THREE.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera); const p = ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), new THREE.Vector3()); return p ? { x: p.x, z: p.z } : null; },
     house: (id: string) => { const b = buildings.find((o) => o.userData.applicationId === id); return b ? { x: b.position.x, z: b.position.z } : null; },
     pixelRatio: () => renderer.pixelRatio,
+    palaceRises: () => [...palaceRises.keys()],
     bounds: () => ({ rects: controller.rects, margin: BOUNDS_MARGIN }),
     movableAt: (clientX: number, clientY: number) => { freshCamera(); hostRect = host.getBoundingClientRect(); return pickMovable({ clientX, clientY } as PointerEvent) !== null; },
   }, configurable: true });
@@ -915,6 +939,10 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     api,
     populate,
     setShop,
+    celebratePalace(id: string) {
+      if (palaceRises.has(id)) return;
+      palaceRises.set(id, performance.now()); palaceFocus = id; sceneChanged = true;
+    },
     setDragEnabled(value: boolean) { dragEnabled = value; if (!value) cancelDrag(); },
     center,
     focusConstruction(position: MapPosition) { controller.focusOn({ x: position.x + 1, z: position.z + 1 }); },

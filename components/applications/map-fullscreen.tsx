@@ -126,7 +126,7 @@ export function MapChip({ id, icon, label, meta, panelLabel, children, iconOnlyN
         <ChevronDown size={14} aria-hidden className={styles.chev} />
       </button>
       {open && (
-        <div id={panelId} role="group" aria-label={panelLabel} className={`${styles.panel} ${styles.sticker}`} onKeyDown={(event: ReactKeyboardEvent) => { if (event.key === "Escape") { event.stopPropagation(); context?.close(); button.current?.focus(); } }}>
+        <div id={panelId} role="group" aria-label={panelLabel} data-map-panel={id} className={`${styles.panel} ${styles.sticker}`} onKeyDown={(event: ReactKeyboardEvent) => { if (event.key === "Escape") { event.stopPropagation(); context?.close(); button.current?.focus(); } }}>
           {children}
         </div>
       )}
@@ -233,6 +233,7 @@ export function MapSheet({ id, open, onClose, title, subtitle, icon, children, c
       aria-modal="false"
       aria-labelledby={titleId}
       data-sheet={id}
+      data-map-panel={id}
       data-collapsed={collapsed}
       data-tall={tall}
       className={`${styles.sheet} ${styles.sticker}`}

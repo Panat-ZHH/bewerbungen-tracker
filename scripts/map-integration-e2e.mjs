@@ -16,6 +16,8 @@ async function run(name, vp) {
   const browser = await chromium.launch({ executablePath: process.env.CHROME, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
   const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h }, hasTouch: mobile, isMobile: mobile });
   await ctx.addInitScript((s) => { if (!localStorage.getItem("sb-localhost-auth-token")) localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s)); }, session);
+  // a4 has status "offer": mark its palace celebration as seen so the card does not sit over the map in these flows.
+  await ctx.addInitScript(() => localStorage.setItem("wendapply:palace-seen:a4", "1"));
   const st = { balance: 3500, earned: 3500, rewardCount: 35, items: [], layouts: [] };
   const db = { unlocked: 1, calls: [] };
   const price = { road: 20, flowers: 30, tree: 40, bench: 50, fountain: 150, amusement_park: 500 };
@@ -48,7 +50,7 @@ async function run(name, vp) {
   const tools = () => page.locator('[aria-label="Gegenstand platzieren"]');
   const openItem = async () => {
     const item = page.getByRole("button", { name: /Zierbaum #1/ }).locator("visible=true");
-    if (!(await item.count()) && mobile) { await page.getByRole("button", { name: /^Shop/ }).click(); await page.waitForTimeout(500); }
+    if (!(await item.count()) && mobile) { await page.getByRole("button", { name: /^(Laden|Shop)$/ }).click(); await page.waitForTimeout(500); }
     await item.first().click(); await page.waitForTimeout(300);
   };
   const confirm = async () => { const b = tools().locator("button", { hasText: "Platzieren" }); const ok = await b.isEnabled(); if (ok) { await b.click(); await page.waitForTimeout(800); } return ok; };
@@ -57,7 +59,7 @@ async function run(name, vp) {
     await load(); await shot("1-map");
     check(`${name}: map renders`, await page.locator("[data-map-renderer]").count() > 0, await page.getAttribute("[data-map-renderer]", "data-map-renderer"));
     // buy + place tree by click
-    if (mobile) await page.getByRole("button", { name: /^Shop/ }).click();
+    if (mobile) await page.getByRole("button", { name: /^(Laden|Shop)$/ }).click();
     await page.getByRole("button", { name: /Zierbaum kaufen/ }).click(); await page.waitForTimeout(1000);
     await page.waitForTimeout(500); const box = await hostLoc().boundingBox();
     await page.mouse.click(box.x + box.width * 0.5, box.y + box.height * 0.5); await page.waitForTimeout(500);
