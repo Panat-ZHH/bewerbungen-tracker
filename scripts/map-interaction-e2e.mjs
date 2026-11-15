@@ -26,6 +26,8 @@ async function setup(vp, touch) {
   const browser = await chromium.launch({ executablePath: process.env.CHROME, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
   const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h }, hasTouch: touch, isMobile: touch, deviceScaleFactor: 1 });
   await ctx.addInitScript((s) => { if (!localStorage.getItem("sb-localhost-auth-token")) localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s)); }, session);
+  // a4 has status "offer": mark its palace celebration as seen so the card does not sit over the map in these flows.
+  await ctx.addInitScript(() => localStorage.setItem("wendapply:palace-seen:a4", "1"));
   const st = { balance: 3500, earned: 3500, rewardCount: 35, items: [{ id: "bench-x", itemType: "bench", x: 22, z: 2, rotation: 0, createdAt: "2026-11-04" }], layouts: [] };
   const db = { unlocked: 1, calls: [] };
   await ctx.route("**://localhost:54321/**", async (route) => {
@@ -264,7 +266,7 @@ async function placement() {
   // Hovering/clicking while placing must not rebuild the scene.
   const t = await setup({ w: 900, h: 640 }, false);
   const { page } = t;
-  await page.getByRole("button", { name: /^Shop/ }).first().click(); await sleep(600);
+  await page.getByRole("button", { name: /^(Laden|Shop)$/ }).first().click(); await sleep(600);
   await page.getByRole("button", { name: /Zierbaum kaufen/ }).click(); await sleep(1200);
   const b = await t.box(); const sp = spots(b);
   // first click starts the placement (empty ground at the top of the view)

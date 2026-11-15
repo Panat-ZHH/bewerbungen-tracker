@@ -68,3 +68,17 @@ The card (`[data-testid=palace-celebration]` inside the `aria-live` region) is n
 - `qa-measurements.json`: touch-target sizes, overflow checks and console errors per session.
 
 Rerun: build or `next dev` with `NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy`, then `PLAYWRIGHT=<playwright-core/index.mjs> CHROME=<chrome> BASE=<url> node scripts/shop-v2-qa-shots.mjs` (`ONLY=shop|placed|palace` for one part).
+
+## Fixes (2026-11-15)
+
+- **M1 fixed: the palace card no longer covers panels.** `PalaceCelebration` has a `paused` prop. `/map` sets it while the shop sheet, an application sheet or a placement is active, so the card unmounts. It is **not** marked as seen and comes back when the panel closes. Top-bar chip panels (Insel, Suche) and every `MapSheet` now carry `data-map-panel`, and `.palaceLive` is hidden via `[data-map-fullscreen]:has([data-map-panel])`. Esc that closes a chip panel no longer also dismisses the card.
+  - Regression check in `scripts/palace-e2e.mjs` (1280, new 900×640, 375): it opens **Laden** while the card is pending. It then checks that the card steps aside, that the first "kaufen" button passes Playwright's actionability check (`click({ trial: true })`, i.e. nothing intercepts the pointer), that the seen flag is still unset, and that the card returns after the shop closes. Shot: `palace/<vp>-2b-shop-open-card-hidden.png`.
+- **MINOR 1:** the Porsche is now **yellow** with a round bubble roof that runs down into a rounded tail, plus a dark ducktail. The Audi R8 stays white with the notched cabin and side blade.
+- **MINOR 2:** McLaren dihedral doors are hinged at the base of the windscreen pillar, flush with the cabin side, and swing up with a glass upper half (`placed-1280-showroom.png`).
+- **MINOR 3:** category chips are now `min-height: 44px`.
+- **MINOR 4:** chips are tighter (gap 6, padding 10), and the row's right edge fades out (mask) with end padding, so it's visible that the row scrolls and the last chip can scroll fully clear.
+- **MINOR 7:** PLAN.md now lists the actual prices (cars 400–2800, scooters 60–240). Prices and sizes in `lib/map-shop.ts` and the migration are unchanged.
+- **Legacy e2e:** `map-interaction-e2e`, `map-integration-e2e` and `islands-e2e` pre-set `wendapply:palace-seen:<id>` for their `offer` application. The stale `Shop` selectors are now `/^(Laden|Shop)$/`.
+- Not changed (out of scope): MINOR 5, 6 and 8. The remaining stale island-panel selectors in `map-integration-e2e` and `islands-e2e` are pre-existing, also fail on main, and are not trivial to fix.
+
+**Results after the fixes:** lint 0 errors. `npm test` 349/349. Build OK with dummy env. `shop-v2-items-e2e` 26/26. `palace-e2e` all checks pass (1280, 900, 375, 375 reduced). `map-interaction-e2e` **48/48 without patches**. `map-integration-e2e` 8/10: the shop and placement steps pass, and only the stale island-panel step fails, as on main. QA screenshots in `shots/qa/` were refreshed with 0 console errors.

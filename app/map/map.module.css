@@ -120,10 +120,12 @@
 }
 
 /* ==== Shop v2 – Part A (shop-items): category chips, rarity badges, vehicle art ==== */
-.shopTabs { display: flex; gap: 8px; margin: 2px -2px 4px; padding: 2px 2px 6px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+/* Tight enough to fit 5 chips on most panels; when it still overflows, the right edge fades out to hint that it scrolls
+   (the extra end padding lets the last chip scroll fully out of the fade). */
+.shopTabs { display: flex; gap: 6px; margin: 2px -2px 4px; padding: 2px 32px 6px 2px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
 .shopTabs::-webkit-scrollbar { display: none; }
-.shopTabs button { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: var(--border-w) solid var(--outline); border-radius: var(--radius-full); background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 700; }
-.shopTabs button small { min-width: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--surface-2); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
+.shopTabs button { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border: var(--border-w) solid var(--outline); border-radius: var(--radius-full); background: var(--surface); color: var(--ink); font-size: 13px; font-weight: 700; }
+.shopTabs button small { min-width: 18px; padding: 0 5px; border-radius: var(--radius-full); background: var(--surface-2); color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; text-align: center; }
 .shopTabs button:hover:not(.shopTabActive) { background: var(--surface-2); }
 .shopTabs .shopTabActive { border-color: var(--outline-fill); background: var(--sun); color: var(--on-sun); box-shadow: var(--shadow-sm); }
 .shopTabs .shopTabActive small { background: var(--surface); color: var(--ink); }
@@ -143,6 +145,8 @@
 /* === Palace (shop-v2) === */
 /* Celebration card when an accepted application's house turns into a palace. Lives in the map overlay layer. */
 .palaceLive { position: absolute; inset: 0; z-index: 40; display: grid; place-items: end center; padding: 72px 16px 32px; pointer-events: none; }
+/* Never cover an open chip panel or sheet (the card is not modal; it comes back when the panel closes). */
+:global([data-map-fullscreen]:has([data-map-panel])) .palaceLive { display: none; }
 /* The card sits low so the new palace (camera glides to it) stays visible above it. */
 @media (max-width: 767px) { .palaceLive { padding-bottom: calc(var(--dock-offset, 96px) + 8px); } }
 .palaceCelebrate { position: relative; overflow: hidden; display: grid; justify-items: center; gap: 6px; width: min(360px, 100%); padding: 22px 18px 18px; text-align: center; border: var(--border-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-lg); color: var(--ink); pointer-events: auto; }

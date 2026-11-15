@@ -128,7 +128,7 @@ function ApplicationMap() {
             <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Neue Bewerbung" title="Neue Bewerbung"><Plus size={18} aria-hidden /></Link>
           </>}
         />
-        <PalaceCelebration application={palace.application} onDismiss={palace.dismiss} />
+        <PalaceCelebration application={palace.application} onDismiss={palace.dismiss} paused={shopSheetOpen || Boolean(selected) || Boolean(shop.placement)} />
         <MapControls camera={camera} night={night} onToggleNight={() => setNight(!night)} onRefresh={() => setRefresh(refresh + 1)} refreshing={loading} />
         <MapDock>
           <MapPlacementTools shop={shop} />

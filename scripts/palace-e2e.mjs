@@ -50,6 +50,22 @@ async function run(name, vp, { reduced = false } = {}) {
     const animation = await page.locator("[data-testid=palace-celebration] i").first().evaluate((el) => getComputedStyle(el).animationName);
     check(animation === "none", "no confetti animation with reduced motion");
   }
+  if (!reduced) {
+    // Regression (QA M1): the card must never cover the open shop. Opening Laden hides it (not marked seen),
+    // the shop items stay clickable, and the card comes back when the shop closes.
+    await page.getByRole("button", { name: /^(Laden|Shop)$/ }).first().click();
+    const buy = page.locator("[data-sheet=shop]").getByRole("button", { name: /kaufen/ }).first();
+    await buy.waitFor({ timeout: 30000 });
+    check(await overlay.count() === 0, "card steps aside while the shop is open");
+    let clickable = true;
+    try { await buy.click({ trial: true, timeout: 5000 }); } catch { clickable = false; }
+    check(clickable, "shop buy button clickable while a celebration is pending");
+    check(await page.evaluate(() => localStorage.getItem("wendapply:palace-seen:a0")) === null, "opening the shop does not mark the palace as seen");
+    await shot("2b-shop-open-card-hidden");
+    await page.locator("[data-sheet=shop]").getByRole("button", { name: /schliessen/ }).click();
+    await overlay.waitFor({ timeout: 10000 });
+    check(await overlay.count() === 1, "card returns after the shop closes");
+  }
   await page.getByRole("button", { name: "Super, weiter" }).click();
   check(await overlay.count() === 0, "dismiss closes the overlay");
   check(await page.evaluate(() => localStorage.getItem("wendapply:palace-seen:a0")) === "1", "seen flag stored");
@@ -72,6 +88,7 @@ async function run(name, vp, { reduced = false } = {}) {
   await browser.close();
 }
 await run("1280", { w: 1280, h: 800 });
+await run("900", { w: 900, h: 640 });
 await run("375", { w: 375, h: 812 });
 await run("375-reduced", { w: 375, h: 812 }, { reduced: true });
 if (failures.length) { console.log("FAILED:", failures); process.exit(1); }

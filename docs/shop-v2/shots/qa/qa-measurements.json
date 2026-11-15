@@ -3,444 +3,132 @@
     "shop-375-autos": {
       "panel": {
         "top": 470,
-        "height": 886,
+        "height": 890,
         "width": 321
       },
       "listVisibleHeight": 714,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-375-scooter": {
       "panel": {
         "top": 470,
-        "height": 803,
+        "height": 807,
         "width": 321
       },
       "listVisibleHeight": 631,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-375-dark-autos": {
       "panel": {
         "top": 470,
-        "height": 886,
+        "height": 890,
         "width": 321
       },
       "listVisibleHeight": 714,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-375-dark-scooter": {
       "panel": {
         "top": 470,
-        "height": 803,
+        "height": 807,
         "width": 321
       },
       "listVisibleHeight": 631,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-768-autos": {
       "panel": {
         "top": 639,
-        "height": 851,
+        "height": 855,
         "width": 370
       },
       "listVisibleHeight": 679,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-768-scooter": {
       "panel": {
         "top": 639,
-        "height": 766,
+        "height": 770,
         "width": 370
       },
       "listVisibleHeight": 594,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-768-dark-autos": {
       "panel": {
         "top": 639,
-        "height": 851,
+        "height": 855,
         "width": 370
       },
       "listVisibleHeight": 679,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-768-dark-scooter": {
       "panel": {
         "top": 639,
-        "height": 766,
+        "height": 770,
         "width": 370
       },
       "listVisibleHeight": 594,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-1280-autos": {
       "panel": {
         "top": 516,
-        "height": 851,
+        "height": 855,
         "width": 370
       },
       "listVisibleHeight": 679,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-1280-scooter": {
       "panel": {
         "top": 516,
-        "height": 766,
+        "height": 770,
         "width": 370
       },
       "listVisibleHeight": 594,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-1280-dark-autos": {
       "panel": {
         "top": 516,
-        "height": 851,
+        "height": 855,
         "width": 370
       },
       "listVisibleHeight": 679,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },
     "shop-1280-dark-scooter": {
       "panel": {
         "top": 516,
-        "height": 766,
+        "height": 770,
         "width": 370
       },
       "listVisibleHeight": 594,
-      "smallTargets": [
-        {
-          "label": "Alle\n21",
-          "w": 101,
-          "h": 40
-        },
-        {
-          "label": "Deko\n3",
-          "w": 104,
-          "h": 40
-        },
-        {
-          "label": "Park\n3",
-          "w": 100,
-          "h": 40
-        },
-        {
-          "label": "Autos\n8",
-          "w": 109,
-          "h": 40
-        },
-        {
-          "label": "E-Roller\n7",
-          "w": 121,
-          "h": 40
-        }
-      ],
+      "smallTargets": [],
       "textOverflow": [],
       "pageOverflowX": false
     },

@@ -13,6 +13,8 @@ async function run(name, vp, balance) {
   const browser = await chromium.launch({ executablePath: process.env.CHROME, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
   const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h }, hasTouch: mobile, isMobile: mobile });
   await ctx.addInitScript((s) => localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s)), session);
+  // a2 has status "offer": mark its palace celebration as seen.
+  await ctx.addInitScript(() => localStorage.setItem("wendapply:palace-seen:a2", "1"));
   const st = { balance, earned: balance, rewardCount: balance / 100, items: [], layouts: [] };
   const db = { unlocked: 1, calls: [] };
   await ctx.route("**://localhost:54321/**", async (route) => {
