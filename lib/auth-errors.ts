@@ -34,7 +34,7 @@ export function authErrorMessage(reason: unknown): string {
     return "Für diese E-Mail gibt es schon ein Konto. Melde dich an oder setze dein Passwort zurück.";
   }
   if (code === "weak_password" || lower.includes("weak password") || lower.includes("password should")) {
-    return "Dieses Passwort ist zu schwach. Nimm mindestens sechs Zeichen, am besten mit Zahlen und Buchstaben gemischt.";
+    return "Dieses Passwort ist zu schwach. Nimm mindestens acht Zeichen, am besten mit Zahlen und Buchstaben gemischt.";
   }
   if (code === "unexpected_failure" && lower.includes("sending")) return "Die E-Mail konnte nicht verschickt werden. Versuche es später noch einmal.";
   if (lower.includes("error sending") && lower.includes("email")) return "Die E-Mail konnte nicht verschickt werden. Versuche es später noch einmal.";

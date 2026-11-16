@@ -11,6 +11,7 @@ import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
 import { authErrorMessage as authMessage } from "@/lib/auth-errors";
+import { newPasswordProblem } from "@/lib/password-policy";
 import { pendingInvitePath } from "@/components/friends/shared";
 import { resolveLanding } from "@/lib/role";
 import { InviteBanner } from "@/components/onboarding/invite-banner";
@@ -84,6 +85,12 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     setSuccess("");
+    const weak = mode === "signup" ? newPasswordProblem(password, email) : null;
+    if (weak) {
+      setError(weak);
+      setLoading(false);
+      return;
+    }
     if (mode === "signup" && password !== confirmPassword) {
       setError("Die Passwörter stimmen nicht überein.");
       setLoading(false);
@@ -201,14 +208,14 @@ export default function LoginPage() {
             </Field>
             <Field label="Passwort" htmlFor="password" hint={hint?.label || undefined}>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} required minLength={6} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 6 Zeichen" : "Dein Passwort"} className="pr-12" aria-describedby={hint?.label ? "password-hint" : undefined} />
+                <Input id="password" type={showPassword ? "text" : "password"} required minLength={isSignup ? 8 : undefined} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 8 Zeichen" : "Dein Passwort"} className="pr-12" aria-describedby={hint?.label ? "password-hint" : undefined} />
                 <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
               </div>
             </Field>
             {!isSignup && <p className="-mt-3 text-right"><button type="button" onClick={forgotPassword} disabled={loading} className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)] disabled:opacity-60">Passwort vergessen?</button></p>}
             {isSignup && (
               <Field label="Passwort wiederholen" htmlFor="confirm-password">
-                <Input id="confirm-password" type="password" required minLength={6} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+                <Input id="confirm-password" type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
               </Field>
             )}
 

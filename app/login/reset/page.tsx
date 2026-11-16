@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "@/lib/toast";
+import { newPasswordProblem } from "@/lib/password-policy";
 import { parseRecoveryLink } from "@/lib/recovery-link";
 import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { Button } from "@/components/ui/button";
@@ -55,7 +56,8 @@ export default function ResetPasswordPage() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    if (password.length < 6) { setError("Dein Passwort muss mindestens sechs Zeichen haben."); return; }
+    const weak = newPasswordProblem(password);
+    if (weak) { setError(weak); return; }
     if (password !== confirm) { setError("Die Passwörter stimmen nicht überein."); return; }
     setLoading(true);
     try {
@@ -73,7 +75,7 @@ export default function ResetPasswordPage() {
 
   return (
     <AuthFrame className="max-w-[440px]">
-        <AuthTitle title={<>Neues <span className="marker">Passwort</span> festlegen</>}>Wähle ein Passwort mit mindestens sechs Zeichen.</AuthTitle>
+        <AuthTitle title={<>Neues <span className="marker">Passwort</span> festlegen</>}>Wähle ein Passwort mit mindestens acht Zeichen.</AuthTitle>
         {ready === "checking" ? (
           <div role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Link wird geprüft …</div>
         ) : ready === "invalid" ? (
@@ -86,8 +88,8 @@ export default function ResetPasswordPage() {
         ) : (
           <form onSubmit={submit} className="panel space-y-5 p-5 sm:p-7">
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
-            <Field label="Neues Passwort" htmlFor="new-password"><Input id="new-password" type="password" required minLength={6} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-            <Field label="Passwort wiederholen" htmlFor="new-password-2"><Input id="new-password-2" type="password" required minLength={6} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
+            <Field label="Neues Passwort" htmlFor="new-password"><Input id="new-password" type="password" required minLength={8} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+            <Field label="Passwort wiederholen" htmlFor="new-password-2"><Input id="new-password-2" type="password" required minLength={8} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
             <Button type="submit" size="lg" full loading={loading}>{loading ? "Speichert …" : "Passwort speichern"}{!loading && <ArrowRight size={16} strokeWidth={2.4} />}</Button>
           </form>
         )}

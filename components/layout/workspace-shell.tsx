@@ -16,7 +16,8 @@ import { badgeLabel } from "@/lib/friend-requests";
 import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isPlaceholderName } from "@/lib/profile-name-utils";
-import { guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
+import { signOutEverywhere } from "@/lib/sign-out";
+import { clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
 import { FAMILY_PATH, familyInviteCodeFromPath, isParentMeta, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
@@ -135,7 +136,8 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
   async function logout() {
     setMoreOpen(false);
-    await supabase.auth.signOut();
+    await signOutEverywhere(supabase.auth);
+    clearRoleCache();
     router.replace("/login");
   }
 
