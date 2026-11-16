@@ -284,6 +284,46 @@ test("school admin: own school, licence and aggregates only, small groups suppre
   assert.equal((await ctx.admin("select school_id from public.classes where id=$1", [cls2.id]))[0].school_id, null);
 });
 
+test("school admin: totals cannot be differenced against visible classes to single out a suppressed student", async () => {
+  // Own school so the shared fixtures stay untouched. Class V: 3 sharing students (visible); class W: 1 sharing student (suppressed).
+  const R = { t: id(31), adm: id(32), s1: id(41), s2: id(42), s3: id(43), s4: id(44), s5: id(45), s6: id(46) };
+  const rows = Object.entries(R).map(([k, v]) => `('${v}','rev-${k}@x.ch','${JSON.stringify({ full_name: `REV-${k}`, role: k === "t" ? "teacher" : "student" })}')`);
+  await ctx.admin(`insert into auth.users values ${rows.join(",")}`);
+  await ctx.admin("update public.user_roles set under_16 = false where role = 'student'");
+  const [{ platform_create_school: s }] = await ctx.admin("select public.platform_create_school('Sek Review', 'ZH', 'CH')");
+  await ctx.admin("select public.platform_assign_licence($1, 'starter')", [s]);
+  await ctx.admin("select public.platform_add_school_admin($1, 'rev-adm@x.ch', true)", [s]);
+  await ctx.as(R.t);
+  const [v] = await ctx.rpc("select * from public.class_create('Rev V', '2026/27')");
+  const [w] = await ctx.rpc("select * from public.class_create('Rev W', '2026/27')");
+  await ctx.as(R.adm);
+  await ctx.rpc("select * from public.school_attach_class($1, $2)", [s, v.join_code]);
+  await ctx.rpc("select * from public.school_attach_class($1, $2)", [s, w.join_code]);
+  for (const st of [R.s1, R.s2, R.s3]) { await ctx.as(st); await ctx.rpc("select * from public.class_join($1)", [v.join_code]); }
+  await ctx.as(R.s4);
+  await ctx.rpc("select * from public.class_join($1)", [w.join_code]);
+  for (const [st, n] of [[R.s1, 1], [R.s2, 1], [R.s3, 1], [R.s4, 4]]) {
+    for (let i = 0; i < n; i++) await app(st, `rev-${st.slice(-2)}-${i}`, i === 0 && st === R.s4 ? "offer" : "applied", { applied: day(-2) });
+  }
+  await ctx.as(R.adm);
+  const ov = (await ctx.rpc("select public.school_admin_overview($1) as o", [s]))[0].o;
+  const byName = Object.fromEntries(ov.classes.map((c) => [c.name, c]));
+  assert.equal(byName["Rev V"].suppressed, false);
+  assert.equal(byName["Rev W"].suppressed, true);
+  // Without complementary suppression: totals.applications (7) - V.applications (3) = 4 = exactly student s4's applications.
+  for (const k of ["applications", "students_with_application", "students_placed", "students_active_14d"]) {
+    assert.equal(ov.totals[k], null, `totals.${k} would reveal the single student of the suppressed class`);
+  }
+  assert.equal(ov.totals.suppressed, true);
+  // Once W has 3 sharing students, every number is visible again.
+  for (const st of [R.s5, R.s6]) { await ctx.as(st); await ctx.rpc("select * from public.class_join($1)", [w.join_code]); }
+  await ctx.as(R.adm);
+  const ov2 = (await ctx.rpc("select public.school_admin_overview($1) as o", [s]))[0].o;
+  assert.equal(ov2.totals.suppressed, false);
+  assert.equal(ov2.totals.applications, 7);
+  assert.equal(ov2.classes.find((c) => c.name === "Rev W").applications, 4);
+});
+
 test("class goals: teachers CRUD via table, members read, others nothing; progress is aggregate-only", async () => {
   await ctx.as(U.teacher);
   const [g1] = await ctx.rpc("insert into public.class_goals (class_id, title, metric, target, due_date) values ($1, ' 3 Bewerbungen ', 'applications_sent', 3, $2) returning *", [cls.id, day(30)]);

@@ -306,7 +306,12 @@ begin
     from (select c.teacher_id, c.id as class_id from cls c union select t.teacher_id, t.class_id from public.class_teachers t join cls c on c.id = t.class_id) x
     left join public.user_roles r on r.user_id = x.teacher_id group by x.teacher_id, r.display_name),
   uniq as (select distinct on (mem.student_id) mem.* from mem join cls on cls.id = mem.class_id where not cls.archived
-    order by mem.student_id, mem.sa desc, mem.ss desc)
+    order by mem.student_id, mem.sa desc, mem.ss desc),
+  -- Complementary suppression: the school totals minus the visible classes must not single out the 1-2 sharing students
+  -- who are only in suppressed classes. ok = at least 3 sharing students AND that residual group is empty or >= 3.
+  vis as (select p.id from per_class p where not p.archived and p.students_sharing >= 3),
+  tot as (select (select count(*) from uniq where sa) >= 3 and (select count(*) from uniq u where u.sa and not exists (
+      select 1 from mem m2 join vis on vis.id = m2.class_id where m2.student_id = u.student_id and m2.sa)) not in (1, 2) as ok)
   select jsonb_build_object(
     'school', (select jsonb_build_object('id', s.id, 'name', s.name, 'canton_or_state', s.canton_or_state, 'country', s.country) from public.schools s where s.id = p_school_id),
     'licence', public._school_licence_json(p_school_id),
@@ -314,11 +319,11 @@ begin
       'classes', (select count(*) from cls where not archived), 'archived_classes', (select count(*) from cls where archived),
       'teachers', (select count(*) from teachers), 'students', (select count(*) from uniq),
       'students_sharing', (select count(*) from uniq where sa),
-      'suppressed', (select count(*) from uniq where sa) < 3,
-      'applications', case when (select count(*) from uniq where sa) >= 3 then (select coalesce(sum(apps), 0) from uniq where sa) end,
-      'students_with_application', case when (select count(*) from uniq where sa) >= 3 then (select count(*) from uniq where sa and apps > 0) end,
-      'students_placed', case when (select count(*) from uniq where sa) >= 3 then (select count(*) from uniq where ss and placed_n > 0) end,
-      'students_active_14d', case when (select count(*) from uniq where sa) >= 3 then (select count(*) from uniq where sa and last_date >= current_date - 14) end),
+      'suppressed', not (select ok from tot),
+      'applications', case when (select ok from tot) then (select coalesce(sum(apps), 0) from uniq where sa) end,
+      'students_with_application', case when (select ok from tot) then (select count(*) from uniq where sa and apps > 0) end,
+      'students_placed', case when (select ok from tot) then (select count(*) from uniq where ss and placed_n > 0) end,
+      'students_active_14d', case when (select ok from tot) then (select count(*) from uniq where sa and last_date >= current_date - 14) end),
     -- Small groups (< 3 sharing students) are suppressed (null) so a count can never be traced back to one student.
     'classes', coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'school_year', p.school_year, 'archived', p.archived,
       'teacher_name', p.teacher_name, 'students', p.students, 'students_sharing', p.students_sharing,
