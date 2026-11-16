@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { CheckCircle2, Download, Trash2, Upload } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, Download, ShieldCheck, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DoodleSparkle } from "@/components/ui/doodles";
 import { PageHeader } from "@/components/ui/page-header";
@@ -17,6 +18,9 @@ import { SettingsSection } from "@/components/settings/section";
 import { TourReplaySection } from "@/components/settings/tour-replay";
 import { withSupport } from "@/lib/account-deletion";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
+import { SchoolAdminLink } from "@/components/b2b/school-admin-link";
+import { exportFileName, scrubExport } from "@/components/b2b/logic";
+import { exportMyDataFromServer } from "@/lib/b2b/client";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
 import type { Application } from "@/types";
 
@@ -32,15 +36,19 @@ export default function SettingsPage() {
     setBusy(true);
     setNotice(null);
     try {
-      const payload = { applications: await getApplications(), profile: await getProfile(), cvs: await getCVs(), exportedAt: new Date().toISOString() };
+      // applications/profile/cvs keep the import format ("Sicherung einlesen"); `account` is the full server export (export_my_data)
+      // with classes, friends, village and settings, once that RPC is deployed. Secrets (tokens) are stripped.
+      const [applications, profile, cvs, account] = await Promise.all([getApplications(), getProfile(), getCVs(), exportMyDataFromServer().catch(() => undefined)]);
+      const payload = scrubExport({ format: "wendapply-export", version: 2, exportedAt: new Date().toISOString(), applications, profile, cvs, ...(account !== undefined && account !== null ? { account } : {}) });
+      const fileName = exportFileName();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = "wendapply-daten.json";
+      anchor.download = fileName;
       anchor.click();
       URL.revokeObjectURL(url);
-      say("success", "Deine Daten wurden als Datei „wendapply-daten.json“ heruntergeladen.");
+      say("success", `Deine Daten wurden als Datei „${fileName}“ heruntergeladen.`);
     } catch (reason) {
       say("danger", withSupport(friendlyMessage(reason, "Der Download konnte nicht erstellt werden.")));
     } finally {
@@ -88,6 +96,8 @@ export default function SettingsPage() {
 
         <div id="settings-notice" className="scroll-mt-24">{notice && <StatusMessage tone={notice.tone} icon={notice.tone === "success" ? <CheckCircle2 /> : undefined} className="mb-5">{notice.text}</StatusMessage>}</div>
 
+        <SchoolAdminLink className="mb-8" />
+
         {/* Plain groups under display-font headings, separated by dashed lines. Only the account deletion gets a danger contour. */}
         <div className="rows">
           <SettingsSection title="Darstellung" description="Hell, dunkel oder passend zu deinem Gerät. Wir merken uns deine Wahl.">
@@ -97,12 +107,14 @@ export default function SettingsPage() {
             </div>
           </SettingsSection>
 
-          <SettingsSection title="Daten sichern" description="Lade eine Kopie deiner Bewerbungen herunter oder lies eine Sicherung ein.">
-            <div className="flex flex-col gap-2.5 sm:flex-row">
-              <Button className="sm:min-h-11" onClick={exportData} loading={busy} icon={<Download size={16} />}>Herunterladen</Button>
+          <SettingsSection title="Meine Daten" titleTestId="section-my-data" description="Du hast das Recht, deine Daten zu sehen, mitzunehmen und löschen zu lassen.">
+            <p className="text-body text-muted">Der Export enthält alles, was WendApply über dich speichert: Bewerbungen, Profil, Dokument-Angaben, Klassen, Freundschaften und dein Dorf. Die Datei bleibt auf deinem Gerät.</p>
+            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
+              <Button className="sm:min-h-11" onClick={exportData} loading={busy} icon={<Download size={16} />}>Daten exportieren (JSON)</Button>
               <Button variant="secondary" className="sm:min-h-11" onClick={() => importRef.current?.click()} disabled={busy} icon={<Upload size={16} />}>Sicherung einlesen</Button>
               <input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" />
             </div>
+            <p className="mt-3 flex items-start gap-2 text-small text-muted"><ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden /><span>Löschen kannst du weiter unten: nur deine Bewerbungsdaten oder das ganze Konto. Wie lange wir was aufbewahren, steht im <Link href="/loeschkonzept" className="font-semibold underline underline-offset-2">Löschkonzept</Link> und in der <Link href="/datenschutz" className="font-semibold underline underline-offset-2">Datenschutzerklärung</Link>.</span></p>
           </SettingsSection>
 
           <TourReplaySection />

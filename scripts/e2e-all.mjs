@@ -318,7 +318,7 @@ flow("settings-theme", student({ apps: seedApps(2) }), async (t) => {
   await page.getByRole("tab", { name: "Hell" }).click();
   await t.settle(500);
   t.check("choosing Hell switches back", !(await dark()));
-  await page.getByRole("button", { name: "Herunterladen" }).click();
+  await page.getByRole("button", { name: "Daten exportieren (JSON)" }).click();
   t.check("data export reports success", await t.text(/Deine Daten wurden als Datei/, 8000));
 });
 

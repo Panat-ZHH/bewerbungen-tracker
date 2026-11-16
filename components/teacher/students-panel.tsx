@@ -97,7 +97,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold text-muted">Sortierung
             <Select aria-label="Sortierung" value={sort} onChange={(e) => setSort(e.target.value as StudentSort)} className="w-auto min-w-60 flex-1 font-normal lg:flex-none">
-              <option value="activity">Am längsten inaktiv zuerst</option><option value="total">Meiste Bewerbungen</option><option value="name">Name A–Z</option><option value="joined">Zuletzt beigetreten</option>
+              <option value="activity">Am längsten inaktiv zuerst</option><option value="progress">Am weitesten gekommen</option><option value="name">Name A–Z</option><option value="joined">Zuletzt beigetreten</option>
             </Select>
           </label>
           <div className="flex flex-wrap gap-2 lg:ml-auto">

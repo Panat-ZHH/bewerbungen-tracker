@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Figures } from "@/components/ui/figures";
 import { dashboardMode } from "@/lib/teacher-extras";
 import { AttentionPanel } from "./attention-panel";
+import { SchoolAdminLink } from "@/components/b2b/school-admin-link";
 import { Segmented } from "@/components/ui/tabs";
 import { createClass, getTeacherDashboard, type TeacherDashboard } from "./api";
 import { ClassPath, ErrorBanner, teacherError } from "./shared";
@@ -51,6 +52,7 @@ export function TeacherDashboardView() {
   return (
     <div>
       <PageHeader title="Übersicht" description="So weit sind deine Klassen mit der Lehrstellensuche. Es zählen nur Schülerinnen und Schüler, die ihre Daten teilen." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
+      <SchoolAdminLink className="mb-8" />
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!data && !error && <div className="space-y-3"><Skeleton className="h-24 rounded-[var(--radius-lg)]" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />)}</div>}
       {data && t && (
