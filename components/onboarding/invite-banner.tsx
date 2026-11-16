@@ -10,7 +10,9 @@ function inviteSource(): { kind: "class" | "friend"; code: string } | null {
   const next = new URLSearchParams(window.location.search).get("next") ?? "";
   const match = /^\/classes\/join\/([^/?#]+)/.exec(next);
   if (match) { try { return { kind: "class", code: decodeURIComponent(match[1]) }; } catch { return null; } }
-  return readPendingInviteEntry();
+  const entry = readPendingInviteEntry();
+  // Family invites have their own hint in the login form (FAMILY_COPY.parent/child.signupHint).
+  return entry && entry.kind !== "family" ? { kind: entry.kind, code: entry.code } : null;
 }
 
 /** "Du wurdest von Frau X in Klasse Y eingeladen" – only data the public RPC returns (teacher name + class name). */

@@ -157,7 +157,7 @@ test("plan summary: trial days, seats, no plan = bald verfügbar", () => {
 });
 
 test("familyError maps server codes to German (Swiss spelling) messages", () => {
-  assert.match(familyError({ message: "SEATS_FULL" }), /kein Platz mehr/);
+  assert.match(familyError({ message: "SEATS_FULL" }), /schon ein Kind verbunden.*Kontaktseite/);
   assert.match(familyError({ message: "INVITE_EXPIRED" }), /abgelaufen/);
   assert.match(familyError({ message: "INVITE_ALREADY_USED" }), /schon verwendet/);
   assert.match(familyError({ message: "INVALID_CODE" }), /kennen wir nicht/);
@@ -165,11 +165,15 @@ test("familyError maps server codes to German (Swiss spelling) messages", () => 
   assert.match(familyError({ message: "FORBIDDEN" }), /nicht ändern/);
   assert.match(familyError({ message: "boom" }), /nicht geklappt/);
   // codes exactly as raised by the migration
-  assert.match(familyError({ message: "FAMILY_SEAT_LIMIT" }), /kein Platz mehr/);
+  assert.match(familyError({ message: "FAMILY_SEAT_LIMIT" }), /schon ein Kind verbunden/);
+  assert.match(familyError({ message: "FAMILY_SEAT_LIMIT", details: "In dieser Familie sind alle Plätze für Eltern belegt (1 von 1)." }), /zweites Elternteil/);
+  assert.match(familyError({ message: "FAMILY_SEAT_LIMIT", details: "Weitere Kinder sind bald verfügbar." }), /Kontaktseite/, "the outdated DB detail is never shown");
+  for (const code of ["SEATS_FULL", "FAMILY_SEAT_LIMIT"]) assert.doesNotMatch(familyError({ message: code }), /Zugang anfragen|bald verfügbar/i);
   assert.match(familyError({ message: "INVITE_USED" }), /schon verwendet/);
   assert.match(familyError({ message: "INVITE_INVALID" }), /kennen wir nicht/);
   assert.match(familyError({ message: "ALREADY_IN_FAMILY" }), /schon in einer Familie/);
-  assert.match(familyError({ message: "INVITE_WRONG_ACCOUNT_TYPE" }), /passt nicht/);
+  assert.match(familyError({ message: "INVITE_WRONG_ACCOUNT_TYPE", details: "Dieser Code ist für ein Elternkonto." }), /für ein Elternkonto\. Du bist als Schüler\/in angemeldet/);
+  assert.match(familyError({ message: "INVITE_WRONG_ACCOUNT_TYPE", details: "Dieser Code ist für ein Schülerkonto." }), /für ein Schülerkonto\. Du bist als Elternteil angemeldet/);
   assert.match(familyError({ message: "NOT_A_PARENT" }), /nicht ändern/);
   assert.equal(familyError({ message: "INVALID_NAME", details: "Der Familienname darf höchstens 80 Zeichen haben." }), "Der Familienname darf höchstens 80 Zeichen haben.");
   assert.equal(waitlistProblem("nope", ""), "Bitte gib eine gültige E-Mail-Adresse ein.");
@@ -201,5 +205,9 @@ test("source contract: family UI only uses the family RPCs, never the tables; no
   const signup = await read("app/login/page.tsx");
   assert.match(signup, /signupMetadata\(role, birthYear\)/);
   const shell = await read("components/layout/workspace-shell.tsx");
-  assert.match(shell, /inClass === false \? \[\.\.\.navigation, familyItem\]/, "school students (in a class) do not get the family item");
+  assert.match(shell, /const studentNav = \[\.\.\.navigation, familyItem\]/, "every student (also in a class) gets the family item (P9)");
+  assert.match(shell, /loginNextFor\(pathname, window\.location\.search, window\.location\.hash\)/, "login redirect keeps query + hash (P7)");
+  assert.match(shell, /storePendingInvite\(familyCode, "family"\)/, "a family invite survives the signup (P5)");
+  assert.match(signup, /emailRedirectTo: confirmRedirect\(\)/, "confirmation link returns to this origin with ?next= (P5)");
+  assert.match(signup, /signupPreset\(/, "family invite links preselect the signup role (P6)");
 });

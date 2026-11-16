@@ -17,7 +17,10 @@ export interface BillingApiStripe {
 export interface BillingApiDb {
   /** Newest billing_customers.stripe_customer_id of the owner (service role). */
   findCustomerId(owner: BillingOwner): Promise<string | null>;
-  /** A Stripe subscription that still gives access (active / trialing / past_due) and is not set to cancel. */
+  /**
+   * A Stripe subscription that still exists (active / trialing / past_due / unpaid / paused), INCLUDING ones set to cancel at
+   * period end: a canceling subscription is renewed in the portal, never bought a second time (P14).
+   */
   hasOpenSubscription(owner: BillingOwner): Promise<boolean>;
   /** School name / family name for the Stripe customer (null if unknown). */
   ownerName(owner: BillingOwner): Promise<string | null>;
@@ -50,6 +53,11 @@ function gate(deps: BillingApiDeps): ApiResult | null {
 
 const returnPath = (owner: BillingOwner) => (owner.kind === "school" ? "/schul-admin" : "/familie");
 const ownerMeta = (owner: BillingOwner): Record<string, string> => (owner.kind === "school" ? { school_id: owner.id } : { family_id: owner.id });
+
+/** Where the Stripe customer portal sends the user back. Families get `?billing=portal` so /familie reloads the status (§3.4). */
+export function portalReturnUrl(baseUrl: string, owner: BillingOwner): string {
+  return `${baseUrl}${returnPath(owner)}${owner.kind === "family" ? "?billing=portal" : ""}`;
+}
 
 /** A plan that can be bought through Stripe (has a lookup key and checkout). */
 export function purchasablePlan(id: unknown): Plan | null {
@@ -115,7 +123,7 @@ export async function portal(input: { token: string | null; body: unknown }, dep
   if (!auth.ok) return err(auth.status, auth.error);
   const customer = await deps.db.findCustomerId(owner);
   if (!customer) return err(404, "no_customer");
-  const session = await deps.stripe.createPortalSession({ customer, returnUrl: `${deps.baseUrl}${returnPath(owner)}` });
+  const session = await deps.stripe.createPortalSession({ customer, returnUrl: portalReturnUrl(deps.baseUrl, owner) });
   return { status: 200, body: { url: session.url } };
 }
 

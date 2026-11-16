@@ -42,6 +42,24 @@ export async function setShare(settings: ShareSettings): Promise<void> { await c
 export async function getChildOverview(childId: string): Promise<ChildOverview | null> { return readChildOverview(await call<unknown>("family_child_overview", { p_child_id: childId })); }
 export async function removeMember(userId: string): Promise<void> { await call("family_remove_member", { p_user_id: userId }); }
 export async function leaveFamily(): Promise<void> { await call("family_leave"); }
+/**
+ * Stores the birth year (Jahrgang) for the family consent check, via account_set_type with the current account type.
+ * School students (in a class) must stay school_student; everyone else is independent_student. Without `inClass`
+ * it tries independent first and retries as school_student when the server says the account belongs to a class.
+ */
+export async function setBirthYear(year: number, inClass?: boolean): Promise<void> {
+  if (inClass === true) { await setAccountType("school_student", year); return; }
+  try { await setAccountType("independent_student", year); }
+  catch (e) {
+    if (inClass === false || !/FORBIDDEN|Schulkonten|42501/i.test(`${(e as PgError).message} ${(e as PgError).details ?? ""} ${(e as PgError).code ?? ""}`)) throw e;
+    await setAccountType("school_student", year);
+  }
+}
+/** Empty-family switch (S9): leave my own (empty) family, then join with the other side's code. */
+export async function switchToFamily(code: string): Promise<unknown> {
+  await leaveFamily();
+  return joinFamily(code);
+}
 /** Everything the family feature stores about me (undefined = not deployed). Used by the "Meine Daten" export. */
 export async function exportMyFamilyData(): Promise<unknown | undefined> { return optional<unknown>("family_export_my_data"); }
 /** "Zugang anfragen": false = waitlist not deployed yet (the UI then points to /kontakt). Duplicate requests count as success. */

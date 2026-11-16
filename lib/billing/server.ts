@@ -46,6 +46,9 @@ export function supabaseBillingDb(admin: SupabaseClient = serviceClient()): Bill
   };
 }
 
+/** Subscription statuses that block a second checkout (the existing one is managed in the portal). */
+export const OPEN_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due", "unpaid", "paused"];
+
 const ownerCol = (owner: BillingOwner) => (owner.kind === "school" ? "school_id" : "family_id");
 
 export function supabaseApiDb(admin: SupabaseClient = serviceClient()): BillingApiDb {
@@ -60,7 +63,7 @@ export function supabaseApiDb(admin: SupabaseClient = serviceClient()): BillingA
     },
     async hasOpenSubscription(owner) {
       const { data, error } = await admin.from("billing_subscriptions").select("id").eq(ownerCol(owner), owner.id)
-        .in("status", ["active", "trialing", "past_due"]).eq("cancel_at_period_end", false).limit(1);
+        .in("status", OPEN_SUBSCRIPTION_STATUSES).limit(1); // cancel_at_period_end rows count too (renew in the portal)
       if (error) throw new Error(`DB_READ_FAILED:${error.code ?? ""}`);
       return (data ?? []).length > 0;
     },

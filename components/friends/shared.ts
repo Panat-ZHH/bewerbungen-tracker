@@ -20,7 +20,8 @@ export function friendlyError(reason: unknown, fallback = "Das hat leider nicht 
 /** One label set for the whole app (lib/utils). */
 export { statusLabels } from "@/lib/utils";
 
-export type PendingInviteKind = "friend" | "class";
+export type PendingInviteKind = "friend" | "class" | "family";
+const PENDING_KINDS: readonly string[] = ["friend", "class", "family"];
 const PENDING_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Remembers an invite opened while logged out (localStorage survives e-mail confirmation in a new tab). */
@@ -32,8 +33,8 @@ export function readPendingInviteEntry(): { kind: PendingInviteKind; code: strin
     const raw = window.localStorage.getItem(PENDING_INVITE_KEY);
     if (!raw) return null;
     const value = JSON.parse(raw) as { kind?: string; code?: string; at?: number };
-    if (!value.code || (value.kind !== "friend" && value.kind !== "class") || !value.at || Date.now() - value.at > PENDING_MAX_AGE_MS) { window.localStorage.removeItem(PENDING_INVITE_KEY); return null; }
-    return { kind: value.kind, code: value.code };
+    if (!value.code || !PENDING_KINDS.includes(value.kind ?? "") || !value.at || Date.now() - value.at > PENDING_MAX_AGE_MS) { window.localStorage.removeItem(PENDING_INVITE_KEY); return null; }
+    return { kind: value.kind as PendingInviteKind, code: value.code };
   } catch { return null; }
 }
 /** Friend invite code waiting after login, if any. */
@@ -42,7 +43,9 @@ export function readPendingInvite(): string | null { const entry = readPendingIn
 export function pendingInvitePath(): string | null {
   const entry = readPendingInviteEntry();
   if (!entry) return null;
-  return entry.kind === "class" ? `/classes/join/${encodeURIComponent(entry.code)}` : `/invite/${encodeURIComponent(entry.code)}`;
+  if (entry.kind === "class") return `/classes/join/${encodeURIComponent(entry.code)}`;
+  if (entry.kind === "family") return `/familie/einladung/${encodeURIComponent(entry.code)}`;
+  return `/invite/${encodeURIComponent(entry.code)}`;
 }
 export function clearPendingInvite() {
   try { window.localStorage.removeItem(PENDING_INVITE_KEY); } catch { /* storage unavailable */ }
