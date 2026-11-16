@@ -61,6 +61,11 @@ export function supabaseApiDb(admin: SupabaseClient = serviceClient()): BillingA
       if (error) throw new Error(`DB_READ_FAILED:${error.code ?? ""}`);
       return data?.stripe_customer_id ?? null;
     },
+    async saveCustomer(owner, customerId, userId) {
+      const { error } = await admin.from("billing_customers")
+        .upsert({ stripe_customer_id: customerId, [ownerCol(owner)]: owner.id, created_by: userId }, { onConflict: "stripe_customer_id", ignoreDuplicates: true });
+      if (error) throw new Error(`DB_WRITE_FAILED:${error.code ?? ""}`);
+    },
     async hasOpenSubscription(owner) {
       const { data, error } = await admin.from("billing_subscriptions").select("id").eq(ownerCol(owner), owner.id)
         .in("status", OPEN_SUBSCRIPTION_STATUSES).limit(1); // cancel_at_period_end rows count too (renew in the portal)

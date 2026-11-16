@@ -117,7 +117,9 @@ export function subscriptionParams(
     p_status: sub.status as StripeSubscriptionStatus,
     p_current_period_start: period.start,
     p_current_period_end: period.end,
-    p_cancel_at_period_end: Boolean(sub.cancel_at_period_end),
+    // "Ends, won't renew". Newer API versions (2026-10-28) let the portal cancel by setting `cancel_at` (a date, usually the
+    // period end) and leave `cancel_at_period_end` false – seen live on the preview, the UI then kept saying "Aktiv".
+    p_cancel_at_period_end: Boolean(sub.cancel_at_period_end) || (sub.cancel_at != null && sub.status !== "canceled"),
     p_collection_method: (sub.collection_method ?? "charge_automatically") as CollectionMethod,
     p_latest_invoice_status: invoiceStatus,
     // Exactly one owner (family plans belong to families). The DB re-checks and keeps the first owner it saw.

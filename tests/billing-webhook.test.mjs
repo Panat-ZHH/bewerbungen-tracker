@@ -179,6 +179,15 @@ test("permanent DB errors -> 200 + recorded; transient errors -> 500 and the eve
   assert.equal(r3.status, 500);
 });
 
+test("portal cancel via cancel_at (API 2026-10-28) counts as cancel_at_period_end; a plain renewing sub does not", () => {
+  const evt = { id: "evt_cancel_at", type: "customer.subscription.updated", created: NOW };
+  const p = (over) => subscriptionParams(sub({ cancel_at: null, ...over }), evt).p_cancel_at_period_end;
+  assert.equal(p({ cancel_at_period_end: false, cancel_at: NOW + 365 * 86400 }), true, "portal sets cancel_at only");
+  assert.equal(p({ cancel_at_period_end: true }), true, "legacy flag still works");
+  assert.equal(p({}), false, "renewing subscription");
+  assert.equal(p({ status: "canceled", cancel_at: NOW }), false, "already ended: not 'canceling'");
+});
+
 test("mapping helpers: plan by lookup key beats metadata, individual student limit, legacy invoice.subscription", () => {
   assert.equal(planOfSubscription(sub({ metadata: { plan_id: "enterprise" } })), "starter");
   assert.equal(planOfSubscription(sub({ items: { data: [{ price: { lookup_key: "other" } }] }, metadata: { plan_id: "individual" } })), "individual");

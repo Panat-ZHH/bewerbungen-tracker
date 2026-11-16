@@ -18,6 +18,11 @@ export interface BillingApiDb {
   /** Newest billing_customers.stripe_customer_id of the owner (service role). */
   findCustomerId(owner: BillingOwner): Promise<string | null>;
   /**
+   * Remember a freshly created Stripe customer right away (service role), so a cancelled / failed Checkout doesn't leave a
+   * new orphan customer each time (the webhook only writes billing_customers after a payment). Optional, best effort.
+   */
+  saveCustomer?(owner: BillingOwner, customerId: string, userId: string): Promise<void>;
+  /**
    * A Stripe subscription that still exists (active / trialing / past_due / unpaid / paused), INCLUDING ones set to cancel at
    * period end: a canceling subscription is renewed in the portal, never bought a second time (P14).
    */
@@ -96,8 +101,11 @@ export async function checkout(input: { token: string | null; body: unknown }, d
     return err(503, "price_not_found");
   }
   const metadata = { app: "wendapply", plan_id: plan.id, interval, ...ownerMeta(owner), user_id: auth.user.id };
-  const customer = (await deps.db.findCustomerId(owner))
-    ?? (await deps.stripe.createCustomer({ email: auth.user.email, name: await deps.db.ownerName(owner), metadata: { app: "wendapply", ...ownerMeta(owner), user_id: auth.user.id } }));
+  let customer = await deps.db.findCustomerId(owner);
+  if (!customer) {
+    customer = await deps.stripe.createCustomer({ email: auth.user.email, name: await deps.db.ownerName(owner), metadata: { app: "wendapply", ...ownerMeta(owner), user_id: auth.user.id } });
+    await deps.db.saveCustomer?.(owner, customer, auth.user.id).catch((e) => deps.log?.("billing checkout: could not save customer", { error: String(e) }));
+  }
 
   if (payment === "invoice") {
     const { hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({ customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata });

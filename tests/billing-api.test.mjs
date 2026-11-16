@@ -140,6 +140,19 @@ test("family checkout: monthly (CHF 7.90) and yearly (CHF 79) use their own look
   assert.deepEqual(y.calls.find((c) => c[0] === "price"), ["price", "wendapply_family_yearly_chf"]);
 });
 
+test("abandoned checkout: the new Stripe customer is saved at once, so a retry reuses it (no orphan customers)", async () => {
+  const m = makeDeps();
+  m.deps.db.saveCustomer = async function (o, id, userId) { m.calls.push(["save", o, id, userId]); this.customers[o.id] = id; };
+  const body = { plan: "family", familyId: FAMILY, interval: "year" };
+  assert.equal((await checkout({ token: "tok-parent", body }, m.deps)).status, 200);
+  assert.deepEqual(m.calls.find((c) => c[0] === "save"), ["save", { kind: "family", id: FAMILY }, "cus_new", PARENT.id]);
+  assert.equal((await checkout({ token: "tok-parent", body }, m.deps)).status, 200, "second try after a cancelled Checkout");
+  assert.equal(m.calls.filter((c) => c[0] === "customer").length, 1, "customer created only once");
+  const f = makeDeps();
+  f.deps.db.saveCustomer = async () => { throw new Error("DB_WRITE_FAILED"); };
+  assert.equal((await checkout({ token: "tok-parent", body }, f.deps)).status, 200, "a failed save never blocks the checkout");
+});
+
 test("invoice payment for schools: send_invoice subscription, days_until_due from BILLING, hosted invoice URL", async () => {
   const { deps, calls } = makeDeps();
   const r = await checkout({ token: "tok-admin", body: { plan: "starter", schoolId: SCHOOL, payment: "invoice" } }, deps);
