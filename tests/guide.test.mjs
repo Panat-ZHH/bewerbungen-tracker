@@ -16,11 +16,13 @@ test("detectPlatform recognises the four install targets", () => {
 
 test("/anleitung has canonical, OpenGraph and FAQ JSON-LD", () => {
   const page = read("app/anleitung/page.tsx");
-  assert.match(page, /const url = "https:\/\/wendapply\.ch\/anleitung"/);
-  assert.match(page, /canonical: url/);
-  assert.match(page, /openGraph:/);
-  assert.match(page, /"FAQPage"/);
-  assert.match(page, /replace\(\/<\/g/, "JSON-LD is escaped against </script> injection");
+  // Metadata (canonical, Open Graph, Twitter) comes from lib/seo/pages.ts; see tests/seo.test.mjs for the rendered values.
+  assert.match(page, /publicMetadata\(\{ canonical: "\/anleitung" \}\)/);
+  assert.match(page, /<JsonLd data=\{faqJsonLd\(faq\)\} \/>/);
+  const seo = read("lib/seo/site.ts");
+  assert.match(seo, /"FAQPage"/);
+  assert.match(seo, /openGraph:/);
+  assert.match(seo, /replace\(\/<\/g/, "JSON-LD is escaped against </script> injection");
 });
 
 test("install section covers iPhone/iPad, Android, Mac and Windows with an install anchor", () => {

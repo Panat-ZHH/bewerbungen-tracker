@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import { CONTACT_EMAIL, TextPage, Todo } from "@/components/public/public-shell";
 
-export const metadata: Metadata = {
-  title: "Impressum",
-  description: "Impressum von WendApply, einem Angebot von Wendico, Kleinandelfingen.",
-  alternates: { canonical: "/impressum" },
-  openGraph: { title: "Impressum | WendApply", type: "website", locale: "de_CH", siteName: "WendApply" },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/impressum" });
 
 export default function ImpressumPage() {
   return (
     <TextPage title="Impressum">
+      <JsonLd data={publicBreadcrumb("/impressum")} />
       <section aria-labelledby="anbieter"><h2 id="anbieter" className="text-heading">Anbieterin</h2>
         <p className="mt-2">Wendico, Kollektivgesellschaft<br />Kleinandelfingen, Schweiz<br /><Todo>Strasse, PLZ und genauen Firmennamen bestätigen</Todo></p></section>
       <section aria-labelledby="vertretung"><h2 id="vertretung" className="text-heading">Vertretungsberechtigte</h2>

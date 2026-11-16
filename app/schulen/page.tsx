@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import { ArrowRight, BarChart3, Eye, Flag, Footprints, House, LayoutList, LifeBuoy, ListChecks, Lock, Mail, Presentation, ShieldCheck, Trophy, Users } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
@@ -7,12 +9,7 @@ import { Screenshot } from "@/components/public/screenshot";
 import { CtaBand } from "@/components/public/cta-band";
 import { MAIL, PILOT, POSITIONING, TAGLINE } from "@/components/public/marketing";
 
-const title = "WendApply für Schulen: Bewerbungsprozess sichtbar, planbar und motivierend";
-const description = `${POSITIONING} Demo, ${PILOT.days}-Tage-Pilot und Jahreslizenz für Sekundarschulen.`;
-export const metadata: Metadata = {
-  title, description, alternates: { canonical: "/schulen" },
-  openGraph: { title, description, type: "website", locale: "de_CH", siteName: "WendApply", images: [{ url: "/landing/24-teacher-dashboard-light.webp", width: 1200, height: 1042, alt: "Lehrpersonen-Übersicht in WendApply" }] },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/schulen" });
 
 type Item = { icon: typeof Eye; title: string; text: string };
 
@@ -63,6 +60,7 @@ function Grid({ items, cols = "sm:grid-cols-2 lg:grid-cols-3" }: { items: Item[]
 export default function SchulenPage() {
   return (
     <PublicShell>
+      <JsonLd data={publicBreadcrumb("/schulen")} />
       <section aria-labelledby="schulen-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.15fr_.85fr]">
         <div className="min-w-0">
           <p className="sticker sticker-paper tilt-l mb-5 text-sm">Für Sekundarschulen</p>
@@ -77,7 +75,7 @@ export default function SchulenPage() {
         <Screenshot name="24-teacher-dashboard" alt="Lehrpersonen-Übersicht in WendApply: Bewerbungen, Gespräche und Zusagen aller Klassen, Schülerinnen und Schüler, die Aufmerksamkeit brauchen, und die Klassenliste" width={1600} height={1280} priority className="tilt-r" />
       </section>
 
-      <Section id="lehrpersonen" title="Für Lehrpersonen und Schulleitungen" intro="Den Stand der Klasse kennen, ohne Listen nachzuführen. Und dort unterstützen, wo es nötig ist." tint>
+      <Section id="lehrpersonen" title="Für Lehrpersonen und Schulleitungen" intro="Den Stand der Klasse in der Berufswahl kennen, ohne Listen nachzuführen. Und dort unterstützen, wo es nötig ist." tint>
         <Grid items={teachers} />
       </Section>
 

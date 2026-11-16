@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
 import { LegalPage } from "@/components/legal/legal-page";
 
-export const metadata: Metadata = { title: "Hosting und Unterauftragsbearbeiter" };
+export const metadata: Metadata = publicMetadata({ canonical: "/hosting" });
 
 export default function Page() {
-  return <LegalPage docKey="hosting" />;
+  return <><JsonLd data={publicBreadcrumb("/hosting")} /><LegalPage docKey="hosting" /></>;
 }

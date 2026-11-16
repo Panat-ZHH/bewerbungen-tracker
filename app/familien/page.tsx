@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, Ban, Check, Download, Eye, EyeOff, Footprints, House, LayoutList, ListChecks, Mail, MailPlus, ShieldCheck, Sparkles, Trash2, UserPlus, Users } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
@@ -9,12 +12,7 @@ import { Faq, type FaqItem } from "@/components/public/faq";
 import { WaitlistForm } from "@/components/public/waitlist-form";
 import { FAMILY, MAIL_FAMILY, WAITLIST_KIND_FAMILY } from "@/components/public/marketing";
 
-const title = "WendApply für Familien: Lehrstellensuche gemeinsam, aber mit Privatsphäre";
-const description = "WendApply für Eltern und Jugendliche: Bewerbungen, Fristen und Fortschritt im Blick. Familienpaket (1 Elternteil + 1 Kind) bald verfügbar, Preis folgt. Einwilligung unter 16, das Kind entscheidet, was geteilt wird.";
-export const metadata: Metadata = {
-  title, description, alternates: { canonical: "/familien" },
-  openGraph: { title, description, type: "website", locale: "de_CH", siteName: "WendApply", images: [{ url: "/landing/04-dashboard-light.webp", width: 1200, height: 978, alt: "Übersicht mit Bewerbungen, Status und Fristen in WendApply" }] },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/familien" });
 
 type Item = { icon: typeof Eye; title: string; text: string };
 
@@ -74,6 +72,8 @@ function Grid({ items, cols = "sm:grid-cols-2 lg:grid-cols-3" }: { items: Item[]
 export default function FamilienPage() {
   return (
     <PublicShell>
+      <JsonLd data={publicBreadcrumb("/familien")} />
+      <JsonLd data={faqJsonLd(faq)} />
       <section aria-labelledby="familien-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.15fr_.85fr]">
         <div className="min-w-0">
           <p className="sticker sticker-paper tilt-l mb-5 text-sm">Für Familien · {FAMILY.status}</p>

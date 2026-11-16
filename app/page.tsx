@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { publicMetadata } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
+import { homeJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
 import { ArrowRight, Check, Eye, Lock, MapPin, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
@@ -8,16 +11,7 @@ import { AuthRedirect } from "@/components/public/auth-redirect";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleSparkle, DoodleTrail } from "@/components/ui/doodles";
 import { BRAND_TAGLINE, PILOT, POSITIONING } from "@/components/public/marketing";
 
-const title = "WendApply: Bewerbungen für die Lehrstelle im Blick behalten";
-const description = `${BRAND_TAGLINE} Lehrstellen finden, Bewerbungen und Fristen im Griff, Fortschritt sichtbar machen. Für Sekundarschulen, kostenlos für Schülerinnen und Schüler.`;
-
-export const metadata: Metadata = {
-  title: { absolute: title },
-  description,
-  alternates: { canonical: "/" },
-  openGraph: { title, description, type: "website", locale: "de_CH", siteName: "WendApply", images: [{ url: "/landing/04-dashboard-light.webp", width: 1200, height: 978, alt: "WendApply Übersicht" }] },
-  twitter: { card: "summary_large_image", title, description },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/" });
 
 const steps = [
   { n: "1", title: "Stellen finden und merken", text: "Suche Lehrstellen und Schnupperlehren, entdecke Betriebe auf der Karte und merke dir, was dich interessiert." },
@@ -38,6 +32,7 @@ const link = "font-semibold text-[var(--brand)] underline decoration-2 underline
 export default function LandingPage() {
   return (
     <PublicShell>
+      <JsonLd data={homeJsonLd()} />
       <AuthRedirect />
       <section aria-labelledby="hero-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-16 pt-10 sm:px-6 sm:pb-24 sm:pt-16 lg:grid-cols-[1.2fr_.8fr] lg:gap-10">
         <div className="animate-rise">
@@ -70,7 +65,7 @@ export default function LandingPage() {
         </ol>
       </Section>
 
-      <Section id="schueler" title="Finden, bewerben, dranbleiben" intro="Du suchst eine Lehrstelle oder eine Schnupperlehre? WendApply hilft dir, den Überblick zu behalten, auch wenn es viele Bewerbungen werden.">
+      <Section id="schueler" title="Finden, bewerben, dranbleiben" intro="Du suchst eine Lehrstelle oder eine Schnupperlehre? WendApply hilft dir, deine Bewerbungen zu organisieren und den Überblick zu behalten, auch wenn es viele werden.">
         <div className="grid items-center gap-10 lg:grid-cols-[.85fr_1.15fr]">
           <ul className="rows">
             {[

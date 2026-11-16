@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
 import { ArrowRight, Building2, CalendarDays, Check, FileText, Heart, Mail, Presentation, School } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
@@ -7,13 +10,8 @@ import { CtaBand } from "@/components/public/cta-band";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { FAMILY, MAIL, PACKAGES, PILOT, chf, perStudentMonth, perStudentYear } from "@/components/public/marketing";
 
-const title = "Preise für Schulen: Jahreslizenz ab CHF 990";
-const description = "WendApply für Sekundarschulen: Starter bis 100 Schülerinnen und Schüler CHF 990, Professional bis 300 CHF 1'490, Enterprise bis 800 CHF 3'990 pro Jahr. Für Schülerinnen und Schüler kostenlos. Familienpaket bald verfügbar.";
 
-export const metadata: Metadata = {
-  title, description, alternates: { canonical: "/preise" },
-  openGraph: { title: `${title} | WendApply`, description, type: "website", locale: "de_CH", siteName: "WendApply" },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/preise" });
 
 const pro = PACKAGES.find((p) => p.recommended)!;
 const link = "font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]";
@@ -31,6 +29,8 @@ const faq: FaqItem[] = [
 export default function PreisePage() {
   return (
     <PublicShell>
+      <JsonLd data={publicBreadcrumb("/preise")} />
+      <JsonLd data={faqJsonLd(faq)} />
       <section aria-labelledby="preise-h" className="mx-auto w-full max-w-6xl px-4 pb-10 pt-10 sm:px-6 sm:pt-16">
         <p className="sticker sticker-paper tilt-l mb-5 text-sm">Preise für Schulen</p>
         <h1 id="preise-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Für Schüler kostenlos.</span></h1>

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import { ArrowRight, Check, Mail, Presentation } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
@@ -6,13 +8,8 @@ import { PublicShell, Section } from "@/components/public/public-shell";
 import { CtaBand } from "@/components/public/cta-band";
 import { MAIL, PILOT } from "@/components/public/marketing";
 
-const title = "30-Tage-Pilot für Schulen";
-const description = `WendApply ${PILOT.days} Tage mit ${PILOT.classes} testen: begleiteter Start, zeitlich begrenzt, mit vereinbartem Feedback- und Entscheidungsgespräch am Ende.`;
 
-export const metadata: Metadata = {
-  title, description, alternates: { canonical: "/pilot" },
-  openGraph: { title: `${title} | WendApply`, description, type: "website", locale: "de_CH", siteName: "WendApply" },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/pilot" });
 
 const steps = [
   { title: "Kennenlernen und Demo", text: "Wir zeigen WendApply live aus Sicht der Schülerinnen und Schüler und der Lehrpersonen und klären Ihre Fragen, auch zum Datenschutz." },
@@ -36,6 +33,7 @@ const link = "font-semibold text-[var(--brand)] underline decoration-2 underline
 export default function PilotPage() {
   return (
     <PublicShell>
+      <JsonLd data={publicBreadcrumb("/pilot")} />
       <section aria-labelledby="pilot-h" className="mx-auto w-full max-w-6xl px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16">
         <p className="sticker sticker-mint tilt-l mb-5 text-sm">{PILOT.days} Tage · {PILOT.classes}</p>
         <h1 id="pilot-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Testen Sie WendApply <span className="marker [box-decoration-break:clone]">im echten Unterricht.</span></h1>

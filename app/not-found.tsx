@@ -3,7 +3,8 @@ import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { DoodleLoopArrow } from "@/components/ui/doodles";
 
-export const metadata: Metadata = { title: "Seite nicht gefunden" };
+// Never indexed. Links point to public pages, so visitors without an account are not sent to the login.
+export const metadata: Metadata = { title: "Seite nicht gefunden", robots: { index: false, follow: true } };
 
 export default function NotFound() {
   return (
@@ -15,7 +16,10 @@ export default function NotFound() {
         </div>
         <h1 className="text-display mt-8">Diese Seite gibt es nicht.</h1>
         <p className="mt-4 text-lg text-muted">Vielleicht hat sich der Link geändert.</p>
-        <ButtonLink href="/dashboard" size="lg" className="mt-8" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zur Startseite</ButtonLink>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <ButtonLink href="/" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zur Startseite</ButtonLink>
+          <ButtonLink href="/hilfe" size="lg" variant="secondary">Hilfe und häufige Fragen</ButtonLink>
+        </div>
       </div>
     </main>
   );

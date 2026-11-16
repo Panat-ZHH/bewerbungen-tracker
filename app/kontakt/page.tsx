@@ -1,19 +1,17 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import { Mail } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
 
-export const metadata: Metadata = {
-  title: "Kontakt",
-  description: "So erreichen Sie das WendApply-Team: Fragen, Feedback und Pilot-Anfragen für Schulen per E-Mail.",
-  alternates: { canonical: "/kontakt" },
-  openGraph: { title: "Kontakt | WendApply", type: "website", locale: "de_CH", siteName: "WendApply" },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/kontakt" });
 
 export default function KontaktPage() {
   return (
     <TextPage title={<>Wir freuen uns auf Ihre <span className="marker">Nachricht</span></>} intro="Fragen, Feedback oder ein Pilot für Ihre Schule? Schreiben Sie uns, wir antworten in der Regel innert weniger Werktage.">
+      <JsonLd data={publicBreadcrumb("/kontakt")} />
       <div className="panel max-w-md p-6">
         <h2 className="text-heading">E-Mail</h2>
         <p className="mt-2"><a className="font-semibold text-[var(--brand)] underline underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
