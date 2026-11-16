@@ -3,6 +3,8 @@ import { supabase } from "@/lib/supabase";
 import { safeNextPath } from "@/lib/ux";
 import { interpretTourRow, needsTour, tourDoneInMeta, UNKNOWN_TOUR, type TourStatus } from "@/lib/onboarding-tour-core";
 import type { UserRole } from "@/types";
+import { FAMILY_PATH, isParentMeta, parentGuardRedirect } from "@/lib/family-core";
+import { syncPendingAccountType } from "@/lib/family";
 
 /** Pure routing rules (unit tested in tests/role.test.mjs). */
 export const TEACHER_HOME = "/teacher";
@@ -50,6 +52,13 @@ export function studentOnboarded(meta: Record<string, unknown> | null | undefine
 export function studentOnboardingHref(next?: string | null) { const safe = safeNextPath(next); return safe && safe !== "/" ? `${STUDENT_ONBOARDING_PATH}?next=${encodeURIComponent(safe)}` : STUDENT_ONBOARDING_PATH; }
 export function teacherOnboarded(meta: Record<string, unknown> | null | undefined): boolean { return meta?.teacher_onboarded === true; }
 
+/** Parents land on /familie unless the safe ?next= is a page they may open (e.g. a family invite link). */
+export function parentLandingPath(next?: string | null): string {
+  const safe = safeNextPath(next);
+  if (!safe || safe === "/" || guardRedirect("student", safe) || parentGuardRedirect(safe)) return FAMILY_PATH;
+  return safe;
+}
+
 /** `?next=` aware path to the role picker. */
 export function rolePickerHref(next?: string | null) { const safe = safeNextPath(next); return safe && safe !== "/" ? `${ROLE_PICKER_PATH}?next=${encodeURIComponent(safe)}` : ROLE_PICKER_PATH; }
 
@@ -94,7 +103,9 @@ export async function resolveLanding(next?: string | null): Promise<string> {
   const user = data.user;
   if (!user) return "/login";
   if (needsRoleChoice(user)) return rolePickerHref(next);
+  await syncPendingAccountType(user);
   const { role } = await loadMyRole(user);
+  if (role === "student" && isParentMeta(user.user_metadata)) return parentLandingPath(next);
   if (role === "teacher" && !teacherOnboarded(user.user_metadata) && !safeNextPath(next)?.startsWith("/classes/join")) return TEACHER_HOME;
   if (role === "student" && !tourDoneInMeta(user.user_metadata) && needsTour(role, user.user_metadata, await readTourStatus(user.id))) return studentOnboardingHref(next);
   return landingPath(role, next);

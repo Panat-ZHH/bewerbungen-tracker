@@ -21,6 +21,7 @@ import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { SchoolAdminLink } from "@/components/b2b/school-admin-link";
 import { exportFileName, scrubExport } from "@/components/b2b/logic";
 import { exportMyDataFromServer } from "@/lib/b2b/client";
+import { exportMyFamilyData } from "@/lib/family";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
 import type { Application } from "@/types";
 
@@ -38,8 +39,9 @@ export default function SettingsPage() {
     try {
       // applications/profile/cvs keep the import format ("Sicherung einlesen"); `account` is the full server export (export_my_data)
       // with classes, friends, village and settings, once that RPC is deployed. Secrets (tokens) are stripped.
-      const [applications, profile, cvs, account] = await Promise.all([getApplications(), getProfile(), getCVs(), exportMyDataFromServer().catch(() => undefined)]);
-      const payload = scrubExport({ format: "wendapply-export", version: 2, exportedAt: new Date().toISOString(), applications, profile, cvs, ...(account !== undefined && account !== null ? { account } : {}) });
+      // `family` (family_export_my_data): family, members, consent and share settings, once the family feature is deployed.
+      const [applications, profile, cvs, account, family] = await Promise.all([getApplications(), getProfile(), getCVs(), exportMyDataFromServer().catch(() => undefined), exportMyFamilyData().catch(() => undefined)]);
+      const payload = scrubExport({ format: "wendapply-export", version: 2, exportedAt: new Date().toISOString(), applications, profile, cvs, ...(account !== undefined && account !== null ? { account } : {}), ...(family !== undefined && family !== null ? { family } : {}) });
       const fileName = exportFileName();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
@@ -108,7 +110,7 @@ export default function SettingsPage() {
           </SettingsSection>
 
           <SettingsSection title="Meine Daten" titleTestId="section-my-data" description="Du hast das Recht, deine Daten zu sehen, mitzunehmen und löschen zu lassen.">
-            <p className="text-body text-muted">Der Export enthält alles, was WendApply über dich speichert: Bewerbungen, Profil, Dokument-Angaben, Klassen, Freundschaften und dein Dorf. Die Datei bleibt auf deinem Gerät.</p>
+            <p className="text-body text-muted">Der Export enthält alles, was WendApply über dich speichert: Bewerbungen, Profil, Dokument-Angaben, Klassen, Freundschaften, Familie und dein Dorf. Die Datei bleibt auf deinem Gerät.</p>
             <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
               <Button className="sm:min-h-11" onClick={exportData} loading={busy} icon={<Download size={16} />}>Daten exportieren (JSON)</Button>
               <Button variant="secondary" className="sm:min-h-11" onClick={() => importRef.current?.click()} disabled={busy} icon={<Upload size={16} />}>Sicherung einlesen</Button>
