@@ -1,12 +1,14 @@
 /**
  * School licences: packages, prices and pure helpers (no Supabase import, safe in client and server code).
- * The database stores only the package, seat limit, status and dates (public.school_licences); prices live ONLY here.
+ * The database stores only the package, seat limit, status and dates (public.school_licences).
+ * Prices, seat limits and pilot terms come from lib/billing/plans.ts (single source of truth); this file only maps them.
  * There is no payment code: licences are assigned manually (see docs/b2b/DATA-MODEL.md, "Assigning a licence").
  *
  * Extension point for other plan holders (family / private plans): reuse LicenceState, licenceState(), BillingInterval
  * and the PlanDefinition shape, and add a second catalogue next to SCHOOL_PACKAGES instead of changing this one.
  */
 import type { BillingInterval, LicenceErrorCode, LicencePackage, LicenceState, LicenceStatus } from "./types.ts";
+import { PLANS, formatChf as formatChfBilling } from "../billing/plans.ts";
 
 export type PlanHolder = "school" | "family" | "private";
 
@@ -23,20 +25,21 @@ export type PlanDefinition = {
 
 /** Business plan 2027-2032: Starter / Professional / Enterprise; pilot = free 30 days for 1-2 classes; multi-site = individual. */
 export const SCHOOL_PACKAGES: Record<LicencePackage, PlanDefinition> = {
-  pilot: { id: "pilot", holder: "school", label: "Pilot", studentLimit: 60, yearlyPriceChf: 0, description: "30 Tage kostenlos für 1–2 Klassen, mit vereinbartem Feedback- und Entscheidungsprozess" },
-  starter: { id: "starter", holder: "school", label: "Starter", studentLimit: 100, yearlyPriceChf: 990, description: "Für kleine Schulen bis 100 Schülerinnen und Schüler" },
-  professional: { id: "professional", holder: "school", label: "Professional", studentLimit: 300, yearlyPriceChf: 1490, description: "Das Kernpaket für Schulen bis 300 Schülerinnen und Schüler" },
-  enterprise: { id: "enterprise", holder: "school", label: "Enterprise", studentLimit: 800, yearlyPriceChf: 3990, description: "Für grosse Schulen bis 800 Schülerinnen und Schüler, mit erweiterter Administration" },
-  custom: { id: "custom", holder: "school", label: "Individuell", studentLimit: null, yearlyPriceChf: null, description: "Mehrere Standorte oder Schulverbände: individuelles Angebot" },
+  pilot: { id: "pilot", holder: "school", label: PLANS.pilot.name, studentLimit: PLANS.pilot.studentLimit, yearlyPriceChf: PLANS.pilot.priceChfPerYear, description: "30 Tage kostenlos für 1–2 Klassen, mit vereinbartem Feedback- und Entscheidungsprozess" },
+  starter: { id: "starter", holder: "school", label: PLANS.starter.name, studentLimit: PLANS.starter.studentLimit, yearlyPriceChf: PLANS.starter.priceChfPerYear, description: "Für kleine Schulen bis 100 Schülerinnen und Schüler" },
+  professional: { id: "professional", holder: "school", label: PLANS.professional.name, studentLimit: PLANS.professional.studentLimit, yearlyPriceChf: PLANS.professional.priceChfPerYear, description: "Das Kernpaket für Schulen bis 300 Schülerinnen und Schüler" },
+  enterprise: { id: "enterprise", holder: "school", label: PLANS.enterprise.name, studentLimit: PLANS.enterprise.studentLimit, yearlyPriceChf: PLANS.enterprise.priceChfPerYear, description: "Für grosse Schulen bis 800 Schülerinnen und Schüler, mit erweiterter Administration" },
+  custom: { id: "custom", holder: "school", label: PLANS.individual.name, studentLimit: PLANS.individual.studentLimit, yearlyPriceChf: PLANS.individual.priceChfPerYear, description: "Mehrere Standorte oder Schulverbände: individuelles Angebot" },
 };
 
 /** Packages that are sold off the shelf, smallest first. */
 export const PAID_PACKAGES = ["starter", "professional", "enterprise"] as const satisfies readonly LicencePackage[];
 
-export const PILOT_DAYS = 30;
+export const PILOT_DAYS = PLANS.pilot.pilotDays ?? 30;
 /**
  * Monthly payment is possible "mit Aufpreis" (business plan); the amount is not fixed there.
  * ASSUMPTION (adjust before quoting): +10 % on the yearly price, paid in 12 instalments.
+ * Only used for manual offers: Stripe billing is yearly only (BILLING.monthlySurchargePct = 0 in lib/billing/plans.ts).
  */
 export const MONTHLY_SURCHARGE = 0.1;
 
@@ -72,12 +75,8 @@ function roundTo5Rappen(value: number): number {
   return Math.round(value * 20) / 20;
 }
 
-/** "CHF 1'490" / "CHF 136.60" (Swiss thousands separator). */
-export function formatChf(value: number): string {
-  const fixed = Number.isInteger(value) ? String(value) : value.toFixed(2);
-  const [whole, cents] = fixed.split(".");
-  return `CHF ${whole.replace(/\B(?=(\d{3})+(?!\d))/g, "'")}${cents ? `.${cents}` : ""}`;
-}
+/** "CHF 1'490" / "CHF 136.60" (Swiss thousands separator). Same as formatChf in lib/billing/plans.ts. */
+export const formatChf: (value: number) => string = formatChfBilling;
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 

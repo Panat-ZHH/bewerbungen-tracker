@@ -3,7 +3,8 @@
  * Plain TS (no JSX) so tests can import it directly. Pricing is public; there is deliberately no online purchase or payment code here.
  * Swiss spelling only (ss, never the sharp s).
  */
-import { SCHOOL_PACKAGES, PILOT_DAYS } from "../../lib/b2b/licence.ts";
+import { PILOT_DAYS } from "../../lib/b2b/licence.ts";
+import { PLANS } from "../../lib/billing/plans.ts";
 
 export const TAGLINE = "Den Bewerbungsprozess sichtbar, planbar und motivierend machen.";
 export const BRAND_TAGLINE = `WendApply · ${TAGLINE}`;
@@ -30,9 +31,9 @@ const core = [
 ];
 
 export const PACKAGES: Package[] = [
-  { id: "starter", name: "Starter", maxStudents: SCHOOL_PACKAGES.starter.studentLimit!, pricePerYear: SCHOOL_PACKAGES.starter.yearlyPriceChf!, audience: "Kleine Schulen", features: [...core, "Support per E-Mail"] },
-  { id: "professional", name: "Professional", maxStudents: SCHOOL_PACKAGES.professional.studentLimit!, pricePerYear: SCHOOL_PACKAGES.professional.yearlyPriceChf!, audience: "Das Kernpaket für die meisten Sekundarschulen", recommended: true, features: [...core, "Persönliche Einführung für das Kollegium"] },
-  { id: "enterprise", name: "Enterprise", maxStudents: SCHOOL_PACKAGES.enterprise.studentLimit!, pricePerYear: SCHOOL_PACKAGES.enterprise.yearlyPriceChf!, audience: "Grosse Schulen mit erweiterter Administration", features: [...core, "Erweiterte Administration für die Schule", "Persönliche Einführung für das Kollegium"] },
+  { id: "starter", name: "Starter", maxStudents: PLANS.starter.studentLimit!, pricePerYear: PLANS.starter.priceChfPerYear!, audience: "Kleine Schulen", features: [...core, "Support per E-Mail"] },
+  { id: "professional", name: "Professional", maxStudents: PLANS.professional.studentLimit!, pricePerYear: PLANS.professional.priceChfPerYear!, audience: "Das Kernpaket für die meisten Sekundarschulen", recommended: true, features: [...core, "Persönliche Einführung für das Kollegium"] },
+  { id: "enterprise", name: "Enterprise", maxStudents: PLANS.enterprise.studentLimit!, pricePerYear: PLANS.enterprise.priceChfPerYear!, audience: "Grosse Schulen mit erweiterter Administration", features: [...core, "Erweiterte Administration für die Schule", "Persönliche Einführung für das Kollegium"] },
 ];
 
 export const PILOT = {
@@ -82,7 +83,10 @@ export const FAMILY = {
   name: "Familienpaket",
   seatsParents: 1,
   seatsChildren: 1,
-  /** null = price not decided yet. Never invent one here. */
+  /**
+   * null = price not decided yet. Never invent one here. PLANS.family in lib/billing/plans.ts holds a PLACEHOLDER
+   * amount (placeholder: true) for the billing test setup only; the public site keeps showing "Preis folgt" until Panat decides.
+   */
   pricePerYear: null as number | null,
   pricePlaceholder: "Preis folgt – noch nicht festgelegt",
   status: "bald verfügbar",
