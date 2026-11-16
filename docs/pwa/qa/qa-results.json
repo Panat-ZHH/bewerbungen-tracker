@@ -1,0 +1,116 @@
+{
+  "base": "http://localhost:3193",
+  "date": "2026-11-16T09:06:27.372Z",
+  "results": [
+    {
+      "name": "manifest: name/start_url/display/scope",
+      "pass": true,
+      "detail": "WendApply, /dashboard?source=pwa, standalone"
+    },
+    {
+      "name": "icon /icons/icon-192.png (any)",
+      "pass": true,
+      "detail": "HTTP 200, 192x192"
+    },
+    {
+      "name": "icon /icons/icon-512.png (any)",
+      "pass": true,
+      "detail": "HTTP 200, 512x512"
+    },
+    {
+      "name": "icon /icons/maskable-192.png (maskable)",
+      "pass": true,
+      "detail": "HTTP 200, 192x192"
+    },
+    {
+      "name": "icon /icons/maskable-512.png (maskable)",
+      "pass": true,
+      "detail": "HTTP 200, 512x512"
+    },
+    {
+      "name": "icon /icons/apple-touch-icon.png (apple-touch)",
+      "pass": true,
+      "detail": "HTTP 200, 180x180"
+    },
+    {
+      "name": "manifest has maskable icon",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sw.js has push + notificationclick handlers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "/anleitung public (no login redirect)",
+      "pass": true,
+      "detail": "http://localhost:3193/anleitung"
+    },
+    {
+      "name": "service worker registers and activates",
+      "pass": true,
+      "detail": "{\"scope\":\"http://localhost:3193/\",\"active\":true}"
+    },
+    {
+      "name": "SW controls /anleitung",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "installability errors on /",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "installability errors on /anleitung",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "SW controls /dashboard",
+      "pass": true,
+      "detail": "landed on http://localhost:3193/login"
+    },
+    {
+      "name": "offline reload /anleitung serves cached page",
+      "pass": true,
+      "detail": "{\"title\":\"Anleitung: So funktioniert WendApply | WendApply\",\"h1\":\"So funktioniert WendApply.\"}"
+    },
+    {
+      "name": "offline uncached page shows offline.html",
+      "pass": true,
+      "detail": "{\"title\":\"Offline | WendApply\",\"text\":\"Du bist offline\\n\\nWendApply braucht eine Internetverbindung, um deine Bewerbungen zu laden. Prüfe dein WLAN oder deine mo\"}"
+    },
+    {
+      "name": "caches contain no *.supabase.co, /api/, /auth/ entries",
+      "pass": true,
+      "detail": "42 entries in 4 caches"
+    },
+    {
+      "name": "/anleitung 375px light: no overflow, no console errors",
+      "pass": true,
+      "detail": "scrollWidth 375/375, theme light"
+    },
+    {
+      "name": "/anleitung 375px dark: no overflow, no console errors",
+      "pass": true,
+      "detail": "scrollWidth 375/375, theme dark"
+    },
+    {
+      "name": "/anleitung 1280px light: no overflow, no console errors",
+      "pass": true,
+      "detail": "scrollWidth 1280/1280, theme light"
+    },
+    {
+      "name": "/anleitung 1280px dark: no overflow, no console errors",
+      "pass": true,
+      "detail": "scrollWidth 1280/1280, theme dark"
+    },
+    {
+      "name": "no console errors during SW/offline flow (excluding expected offline net errors)",
+      "pass": true,
+      "detail": "http://localhost:3193/login: Failed to load resource: the server responded with a status of 401 () | http://localhost:3193/anleitung: Failed to load resource: net::ERR_INTERNET_DISCONNECTED"
+    }
+  ]
+}

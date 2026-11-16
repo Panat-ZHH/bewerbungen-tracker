@@ -1,0 +1,52 @@
+{
+  "wendapply-precache-v1": [
+    "http://localhost:3193/offline.html",
+    "http://localhost:3193/manifest.webmanifest",
+    "http://localhost:3193/icons/icon-192.png",
+    "http://localhost:3193/icons/icon-512.png",
+    "http://localhost:3193/icons/maskable-512.png",
+    "http://localhost:3193/icons/apple-touch-icon.png"
+  ],
+  "wendapply-static-v1": [
+    "http://localhost:3193/_next/static/chunks/3sggzv9wgzuyx.js",
+    "http://localhost:3193/_next/static/chunks/21gw7cqjw1n97.js",
+    "http://localhost:3193/_next/static/chunks/1zhy01awns_sr.js",
+    "http://localhost:3193/_next/static/chunks/0_hv0ihfp7wi7.js",
+    "http://localhost:3193/_next/static/chunks/0ztox55-9_8j3.js",
+    "http://localhost:3193/_next/static/media/017d9bea37084d9b-s.p.41rroleoq1br7.woff2",
+    "http://localhost:3193/_next/static/media/26daee0352f50a5f-s.p.2e115y8-hourl.woff2",
+    "http://localhost:3193/_next/static/media/c7f47671e39f7787-s.p.0klc_mi0-5f4_.woff2",
+    "http://localhost:3193/_next/static/media/f06bf9da926bae75-s.p.2874ccu1_u7jf.woff2",
+    "http://localhost:3193/_next/static/chunks/19-5v1_jc2cze.css",
+    "http://localhost:3193/_next/static/chunks/3s6nzrbk-8mnv.js",
+    "http://localhost:3193/_next/static/chunks/2mmpezlrfmbu5.js",
+    "http://localhost:3193/_next/static/chunks/3kmozkq6tgqnz.js",
+    "http://localhost:3193/_next/static/chunks/1l_3ktfrtgggj.js",
+    "http://localhost:3193/_next/static/chunks/turbopack-2j22h7rob3b1b.js",
+    "http://localhost:3193/_next/static/chunks/2jrw1z4e3k3bg.js",
+    "http://localhost:3193/_next/static/chunks/0mo9ivb48yaie.js",
+    "http://localhost:3193/_next/static/chunks/3_0484pw1masf.js",
+    "http://localhost:3193/_next/static/chunks/18fj8y_plbl-b.js",
+    "http://localhost:3193/_next/static/chunks/3n9l7po7u5rp8.js",
+    "http://localhost:3193/_next/static/chunks/0yj2o2f6ljxl_.js",
+    "http://localhost:3193/_next/static/chunks/2obq62q4p3xpp.css",
+    "http://localhost:3193/_next/static/chunks/3b5q5eo8rekxu.js"
+  ],
+  "wendapply-pages-v1": [
+    "http://localhost:3193/dashboard",
+    "http://localhost:3193/",
+    "http://localhost:3193/anleitung"
+  ],
+  "wendapply-assets-v1": [
+    "http://localhost:3193/_next/image?url=%2Flanding%2F04-dashboard-light.webp&w=640&q=75",
+    "http://localhost:3193/_next/image?url=%2Flanding%2F04-dashboard-dark.webp&w=640&q=75",
+    "http://localhost:3193/_next/image?url=%2Flogo.png&w=48&q=75",
+    "http://localhost:3193/_next/image?url=%2Flogo-dark.png&w=48&q=75",
+    "http://localhost:3193/icons/icon-32.png",
+    "http://localhost:3193/icons/icon-192.png",
+    "http://localhost:3193/_next/image?url=%2Flanding%2F05-search-light.webp&w=640&q=75",
+    "http://localhost:3193/landing/04-dashboard-light.webp",
+    "http://localhost:3193/_next/image?url=%2Flogo-dark.png&w=64&q=75",
+    "http://localhost:3193/_next/image?url=%2Flogo.png&w=64&q=75"
+  ]
+}
