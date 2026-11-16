@@ -133,14 +133,15 @@ export const guideSteps: GuideStep[] = [
       <>Die Übersicht zeigt Bewerbungen, Zusagen, wer {k("Braucht Aufmerksamkeit")} und {k("Anstehende Fristen")}.</>,
       <>Mit {k("Neue Frist")} und {k("Neue Mitteilung")} erreichen Sie die ganze Klasse. Exporte gibt es als CSV.</>,
     ],
-    tip: <>Mehr zum kostenlosen Pilot für Schulen unter <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/schulen">Für Schulen</a>.</>,
+    tip: <>Mehr zum 30-Tage-Pilot und zu den Lizenzen unter <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/schulen">Für Schulen</a>, <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/pilot">Pilot</a> und <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/preise">Preise</a>.</>,
     shot: { src: "/landing/24-teacher-dashboard-light.webp", darkSrc: "/landing/24-teacher-dashboard-dark.webp", alt: "Lehrpersonen-Übersicht mit Klassen, Bewerbungen und Fristen", width: 1200, height: 1042 },
   },
 ];
 
 /** Plain-text answers: they are reused verbatim in the FAQPage JSON-LD. */
 export const faq: { q: string; a: string }[] = [
-  { q: "Kostet WendApply etwas?", a: "Für Schülerinnen und Schüler ist WendApply kostenlos. Schulen können es im kostenlosen Pilot testen." },
+  { q: "Kostet WendApply etwas?", a: "Für Schülerinnen und Schüler ist WendApply kostenlos. Schulen bezahlen eine Jahreslizenz und können WendApply vorher 30 Tage mit 1 bis 2 Klassen testen. Preise stehen auf wendapply.ch/preise." },
+  { q: "Müssen Schülerinnen und Schüler bezahlen?", a: "Nein. Du bezahlst nichts und musst nichts kaufen. Punkte für dein Dorf gibt es nur für deine Schritte bei der Lehrstellensuche, nie für Geld." },
   { q: "Muss ich WendApply aus dem App Store laden?", a: "Nein. WendApply läuft im Browser. Du kannst es aber direkt aus dem Browser als App auf deinem Handy, Tablet oder Computer installieren, ganz ohne App Store." },
   { q: "Ist die installierte App anders als die Webseite?", a: "Nein, es ist dieselbe WendApply mit deinem Konto und deinen Daten. Die App öffnet sich nur im eigenen Fenster ohne Adresszeile und startet mit einem Tipp vom Home-Bildschirm." },
   { q: "Wie entferne ich die App wieder?", a: "iPhone und Android: Symbol gedrückt halten und entfernen bzw. deinstallieren. Mac und Windows: in der App das Menü öffnen und deinstallieren. Dein Konto und deine Daten bleiben dabei erhalten." },
