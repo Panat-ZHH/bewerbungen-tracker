@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
 import { ArrowRight, Download } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
@@ -10,28 +13,13 @@ import { InstallSection } from "@/components/guide/install-section";
 import { GuideShot } from "@/components/guide/guide-shot";
 import { features, guideSteps, faq } from "@/components/guide/content";
 
-const url = "https://wendapply.ch/anleitung";
-const title = "Anleitung: So funktioniert WendApply";
-const description = "Schritt für Schritt erklärt: Konto erstellen, Lehrstellen suchen, Bewerbungen und Fristen verwalten, KI-Bewerbungs-Check, Dorf, Klassen und WendApply als App auf iPhone, Android, Mac oder Windows installieren.";
-
-export const metadata: Metadata = {
-  title,
-  description,
-  alternates: { canonical: url },
-  openGraph: { title: `${title} | WendApply`, description, url, type: "article", locale: "de_CH", siteName: "WendApply", images: [{ url: "https://wendapply.ch/landing/04-dashboard-light.webp", width: 1200, height: 978, alt: "WendApply Übersicht" }] },
-  twitter: { card: "summary_large_image", title: `${title} | WendApply`, description },
-};
-
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/anleitung" });
 
 export default function AnleitungPage() {
   return (
     <PublicShell>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c") }} />
+      <JsonLd data={publicBreadcrumb("/anleitung")} />
+      <JsonLd data={faqJsonLd(faq)} />
 
       <section aria-labelledby="hero-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_.9fr] lg:gap-10">
         <div className="animate-rise">

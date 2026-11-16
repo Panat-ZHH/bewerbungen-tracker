@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
 import Link from "next/link";
 import { Check, X } from "lucide-react";
 import { PublicShell } from "@/components/public/public-shell";
 import { CONTACT_EMAIL } from "@/components/public/marketing";
 
-const title = "Datenschutz im Überblick";
-const description = "Wer in WendApply was sieht, welche Daten wir bearbeiten, wo sie liegen und wie Löschung, Export und Sicherheit geregelt sind. Für Schulen, Schülerinnen und Schüler und Erziehungsberechtigte.";
 
-export const metadata: Metadata = {
-  title, description, alternates: { canonical: "/datenschutz-uebersicht" },
-  openGraph: { title: `${title} | WendApply`, description, type: "website", locale: "de_CH", siteName: "WendApply" },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/datenschutz-uebersicht" });
 
 const link = "font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]";
 
@@ -52,6 +49,7 @@ const docs = [
 export default function DatenschutzUebersichtPage() {
   return (
     <PublicShell>
+      <JsonLd data={publicBreadcrumb("/datenschutz-uebersicht")} />
       <article className="mx-auto w-full max-w-4xl px-4 py-12 sm:px-6 sm:py-16">
         <h1 className="text-display">Datenschutz <span className="marker">im Überblick</span></h1>
         <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">WendApply arbeitet mit Daten von Jugendlichen. Diese Seite fasst für Schulen, Schülerinnen und Schüler und Erziehungsberechtigte zusammen, wer was sieht und wie wir mit den Daten umgehen. Verbindlich sind die verlinkten Dokumente.</p>

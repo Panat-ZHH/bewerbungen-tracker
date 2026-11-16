@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
 import { LegalPage } from "@/components/legal/legal-page";
 
-export const metadata: Metadata = { title: "Löschkonzept am Klassenende" };
+export const metadata: Metadata = publicMetadata({ canonical: "/loeschkonzept" });
 
 export default function Page() {
-  return <LegalPage docKey="loeschkonzept" />;
+  return <><JsonLd data={publicBreadcrumb("/loeschkonzept")} /><LegalPage docKey="loeschkonzept" /></>;
 }

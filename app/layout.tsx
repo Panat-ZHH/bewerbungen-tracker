@@ -5,15 +5,23 @@ import { Toaster } from "@/components/ui/toaster";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { InstallHint } from "@/components/pwa/InstallHint";
 import { BRAND_TAGLINE } from "@/components/public/marketing";
+import { NOINDEX, OG_IMAGES, SITE_LANG, SITE_LOCALE, SITE_NAME, SITE_URL } from "@/lib/seo/site";
 
 // Display font for titles and big numbers, calm sans for everything else (self-hosted by next/font, no request to Google at runtime).
 const titleFont = Bricolage_Grotesque({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-title" });
 const bodyFont = Instrument_Sans({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-body" });
 
 export const metadata: Metadata = {
+  // Absolute URLs for canonical, Open Graph and Twitter come from here (lib/seo/site.ts).
+  metadataBase: new URL(SITE_URL),
   title: { default: "WendApply | Deine Lehrstellensuche", template: "%s | WendApply" },
   description: BRAND_TAGLINE,
   applicationName: "WendApply",
+  // Noindex by default: covers every app route behind the login (also client layouts like /teacher that cannot export metadata).
+  // Public pages opt in with pageMetadata() from lib/seo/site.ts.
+  robots: NOINDEX,
+  openGraph: { type: "website", siteName: SITE_NAME, locale: SITE_LOCALE, images: [{ ...OG_IMAGES.default, width: 1200, height: 630 }] },
+  twitter: { card: "summary_large_image" },
   // PWA: manifest comes from app/manifest.ts; icons from public/icons (scripts/pwa-icons.mjs). app/icon.png stays the default favicon.
   appleWebApp: { capable: true, title: "WendApply", statusBarStyle: "default" },
   formatDetection: { telephone: false },
@@ -37,7 +45,7 @@ const themeScript = `try{var t=localStorage.getItem("wendapply-theme");var d=t==
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="de" suppressHydrationWarning className={`${titleFont.variable} ${bodyFont.variable}`}>
+    <html lang={SITE_LANG} suppressHydrationWarning className={`${titleFont.variable} ${bodyFont.variable}`}>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body>{children}<Toaster /><InstallHint /><PwaRegister /></body>
     </html>

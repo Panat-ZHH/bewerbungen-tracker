@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
+import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
+import { JsonLd } from "@/components/seo/json-ld";
+import { faqJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
 import { FAMILY, PACKAGES, PILOT, chf } from "@/components/public/marketing";
 
-export const metadata: Metadata = {
-  title: "Hilfe und häufige Fragen",
-  description: "Antworten zu WendApply: Erste Schritte für Schülerinnen, Schüler und Lehrpersonen, Schulen, Preise und Pilot, Familien, Datenschutz und Probleme beim Login.",
-  alternates: { canonical: "/hilfe" },
-  openGraph: { title: "Hilfe und häufige Fragen | WendApply", type: "website", locale: "de_CH", siteName: "WendApply" },
-};
+export const metadata: Metadata = publicMetadata({ canonical: "/hilfe" });
 
 const link = "font-medium text-[var(--brand)] underline underline-offset-4";
 
@@ -54,6 +52,8 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
 export default function HilfePage() {
   return (
     <TextPage title={<>Häufige <span className="marker">Fragen</span></>} intro="Antworten auf die wichtigsten Fragen. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
+      <JsonLd data={publicBreadcrumb("/hilfe")} />
+      <JsonLd data={faqJsonLd(groups.flatMap((g) => g.items))} />
       <p className="panel-flat px-4 py-3.5 text-[15px]">Neu hier? Die <Link className={link} href="/anleitung">Schritt-für-Schritt-Anleitung</Link> erklärt alle Funktionen und wie du WendApply als App installierst.</p>
       <nav aria-label="Themen" className="flex flex-wrap gap-2">
         {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="inline-flex min-h-10 items-center rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold hover:bg-[var(--sun)] hover:text-[var(--on-sun)] pointer-coarse:min-h-11">{g.title.replace("Erste Schritte für ", "Start: ").replace("Schulen, Preise und Pilot", "Schulen und Preise")}</a>)}
