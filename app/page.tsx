@@ -46,7 +46,7 @@ export default function LandingPage() {
             <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
             <ButtonLink href="/schulen" size="lg" variant="secondary">Für Schulen</ButtonLink>
           </div>
-          <p className="text-small mt-5 max-w-md text-muted">Anmeldung mit E-Mail oder Google. Dein Konto kannst du jederzeit selbst löschen.</p>
+          <p className="text-small mt-5 max-w-md text-muted">Anmeldung mit E-Mail oder Google. Dein Konto kannst du jederzeit selbst löschen. <Link className={link} href="/anleitung">So funktioniert’s</Link></p>
         </div>
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <Screenshot name="04-dashboard" alt="Übersicht in WendApply mit Bewerbungen, Status und anstehenden Fristen" width={1200} height={978} priority className="tilt-r" />
