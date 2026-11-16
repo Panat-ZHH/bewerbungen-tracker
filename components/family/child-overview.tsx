@@ -37,7 +37,7 @@ export function ChildOverview({ childId, name }: { childId: string; name: string
       {data.village ? (
         <div className="space-y-1">
           <h4 className="flex items-center gap-2 text-sm font-bold"><Home size={16} aria-hidden />Dorf</h4>
-          <p className="text-body">Stufe {data.village.level} · {data.village.items} Gebäude{data.village.points !== null ? ` · ${data.village.points} Punkte` : ""}</p>
+          <p className="text-body">{data.village.level} {data.village.level === 1 ? "Insel" : "Inseln"} · {data.village.items} Gebäude{data.village.points !== null ? ` · ${data.village.points} Punkte` : ""}</p>
         </div>
       ) : <p className="text-small text-muted">Das Dorf ist nicht geteilt.</p>}
       {data.applications && data.applications.length > 0 && (

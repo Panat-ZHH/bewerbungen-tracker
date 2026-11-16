@@ -191,13 +191,13 @@ export function readChildOverview(data: unknown): ChildOverview | null {
   const v = obj(r.village);
   const apps = Array.isArray(r.applications) ? r.applications : null;
   const statusCounts = counts(p?.status_counts ?? r.status_counts);
-  const total = p ? int(p.total ?? p.applications, Object.values(statusCounts).reduce((a, b) => a + b, 0)) : 0;
+  const total = p ? int(p.applications_total ?? p.total ?? p.applications, Object.values(statusCounts).reduce((a, b) => a + b, 0)) : 0;
   return {
     displayName: str(obj(r.child)?.display_name ?? r.display_name).trim() || "Dein Kind",
     shared: { progress: p !== null || share.progress === true, applications: apps !== null || share.applications === true, village: v !== null || share.village === true },
     consentStatus: r.consent_status ? oneOf(r.consent_status, ["not_required", "pending", "granted", "withdrawn"] as const, "pending") : null,
     progress: p ? { total, statusCounts, lastActivity: p.last_activity ? str(p.last_activity) : null, placed: p.placed === true || (statusCounts.offer ?? 0) > 0 } : null,
-    village: v ? { level: int(v.level, 1), items: int(v.items ?? v.item_count ?? (Array.isArray(v.items) ? (v.items as unknown[]).length : 0)), points: v.points === undefined && v.earned === undefined ? null : int(v.points ?? v.earned) } : null,
+    village: v ? { level: int(v.islands ?? v.level, 1), items: int(v.items ?? v.item_count ?? (Array.isArray(v.items) ? (v.items as unknown[]).length : 0)), points: v.points_earned === undefined && v.points === undefined && v.earned === undefined ? null : int(v.points_earned ?? v.points ?? v.earned) } : null,
     applications: apps ? apps.map((a) => obj(a)).filter((a): a is Row => !!a).map((a) => ({ company: str(a.company), position: str(a.position), status: str(a.status, "saved"), updatedAt: a.updated_at ? str(a.updated_at) : null })) : null,
   };
 }
@@ -247,22 +247,26 @@ export function planSummary(plan: FamilyPlan | null, now: Date = new Date()): { 
 // ---------------------------------------------------------------- errors
 /** German message for an error raised by a family RPC (the server raises short codes; unknown errors get a generic text). */
 export function familyError(error: unknown): string {
-  const e = (error ?? {}) as { message?: unknown; code?: unknown };
+  const e = (error ?? {}) as { message?: unknown; code?: unknown; details?: unknown };
   const text = `${str(e.message)} ${str(e.code)}`;
+  // The migration raises short codes with a German, user-facing `detail` (e.g. INVALID_NAME, BIRTH_YEAR_LOCKED): prefer it.
+  const detail = str(e.details).trim();
+  if (detail && /^[A-Z_]+$/.test(str(e.message).trim())) return detail;
   if (/seat|platz|SEATS?_FULL|limit/i.test(text)) return "In dieser Familie ist kein Platz mehr frei. Für mehr Plätze kannst du über «Zugang anfragen» mit uns Kontakt aufnehmen.";
   if (/expired|abgelaufen/i.test(text)) return "Dieser Code ist abgelaufen. Bitte um einen neuen Code (er gilt 7 Tage).";
   if (/used|already_used|bereits verwendet/i.test(text)) return "Dieser Code wurde schon verwendet. Jeder Code funktioniert nur einmal.";
   if (/invalid|not.?found|unknown|INVALID_CODE/i.test(text)) return "Diesen Code kennen wir nicht. Prüfe die 8 Zeichen und versuche es nochmals.";
   if (/already|ALREADY_MEMBER|bereits/i.test(text)) return "Du bist schon in einer Familie. Verlasse sie zuerst, wenn du wechseln möchtest.";
-  if (/\bSELF\b|OWN_FAMILY|SAME_ROLE|WRONG_ROLE/i.test(text)) return "Dieser Code passt nicht zu deinem Konto (Elternteil oder Kind).";
+  if (/\bSELF\b|OWN_FAMILY|SAME_ROLE|WRONG_ROLE|WRONG_ACCOUNT_TYPE/i.test(text)) return "Dieser Code passt nicht zu deinem Konto (Elternteil oder Kind).";
   if (/consent|zustimmung/i.test(text)) return "Dafür braucht es zuerst die Zustimmung eines Elternteils.";
-  if (/FORBIDDEN|42501|permission|not allowed|NOT_PARENT/i.test(text)) return "Das darfst du in dieser Familie nicht ändern.";
+  if (/FORBIDDEN|42501|permission|not allowed|NOT_A?_?PARENT/i.test(text)) return "Das darfst du in dieser Familie nicht ändern.";
   if (/AUTH|not authenticated|JWT/i.test(text)) return "Bitte melde dich erneut an.";
   return "Das hat nicht geklappt. Versuche es bitte nochmals.";
 }
 
 // ---------------------------------------------------------------- waitlist ("Zugang anfragen")
-export type WaitlistKind = "family" | "independent" | "school";
+/** Must match the check in waitlist_join / waitlist_requests.kind (migration 20261116140000). */
+export type WaitlistKind = "family" | "parent" | "student" | "school" | "other";
 export function waitlistProblem(email: string, message: string): string | null {
   const e = email.trim();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) || e.length > 254) return "Bitte gib eine gültige E-Mail-Adresse ein.";

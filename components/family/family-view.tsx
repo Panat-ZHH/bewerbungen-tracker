@@ -64,7 +64,7 @@ function ComingSoon({ email, parent }: { email: string; parent: boolean }) {
     <>
       <EmptyState icon={<Heart size={26} />} title="Familien-Funktion bald verfügbar" description={parent ? "Bald kannst du hier dein Kind einladen und seinen Fortschritt sehen. Wir melden uns gern, sobald es so weit ist." : "Bald kannst du hier deine Eltern einladen und selbst bestimmen, was sie sehen. Bis dahin funktioniert alles andere wie gewohnt."}
         action={<Button variant="sun" onClick={() => setOpen(true)} icon={<Mail size={16} />}>Zugang anfragen</Button>} />
-      <RequestAccessModal open={open} onClose={() => setOpen(false)} email={email} kind={parent ? "family" : "independent"} />
+      <RequestAccessModal open={open} onClose={() => setOpen(false)} email={email} kind={parent ? "family" : "student"} />
     </>
   );
 }

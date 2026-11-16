@@ -40,7 +40,7 @@ function familyBackend(me) {
     },
     family_set_consent: (b) => { const m = db.family.members.find((x) => x.user_id === b.p_child_id); m.consent_status = b.p_granted ? "granted" : "withdrawn"; return null; },
     family_set_share: (b) => { db.family.members.find((x) => x.user_id === me.id).share_settings = b.p_settings; return null; },
-    family_child_overview: () => ({ child: { display_name: "Lina Meier" }, consent_status: "granted", progress: { total: 6, status_counts: { applied: 3, interview: 1, offer: 1, saved: 1 }, last_activity: inDays(-1).slice(0, 10) }, village: { level: 3, items: 7, points: 420 } }),
+    family_child_overview: () => ({ child: { display_name: "Lina Meier" }, consent_status: "granted", progress: { total: 6, status_counts: { applied: 3, interview: 1, offer: 1, saved: 1 }, last_activity: inDays(-1).slice(0, 10) }, village: { islands: 3, items: 7, points_earned: 420 } }),
     family_remove_member: (b) => { db.family.members = db.family.members.filter((m) => m.user_id !== b.p_user_id); return null; },
     family_leave: () => { db.family = null; return null; },
     family_export_my_data: () => ({ families: [{ id: "f1" }], family_members: [{ role: "parent" }], invite_token: "geheim" }),
@@ -116,7 +116,7 @@ for (const { key, vp } of VIEWPORTS) {
     check(calls(state, "family_set_consent")[0]?.body.p_child_id === "c1" && calls(state, "family_set_consent")[0]?.body.p_granted === true, "family_set_consent(c1, true)");
     check(await visible(page, "Bewerbungen erfasst"), "child overview: progress");
     check(await visible(page, "Zusage erhalten"), "child overview: placed badge");
-    check(await visible(page, "Stufe 3 · 7 Gebäude · 420 Punkte"), "child overview: village");
+    check(await visible(page, "3 Inseln · 7 Gebäude · 420 Punkte"), "child overview: village");
     check(!(await page.getByText("Bewerbungsliste").count()), "application list hidden when not shared");
     const text = await page.locator("main").innerText();
     check(!/Rückruf|Notiz|Swisscom/.test(text), "no notes or companies leak into the parent view");

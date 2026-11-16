@@ -122,6 +122,11 @@ test("readChildOverview only reports what was shared", () => {
   assert.equal(o.progress.total, 5); assert.equal(o.progress.placed, true);
   assert.deepEqual(o.progress.statusCounts, { applied: 3, interview: 1, offer: 1 });
   assert.deepEqual(o.village, { level: 3, items: 7, points: 420 });
+  // payload shape exactly as family_child_overview returns it
+  const live = readChildOverview({ child: { user_id: "c", display_name: "Lina" }, consent_status: "granted", sharing_active: true, shared: { progress: true, applications: false, village: true, documents: false }, progress: { applications_total: 4, status_counts: { applied: 4 }, placed: false, last_activity: null }, village: { islands: 2, items: 5, points_earned: 90 } });
+  assert.equal(live.progress.total, 4);
+  assert.deepEqual(live.village, { level: 2, items: 5, points: 90 });
+  assert.equal(live.shared.applications, false);
   assert.equal(o.applications, null);
   assert.deepEqual(o.shared, { progress: true, applications: false, village: true });
   const hidden = readChildOverview({ display_name: "Lina", progress: null, village: null });
@@ -159,6 +164,14 @@ test("familyError maps server codes to German (Swiss spelling) messages", () => 
   assert.match(familyError({ message: "ALREADY_MEMBER" }), /schon in einer Familie/);
   assert.match(familyError({ message: "FORBIDDEN" }), /nicht ändern/);
   assert.match(familyError({ message: "boom" }), /nicht geklappt/);
+  // codes exactly as raised by the migration
+  assert.match(familyError({ message: "FAMILY_SEAT_LIMIT" }), /kein Platz mehr/);
+  assert.match(familyError({ message: "INVITE_USED" }), /schon verwendet/);
+  assert.match(familyError({ message: "INVITE_INVALID" }), /kennen wir nicht/);
+  assert.match(familyError({ message: "ALREADY_IN_FAMILY" }), /schon in einer Familie/);
+  assert.match(familyError({ message: "INVITE_WRONG_ACCOUNT_TYPE" }), /passt nicht/);
+  assert.match(familyError({ message: "NOT_A_PARENT" }), /nicht ändern/);
+  assert.equal(familyError({ message: "INVALID_NAME", details: "Der Familienname darf höchstens 80 Zeichen haben." }), "Der Familienname darf höchstens 80 Zeichen haben.");
   assert.equal(waitlistProblem("nope", ""), "Bitte gib eine gültige E-Mail-Adresse ein.");
   assert.equal(waitlistProblem("a@b.ch", "x".repeat(1001)), "Die Nachricht ist zu lang (höchstens 1000 Zeichen).");
   assert.equal(waitlistProblem(" a@b.ch ", "Hallo"), null);
