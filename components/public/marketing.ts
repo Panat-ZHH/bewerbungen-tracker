@@ -73,3 +73,32 @@ export const MAIL = {
   multi: mailto("WendApply: Angebot für mehrere Standorte", `Wir interessieren uns für ein Angebot für mehrere Standorte bzw. einen Schulverband.\n\nAnzahl Standorte:\n${schoolBody}`),
   pilot: mailto("WendApply: 30-Tage-Pilot anfragen", `Wir möchten WendApply mit 1 bis 2 Klassen 30 Tage lang testen.\n\nKlassen / Stufe:\nGewünschter Start:\n${schoolBody}`),
 };
+
+/**
+ * Familien / Privatkunden (parents and independent young people). No price is set yet: the site shows a
+ * clearly marked placeholder and there is no online purchase. Plan assignment happens manually by an admin.
+ */
+export const FAMILY = {
+  name: "Familienpaket",
+  seatsParents: 1,
+  seatsChildren: 1,
+  /** null = price not decided yet. Never invent one here. */
+  pricePerYear: null as number | null,
+  pricePlaceholder: "Preis folgt – noch nicht festgelegt",
+  status: "bald verfügbar",
+  features: [
+    "1 Elternteil + 1 Kind (weitere Kinder später möglich)",
+    "Alle Funktionen für Jugendliche: Stellen, Bewerbungen, Fristen, Dorf",
+    "Fortschritt fürs Elternkonto, soweit das Kind ihn teilt",
+    "Einwilligung der Eltern für Kinder unter 16",
+    "Export und Löschung der eigenen Daten",
+  ],
+};
+
+/** Value sent as p_kind to the RPC waitlist_join from the Familien page. */
+export const WAITLIST_KIND_FAMILY = "family";
+
+export const MAIL_FAMILY = mailto(
+  "WendApply: Zugang anfragen (Familien)",
+  "Ich interessiere mich für WendApply für Familien.\n\nIch bin: Elternteil / Jugendliche:r\n\nNachricht:\n",
+);

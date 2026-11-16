@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
-import { PACKAGES, PILOT, chf } from "@/components/public/marketing";
+import { FAMILY, PACKAGES, PILOT, chf } from "@/components/public/marketing";
 
 export const metadata: Metadata = {
   title: "Hilfe und häufige Fragen",
-  description: "Antworten zu WendApply: Erste Schritte für Schülerinnen, Schüler und Lehrpersonen, Schulen, Preise und Pilot, Datenschutz und Probleme beim Login.",
+  description: "Antworten zu WendApply: Erste Schritte für Schülerinnen, Schüler und Lehrpersonen, Schulen, Preise und Pilot, Familien, Datenschutz und Probleme beim Login.",
   alternates: { canonical: "/hilfe" },
   openGraph: { title: "Hilfe und häufige Fragen | WendApply", type: "website", locale: "de_CH", siteName: "WendApply" },
 };
@@ -32,6 +32,11 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
     { q: "Wie funktioniert der Pilot?", a: <>{PILOT.days} Tage mit {PILOT.classes}, zeitlich begrenzt und mit einem vereinbarten Feedback- und Entscheidungsgespräch am Ende. Ablauf unter <Link className={link} href="/pilot">Pilot</Link>.</> },
     { q: "Wie buchen wir eine Demo?", a: <>Schreiben Sie uns an <a className={link} href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("WendApply: Demo buchen")}`}>{CONTACT_EMAIL}</a>. Wir zeigen WendApply live aus Sicht der Schülerinnen und Schüler und der Lehrpersonen.</> },
     { q: "Sehen Mitschülerinnen und Mitschüler meine Bewerbungen?", a: "Nein. Klassenziele und Klassendorf zeigen keine vertraulichen Bewerbungsdetails. Lehrpersonen sehen nur, was du für die Klasse freigibst." },
+  ] },
+  { id: "familien", title: "Familien und Eltern", items: [
+    { q: "Gibt es WendApply auch für Familien?", a: <>Ja, bald. Das {FAMILY.name} ist für 1 Elternteil und 1 Kind gedacht, weitere Kinder sollen später möglich sein. Der Preis ist noch nicht festgelegt. Mehr und Warteliste unter <Link className={link} href="/familien">Für Familien</Link>.</> },
+    { q: "Was sehen Eltern?", a: "Nur das, was das Kind freigibt: standardmässig Fortschritt und Dorf, die Bewerbungsliste nur auf Wunsch. Notizen und Dokumente bleiben privat. Das Kind kann das Teilen jederzeit beenden." },
+    { q: "Braucht es eine Einwilligung der Eltern?", a: "Für Kinder unter 16 ja, bevor etwas mit dem Elternkonto geteilt wird. Die App selbst kann das Kind auch ohne Einwilligung nutzen." },
   ] },
   { id: "datenschutz", title: "Datenschutz", items: [
     { q: "Wer sieht meine Daten?", a: "Nur du. Lehrpersonen sehen ausschliesslich, was du bei der Klasse freigibst. Mehr dazu in der Datenschutzerklärung." },

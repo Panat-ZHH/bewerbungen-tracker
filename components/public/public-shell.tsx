@@ -9,6 +9,7 @@ export { CONTACT_EMAIL };
 
 const nav = [
   { href: "/schulen", label: "Für Schulen" },
+  { href: "/familien", label: "Familien" },
   { href: "/preise", label: "Preise" },
   { href: "/pilot", label: "Pilot" },
   { href: "/anleitung", label: "Anleitung" },
@@ -18,6 +19,7 @@ const nav = [
 
 const product = [
   { href: "/schulen", label: "Für Schulen" },
+  { href: "/familien", label: "Für Familien" },
   { href: "/preise", label: "Preise" },
   { href: "/pilot", label: "30-Tage-Pilot" },
   { href: "/anleitung", label: "Anleitung" },
