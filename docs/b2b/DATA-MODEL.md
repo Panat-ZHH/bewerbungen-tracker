@@ -109,11 +109,13 @@ The family-accounts agent should **not** add columns to `school_licences`. Inste
   placed, needs_support + reasons. Never company, position, location, notes, salary, contacts, documents or links.
   Consent switches are respected exactly like the existing teacher RPCs: without "Fortschritt teilen" a student is
   `hidden` (only name + the voluntary `self_report` reason); status-based numbers (`status_counts`, `placed`,
-  `many_rejections`) need "Status zeigen". Placed students never need support (same rule as `teacher_attention`).
+  `many_rejections`, `upcoming_deadline`) need "Status zeigen". Placed students never need support (same rule as `teacher_attention`).
   Goal progress: totals without suppression (teachers can already see each consenting student).
 * **School admins**: their school, licence and seat usage, list of classes (name, year, teacher name, student count) and
   teachers (name, number of classes), plus aggregates of **sharing** students only (applications, students with an
-  application, placed, active in 14 days), suppressed below 3 sharing students. No student names, no per-student data, no
+  application, placed, active in 14 days), suppressed below 3 sharing students. The school totals are also suppressed
+  when 1 or 2 sharing students are only in suppressed classes (complementary suppression: otherwise totals minus the
+  visible classes would single them out). No student names, no per-student data, no
   application rows, no direct access to `classes`, `class_members` or `applications`.
 
 ### Support reasons (`class_overview_stats`)
@@ -123,12 +125,12 @@ The family-accounts agent should **not** add columns to `school_licences`. Inste
 | `self_report` | student set "noch keine Lehrstelle" | nothing (voluntary) |
 | `no_application` | no application at all | Fortschritt teilen |
 | `no_activity` | last activity (`max(applied_at, created_at, updated_at)`) older than `p_inactive_days` | Fortschritt teilen |
-| `upcoming_deadline` | an application in `saved`/`preparing` with a deadline within 7 days | Fortschritt teilen |
+| `upcoming_deadline` | an application in `saved`/`preparing` with a deadline within 7 days | Fortschritt teilen + Status zeigen (the status is used) |
 | `many_rejections` | 3 or more applications with status `rejected` | Status zeigen |
 
 ### Goal metrics (per student, compared with `target`)
 
-* `applications_sent`: applications with `applied_at` set or status in applied/aptitude_test/interview/final_interview/offer/contract_signed/rejected (same list as the map reward). Needs "Fortschritt teilen".
+* `applications_sent`: applications with `applied_at` set or status in applied/aptitude_test/interview/final_interview/offer/contract_signed/rejected (same list as the map reward). Needs "Fortschritt teilen"; without "Status zeigen" only `applied_at` counts.
 * `interviews`: status interview/final_interview/offer/contract_signed. Needs "Status zeigen".
 * `trial_days`: applications with a `schnupper_date` in the past (or status `schnupper_done` without a date, if status is shared).
 * `custom`: no automatic progress (numbers `null`).

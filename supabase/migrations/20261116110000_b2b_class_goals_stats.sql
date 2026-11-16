@@ -70,7 +70,7 @@ returns integer language sql stable security definer set search_path = '' as $$
   select case
     when not p_share or p_metric = 'custom' then null
     when p_metric = 'applications_sent' then (select count(*)::integer from public.applications a where a.user_id = p_student
-      and (a.applied_at is not null or a.status in ('applied', 'aptitude_test', 'interview', 'final_interview', 'offer', 'contract_signed', 'rejected')))
+      and (a.applied_at is not null or (p_share_status and a.status in ('applied', 'aptitude_test', 'interview', 'final_interview', 'offer', 'contract_signed', 'rejected'))))
     when p_metric = 'interviews' then case when p_share_status then (select count(*)::integer from public.applications a where a.user_id = p_student
       and a.status in ('interview', 'final_interview', 'offer', 'contract_signed')) end
     when p_metric = 'trial_days' then (select count(*)::integer from public.applications a where a.user_id = p_student
@@ -117,7 +117,7 @@ $$;
 --   self_report       student said "noch keine Lehrstelle" (voluntary; the only reason visible without sharing)
 --   no_application    sharing student without any application
 --   no_activity       sharing student whose last activity is older than p_inactive_days (default 14)
---   upcoming_deadline sharing student with an application in 'saved'/'preparing' whose deadline is within 7 days
+--   upcoming_deadline student sharing progress AND status with an application in 'saved'/'preparing' due within 7 days
 --   many_rejections   status shared and at least 3 rejections
 -- Students with a shared offer / signed contract ("placed") never need support (same rule as teacher_attention).
 create or replace function public.class_overview_stats(p_class_id uuid, p_inactive_days integer default 14)
@@ -146,7 +146,7 @@ begin
         case when b.sr then 'self_report' end,
         case when b.sa and b.total = 0 then 'no_application' end,
         case when b.sa and b.total > 0 and b.last_date < current_date - days then 'no_activity' end,
-        case when b.sa and b.due_soon > 0 then 'upcoming_deadline' end,
+        case when b.ss and b.due_soon > 0 then 'upcoming_deadline' end, -- 'saved'/'preparing' is a status
         case when b.ss and b.rejected_n >= 3 then 'many_rejections' end], null) as raw_reasons
     from base b),
   fin as (select s.*, case when s.placed then '{}'::text[] else s.raw_reasons end as reasons from st s)

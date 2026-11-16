@@ -324,6 +324,36 @@ test("school admin: totals cannot be differenced against visible classes to sing
   assert.equal(ov2.classes.find((c) => c.name === "Rev W").applications, 4);
 });
 
+test("teacher: nothing derived from the application status without 'Status zeigen' (support reason, goal metric)", async () => {
+  const R = { t: id(51), s: id(52) };
+  await ctx.admin(`insert into auth.users values ('${R.t}','rev2-t@x.ch','{"full_name":"REV2-T","role":"teacher"}'),('${R.s}','rev2-s@x.ch','{"full_name":"REV2-S","role":"student"}')`);
+  await ctx.admin("update public.user_roles set under_16 = false where user_id = $1", [R.s]);
+  await ctx.as(R.t);
+  const [k] = await ctx.rpc("select * from public.class_create('Rev Status', '2026/27')");
+  await ctx.as(R.s);
+  await ctx.rpc("select * from public.class_join($1)", [k.join_code]);
+  await ctx.rpc("select public.class_set_sharing_v2($1, true, false, false)", [k.id]); // progress yes, status no, companies no
+  // 'saved' with a deadline in 3 days; 'interview' without applied_at (status alone says "sent").
+  await app(R.s, "rev2-saved", "saved", { deadline: day(3) });
+  await app(R.s, "rev2-int", "interview");
+  await ctx.as(R.t);
+  await ctx.rpc("insert into public.class_goals (class_id, title, metric, target) values ($1, 'Senden', 'applications_sent', 1)", [k.id]);
+  const st = (await ctx.rpc("select public.class_overview_stats($1) as s", [k.id]))[0].s;
+  const me = st.students.find((x) => x.student_id === R.s);
+  assert.equal(me.applications, 2, "counts are shared");
+  assert.ok(!me.reasons.includes("upcoming_deadline"), "'saved'/'preparing' is a status: needs share_status");
+  const [g] = await ctx.rpc("select * from public.class_goal_progress($1)", [k.id]);
+  assert.equal(g.total_value, 0, "'sent' may only come from applied_at without share_status");
+  // with "Status zeigen" both appear
+  await ctx.as(R.s);
+  await ctx.rpc("select public.class_set_sharing_v2($1, true, false, true)", [k.id]);
+  await ctx.as(R.t);
+  const st2 = (await ctx.rpc("select public.class_overview_stats($1) as s", [k.id]))[0].s;
+  assert.ok(st2.students.find((x) => x.student_id === R.s).reasons.includes("upcoming_deadline"));
+  assert.equal((await ctx.rpc("select * from public.class_goal_progress($1)", [k.id]))[0].total_value, 1);
+  await ctx.rpc("delete from public.class_goals where class_id=$1", [k.id]); // later tests count all goals
+});
+
 test("class goals: teachers CRUD via table, members read, others nothing; progress is aggregate-only", async () => {
   await ctx.as(U.teacher);
   const [g1] = await ctx.rpc("insert into public.class_goals (class_id, title, metric, target, due_date) values ($1, ' 3 Bewerbungen ', 'applications_sent', 3, $2) returning *", [cls.id, day(30)]);
