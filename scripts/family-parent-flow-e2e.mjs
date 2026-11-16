@@ -125,7 +125,7 @@ const scenarios = {
       check(await waitSel(page, "[data-testid=family-stepper]", 90000), "AC-P1: stepper visible");
       check(await stepState(page, "family") === "current" && await stepState(page, "child") === "todo" && await stepState(page, "plan") === "todo", "AC-P1: family current, child/plan todo");
       check(await primaryText(page) === "Familie erstellen", "AC-P1: primary is 'Familie erstellen'", await primaryText(page));
-      check(await page.getByText("Dein Kind hat dir schon einen Code geschickt?").isVisible() && !(await page.locator("#family-code").isVisible()), "AC-P1: join form collapsed");
+      check(await page.getByText("Dein Kind hat dir schon einen Code geschickt?").isVisible() && !(await page.locator("[data-testid=join-form] input").first().isVisible()), "AC-P1: join form collapsed");
       check(!(await page.locator("[data-family-price], #abo").count()), "AC-P1: no price / plan card");
       await globals(page);
       if (key === "desktop") await axe(page, "main");
@@ -328,7 +328,7 @@ const scenarios = {
       await page.goto(`${BASE}/familie/einladung/ABCD1234`, { waitUntil: "domcontentloaded" });
       check(await waitSel(page, "[data-next-action=accept_invite]", 90000), "AC-P15: next action accept_invite");
       check(await primaryText(page) === "Einladung annehmen", "AC-P15: primary 'Einladung annehmen'", await primaryText(page));
-      check(await page.locator("#family-code").inputValue() === "ABCD 1234", "AC-P15: code prefilled");
+      check(await page.locator("[data-testid=join-form] input").first().inputValue() === "ABCD 1234", "AC-P15: code prefilled");
       check(await page.getByRole("button", { name: "Lieber eine eigene Familie erstellen" }).isVisible(), "AC-P15: create-own as secondary");
       await globals(page);
       await shot(page, `13-invite-link-${key}`);
@@ -348,7 +348,7 @@ const scenarios = {
     const { ctx, page, db } = await actor(browser, { fam });
     await page.goto(`${BASE}/familie/einladung/WXYZ5678`, { waitUntil: "domcontentloaded" });
     check(await waitSel(page, "[data-family-state=parent]", 90000), "parent view");
-    check(await page.locator("#family-code").inputValue() === "WXYZ 5678", "invite code prefilled in the open join toggle");
+    check(await page.locator("[data-testid=join-form] input").first().inputValue() === "WXYZ 5678", "invite code prefilled in the open join toggle");
     await page.getByRole("button", { name: "Mit meinem Kind verbinden" }).click();
     check(await visible(page, "Der Familie deines Kindes beitreten?"), "AC-P16: switch modal");
     await page.getByRole("dialog").getByRole("button", { name: "Ja, beitreten" }).click();

@@ -116,12 +116,7 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
       <h2 id="step-child" className="text-heading"><UserPlus size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{FAMILY_COPY.step2.title}</h2>
       <p className="text-body text-muted">{FAMILY_COPY.step2.text}</p>
       <InvitePanel direction="parent_invites_child" initialInvite={invite} onCreated={setLocalInvite} primary hideTitle />
-      {invite && (
-        <div className="space-y-1" data-invite-waiting>
-          <p role="status" className="flex items-start gap-2 text-sm font-semibold"><span aria-hidden className="mt-1.5 size-2 shrink-0 rounded-full bg-[var(--brand)] motion-safe:animate-pulse" />{FAMILY_COPY.step2.waiting}</p>
-          <p className="text-small text-muted">{FAMILY_COPY.step2.noAccount}</p>
-        </div>
-      )}
+      {/* InvitePanel renders the waiting status and the "no account yet" hint itself once a code exists. */}
       {online && !payNow && (phase === "none" || phase === "ended") && (
         <button type="button" onClick={openPlanNow} className="min-h-11 text-sm font-semibold underline underline-offset-2">{FAMILY_COPY.step2.payNow}</button>
       )}
