@@ -5,7 +5,7 @@ import { CONSENT_LABELS, type ConsentChoice } from "@/lib/consent";
 
 // Switch with ink contour: on = green fill with a check in the knob (not colour alone), off = quiet track.
 // Disabled dims only the track: the explanation text stays readable (WCAG AA).
-function ConsentSwitch({ label, description, checked, disabled, onChange }: { label: string; description: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
+export function ConsentSwitch({ label, description, checked, disabled, onChange }: { label: string; description: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
   return (
     <label className={`flex min-h-11 items-center justify-between gap-4 py-3 ${disabled ? "cursor-not-allowed" : "cursor-pointer"}`}>
       <span className="min-w-0"><span className="block text-sm font-bold">{label}</span><span className="text-small mt-0.5 block text-muted">{description}</span></span>

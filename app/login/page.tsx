@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, CheckCircle2, Eye, EyeOff, GraduationCap, UserRound } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -16,15 +16,11 @@ import { resolveLanding } from "@/lib/role";
 import { InviteBanner } from "@/components/onboarding/invite-banner";
 import { LoginValueProp } from "@/components/onboarding/login-value-prop";
 import { AuthBrand } from "@/components/onboarding/auth-frame";
+import { BirthYearField, SIGNUP_OPTIONS } from "@/components/onboarding/role-cards";
+import { isValidBirthYear, signupMetadata, type SignupChoice } from "@/lib/family-core";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleTrail } from "@/components/ui/doodles";
 
 type AuthMode = "login" | "signup";
-type Role = "student" | "teacher";
-
-const roles: { value: Role; label: string; hint: string; icon: typeof UserRound }[] = [
-  { value: "student", label: "Schüler:in", hint: "Ich bewerbe mich", icon: UserRound },
-  { value: "teacher", label: "Lehrperson", hint: "Ich begleite Klassen", icon: GraduationCap },
-];
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,7 +28,8 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<Role>("student");
+  const [role, setRole] = useState<SignupChoice>("school");
+  const [birthYear, setBirthYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -78,11 +75,16 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
+    if (mode === "signup" && role === "independent" && !isValidBirthYear(birthYear)) {
+      setError("Bitte wähle deinen Jahrgang.");
+      setLoading(false);
+      return;
+    }
     let result;
     try {
       result = mode === "login"
         ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: { role } } });
+        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: signupMetadata(role, birthYear) } });
     } catch (reason) {
       setError(authMessage(reason));
       setLoading(false);
@@ -158,7 +160,7 @@ export default function LoginPage() {
               <fieldset>
                 <legend className="mb-2 block text-sm font-semibold">Ich bin</legend>
                 <div className="grid grid-cols-2 gap-2.5">
-                  {roles.map(({ value, label, hint, icon: Icon }) => {
+                  {SIGNUP_OPTIONS.map(({ value, label, short: hint, icon: Icon }) => {
                     const selected = role === value;
                     return (
                       <label key={value} className={`relative flex min-h-[76px] cursor-pointer flex-col items-start justify-center gap-0.5 rounded-[var(--radius-lg)] border-[length:var(--border-w)] p-3 transition-[transform,box-shadow,background-color] duration-150 focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-[var(--focus-ring)] active:translate-y-px ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-sm)]" : "border-[var(--field-border)] bg-[var(--field-bg)] hover:bg-[var(--surface-2)]"}`}>
@@ -169,6 +171,7 @@ export default function LoginPage() {
                     );
                   })}
                 </div>
+                {role === "independent" && <div className="mt-3"><BirthYearField value={birthYear} onChange={setBirthYear} id="signup-birth-year" /></div>}
               </fieldset>
             )}
 

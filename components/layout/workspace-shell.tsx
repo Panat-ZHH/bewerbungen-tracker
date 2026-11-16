@@ -4,7 +4,7 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, Heart, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
@@ -19,6 +19,7 @@ import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
+import { FAMILY_PATH, isParentMeta, parentGuardRedirect } from "@/lib/family-core";
 import { NotificationsBell } from "./notifications-bell";
 
 type NavItem = { label: string; href: string; icon: typeof Search; keys: string[]; prefixes?: string[] };
@@ -39,6 +40,10 @@ const teacherNavigation: NavItem[] = [
   { label: "Klassen", href: "/teacher", icon: GraduationCap, keys: ["Übersicht", "Klassen", "Lehrer", "Teacher"], prefixes: ["/teacher"] },
 ];
 const teacherPrimaryHrefs = ["/teacher", "/profile", "/settings"];
+/** Family area: in "Mehr" for private students (not for students in a class: school-managed accounts stay as they are). */
+const familyItem: NavItem = { label: "Familie", href: FAMILY_PATH, icon: Heart, keys: ["Familie", "Family"], prefixes: [FAMILY_PATH] };
+/** Parent accounts (account_type parent) only manage their family: Familie, Profil, Einstellungen. */
+const parentNavigation: NavItem[] = [familyItem];
 /** Items shown directly in the mobile tab bar; everything else goes into the "Mehr" sheet. */
 const primaryHrefs = ["/dashboard", "/search", "/applications", "/map", "/friends"];
 /** Students who joined a class see "Klassen" in the tab bar instead of "Freunde" (friends then live in "Mehr"). */
@@ -62,7 +67,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const [moreOpen, setMoreOpen] = useState(false);
   const myAvatar = useMyAvatar(Boolean(user));
   const [role, setRole] = useState<UserRole | null>(null);
-  const [inClass, setInClass] = useState(false);
+  const [inClass, setInClass] = useState<boolean | null>(null);
   const [profileName, setProfileName] = useState("");
 
   useEffect(() => {
@@ -92,7 +97,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
     loadMyRole(user).then(({ role: resolved, displayName: name }) => {
       if (!alive) return;
       setProfileName(name);
-      const target = guardRedirect(resolved, pathname ?? "/");
+      const target = guardRedirect(resolved, pathname ?? "/") ?? (resolved === "student" && isParentMeta(user.user_metadata) ? parentGuardRedirect(pathname ?? "/") : null);
       if (target) router.replace(target); else setRole(resolved);
     });
     return () => { alive = false; };
@@ -100,7 +105,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
   // Students in at least one class get "Klassen" in the mobile tab bar.
   useEffect(() => {
-    if (!user || role !== "student") return;
+    if (!user || role !== "student" || isParentMeta(user.user_metadata)) return;
     let alive = true;
     getMyClassMemberships().then((list) => { if (alive) setInClass(list.length > 0); }).catch(() => {});
     return () => { alive = false; };
@@ -143,16 +148,21 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
   const displayName = (isPlaceholderName(profileName, user.email) ? undefined : profileName) ?? (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
   const isTeacher = role === "teacher";
-  const items = isTeacher ? teacherNavigation : navigation;
-  const accountItems: NavItem[] = isTeacher ? [{ ...accountLinks[0], keys: [...accountLinks[0].keys] }, { ...accountLinks[1], keys: [...accountLinks[1].keys] }] : accountLinks;
-  const isSelected = (item: NavItem) => item.keys.includes(active) || (isTeacher && (item.prefixes ?? [item.href]).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)));
-  const mobileAll = isTeacher ? [...teacherNavigation, ...accountItems] : navigation;
+  const isParent = !isTeacher && isParentMeta(user.user_metadata);
+  // Parents get the compact menu (like teachers); private students (no class) find "Familie" under "Mehr".
+  const studentNav = inClass === false ? [...navigation, familyItem] : navigation;
+  const compact = isTeacher || isParent;
+  const compactNav = isTeacher ? teacherNavigation : parentNavigation;
+  const items = compact ? compactNav : studentNav;
+  const accountItems: NavItem[] = compact ? [{ ...accountLinks[0], keys: [...accountLinks[0].keys] }, { ...accountLinks[1], keys: [...accountLinks[1].keys] }] : accountLinks;
+  const isSelected = (item: NavItem) => item.keys.includes(active) || ((compact || item.href === FAMILY_PATH) && (item.prefixes ?? [item.href]).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)));
+  const mobileAll = compact ? [...compactNav, ...accountItems] : studentNav;
   const studentPrimary = inClass ? primaryHrefsInClass : primaryHrefs;
-  const primary = isTeacher ? mobileAll.filter((item) => teacherPrimaryHrefs.includes(item.href)) : navigation.filter((item) => studentPrimary.includes(item.href));
-  const more = isTeacher ? [] : navigation.filter((item) => !studentPrimary.includes(item.href));
-  const moreList = isTeacher ? [] : [...more, ...accountLinks];
+  const primary = compact ? mobileAll.filter((item) => [...teacherPrimaryHrefs, FAMILY_PATH].includes(item.href)) : studentNav.filter((item) => studentPrimary.includes(item.href));
+  const more = compact ? [] : studentNav.filter((item) => !studentPrimary.includes(item.href));
+  const moreList = compact ? [] : [...more, ...accountLinks];
   const moreActive = moreList.some(isSelected);
-  const home = homeFor(role);
+  const home = isParent ? FAMILY_PATH : homeFor(role);
 
   return (
     <div className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
@@ -189,7 +199,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
           <div className="flex-1 md:hidden" />
 
           <div className="flex shrink-0 items-center gap-1">
-            {!isTeacher && <NotificationsBell />}
+            {!compact && <NotificationsBell />}
             <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] md:flex">
               <Settings size={18} strokeWidth={2} />
             </Link>
@@ -225,7 +235,7 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
           })}
           <li className="min-w-0 flex-1">
             <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
-              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full border-[length:var(--border-w)] transition-colors duration-150 ${moreActive ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!isTeacher && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
+              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full border-[length:var(--border-w)] transition-colors duration-150 ${moreActive ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!compact && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
               <span>Mehr</span>
             </button>
           </li>

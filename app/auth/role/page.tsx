@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RoleCards } from "@/components/onboarding/role-cards";
+import { BirthYearField, RoleCards } from "@/components/onboarding/role-cards";
 import { AuthFrame, AuthTitle } from "@/components/onboarding/auth-frame";
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
-import { chooseRole, landingPath, needsRoleChoice, studentOnboardingHref, TEACHER_HOME } from "@/lib/role";
+import { chooseRole, landingPath, needsRoleChoice, parentLandingPath, studentOnboardingHref, TEACHER_HOME } from "@/lib/role";
+import { choiceToAccount, isValidBirthYear, signupMetadata, type SignupChoice } from "@/lib/family-core";
+import { syncPendingAccountType } from "@/lib/family";
 import { authMessage, safeNextPath } from "@/lib/ux";
-import type { UserRole } from "@/types";
 
 /** Asked once for accounts without an explicit role (e.g. first Google login). */
 export default function ChooseRolePage() {
   const router = useRouter();
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [role, setRole] = useState<SignupChoice | null>(null);
+  const [birthYear, setBirthYear] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -34,12 +36,19 @@ export default function ChooseRolePage() {
 
   async function confirm() {
     if (!role) return;
+    if (role === "independent" && !isValidBirthYear(birthYear)) { setError("Bitte wähle deinen Jahrgang."); return; }
     setBusy(true); setError("");
     try {
       const { data } = await supabase.auth.getUser();
       if (!data.user) { router.replace("/login"); return; }
-      const effective = await chooseRole(data.user, role);
-      router.replace(effective === "teacher" ? TEACHER_HOME : studentOnboardingHref(next()));
+      const { role: baseRole, accountType } = choiceToAccount(role);
+      const effective = await chooseRole(data.user, baseRole);
+      if (effective === "student" && accountType) {
+        // Private customers: remember the account type and store it with account_set_type (retried later if not deployed yet).
+        const { data: updated } = await supabase.auth.updateUser({ data: signupMetadata(role, birthYear) });
+        await syncPendingAccountType(updated.user ?? data.user);
+      }
+      router.replace(effective === "teacher" ? TEACHER_HOME : accountType === "parent" && effective === "student" ? parentLandingPath(next()) : studentOnboardingHref(next()));
     } catch (reason) { setError(authMessage(reason)); setBusy(false); }
   }
 
@@ -50,6 +59,7 @@ export default function ChooseRolePage() {
             <AuthTitle title={<>Wie nutzt du <span className="marker">WendApply</span>?</>}>Das fragen wir nur einmal. So zeigen wir dir die passende Ansicht.</AuthTitle>
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             <RoleCards value={role} onChange={setRole} disabled={busy} />
+            {role === "independent" && <BirthYearField value={birthYear} onChange={setBirthYear} />}
             <Button size="lg" disabled={!role} loading={busy} onClick={confirm} className="w-full sm:w-auto sm:min-w-48">Weiter</Button>
           </div>
         )}
