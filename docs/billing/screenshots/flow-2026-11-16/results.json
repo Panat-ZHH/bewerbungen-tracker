@@ -1,0 +1,266 @@
+{
+  "base": "https://stripe-preview--bewerbungen-pawat.netlify.app",
+  "ranAt": "2026-11-16T21:06:05.423Z",
+  "fatal": null,
+  "results": [
+    {
+      "id": "F1",
+      "name": "Parent signup via /login (role Elternteil)",
+      "pass": true,
+      "detail": "confirm"
+    },
+    {
+      "id": "F1",
+      "name": "Parent confirmed via Supabase admin API",
+      "pass": true,
+      "detail": "parent"
+    },
+    {
+      "id": "F2",
+      "name": "Parent login lands on /familie (no student onboarding)",
+      "pass": true,
+      "detail": "/familie"
+    },
+    {
+      "id": "F1",
+      "name": "Student signup (Schüler:in privat, Jahrgang 2012)",
+      "pass": true,
+      "detail": "confirm"
+    },
+    {
+      "id": "F1",
+      "name": "Student confirmed via admin API",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F3",
+      "name": "Student login lands on onboarding/dashboard",
+      "pass": true,
+      "detail": "/onboarding"
+    },
+    {
+      "id": "AC-S7",
+      "name": "Tour step 'Fertig' shows 'Eltern verbinden (freiwillig)' → /familie",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-S7",
+      "name": "Tour link opens /familie",
+      "pass": true,
+      "detail": "/familie"
+    },
+    {
+      "id": "AC-P1",
+      "name": "Parent start: state parent-start, step family=current",
+      "pass": true,
+      "detail": "parent-start"
+    },
+    {
+      "id": "AC-P1",
+      "name": "Parent start: no buy button / price before family",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-P2",
+      "name": "Family created, step1 done text 'Familie «Meine Familie» erstellt'",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-P2",
+      "name": "Step child=current, primary 'Code für mein Kind erstellen'",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F4",
+      "name": "Family row exists in Supabase",
+      "pass": true,
+      "detail": "29b9a088-23ac-4538-adfc-7f1f9e07ed66"
+    },
+    {
+      "id": "AC-P3",
+      "name": "Invite code shown with 'Gültig bis' and waiting text",
+      "pass": true,
+      "detail": "YWTP7LK3"
+    },
+    {
+      "id": "AC-P3",
+      "name": "Same open code shown after reload",
+      "pass": true,
+      "detail": "YWTP7LK3"
+    },
+    {
+      "id": "AC-S1",
+      "name": "Student start: data-student-step=connect, primary 'Link für meine Eltern erstellen'",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-S1",
+      "name": "Student start: no price / plan card",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F5",
+      "name": "Student joined parent's family with the code",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-S4",
+      "name": "Student, no plan: child.planNone text, no badge",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-P4",
+      "name": "Parent page picks up the joined child without reload",
+      "pass": true,
+      "detail": "attention after 10 s"
+    },
+    {
+      "id": "AC-P5",
+      "name": "Under-16 child: primary 'Zustimmung geben'",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-P5",
+      "name": "After consent: step plan=current",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-P6",
+      "name": "Yearly preselected, button 'Familienpaket buchen · CHF 79 pro Jahr', 'Spare CHF 15.80'",
+      "pass": true,
+      "detail": "true / Familienpaket buchen · CHF 79 pro Jahr"
+    },
+    {
+      "id": "F6",
+      "name": "Stripe Checkout shows Familienpaket CHF 79 / Jahr (test mode)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-P8",
+      "name": "Back from Checkout → 'Bezahlung abgebrochen', params removed, plan still current",
+      "pass": true,
+      "detail": "https://stripe-preview--bewerbungen-pawat.netlify.app/familie"
+    },
+    {
+      "id": "F7",
+      "name": "Declined card 4000 0000 0000 0002 shows an error and stays on Checkout",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F8",
+      "name": "4242 payment redirects back to /familie?billing=success",
+      "pass": true,
+      "detail": "https://stripe-preview--bewerbungen-pawat.netlify.app/familie?billing=success&session_id=…"
+    },
+    {
+      "id": "AC-P9",
+      "name": "Return shows activating notice, then active (webhook)",
+      "pass": true,
+      "detail": "activating seen: true, 3 s"
+    },
+    {
+      "id": "AC-P9",
+      "name": "No buy button visible while activating",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-P9",
+      "name": "Stepper collapsed to 'Alles eingerichtet', 'Abo verwalten' visible",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F9",
+      "name": "DB licence row for the family is active",
+      "pass": true,
+      "detail": "[{\"status\":\"active\",\"plan_type\":\"family\"}]"
+    },
+    {
+      "id": "F9",
+      "name": "Exactly one active Stripe test subscription (no double purchase)",
+      "pass": true,
+      "detail": "sub_1UcX36JBozPvqHEJlF2q9NBf active"
+    },
+    {
+      "id": "AC-S4",
+      "name": "Student sees 'Familienpaket aktiv'",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F10",
+      "name": "'Abo verwalten' opens the Stripe customer portal",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "F11",
+      "name": "Subscription set to cancel at period end in Stripe",
+      "pass": true,
+      "detail": "active cancel_at_period_end=false cancel_at=2027-11-16"
+    },
+    {
+      "id": "AC-P12",
+      "name": "After portal cancel: state canceling, badge 'Gekündigt', 'läuft noch bis', 'Abo verlängern', no buy button",
+      "pass": true,
+      "detail": "/familie?billing=portal"
+    },
+    {
+      "id": "AC-S4",
+      "name": "Student still sees neutral text after cancel (no payment wording)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-G1",
+      "name": "'Bald verfügbar' & co. never rendered (all screenshots)",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-G4",
+      "name": "No ß in rendered text",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-G3",
+      "name": "Never more than one primary action on a /familie screen",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "AC-G3b",
+      "name": "Screens with no primary action (waiting/done/child states – info only)",
+      "pass": true,
+      "detail": "11-parent-invite-code.png, 14-student-joined.png, 23-return-activating.png, 24-return-active.png, 25-parent-active-mobile-dark.png, 26-student-plan-active.png, 27-student-plan-active-mobile-dark.png, 28-parent-abo-rechnung.png, 32-parent-after-portal-canceling.png, 33-parent-canceling-mobile-dark.png, 34-student-after-parent-cancel.png"
+    },
+    {
+      "id": "AC-S5",
+      "name": "Student never calls /api/billing/*",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "id": "G-console",
+      "name": "No console errors on the app pages",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": []
+}
