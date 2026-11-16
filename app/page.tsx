@@ -51,7 +51,7 @@ export default function LandingPage() {
           <p className="text-small mt-5 max-w-md text-muted">Anmeldung mit E-Mail oder Google. Dein Konto kannst du jederzeit selbst löschen. <Link className={link} href="/anleitung">So funktioniert’s</Link></p>
         </div>
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-          <Screenshot name="04-dashboard" alt="Übersicht in WendApply mit Bewerbungen, Status und anstehenden Fristen" width={1200} height={978} priority className="tilt-r" />
+          <Screenshot name="04-dashboard" alt="Startseite von WendApply: Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />
           <span className="sticker tilt-l3 absolute -left-2 -top-4 text-sm sm:-left-5">Kostenlos für dich</span>
           <span className="sticker sticker-mint tilt-r absolute -bottom-4 right-3 text-sm"><Check size={14} strokeWidth={3} aria-hidden />Zusage!</span>
           <DoodleArrow className="absolute -left-16 top-1/3 hidden h-12 w-16 text-[var(--ink)] lg:block" />
@@ -82,13 +82,13 @@ export default function LandingPage() {
               return <li key={text as string} className="flex items-start gap-3.5 py-4"><I size={22} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /><span className="text-base font-medium">{text as string}</span></li>;
             })}
           </ul>
-          <Screenshot name="05-search" alt="Stellensuche in WendApply mit Filtern und Ergebnissen" width={1200} height={1019} className="tilt-l" />
+          <Screenshot name="05-search" alt="Lehrstellensuche in WendApply: Suche nach «Informatiker» mit Filtern für Ort, Kanton und Art der Stelle und passenden Lehrstellen aus mehreren Stellenbörsen" width={1600} height={1280} className="tilt-l" />
         </div>
       </Section>
 
       <Section id="lehrpersonen" title="Den Stand der Klasse sehen, ohne Nachfragen" intro="Eine Übersicht zeigt, wer wo steht. Es zählen nur die Angaben von Schülerinnen und Schülern, die sie ausdrücklich teilen." tint>
         <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_.85fr]">
-          <Screenshot name="24-teacher-dashboard" alt="Lehrpersonen-Übersicht mit Klassen, Bewerbungen und Fristen" width={1200} height={1042} />
+          <Screenshot name="24-teacher-dashboard" alt="Lehrpersonen-Übersicht in WendApply: Bewerbungen, Gespräche und Zusagen aller Klassen, Schülerinnen und Schüler, die Aufmerksamkeit brauchen, und die Klassenliste" width={1600} height={1280} />
           <div>
             <ul className="rows text-base font-medium">
               <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Klasse in unter einer Minute erstellen und per Link, Code oder QR-Code einladen</li>

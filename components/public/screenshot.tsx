@@ -1,13 +1,15 @@
 import Image from "next/image";
 
-/** App screenshot in a window frame; swaps the light/dark image with the theme (no JS). */
+/** App screenshot in a window frame; swaps the light/dark image with the theme (no JS).
+ * priority (hero/LCP): the light image loads eagerly with high fetch priority; the dark one stays lazy (display:none images are
+ * not fetched by light-theme visitors) but gets high priority once dark mode shows it. Everything else loads lazily. */
 export function Screenshot({ name, alt, width, height, priority, className = "" }: { name: string; alt: string; width: number; height: number; priority?: boolean; className?: string }) {
   const cls = "h-auto w-full";
   return (
     <figure className={`m-0 overflow-hidden rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] shadow-[var(--shadow-lg)] ${className}`}>
       <div className="flex gap-1.5 border-b-[length:var(--border-w)] border-[var(--outline)] px-3.5 py-2.5" aria-hidden><i className="h-2.5 w-2.5 rounded-full bg-[var(--coral)]" /><i className="h-2.5 w-2.5 rounded-full bg-[var(--sun)]" /><i className="h-2.5 w-2.5 rounded-full bg-[var(--mint)]" /></div>
-      <Image src={`/landing/${name}-light.webp`} alt={alt} width={width} height={height} priority={priority} sizes="(min-width: 1024px) 560px, 100vw" className={`${cls} [[data-theme=dark]_&]:hidden`} />
-      <Image src={`/landing/${name}-dark.webp`} alt="" aria-hidden width={width} height={height} sizes="(min-width: 1024px) 560px, 100vw" className={`${cls} hidden [[data-theme=dark]_&]:block`} />
+      <Image src={`/landing/${name}-light.webp`} alt={alt} width={width} height={height} loading={priority ? "eager" : "lazy"} {...(priority ? { fetchPriority: "high" as const } : {})} sizes="(min-width: 1024px) 560px, 100vw" className={`${cls} [[data-theme=dark]_&]:hidden`} />
+      <Image src={`/landing/${name}-dark.webp`} alt="" aria-hidden width={width} height={height} loading="lazy" {...(priority ? { fetchPriority: "high" as const } : {})} sizes="(min-width: 1024px) 560px, 100vw" className={`${cls} hidden [[data-theme=dark]_&]:block`} />
     </figure>
   );
 }

@@ -30,8 +30,8 @@ export default function manifest(): MetadataRoute.Manifest {
       { name: "Lehrstellen suchen", short_name: "Suche", url: "/search?source=pwa-shortcut", icons: [{ src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }] },
     ],
     screenshots: [
-      { src: "/icons/screenshot-narrow.webp", sizes: "600x1019", type: "image/webp", form_factor: "narrow", label: "Lehrstellensuche mit Filtern" },
-      { src: "/landing/04-dashboard-light.webp", sizes: "1200x978", type: "image/webp", form_factor: "wide", label: "Dashboard mit allen Bewerbungen" },
+      { src: "/icons/screenshot-narrow.webp", sizes: "780x1688", type: "image/webp", form_factor: "narrow", label: "Lehrstellensuche mit Filtern" },
+      { src: "/landing/04-dashboard-light.webp", sizes: "1600x1280", type: "image/webp", form_factor: "wide", label: "Dashboard mit allen Bewerbungen" },
     ],
   };
 }

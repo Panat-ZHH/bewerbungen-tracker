@@ -45,7 +45,7 @@ export default function AnleitungPage() {
           <p className="text-small mt-5 max-w-md text-muted">Kostenlos für Schülerinnen und Schüler. Kein App Store nötig.</p>
         </div>
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-          <GuideShot src="/landing/04-dashboard-light.webp" darkSrc="/landing/04-dashboard-dark.webp" alt="Startseite von WendApply mit Bewerbungen, Status und Fristen" width={1200} height={978} priority className="tilt-r" />
+          <GuideShot src="/landing/04-dashboard-light.webp" darkSrc="/landing/04-dashboard-dark.webp" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />
           <span className="sticker sticker-mint tilt-l3 absolute -bottom-4 left-3 text-sm">Auch als App</span>
         </div>
       </section>

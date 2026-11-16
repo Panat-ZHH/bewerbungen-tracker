@@ -58,7 +58,7 @@ export const guideSteps: GuideStep[] = [
       <>Gefällt dir eine Stelle, tippe auf {k("Merken")}. Sie landet als Bewerbung mit Status {k("Gemerkt")} in deiner Liste.</>,
     ],
     tip: <>Achte auf das Abzeichen {k("Schnupperlehre möglich")}. Suchen, die du öfter brauchst, speicherst du unter {k("Gespeicherte Suchen")}.</>,
-    shot: { src: "/landing/05-search-light.webp", darkSrc: "/landing/05-search-dark.webp", alt: "Stellensuche in WendApply mit Filtern und Ergebnissen", width: 1200, height: 1019 },
+    shot: { src: "/landing/05-search-light.webp", darkSrc: "/landing/05-search-dark.webp", alt: "Lehrstellensuche in WendApply: Suche nach «Informatiker» mit Filtern für Ort, Kanton und Art der Stelle und passenden Lehrstellen", width: 1600, height: 1280 },
   },
   {
     id: "bewerbungen", title: "Bewerbung erfassen und Status ändern",
@@ -70,7 +70,7 @@ export const guideSteps: GuideStep[] = [
       <>Auf der Detailseite siehst du die {k("Zeitachse")} und kannst mit {k("Frist im Kalender speichern")} die Frist in deinen Kalender übernehmen.</>,
     ],
     tip: <>Unter {k("Auswertung")} siehst du, wie viele Rückmeldungen und Gespräche du schon hast. Auf der Startseite hilft dir das {k("Wochenziel")}, dranzubleiben.</>,
-    shot: { src: "/landing/04-dashboard-light.webp", darkSrc: "/landing/04-dashboard-dark.webp", alt: "Startseite mit Bewerbungen, Status und anstehenden Fristen", width: 1200, height: 978, caption: "Auf der Startseite siehst du Fristen, Erinnerungen und deinen Weg zur Lehrstelle." },
+    shot: { src: "/landing/04-dashboard-light.webp", darkSrc: "/landing/04-dashboard-dark.webp", alt: "Startseite mit dem Weg zur Lehrstelle, zuletzt geänderten Bewerbungen und bald fälligen Fristen", width: 1600, height: 1280, caption: "Auf der Startseite siehst du Fristen, Erinnerungen und deinen Weg zur Lehrstelle." },
   },
   {
     id: "dokumente", title: "Lebenslauf und Dokumente",
@@ -101,7 +101,7 @@ export const guideSteps: GuideStep[] = [
       <>Im {k("Laden")} kaufst du mit deinen Punkten Strassen, Bäume, Brunnen, E-Roller und Autos. Danach {k("Platzieren")}, drehen oder verschieben.</>,
       <>Mit genug Punkten schaltest du neue Inseln frei, eine nach der anderen.</>,
     ],
-    shot: { src: "/guide/dorf-light.webp", alt: "Das Dorf in WendApply: Häuser für jede Bewerbung, ein Palast für eine Zusage und eine Ruine für eine Absage", width: 1200, height: 628, caption: "Jedes Haus ist eine Bewerbung. Die Beschriftung zeigt Firma und Status." },
+    shot: { src: "/guide/dorf-light.webp", darkSrc: "/guide/dorf-dark.webp", alt: "Das Dorf in WendApply: ein beschriftetes Haus für jede Bewerbung, ein Palast für eine Zusage und eine Ruine für eine Absage", width: 1600, height: 837, caption: "Jedes Haus ist eine Bewerbung. Die Beschriftung zeigt Firma und Status." },
   },
   {
     id: "erinnerungen", title: "Erinnerungen einstellen",
@@ -134,7 +134,7 @@ export const guideSteps: GuideStep[] = [
       <>Mit {k("Neue Frist")} und {k("Neue Mitteilung")} erreichen Sie die ganze Klasse. Exporte gibt es als CSV.</>,
     ],
     tip: <>Mehr zum 30-Tage-Pilot und zu den Lizenzen unter <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/schulen">Für Schulen</a>, <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/pilot">Pilot</a> und <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/preise">Preise</a>.</>,
-    shot: { src: "/landing/24-teacher-dashboard-light.webp", darkSrc: "/landing/24-teacher-dashboard-dark.webp", alt: "Lehrpersonen-Übersicht mit Klassen, Bewerbungen und Fristen", width: 1200, height: 1042 },
+    shot: { src: "/landing/24-teacher-dashboard-light.webp", darkSrc: "/landing/24-teacher-dashboard-dark.webp", alt: "Lehrpersonen-Übersicht mit Bewerbungen, Gesprächen und Zusagen der Klassen und Schülerinnen und Schülern, die Aufmerksamkeit brauchen", width: 1600, height: 1280 },
   },
 ];
 

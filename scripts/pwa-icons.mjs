@@ -13,6 +13,7 @@ for (const size of [192, 512]) {
   const logo = await sharp(src).resize(inner, inner).png().toBuffer();
   await sharp({ create: { width: size, height: size, channels: 4, background: white } }).composite([{ input: logo, gravity: "center" }]).png().toFile(`${out}/maskable-${size}.png`);
 }
-// narrow (portrait) screenshot for the mobile install sheet: crop of the search page; wide = public/landing/04-dashboard-light.webp as is.
-await sharp("public/landing/05-search-light.webp").extract({ left: 40, top: 0, width: 600, height: 1019 }).webp({ quality: 80 }).toFile(`${out}/screenshot-narrow.webp`);
+// favicon.ico (16/32/48) for clients that request /favicon.ico directly: `magick public/icons/icon-{16,32,48}.png public/favicon.ico`.
+// Manifest screenshots (narrow = public/icons/screenshot-narrow.webp, wide = public/landing/04-dashboard-light.webp) come from
+// scripts/marketing-shots.mjs (real mobile capture with demo data), no longer from a crop here.
 console.log("icons written to", out);

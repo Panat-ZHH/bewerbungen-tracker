@@ -74,7 +74,7 @@ export default function SchulenPage() {
           </div>
           <p className="text-small mt-5 text-muted">Lizenz für die Schule, kostenlos für Schülerinnen und Schüler. <Link className={link} href="/preise">Preise ansehen</Link></p>
         </div>
-        <Screenshot name="24-teacher-dashboard" alt="Lehrpersonen-Übersicht mit Klassen, Bewerbungen und Fristen" width={1200} height={1042} priority className="tilt-r" />
+        <Screenshot name="24-teacher-dashboard" alt="Lehrpersonen-Übersicht in WendApply: Bewerbungen, Gespräche und Zusagen aller Klassen, Schülerinnen und Schüler, die Aufmerksamkeit brauchen, und die Klassenliste" width={1600} height={1280} priority className="tilt-r" />
       </section>
 
       <Section id="lehrpersonen" title="Für Lehrpersonen und Schulleitungen" intro="Den Stand der Klasse kennen, ohne Listen nachzuführen. Und dort unterstützen, wo es nötig ist." tint>
@@ -84,7 +84,7 @@ export default function SchulenPage() {
       <Section id="schueler" title={<>Für Schülerinnen und Schüler: <span className="marker">dranbleiben lohnt sich</span></>} intro="WendApply macht Fortschritt sichtbar und belohnt Eigeninitiative. Nicht die Zahl der Bewerbungen zählt, sondern sinnvolle Schritte.">
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_1fr]">
           <Grid items={students} cols="sm:grid-cols-2" />
-          <Screenshot name="04-dashboard" alt="Übersicht für Schülerinnen und Schüler mit Bewerbungen, Status und Fristen" width={1200} height={978} className="tilt-l" />
+          <Screenshot name="04-dashboard" alt="Startseite für Schülerinnen und Schüler: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} className="tilt-l" />
         </div>
       </Section>
 

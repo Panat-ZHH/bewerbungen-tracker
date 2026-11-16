@@ -85,7 +85,7 @@ export default function FamilienPage() {
           </div>
           <p className="text-small mt-5 text-muted">Nutzt eure Schule WendApply? Dann ist es für Schülerinnen und Schüler kostenlos. <Link className={link} href="/schulen">Für Schulen</Link></p>
         </div>
-        <Screenshot name="04-dashboard" alt="Übersicht für Jugendliche mit Bewerbungen, Status und Fristen" width={1200} height={978} priority className="tilt-r" />
+        <Screenshot name="familie-overview" alt="Familienbereich in WendApply aus Sicht der Eltern: Überblick über die Bewerbungen des Kindes nach Status und sein Dorf, mit Zustimmung und nur mit dem, was das Kind teilt" width={1600} height={1280} priority className="tilt-r" />
       </section>
 
       <Section id="jugendliche" title={<>Für Jugendliche: <span className="marker">dranbleiben lohnt sich</span></>} intro="Mit eigenem Konto, auch wenn die Schule WendApply nicht nutzt. Du entscheidest, was deine Eltern sehen." tint>
