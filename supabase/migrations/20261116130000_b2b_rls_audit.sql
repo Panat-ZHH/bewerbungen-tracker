@@ -48,3 +48,9 @@ do $$ declare f regprocedure; begin
     execute format('revoke all on function %s from public, anon, authenticated', f);
   end loop;
 end $$;
+
+-- 5. school_licences.notes is internal (sales notes, discounts): school admins may read their licence rows, but not the notes.
+--    Column-level grant; the app reads licences only through RPCs (_school_licence_json has no notes).
+revoke select on table public.school_licences from authenticated;
+grant select (id, school_id, package, student_limit, status, pilot_start, pilot_end, valid_from, valid_until, billing_interval, created_at)
+  on table public.school_licences to authenticated;

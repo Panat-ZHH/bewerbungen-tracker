@@ -196,7 +196,7 @@ test("students: never read other students' applications, documents, ai_reviews, 
   assert.equal((await ctx.rpc("select * from public.user_roles where user_id<>$1", [U.a])).length, 0);
   assert.equal((await ctx.rpc("select * from public.class_members where student_id<>$1", [U.a])).length, 0);
   assert.equal((await ctx.rpc("select * from public.schools")).length, 0, "students do not see schools");
-  assert.equal((await ctx.rpc("select * from public.school_licences")).length, 0);
+  assert.equal((await ctx.rpc("select id, school_id, package from public.school_licences")).length, 0);
   assert.match(await ctx.code(ctx.rpc("select public.class_overview_stats($1)", [cls.id])), /FORBIDDEN/);
   assert.match(await ctx.code(ctx.rpc("select public.school_admin_overview($1)", [school])), /FORBIDDEN/);
   assert.match(await ctx.code(ctx.rpc("select public.school_student_count($1)", [school])), /FORBIDDEN/);
@@ -272,6 +272,7 @@ test("school admin: own school, licence and aggregates only, small groups suppre
   await ctx.as(U.admin);
   assert.deepEqual((await ctx.rpc("select id from public.schools")).map((r) => r.id), [school]);
   assert.ok((await ctx.rpc("select school_id from public.school_licences")).every((r) => r.school_id === school));
+  assert.match(String(await ctx.code(ctx.rpc("select notes from public.school_licences"))), /permission denied|42501/i, "internal licence notes are not readable");
   assert.equal((await ctx.rpc("select * from public.applications")).length, 0);
   assert.equal((await ctx.rpc("select * from public.classes")).length, 0);
   assert.equal((await ctx.rpc("select * from public.class_members")).length, 0);

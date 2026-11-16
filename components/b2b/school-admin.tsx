@@ -119,6 +119,8 @@ function SchoolBlock({ school, onChanged }: { school: SchoolOverview; onChanged:
 function adminError(e: unknown): string {
   const err = e as Error & { code?: string; details?: string | null };
   const licence = licenceError({ code: err?.code, message: err?.message, details: err?.details ?? null });
+  // The DB detail says "Die Schulleitung kann die Lizenz erweitern" (written for teachers/students); admins get the next step instead.
+  if (licence?.code === "LICENCE_LIMIT_REACHED") return "Die Lizenz ist voll: Diese Klasse hat nicht mehr genug freie Plätze. Für mehr Plätze meldet euch über die Kontaktseite.";
   if (licence) return licence.message;
   const msg = String(err?.message ?? "");
   if (msg.includes("CLASS_IN_OTHER_SCHOOL")) return "Diese Klasse gehört bereits zu einer anderen Schule.";

@@ -202,7 +202,7 @@ for (const { key, vp } of VIEWPORTS) {
     check(attachBodies[0]?.p_school_id === "sch1" && attachBodies[0]?.p_join_code === "SEK2-C9", "attach sends school id and upper-cased code", JSON.stringify(attachBodies[0]));
     await attachInput.fill("VOLL-01");
     await page.getByRole("button", { name: "Zuordnen" }).first().click();
-    check(await visible(page, "Die Schullizenz ist voll (300 von 300 Plätzen belegt)"), "licence-full error is shown in German");
+    check(await visible(page, "Die Lizenz ist voll: Diese Klasse hat nicht mehr genug freie Plätze."), "licence-full error is shown in German with the next step for admins");
     check(await noOverflow(page), "no horizontal overflow");
     await shot(page, `${key}-school-admin`);
     await ctx.close();
