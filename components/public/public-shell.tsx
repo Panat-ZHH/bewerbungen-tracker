@@ -3,24 +3,37 @@ import type { ReactNode } from "react";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { ButtonLink } from "@/components/ui/button";
 import { ThemeSwitch } from "./theme-switch";
+import { BRAND_TAGLINE, CONTACT_EMAIL } from "./marketing";
 
-export const CONTACT_EMAIL = "info.wendico@gmail.com";
+export { CONTACT_EMAIL };
 
 const nav = [
   { href: "/schulen", label: "Für Schulen" },
+  { href: "/preise", label: "Preise" },
+  { href: "/pilot", label: "Pilot" },
+  { href: "/anleitung", label: "Anleitung" },
+  { href: "/hilfe", label: "Hilfe" },
+  { href: "/kontakt", label: "Kontakt" },
+];
+
+const product = [
+  { href: "/schulen", label: "Für Schulen" },
+  { href: "/preise", label: "Preise" },
+  { href: "/pilot", label: "30-Tage-Pilot" },
+  { href: "/anleitung", label: "Anleitung" },
   { href: "/hilfe", label: "Hilfe" },
   { href: "/kontakt", label: "Kontakt" },
 ];
 
 const legal = [
   { href: "/impressum", label: "Impressum" },
-  { href: "/datenschutz", label: "Datenschutz" },
+  { href: "/datenschutz-uebersicht", label: "Datenschutz im Überblick" },
+  { href: "/datenschutz", label: "Datenschutzerklärung" },
   { href: "/datenschutz-schulen", label: "Datenschutz für Schulen" },
   { href: "/datenschutz-jugend", label: "Datenschutz für Jugendliche" },
   { href: "/hosting", label: "Hosting" },
+  { href: "/avv", label: "AVV-Vorlage" },
   { href: "/loeschkonzept", label: "Löschkonzept" },
-  { href: "/hilfe", label: "Hilfe" },
-  { href: "/kontakt", label: "Kontakt" },
 ];
 
 /** Page frame for all public (no-login) pages: skip link, header, main, footer. Light and dark via the app's theme tokens. */
@@ -34,26 +47,32 @@ export function PublicShell({ children }: { children: ReactNode }) {
             <BrandMark size={34} priority />
             <span className="font-display text-xl font-extrabold tracking-[-.03em]">WendApply</span>
           </Link>
-          <nav aria-label="Hauptnavigation" className="hidden items-center gap-1 sm:flex">
-            {nav.map((n) => <Link key={n.href} href={n.href} className="rounded-full px-3.5 py-2 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
+          <nav aria-label="Hauptnavigation" className="hidden items-center gap-0.5 lg:flex">
+            {nav.map((n) => <Link key={n.href} href={n.href} className="rounded-full px-3 py-2 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
           </nav>
           <ThemeSwitch />
           <ButtonLink href="/login" size="sm">Loslegen</ButtonLink>
         </div>
-        <nav aria-label="Hauptnavigation (mobil)" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 pb-2 sm:hidden">
+        <nav aria-label="Hauptnavigation (mobil)" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
           {nav.map((n) => <Link key={n.href} href={n.href} className="flex min-h-11 items-center rounded-full px-3 text-[13px] font-semibold whitespace-nowrap text-[var(--ink)]">{n.label}</Link>)}
         </nav>
       </header>
       <main id="inhalt" className="flex-1">{children}</main>
       <footer className="app-bar app-bar-bottom">
-        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-[1.2fr_2fr] sm:px-6">
+        <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:grid-cols-[1.2fr_1fr_1.4fr] sm:px-6">
           <div>
             <div className="flex items-center gap-2.5 font-display text-lg font-extrabold tracking-[-.03em]"><BrandMark size={30} /> WendApply</div>
-            <p className="text-small mt-3 max-w-xs text-muted">Die Begleit-App für die Lehrstellensuche. Entwickelt in der Schweiz von Wendico.</p>
+            <p className="mt-3 max-w-xs text-sm font-semibold">{BRAND_TAGLINE}</p>
+            <p className="text-small mt-2 max-w-xs text-muted">Entwickelt in der Schweiz von Wendico.</p>
           </div>
-          <nav aria-label="Rechtliches und Hilfe">
-            <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-3">
-              {legal.map((l) => <li key={l.href + l.label}><Link href={l.href} className="inline-block py-1.5 text-[var(--muted)] underline-offset-4 hover:text-[var(--ink)] hover:underline">{l.label}</Link></li>)}
+          <nav aria-label="Produkt">
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm sm:grid-cols-1">
+              {product.map((l) => <li key={l.href}><Link href={l.href} className="inline-block py-1.5 text-[var(--muted)] underline-offset-4 hover:text-[var(--ink)] hover:underline">{l.label}</Link></li>)}
+            </ul>
+          </nav>
+          <nav aria-label="Rechtliches und Datenschutz">
+            <ul className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+              {legal.map((l) => <li key={l.href}><Link href={l.href} className="inline-block py-1.5 text-[var(--muted)] underline-offset-4 hover:text-[var(--ink)] hover:underline">{l.label}</Link></li>)}
             </ul>
           </nav>
         </div>

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { InstallHint } from "@/components/pwa/InstallHint";
+import { BRAND_TAGLINE } from "@/components/public/marketing";
 
 // Display font for titles and big numbers, calm sans for everything else (self-hosted by next/font, no request to Google at runtime).
 const titleFont = Bricolage_Grotesque({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-title" });
@@ -11,7 +12,7 @@ const bodyFont = Instrument_Sans({ subsets: ["latin", "latin-ext"], display: "sw
 
 export const metadata: Metadata = {
   title: { default: "WendApply | Deine Lehrstellensuche", template: "%s | WendApply" },
-  description: "Finde deine Lehrstelle und behalte deine Bewerbungen im Blick.",
+  description: BRAND_TAGLINE,
   applicationName: "WendApply",
   // PWA: manifest comes from app/manifest.ts; icons from public/icons (scripts/pwa-icons.mjs). app/icon.png stays the default favicon.
   appleWebApp: { capable: true, title: "WendApply", statusBarStyle: "default" },

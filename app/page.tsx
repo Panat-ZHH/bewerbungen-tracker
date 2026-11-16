@@ -6,9 +6,10 @@ import { PublicShell, Section } from "@/components/public/public-shell";
 import { Screenshot } from "@/components/public/screenshot";
 import { AuthRedirect } from "@/components/public/auth-redirect";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleSparkle, DoodleTrail } from "@/components/ui/doodles";
+import { BRAND_TAGLINE, PILOT, POSITIONING } from "@/components/public/marketing";
 
 const title = "WendApply: Bewerbungen für die Lehrstelle im Blick behalten";
-const description = "WendApply begleitet Schülerinnen und Schüler durch die Lehrstellensuche: Stellen finden, Bewerbungen und Fristen im Griff, Lehrperson sieht nur, was du teilst.";
+const description = `${BRAND_TAGLINE} Lehrstellen finden, Bewerbungen und Fristen im Griff, Fortschritt sichtbar machen. Für Sekundarschulen, kostenlos für Schülerinnen und Schüler.`;
 
 export const metadata: Metadata = {
   title: { absolute: title },
@@ -40,6 +41,7 @@ export default function LandingPage() {
       <AuthRedirect />
       <section aria-labelledby="hero-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-16 pt-10 sm:px-6 sm:pb-24 sm:pt-16 lg:grid-cols-[1.2fr_.8fr] lg:gap-10">
         <div className="animate-rise">
+          <p className="mb-5 max-w-xl text-sm font-semibold uppercase tracking-[.08em] text-muted">{BRAND_TAGLINE}</p>
           <h1 id="hero-h" className="text-hero">Von der ersten Bewerbung bis zur <span className="marker">Zusage</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Stellen finden, Bewerbungen und Fristen verwalten und bei Bedarf mit deiner Lehrperson teilen. Alles an einem Ort, kostenlos für Schülerinnen und Schüler.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -91,9 +93,14 @@ export default function LandingPage() {
             <ul className="rows text-base font-medium">
               <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Klasse in unter einer Minute erstellen und per Link, Code oder QR-Code einladen</li>
               <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Sehen, wer Hilfe braucht, ohne dass Sie dafür zusätzliche Listen führen</li>
-              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Kostenloser Pilot für Schulen</li>
+              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Gemeinsame Klassenziele und Statistiken für die Begleitung</li>
             </ul>
-            <ButtonLink href="/schulen" variant="secondary" size="lg" className="mt-6" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Mehr für Schulen</ButtonLink>
+            <p className="text-body mt-6 text-muted">{POSITIONING}</p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <ButtonLink href="/schulen" variant="secondary" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Mehr für Schulen</ButtonLink>
+              <ButtonLink href="/preise" variant="ghost" size="lg">Preise</ButtonLink>
+              <ButtonLink href="/pilot" variant="ghost" size="lg">{PILOT.days}-Tage-Pilot</ButtonLink>
+            </div>
           </div>
         </div>
       </Section>
@@ -107,14 +114,14 @@ export default function LandingPage() {
             </li>
           ))}
         </ul>
-        <p className="text-small mt-5 text-muted">Mehr dazu: <Link className={link} href="/datenschutz">Datenschutzerklärung</Link> · <Link className={link} href="/datenschutz-jugend">Datenschutz einfach erklärt</Link></p>
+        <p className="text-small mt-5 text-muted">Mehr dazu: <Link className={link} href="/datenschutz-uebersicht">Datenschutz im Überblick</Link> · <Link className={link} href="/datenschutz">Datenschutzerklärung</Link> · <Link className={link} href="/datenschutz-jugend">Datenschutz einfach erklärt</Link></p>
       </Section>
 
       <section aria-labelledby="cta-h" className="mx-auto w-full max-w-6xl overflow-x-clip px-4 pb-16 sm:px-6 sm:pb-24">
         <div className="relative rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] px-6 py-10 text-[var(--on-sun)] shadow-[var(--shadow-lg)] sm:px-12 sm:py-14">
           <DoodleSparkle className="absolute right-6 top-6 h-8 w-8 sm:right-10" />
           <h2 id="cta-h" className="text-display max-w-2xl">Bereit für die erste Bewerbung?</h2>
-          <p className="mt-4 max-w-xl text-base">Konto erstellen dauert eine Minute. Schulen können WendApply kostenlos im Pilot testen.</p>
+          <p className="mt-4 max-w-xl text-base">Konto erstellen dauert eine Minute. Schulen testen WendApply im {PILOT.days}-Tage-Pilot mit {PILOT.classes}.</p>
           <div className="mt-7 flex flex-wrap gap-3">
             <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
             <ButtonLink href="/schulen" size="lg" variant="secondary" className="!border-[var(--outline-fill)]">Für Schulen</ButtonLink>
