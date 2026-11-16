@@ -73,7 +73,7 @@ export function ParentView({ family, email, onChanged }: { family: MyFamily; ema
           )}
         </section>
         <div className="min-w-0 space-y-6">
-          <PlanCard plan={family.plan} email={email} />
+          <PlanCard plan={family.plan} email={email} familyId={family.id} isParent />
           <InvitePanel direction="parent_invites_child" disabled={seats.children.full} disabledReason="Alle Plätze für Kinder sind belegt. Für weitere Kinder kannst du über «Zugang anfragen» mehr Plätze anfragen." />
           {parentsOf(family).length > 0 && <p className="text-small text-muted">Eltern in dieser Familie: {parentsOf(family).map((p) => p.displayName).join(", ")}</p>}
         </div>
