@@ -12,6 +12,7 @@ import {
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const BILLING_FILES = readdirSync(new URL("../components/billing/", import.meta.url)).map((f) => `components/billing/${f}`);
+const PARENT_FILES = ["components/family/plan-card.tsx", "components/family/parent-view.tsx", "components/family/parent-start.tsx", "components/family/family-stepper.tsx", "components/family/parent-steps.ts", "components/family/family-view.tsx", "app/familien/page.tsx"];
 const SCHOOL = "11111111-1111-4111-8111-111111111111";
 const FAMILY = "22222222-2222-4222-8222-222222222222";
 
@@ -54,7 +55,7 @@ test("plans and prices come from lib/billing/plans.ts", () => {
   assert.match(termText("year"), /Jahresabo/);
   assert.equal(seatsText(PLANS.starter), `bis ${PLANS.starter.studentLimit} Schülerinnen und Schüler`);
   // no hard-coded CHF amounts in the billing components / pages (all through formatChf / PLANS)
-  for (const f of [...BILLING_FILES, "components/family/plan-card.tsx"]) assert.doesNotMatch(read(f), /CHF\s?\d/, f);
+  for (const f of [...BILLING_FILES, ...PARENT_FILES]) assert.doesNotMatch(read(f), /CHF\s?\d/, f);
 });
 
 test("payment: schools card or invoice, families card only", () => {
@@ -128,7 +129,7 @@ test("/preise: flag off keeps offer + Zugang-anfragen flows and the honest note;
   assert.match(p, /const online = onlinePaymentEnabled\(\)/);
   assert.match(p, /FREE_NOTICE/);
   assert.match(p, /Offerte anfragen/, "offer button stays in both states");
-  assert.match(p, /online\s*\?\s*<div[\s\S]*?<ButtonLink href=\{buyHref\("family", "month"\)\}[\s\S]*?<ButtonLink href=\{buyHref\("family", "year"\)\}[\s\S]*?:\s*<ButtonLink href="\/familien#warteliste"/, "family: monthly/yearly buy when on, Zugang anfragen when off");
+  assert.match(p, /online\s*\?\s*<div[\s\S]*?<ButtonLink href=\{buyHref\("family", "year"\)\} variant="sun"[\s\S]*?<ButtonLink href=\{buyHref\("family", "month"\)\} variant="secondary"[\s\S]*?:\s*<ButtonLink href="\/familien#warteliste"/, "family: yearly (primary) + monthly buy when on, Zugang anfragen when off");
   assert.match(p, /\{online && <ButtonLink href=\{buyHref\(p\.id\)\}/, "school online button only when on");
   assert.match(p, /pro Jahr, \{VAT_NOTE\}/);
   assert.doesNotMatch(p, /Mehrwertsteuer dazukommt/);
@@ -145,17 +146,28 @@ test("/schul-admin: 'Abo & Rechnung' per school; contact flow when off", () => {
   assert.match(c, /Abo verwalten/);
 });
 
-test("/familie plan card: Zugang anfragen when off, FamilyBilling (parents only) when on", () => {
+test("/familie plan card: Zugang anfragen when off; phase-driven card for parents and neutral line for children when on", () => {
   const pc = read("components/family/plan-card.tsx");
-  assert.match(pc, /online \? <FamilyBilling familyId=\{familyId\} isParent=\{isParent\} enabled \/> : \(/);
+  assert.match(pc, /if \(online && isParent && billing && familyId\)/, "parents: card follows the billing phase");
+  assert.match(pc, /<FamilyPlanBody familyId=\{familyId\} billing=\{billing\} current=\{current\} open=\{open\} \/>/);
+  assert.match(pc, /if \(online && !isParent\)[\s\S]*?FAMILY_COPY\.child\.planActive : FAMILY_COPY\.child\.planNone/, "children: no prices, no payment problems (S8)");
   assert.match(pc, /Zugang anfragen/);
   assert.match(pc, /\{FREE_NOTICE\}/);
-  assert.match(pc, /<BillingReturnNotice \/>/);
-  assert.match(read("components/family/parent-view.tsx"), /familyId=\{family\.id\} isParent/);
+  assert.match(pc, /\{!online && <RequestAccessModal/, "the waitlist modal only exists while off");
+  assert.doesNotMatch(pc, /BillingReturnNotice/, "the family return notice lives at the top of the page, not in the card");
+  const pv = read("components/family/parent-view.tsx");
+  assert.match(pv, /useFamilyBilling\(family\.id, online, onChanged\)/);
+  assert.match(pv, /<FamilyReturnNotice billing=\{billing\} \/>/);
+  assert.match(pv, /<BillingBanner phase=\{phase\} onFix=\{fixPayment\} \/>/);
+  assert.match(pv, /familyId=\{family\.id\} isParent/);
   assert.doesNotMatch(read("components/family/child-view.tsx"), /isParent/, "children never get the buy button");
   const c = read("components/billing/billing-card.tsx");
-  assert.match(c, /if \(!enabled\) return null;/);
+  assert.match(c, /export function FamilyBilling[\s\S]*?if \(!enabled\) return null;/);
   assert.match(c, /if \(!isParent\) return/);
+  assert.match(c, /CHECKOUT_PENDING_KEY = "wa_checkout_pending"/, "sessionStorage guard against a second purchase");
+  assert.match(c, /POLL_MS = 2000/);
+  assert.match(c, /POLL_TRIES = 15/);
+  assert.match(c, /if \(billing\.activationPending\)[\s\S]*?data-billing-state=\{billing\.ret === "slow" \? "activation-slow" : "activating"\}/, "no buy button while activating");
 });
 
 test("API usage follows the contract; payment code stays in components/billing", () => {
@@ -165,5 +177,5 @@ test("API usage follows the contract; payment code stays in components/billing",
   assert.match(api, /"\/api\/billing\/portal", \{ method: "POST"/);
   assert.match(api, /authorization: `Bearer \$\{token\}`/);
   assert.doesNotMatch(api, /sk_(test|live)|whsec_|service_role/i);
-  for (const f of BILLING_FILES) { const s = read(f); assert.ok(!s.includes("ß"), `${f}: Swiss spelling`); assert.doesNotMatch(s, /\bprice_[A-Za-z0-9]{8,}/, `${f}: no hard-coded price IDs`); }
+  for (const f of [...BILLING_FILES, ...PARENT_FILES, "lib/family-copy.ts"]) { const s = read(f); assert.ok(!s.includes("ß"), `${f}: Swiss spelling`); assert.doesNotMatch(s, /\bprice_[A-Za-z0-9]{8,}/, `${f}: no hard-coded price IDs`); }
 });

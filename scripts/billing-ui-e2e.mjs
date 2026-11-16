@@ -199,18 +199,19 @@ async function runState(flag, base) {
       const card = page.locator("#abo");
       check(await card.getAttribute("data-billing-enabled") === flag, `plan card in state ${flag}`);
       if (on) {
-        check(await visible(page, "Bezahlung mit Kreditkarte"), "family: card only, no invoice choice");
+        check(await visible(page, "Sichere Bezahlung mit Karte über Stripe"), "family: card only (Stripe note), no invoice choice");
         check(await card.getByRole("radio").count() === 2, "only the monthly/yearly radios, no payment radio for families");
         check(await card.getByRole("radio", { name: /Jährlich/ }).isChecked(), "yearly preselected");
         await card.getByRole("radio", { name: /Monatlich/ }).check();
         await elementShot(page, "#abo", `familie-plan-${flag}-${key}`);
         if (key === "desktop-light") await axe(page, "#abo");
-        await card.getByRole("button", { name: /Familienpaket buchen/ }).click();
+        await card.locator("[data-primary-action]").click();
         await page.waitForURL(/billing=success|\/familie$/, { timeout: 60000 }).catch(() => {});
         check(lastCheckout && lastCheckout.plan === "family" && lastCheckout.familyId === FAMILY_ID && lastCheckout.payment === "card" && lastCheckout.interval === "month", "monthly card checkout with familyId", JSON.stringify(lastCheckout));
-        check(await visible(page, "Danke für deine Bestellung!", 60000), "?billing=success shows the thank-you message");
+        check(await visible(page, "Danke! Wir schalten dein Familienpaket frei", 60000), "?billing=success shows the activating message (top of page)");
+        check(await card.getByRole("button", { name: /Familienpaket buchen/ }).count() === 0, "no buy button while the package is being activated");
         check(!page.url().includes("billing="), "return params are removed from the URL", page.url());
-        if (key === "desktop-light") await elementShot(page, "#abo", `familie-plan-on-return-success`);
+        if (key === "desktop-light") await elementShot(page, "[data-billing-return]", `familie-plan-on-return-success`);
       } else {
         check(await visible(page, "Bezahlung bald verfügbar", 5000), "'Bezahlung bald verfügbar' stays");
         check(await visible(page, FREE, 5000), "honest 'aktuell kostenlos' note");
@@ -232,7 +233,8 @@ async function runState(flag, base) {
     {
       const { ctx, page, calls } = await actor(base, { role: "student", rpc: familyRpc("child"), vp: { w: 1280, h: 900 }, meta: { role: "student", account_type: "independent_student", account_type_synced: true } });
       await page.goto(`${base}/familie`, { waitUntil: "domcontentloaded" });
-      check(await visible(page, "Das Familienpaket bucht ein Elternteil", 90000), "child gets an explanation instead of a buy button");
+      check(await visible(page, "Familienpaket aktiv", 90000), "child (trial plan) sees the neutral 'Familienpaket aktiv' line instead of a buy button (S8)");
+      check(!(await page.evaluate(() => document.body.innerText)).includes("CHF"), "child sees no prices");
       check(await page.getByRole("button", { name: /Familienpaket buchen/ }).count() === 0, "no buy button for children");
       check(calls.length === 0, "no billing API calls for children");
       await ctx.close();

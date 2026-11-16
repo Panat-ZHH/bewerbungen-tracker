@@ -1,17 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, CreditCard, ExternalLink, FileText, Mail, ReceiptText, Settings2 } from "lucide-react";
+import Link from "next/link";
+import { CheckCircle2, CreditCard, ExternalLink, FileText, Lock, Mail, ReceiptText, RefreshCw, Settings2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
-import { PLANS, type PlanId } from "@/lib/billing/plans";
+import { PLANS, formatChf, yearlySavingChf, type PlanId } from "@/lib/billing/plans";
+import { FAMILY_COPY, fill } from "@/lib/family-copy";
 import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
-  FREE_NOTICE, VAT_NOTE, billingHint, billingIntervals, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
+  FREE_NOTICE, VAT_NOTE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
   onlinePaymentEnabled, paymentOptions, priceWithVat, schoolPlans, seatsText, termText, vatNote, type BillingInterval, type BillingOwner,
-  type BillingStatus, type PaymentMethod,
+  type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
 import { IntervalChoice } from "./interval-choice";
 import { PaymentChoice } from "./payment-choice";
@@ -180,34 +182,303 @@ export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentE
   );
 }
 
+// ================================================================ family package (parents, /familie)
+const PAID: BillingPhase[] = ["active", "trialing", "canceling", "paused"];
+/** sessionStorage: checkout came back with success for this family, so no second buy button for 10 minutes (BILLING-FLOW-SPEC §3.4). */
+export const CHECKOUT_PENDING_KEY = "wa_checkout_pending";
+const PENDING_TTL_MS = 10 * 60 * 1000;
+const INTERVAL_KEY = "wa_checkout_interval";
+const PORTAL_KEY = "wa_portal_phase";
+const POLL_MS = 2000;
+const POLL_TRIES = 15; // 2 s x 15 = 30 s
+
+const store = {
+  get(k: string) { try { return window.sessionStorage.getItem(k); } catch { return null; } },
+  set(k: string, v: string) { try { window.sessionStorage.setItem(k, v); } catch { /* private mode */ } },
+  del(k: string) { try { window.sessionStorage.removeItem(k); } catch { /* private mode */ } },
+};
+function pendingFor(familyId: string): boolean {
+  const [id, ts] = (store.get(CHECKOUT_PENDING_KEY) ?? "").split("|");
+  if (id !== familyId) return false;
+  if (!(Date.now() - Number(ts) < PENDING_TTL_MS)) { store.del(CHECKOUT_PENDING_KEY); return false; }
+  return true;
+}
+
+export type FamilyReturn = "cancel" | "activating" | "active" | "slow" | "portal";
+type FamilyLoad = { state: "loading" } | { state: "error"; httpStatus: number; message: string } | { state: "ready"; status: BillingStatus | null };
+
 /**
- * Family package purchase for the plan card in /familie (card only). Returns null while the flag is off, so the plan card
- * keeps its "Zugang anfragen" flow. Children see the status but cannot buy; without a family the parent creates one first.
+ * Billing state of one family for the parent page: status + phase, the return from Stripe (?billing=success|cancel|portal),
+ * polling after a successful checkout (every 2 s, up to 30 s) and the sessionStorage guard against a second purchase.
+ * `onPaid` runs once the package is active (e.g. reload family_get_my). Does nothing while the flag is off.
  */
-export function FamilyBilling({ familyId, isParent, enabled = onlinePaymentEnabled() }: { familyId: string | null; isParent: boolean; enabled?: boolean }) {
-  const owner: BillingOwner | null = familyId ? { kind: "family", id: familyId } : null;
-  const { load, reload } = useBillingStatus(owner, enabled && isParent);
-  const plan = familyPlan();
-  const intervals = billingIntervals(plan);
-  const [interval, setBillingInterval] = useState<BillingInterval>(() => wantedInterval(intervals));
-  const checkout = useCheckout(owner ?? { kind: "family", id: "" }, () => { void reload(); }); // families never pay by invoice
-  if (!enabled) return null;
-  const price = <p className="tabular text-lg font-extrabold" data-family-price>{priceWithVat(plan)}</p>;
-  if (!isParent) return <div className="space-y-2" data-billing-state="child">{price}<p className="text-small text-muted">Das Familienpaket bucht ein Elternteil in seinem Konto. Für dich bleibt alles kostenlos.</p></div>;
-  if (!owner) return <div className="space-y-2" data-billing-state="no-family">{price}<p className="text-small text-muted">Erstelle zuerst deine Familie. Danach kannst du das Familienpaket hier buchen.</p></div>;
-  if (load.state === "loading") return <div aria-busy="true" className="space-y-2"><Skeleton className="h-6 w-1/2" /><Skeleton className="h-10" /></div>;
-  if (load.state === "error") return <div className="space-y-2"><StatusMessage tone="warning">{load.message}</StatusMessage><Button size="sm" variant="secondary" onClick={reload}>Nochmals versuchen</Button></div>;
-  if (hasSubscription(load.status)) return <SubscriptionDetails status={load.status!} owner={owner} canManage />;
+export function useFamilyBilling(familyId: string | null, enabled: boolean, onPaid?: () => void) {
+  const [load, setLoad] = useState<FamilyLoad>({ state: "loading" });
+  const [ret, setRet] = useState<FamilyReturn | null>(null);
+  const [portalPhase, setPortalPhase] = useState<BillingPhase | null>(null);
+  const [interval, setBillingInterval] = useState<BillingInterval>(() => wantedInterval(billingIntervals(familyPlan())));
+  const started = useRef<string | null>(null);
+  const alive = useRef(true);
+  const paidRef = useRef(onPaid);
+  useEffect(() => { paidRef.current = onPaid; }, [onPaid]);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+
+  const fetchOnce = useCallback(async (): Promise<FamilyLoad> => {
+    if (!familyId) return { state: "ready", status: null };
+    const r = await fetchBillingStatus({ kind: "family", id: familyId });
+    return r.ok ? { state: "ready", status: r.data } : { state: "error", httpStatus: r.status, message: r.message };
+  }, [familyId]);
+
+  const markPaid = useCallback(() => { store.del(CHECKOUT_PENDING_KEY); setRet("active"); paidRef.current?.(); }, []);
+
+  /** Polls until the webhook has activated the package; true when it is active. */
+  const poll = useCallback(async (tries: number) => {
+    for (let i = 0; i < tries; i++) {
+      const l = await fetchOnce();
+      if (!alive.current) return false;
+      if (l.state === "ready" && PAID.includes(billingPhase(l.status))) { setLoad(l); return true; }
+      if (i === tries - 1) { setLoad(l); return false; }
+      await new Promise((r) => setTimeout(r, POLL_MS));
+      if (!alive.current) return false;
+    }
+    return false;
+  }, [fetchOnce]);
+
+  useEffect(() => {
+    if (!enabled || !familyId || started.current === familyId) return;
+    started.current = familyId;
+    const search = new URLSearchParams(window.location.search);
+    const param = search.get("billing");
+    if (param) {
+      search.delete("billing"); search.delete("session_id");
+      const q = search.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${q ? `?${q}` : ""}${window.location.hash}`);
+    }
+    void (async () => {
+      if (param === "success" || (!param && pendingFor(familyId))) {
+        if (param === "success") store.set(CHECKOUT_PENDING_KEY, `${familyId}|${Date.now()}`);
+        setRet(param === "success" ? "activating" : "slow");
+        if (await poll(param === "success" ? POLL_TRIES : 1)) markPaid();
+        else if (alive.current) setRet("slow");
+        return;
+      }
+      if (param === "cancel") {
+        const iv = store.get(INTERVAL_KEY);
+        if (iv === "month" || iv === "year") setBillingInterval(iv);
+        setRet("cancel");
+      }
+      const l = await fetchOnce();
+      if (!alive.current) return;
+      setLoad(l);
+      if (param === "portal" && l.state === "ready") {
+        const before = store.get(PORTAL_KEY); store.del(PORTAL_KEY);
+        const now = billingPhase(l.status);
+        if (before && before !== now) { setPortalPhase(now); setRet("portal"); }
+      }
+    })();
+  }, [enabled, familyId, fetchOnce, poll, markPaid]);
+
+  /** "Nochmals versuchen" / "Nochmals prüfen". */
+  const reload = useCallback(async () => {
+    setLoad({ state: "loading" });
+    const l = await fetchOnce();
+    if (!alive.current) return;
+    setLoad(l);
+    if (l.state === "ready" && PAID.includes(billingPhase(l.status)) && (ret === "slow" || ret === "activating")) markPaid();
+  }, [fetchOnce, markPaid, ret]);
+
+  const status = load.state === "ready" ? load.status : null;
+  const phase: BillingPhase | null = load.state === "ready" ? billingPhase(status) : null;
+  /** Buy buttons stay hidden while a successful checkout is being activated (no double purchase). */
+  const activationPending = ret === "activating" || ret === "slow";
+  return { load, status, phase, ret, portalPhase, dismissReturn: () => setRet(null), reload, interval, setInterval: setBillingInterval, activationPending };
+}
+export type FamilyBillingState = ReturnType<typeof useFamilyBilling>;
+
+const PHASE_BADGE: Record<BillingPhase, { label: string; tone: Tone } | null> = {
+  none: null,
+  incomplete: { label: FAMILY_COPY.badge.incomplete, tone: "warning" },
+  trialing: { label: FAMILY_COPY.badge.trialing, tone: "info" },
+  active: { label: FAMILY_COPY.badge.active, tone: "success" },
+  canceling: { label: FAMILY_COPY.badge.canceling, tone: "neutral" },
+  past_due: { label: FAMILY_COPY.badge.pastDue, tone: "warning" },
+  unpaid: { label: FAMILY_COPY.badge.unpaid, tone: "danger" },
+  paused: { label: FAMILY_COPY.badge.paused, tone: "warning" },
+  ended: { label: FAMILY_COPY.badge.ended, tone: "neutral" },
+};
+export const familyPhaseBadge = (p: BillingPhase | null) => (p ? PHASE_BADGE[p] : null);
+/** Body text of one phase (dates as dd.mm.yyyy). */
+export function familyPhaseText(p: BillingPhase, validUntil: string | null): string {
+  const date = formatDate(validUntil);
+  switch (p) {
+    case "active": return date ? fill(FAMILY_COPY.phase.active, { date }) : "";
+    case "trialing": return date ? fill(FAMILY_COPY.phase.trialing, { date }) : "";
+    case "canceling": return fill(FAMILY_COPY.phase.canceling, { date: date || "zum Ende der Laufzeit" });
+    case "past_due": return FAMILY_COPY.phase.pastDue;
+    case "unpaid": return FAMILY_COPY.phase.unpaid;
+    case "paused": return FAMILY_COPY.phase.paused;
+    case "incomplete": return FAMILY_COPY.phase.incomplete;
+    case "ended": return FAMILY_COPY.phase.ended;
+    default: return "";
+  }
+}
+
+/** Opens the Stripe customer portal for the family (manage, renew, update card). Remembers the phase to detect changes on return. */
+export function FamilyPortalButton({ familyId, phase, label, primary = false, note = true }: { familyId: string; phase: BillingPhase | null; label: string; primary?: boolean; note?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function go() {
+    setBusy(true); setError("");
+    if (phase) store.set(PORTAL_KEY, phase);
+    const r = await openPortal({ kind: "family", id: familyId });
+    if (r.ok && r.data?.url) { window.location.assign(r.data.url); return; }
+    setError(r.ok ? FAMILY_COPY.api.unreachable : r.message); setBusy(false);
+  }
   return (
-    <div className="space-y-3" data-billing-state="choose">
-      {price}
-      <IntervalChoice plan={plan} options={intervals} value={interval} onChange={setBillingInterval} name={`interval-${owner.id}`} />
-      <PaymentChoice options={paymentOptions(plan)} value="card" onChange={() => {}} />
-      {checkout.error && <StatusMessage tone="danger">{checkout.error}</StatusMessage>}
-      <Button variant="sun" loading={checkout.busy} onClick={() => checkout.buy(plan.id, "card", interval)} icon={<CreditCard size={16} aria-hidden />}>
-        Familienpaket buchen ({intervalPriceText(plan, interval)})
-      </Button>
-      <p className="text-small text-muted">{termText(interval)}, für {seatsText(plan)}, {vatNote(plan)}.</p>
+    <div className="space-y-2">
+      <Button variant={primary ? "primary" : "secondary"} loading={busy} onClick={go} icon={primary ? <CreditCard size={16} aria-hidden /> : <Settings2 size={16} aria-hidden />} data-primary-action={primary ? "" : undefined}>{label}</Button>
+      {note && <p className="text-small text-muted">{FAMILY_COPY.manage.note}</p>}
+      {error && <StatusMessage tone="danger">{error}</StatusMessage>}
     </div>
   );
+}
+
+/** Step 3: interval choice (yearly preselected), what is included, the buy button and the Stripe note. */
+function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: string; billing: FamilyBillingState; primary: boolean; ctaLabel?: string }) {
+  const plan = familyPlan();
+  const intervals = billingIntervals(plan);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const errorRef = useRef<HTMLDivElement>(null);
+  const price = intervalPriceText(plan, billing.interval);
+  const saving = yearlySavingChf(plan);
+  async function buy() {
+    setBusy(true); setError("");
+    store.set(INTERVAL_KEY, billing.interval);
+    const r = await startCheckout({ kind: "family", id: familyId }, plan.id, "card", billing.interval);
+    if (r.ok && r.data?.url) { window.location.assign(r.data.url); return; }
+    setError(r.ok ? "Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es nochmals." : r.status === 503 || r.status === 404 ? FAMILY_COPY.api.unreachable : r.message);
+    setBusy(false);
+    requestAnimationFrame(() => errorRef.current?.focus());
+  }
+  return (
+    <div className="space-y-4" data-billing-state={busy ? "redirecting" : "choose"}>
+      <p className="text-body">{fill(FAMILY_COPY.step3.text, { seats: seatsText(plan) })}</p>
+      <IntervalChoice plan={plan} options={intervals} value={billing.interval} onChange={billing.setInterval} name={`interval-${familyId}`}
+        legend={FAMILY_COPY.step3.intervalLegend} yearBadge={saving > 0 ? fill(FAMILY_COPY.step3.yearBadge, { saving: formatChf(saving) }) : undefined} />
+      {error && <div ref={errorRef} tabIndex={-1} className="outline-none"><StatusMessage tone="danger">{error}</StatusMessage></div>}
+      <div className="space-y-2">
+        <Button variant={primary ? "primary" : "secondary"} full loading={busy} onClick={buy} icon={<Lock size={16} aria-hidden />} data-primary-action={primary ? "" : undefined}>
+          {ctaLabel ?? fill(FAMILY_COPY.step3.cta, { price })}
+        </Button>
+        {busy && <p role="status" className="text-small font-semibold">{FAMILY_COPY.step3.redirecting}</p>}
+      </div>
+      <p className="text-small text-muted">{fill(FAMILY_COPY.step3.note, { term: termText(billing.interval), vat: vatNote(plan) })} {FAMILY_COPY.step3.childFree}</p>
+    </div>
+  );
+}
+
+/**
+ * Family package card body for parents, driven only by the billing phase (BILLING-FLOW-SPEC §3.5).
+ * `current`: this card is the current setup step, so its main button is the page's single primary action.
+ * `open`: show the purchase form even though step 3 is not current yet ("Paket schon jetzt buchen").
+ */
+export function FamilyPlanBody({ familyId, billing, current, open }: { familyId: string; billing: FamilyBillingState; current: boolean; open: boolean }) {
+  const [rebuy, setRebuy] = useState(false);
+  const { load, phase, status } = billing;
+  if (billing.activationPending) {
+    return (
+      <div className="space-y-2" data-billing-state={billing.ret === "slow" ? "activation-slow" : "activating"} aria-busy={billing.ret === "activating"}>
+        <p className="text-body">{billing.ret === "slow" ? FAMILY_COPY.return.slowText : FAMILY_COPY.return.activatingText}</p>
+        {billing.ret === "activating" && <Skeleton className="h-10" />}
+      </div>
+    );
+  }
+  if (load.state === "loading") return <div aria-busy="true" className="space-y-2"><Skeleton className="h-6 w-1/2" /><Skeleton className="h-10" /></div>;
+  if (load.state === "error") {
+    return (
+      <div className="space-y-3" data-billing-state="error">
+        <StatusMessage tone="warning">{load.httpStatus === 503 || load.httpStatus === 404 ? FAMILY_COPY.api.unreachable : FAMILY_COPY.status.error}</StatusMessage>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant={current ? "primary" : "secondary"} onClick={() => void billing.reload()} icon={<RefreshCw size={14} aria-hidden />} data-primary-action={current ? "" : undefined}>{FAMILY_COPY.page.retry}</Button>
+          <ButtonLink href="/kontakt" size="sm" variant="ghost" icon={<Mail size={14} aria-hidden />}>{FAMILY_COPY.status.contact}</ButtonLink>
+        </div>
+      </div>
+    );
+  }
+  const p = phase ?? "none";
+  const text = familyPhaseText(p, status?.validUntil ?? null);
+  if (p === "none") {
+    return current || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
+      <div className="space-y-2" data-billing-state="choose-later">
+        <p className="text-body">{fill(FAMILY_COPY.step3.text, { seats: seatsText(familyPlan()) })}</p>
+        <p className="tabular text-sm font-bold" data-family-price>{priceWithVat(familyPlan())}</p>
+        <p className="text-small text-muted">{FAMILY_COPY.step3.childFree}</p>
+      </div>
+    );
+  }
+  if (p === "incomplete") {
+    return <div className="space-y-3" data-billing-state="incomplete"><p className="text-body">{text}</p><FamilyChoose familyId={familyId} billing={billing} primary={current} ctaLabel={FAMILY_COPY.cta.completePayment} /></div>;
+  }
+  if (p === "ended") {
+    return (
+      <div className="space-y-3" data-billing-state="ended">
+        <p className="text-body">{text}</p>
+        {rebuy || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
+          <Button variant={current ? "primary" : "secondary"} onClick={() => setRebuy(true)} icon={<Sparkles size={16} aria-hidden />} data-primary-action={current ? "" : undefined}>{FAMILY_COPY.cta.rebuy}</Button>
+        )}
+      </div>
+    );
+  }
+  const fix = p === "past_due" || p === "unpaid";
+  return (
+    <div className="space-y-3" data-billing-state={p}>
+      {text && <p className={fix ? "text-body font-semibold" : "text-body"}>{text}</p>}
+      <FamilyPortalButton familyId={familyId} phase={p} primary={fix && current} label={fix ? FAMILY_COPY.cta.updateCard : p === "canceling" ? FAMILY_COPY.cta.renew : FAMILY_COPY.cta.manage} />
+    </div>
+  );
+}
+
+/** Return notice at the top of /familie: cancel, activating, active, slow (with "Nochmals prüfen"), portal change. */
+export function FamilyReturnNotice({ billing }: { billing: FamilyBillingState }) {
+  const r = billing.ret;
+  if (!r) return null;
+  const portalBadge = familyPhaseBadge(billing.portalPhase);
+  const m = r === "cancel" ? { tone: "info", title: FAMILY_COPY.return.cancelTitle, text: FAMILY_COPY.return.cancelText }
+    : r === "activating" ? { tone: "info", title: FAMILY_COPY.return.activatingTitle, text: FAMILY_COPY.return.activatingText }
+    : r === "active" ? { tone: "success", title: FAMILY_COPY.return.activeTitle, text: FAMILY_COPY.return.activeText }
+    : r === "slow" ? { tone: "warning", title: FAMILY_COPY.return.slowTitle, text: FAMILY_COPY.return.slowText }
+    : { tone: "info", title: portalBadge ? `Familienpaket: ${portalBadge.label}` : FAMILY_COPY.step3.title, text: familyPhaseText(billing.portalPhase ?? "none", billing.status?.validUntil ?? null) };
+  return (
+    <div role="status" data-billing-return={r} className={`status status-${m.tone} flex items-start gap-3`}>
+      {r === "active" ? <CheckCircle2 size={20} aria-hidden className="mt-0.5 shrink-0" /> : r === "activating" ? <RefreshCw size={20} aria-hidden className="mt-0.5 shrink-0 motion-safe:animate-spin" /> : <ReceiptText size={20} aria-hidden className="mt-0.5 shrink-0" />}
+      <div className="min-w-0 flex-1 space-y-2">
+        <div><p className="font-bold">{m.title}</p>{m.text && <p className="text-sm">{m.text}</p>}</div>
+        {r === "slow" && (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="secondary" onClick={() => void billing.reload()} icon={<RefreshCw size={14} aria-hidden />}>{FAMILY_COPY.return.slowCta}</Button>
+            <Link href="/kontakt" className="inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-2">{FAMILY_COPY.status.contact}</Link>
+          </div>
+        )}
+      </div>
+      {r !== "activating" && <button type="button" onClick={billing.dismissReturn} className="-m-1 grid size-11 shrink-0 place-items-center rounded-full hover:bg-[var(--hover)]" aria-label="Hinweis schliessen"><span aria-hidden>×</span></button>}
+    </div>
+  );
+}
+
+/** Parent purchase card without the /familie stepper (kept for other mounts). */
+function ParentFamilyBilling({ familyId }: { familyId: string }) {
+  const billing = useFamilyBilling(familyId, true);
+  return <div className="space-y-3"><FamilyReturnNotice billing={billing} /><FamilyPlanBody familyId={familyId} billing={billing} current open /></div>;
+}
+
+/**
+ * Family package for the plan card in /familie (card only). Returns null while the flag is off, so the plan card keeps its
+ * "Zugang anfragen" flow. Children never see prices or payment states (S8); without a family the parent creates one first.
+ */
+export function FamilyBilling({ familyId, isParent, enabled = onlinePaymentEnabled() }: { familyId: string | null; isParent: boolean; enabled?: boolean }) {
+  if (!enabled) return null;
+  if (!isParent) return <div className="space-y-2" data-billing-state="child"><p className="text-small text-muted">{FAMILY_COPY.child.planNone}</p></div>;
+  if (!familyId) return <div className="space-y-2" data-billing-state="no-family"><p className="tabular text-lg font-extrabold" data-family-price>{priceWithVat(familyPlan())}</p><p className="text-small text-muted">{FAMILY_COPY.step1.text}</p></div>;
+  return <ParentFamilyBilling familyId={familyId} />;
 }

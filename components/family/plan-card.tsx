@@ -8,36 +8,71 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { joinWaitlist } from "@/lib/family";
-import { FamilyBilling } from "@/components/billing/billing-card";
-import { BillingReturnNotice } from "@/components/billing/billing-return";
+import { FamilyBilling, FamilyPlanBody, familyPhaseBadge, type FamilyBillingState } from "@/components/billing/billing-card";
+import { FAMILY_COPY } from "@/lib/family-copy";
 import { FREE_NOTICE, onlinePaymentEnabled } from "@/components/billing/logic";
 import { familyError, PLAN_STATUS_TONE, planSummary, waitlistProblem, type FamilyPlan, type WaitlistKind } from "@/lib/family-core";
 
+/** Plan states that give the family the package (child view: "Familienpaket aktiv"). */
+const ACCESS_STATES = ["trial", "pilot", "active"];
+
 /**
- * Family plan status + how to get it. Online payment off (default): honest "kostenlos" note and "Zugang anfragen".
- * On: the purchase/portal part lives in components/billing (FamilyBilling); only a parent can buy.
+ * Family plan card (#abo).
+ * - Flag off (default): honest "kostenlos" note and "Zugang anfragen" (both roles, unchanged).
+ * - Flag on, parent with `billing` (from useFamilyBilling on /familie): badge and body follow the billing phase only.
+ * - Flag on, child: neutral line, never prices or payment problems (S8).
  */
-export function PlanCard({ plan, email, kind = "family", familyId = null, isParent = false, online = onlinePaymentEnabled() }: { plan: FamilyPlan | null; email: string; kind?: WaitlistKind; familyId?: string | null; isParent?: boolean; online?: boolean }) {
-  const [open, setOpen] = useState(false);
-  const s = planSummary(plan);
+export function PlanCard({ plan, email, kind = "family", familyId = null, isParent = false, online = onlinePaymentEnabled(), billing = null, current = false, open = false }: {
+  plan: FamilyPlan | null; email: string; kind?: WaitlistKind; familyId?: string | null; isParent?: boolean; online?: boolean;
+  billing?: FamilyBillingState | null;
+  /** Step 3 is the current setup step: the card's main button is the page's single primary action. */
+  current?: boolean;
+  /** Show the purchase form before step 3 is current ("Paket schon jetzt buchen"). */
+  open?: boolean;
+}) {
+  const [requestOpen, setRequestOpen] = useState(false);
+  if (online && isParent && billing && familyId) {
+    const badge = familyPhaseBadge(billing.activationPending ? null : billing.phase);
+    return (
+      <section id="abo" aria-labelledby="family-plan" className={`panel-flat scroll-mt-24 space-y-3 p-5 ${current ? "outline outline-2 outline-offset-2 outline-[var(--brand)]" : ""}`} data-billing-enabled="on">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{current && billing.phase !== "past_due" && billing.phase !== "unpaid" ? FAMILY_COPY.step3.title : "Familienpaket"}</h2>
+          {badge && <Badge tone={badge.tone}>{badge.label}</Badge>}
+        </div>
+        <FamilyPlanBody familyId={familyId} billing={billing} current={current} open={open} />
+      </section>
+    );
+  }
+  if (online && !isParent) {
+    const active = !!plan && ACCESS_STATES.includes(plan.state ?? plan.status);
+    return (
+      <section id="abo" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-2 p-5" data-billing-enabled="on" data-billing-state="child">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Familienpaket</h2>
+          {active && <Badge tone="success">{FAMILY_COPY.badge.active}</Badge>}
+        </div>
+        <p className="text-body text-muted">{active ? FAMILY_COPY.child.planActive : FAMILY_COPY.child.planNone}</p>
+      </section>
+    );
+  }
+  const s = planSummary(plan, undefined, { online });
   return (
     <section id="abo" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-3 p-5" data-billing-enabled={online ? "on" : "off"}>
-      <BillingReturnNotice />
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{s.title}</h2>
-        <Badge tone={plan ? PLAN_STATUS_TONE[plan.status] ?? "neutral" : "info"}>{s.status}</Badge>
+        {s.status && <Badge tone={plan ? PLAN_STATUS_TONE[plan.status] ?? "neutral" : "info"}>{s.status}</Badge>}
       </div>
       <p className="text-body text-muted">{s.detail}</p>
       {online ? <FamilyBilling familyId={familyId} isParent={isParent} enabled /> : (
         <div className="space-y-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--line)] p-3" data-billing-state="off">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard size={16} aria-hidden className="shrink-0" />Bezahlung bald verfügbar</p>
-            <Button size="sm" variant="sun" onClick={() => setOpen(true)} icon={<Mail size={14} />}>Zugang anfragen</Button>
+            <Button size="sm" variant="sun" onClick={() => setRequestOpen(true)} icon={<Mail size={14} />}>Zugang anfragen</Button>
           </div>
           <p className="text-small text-muted">{FREE_NOTICE}</p>
         </div>
       )}
-      <RequestAccessModal open={open} onClose={() => setOpen(false)} email={email} kind={kind} />
+      {!online && <RequestAccessModal open={requestOpen} onClose={() => setRequestOpen(false)} email={email} kind={kind} />}
     </section>
   );
 }

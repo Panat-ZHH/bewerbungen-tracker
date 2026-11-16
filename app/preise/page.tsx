@@ -93,8 +93,8 @@ export default function PreisePage() {
           </ul>
           {online
             ? <div className="flex flex-col gap-2">
-                <ButtonLink href={buyHref("family", "month")} variant="sun" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Monatlich buchen</ButtonLink>
-                <ButtonLink href={buyHref("family", "year")} variant="secondary" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Jährlich buchen</ButtonLink>
+                <ButtonLink href={buyHref("family", "year")} variant="sun" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Jährlich buchen</ButtonLink>
+                <ButtonLink href={buyHref("family", "month")} variant="secondary" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Monatlich buchen</ButtonLink>
               </div>
             : <ButtonLink href="/familien#warteliste" variant="secondary" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Zugang anfragen</ButtonLink>}
         </div>

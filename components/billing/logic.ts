@@ -125,6 +125,32 @@ export function hasSubscription(s: BillingStatus | null): boolean {
   return !!s.subscriptionStatus && !["canceled", "incomplete_expired"].includes(s.subscriptionStatus);
 }
 
+/** Lifecycle of a family/school subscription for the UI (BILLING-FLOW-SPEC.md §3.5). The family UI uses only this. */
+export type BillingPhase = "none" | "incomplete" | "trialing" | "active" | "past_due" | "canceling" | "paused" | "unpaid" | "ended";
+
+/** Maps GET /api/billing/status to a BillingPhase. `status` is the computed licence state (trial, pilot, active, expired, ...). */
+export function billingPhase(s: BillingStatus | null): BillingPhase {
+  if (!s) return "none";
+  if (s.status === "expired") return "ended";
+  const sub = s.subscriptionStatus;
+  if (!sub) {
+    if (s.status === "trial" || s.status === "trialing" || s.status === "pilot") return "trialing";
+    if (s.status === "active") return "active";
+    if (s.status === "paused") return "paused";
+    return "none";
+  }
+  switch (sub) {
+    case "active": return s.cancelAtPeriodEnd ? "canceling" : "active";
+    case "trialing": return s.cancelAtPeriodEnd ? "canceling" : "trialing";
+    case "past_due": return "past_due";
+    case "unpaid": return "unpaid";
+    case "incomplete": return "incomplete";
+    case "paused": return "paused";
+    case "canceled": case "cancelled": case "incomplete_expired": return "ended";
+    default: return "none";
+  }
+}
+
 const STATUS_LABEL: Record<string, string> = {
   active: "Aktiv", trialing: "Testphase", trial: "Testphase", pilot: "Pilot", past_due: "Zahlung überfällig", unpaid: "Unbezahlt",
   incomplete: "Zahlung ausstehend", incomplete_expired: "Abgelaufen", canceled: "Gekündigt", cancelled: "Gekündigt",

@@ -12,8 +12,9 @@ export type PlanStatus = "trial" | "pilot" | "active" | "paused" | "cancelled";
 export type ShareSettings = { progress: boolean; applications: boolean; village: boolean; documents: boolean };
 
 export type FamilyMember = { userId: string; displayName: string; role: FamilyRole; status: MemberStatus; consentStatus: ConsentStatus; shareSettings: ShareSettings | null };
-export type FamilyPlan = { planType: string; status: PlanStatus | string; seatsParents: number; seatsChildren: number; trialEndsAt: string | null };
-export type MyFamily = { id: string; name: string; myRole: FamilyRole; members: FamilyMember[]; plan: FamilyPlan | null; myShare: ShareSettings | null };
+export type FamilyPlan = { planType: string; status: PlanStatus | string; state: string | null; seatsParents: number; seatsChildren: number; trialEndsAt: string | null };
+export type FamilyInvite = { code: string; direction: InviteDirection; expiresAt: string | null };
+export type MyFamily = { id: string; name: string; myRole: FamilyRole; members: FamilyMember[]; plan: FamilyPlan | null; myShare: ShareSettings | null; invites: FamilyInvite[] };
 
 /** Registration / role-picker choices. "school" keeps today's student flow untouched (no account_set_type call). */
 export type SignupChoice = "school" | "independent" | "parent" | "teacher";
@@ -130,7 +131,7 @@ export function readMember(v: unknown): FamilyMember | null {
 export function readPlan(v: unknown): FamilyPlan | null {
   const r = obj(v);
   if (!r) return null;
-  return { planType: str(r.plan_type, "family"), status: str(r.status, "trial"), seatsParents: int(r.seats_parents, 1), seatsChildren: int(r.seats_children, 1), trialEndsAt: r.trial_ends_at ? str(r.trial_ends_at) : null };
+  return { planType: str(r.plan_type, "family"), status: str(r.status, "trial"), state: r.state ? str(r.state) : null, seatsParents: int(r.seats_parents, 1), seatsChildren: int(r.seats_children, 1), trialEndsAt: r.trial_ends_at ? str(r.trial_ends_at) : null };
 }
 /** Normalises the family_get_my payload (jsonb object, possibly wrapped in an array). null = no family yet. */
 export function readMyFamily(data: unknown, myUserId?: string | null): MyFamily | null {
@@ -142,7 +143,9 @@ export function readMyFamily(data: unknown, myUserId?: string | null): MyFamily 
   const me = myUserId ? members.find((m) => m.userId === myUserId) : undefined;
   const myRole = oneOf(root.my_role, ["parent", "child"] as const, me?.role ?? "child");
   const myShare = root.my_share_settings ? readShare(root.my_share_settings) : me?.shareSettings ?? (myRole === "child" ? { ...DEFAULT_SHARE } : null);
-  return { id: str(fam.id), name: str(fam.name).trim() || "Meine Familie", myRole, members, plan: readPlan(root.plan), myShare };
+  const invites = (Array.isArray(root.invites) ? root.invites : []).map(obj).filter((i): i is Row => !!i && !!normalizeInviteCode(str(i.code)))
+    .map((i) => ({ code: normalizeInviteCode(str(i.code)), direction: oneOf(i.direction, ["parent_invites_child", "child_invites_parent"] as const, myRole === "parent" ? "parent_invites_child" : "child_invites_parent"), expiresAt: i.expires_at ? str(i.expires_at) : null }));
+  return { id: str(fam.id), name: str(fam.name).trim() || "Meine Familie", myRole, members, plan: readPlan(root.plan), myShare, invites };
 }
 export const childrenOf = (f: MyFamily) => f.members.filter((m) => m.role === "child");
 export const parentsOf = (f: MyFamily) => f.members.filter((m) => m.role === "parent");
@@ -235,7 +238,8 @@ export function formatDateCh(iso: string | null | undefined): string {
   return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
 }
 /** One line describing the plan: "Testphase · noch 12 Tage" / "Familienpaket: 1 Elternteil, 1 Kind". */
-export function planSummary(plan: FamilyPlan | null, now: Date = new Date()): { title: string; status: string; detail: string } {
+export function planSummary(plan: FamilyPlan | null, now: Date = new Date(), opts: { online?: boolean } = {}): { title: string; status: string; detail: string } {
+  void opts; // flag-aware wording: Part B (BILLING-FLOW-SPEC.md S7/S8)
   if (!plan) return { title: "Familienpaket", status: "Bald verfügbar", detail: "Das Familienpaket ist noch nicht freigeschaltet. Du kannst WendApply trotzdem schon nutzen." };
   const status = PLAN_STATUS_LABEL[plan.status] ?? plan.status;
   const seats = `${plan.seatsParents} ${plan.seatsParents === 1 ? "Elternteil" : "Elternteile"}, ${plan.seatsChildren} ${plan.seatsChildren === 1 ? "Kind" : "Kinder"}`;
