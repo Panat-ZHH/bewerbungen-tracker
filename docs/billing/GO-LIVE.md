@@ -23,6 +23,9 @@ Der Code ist fertig und getestet, **aber hinter einem Flag ausgeschaltet**. Sola
 
 ## 2. Produkte & Preise im Live-Modus anlegen ⚠️
 
+> **Stand 2026-11-17:** Stripe-Konto `acct_1UcSQ3JAaBKruAMr` ist **aktiviert** (charges/payouts enabled, Name „Wendapply“, Descriptor `WENDAPPLY`), noch **keine** Live-Produkte, -Webhooks oder -Portal-Konfiguration. Schritte 2–4 erledigt in einem Lauf (von Panat freigegeben):
+> `node --experimental-strip-types scripts/stripe/live-setup.mjs --wait 15` – liest den Live-Key **nur aus der Zwischenablage** (sk_live_/rk_live_), legt Produkte/Preise + Portal an, setzt `STRIPE_SECRET_KEY` (secret), `STRIPE_PORTAL_CONFIGURATION_ID`, erstellt den Webhook (6 Events, API `2026-10-28.endive`) und setzt `STRIPE_WEBHOOK_SECRET` (secret) – alles nur Netlify-Kontext *production*, Flags bleiben AUS. `--check` = nur lesen/prüfen.
+
 Das gleiche Skript wie im Test, nur mit einem Live-Key (es ist idempotent, findet Produkte über `metadata.plan_id` und Preise über `lookup_key`):
 
 ```bash
