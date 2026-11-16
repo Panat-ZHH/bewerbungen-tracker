@@ -8,3 +8,6 @@ supabase/.temp/
 
 # Local Netlify folder
 .netlify
+
+# generated QA screenshots (public repo)
+docs/*/shots/
