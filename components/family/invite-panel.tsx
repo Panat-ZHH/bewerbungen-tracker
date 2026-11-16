@@ -118,7 +118,7 @@ export function JoinForm({ initialCode = "", onJoined, title = "Code eingeben", 
   }
 
   return (
-    <form onSubmit={submit} aria-labelledby={bare ? undefined : headingId} aria-label={bare ? title : undefined} className={bare ? "space-y-3" : "panel-flat space-y-3 p-5"} noValidate data-testid="join-form">
+    <form onSubmit={submit} aria-labelledby={bare ? undefined : headingId} className={bare ? "space-y-3" : "panel-flat space-y-3 p-5"} noValidate data-testid="join-form">
       {!bare && <h2 id={headingId} className="text-heading"><KeyRound size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{title}</h2>}
       {intro && <p className="text-body text-muted">{intro}</p>}
       {error && <StatusMessage tone="danger">{error}</StatusMessage>}

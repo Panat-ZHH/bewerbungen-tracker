@@ -29,6 +29,20 @@ Other env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_
 | API + webhook | `lib/billing/{api,auth,webhook,stripe,server,memory-db}.ts`, `app/api/billing/{checkout,portal,status}`, `app/api/stripe/webhook` | [WEBHOOK-TEST.md](WEBHOOK-TEST.md) |
 | UI | `components/billing/*`, `components/family/plan-card.tsx`, `/schul-admin`, `/familie`, `/preise` | [UI.md](UI.md) |
 
+## Billing phases (family flow, BILLING-FLOW-SPEC §3.5)
+
+`billingPhase()` in `components/billing/logic.ts` turns `GET /api/billing/status` into one of
+`none | incomplete | trialing | active | past_due | canceling | paused | unpaid | ended`. The family UI uses only this phase.
+Badges and texts come from `FAMILY_COPY` (`lib/family-copy.ts`) via `phaseBadge()` / `phaseText()`.
+
+- `hasSubscription()` is false for `ended`, so a family can buy the plan again after it ended.
+- Checkout answers 409 `already_subscribed` for active, trialing, past_due, unpaid and paused subscriptions, **including
+  ones set to cancel at period end**. Those are renewed in the portal, never bought twice (`OPEN_SUBSCRIPTION_STATUSES`).
+- The portal returns families to `/familie?billing=portal` (`portalReturnUrl`); the page reloads the status silently.
+- `BillingBanner` (past_due / unpaid) sits on top of `/familie` for parents. Children never see payment states (S8).
+- With the flag ON, a 503 says `FAMILY_COPY.api.unreachable`, never "noch nicht freigeschaltet".
+- Unit tests: `tests/billing-phase.test.mjs`. Student flow e2e: `scripts/family-student-flow-e2e.mjs` (both flag states).
+
 ## Tests
 
 | What | Command | Result 2026-11-16 (merged branch) |
