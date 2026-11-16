@@ -1,6 +1,7 @@
 "use client";
 // Browser-side data access for reminders (RLS limits everything to the signed-in user).
 import { supabase } from "@/lib/supabase";
+import { registerServiceWorker, SW_URL } from "@/components/pwa/sw-registration";
 import { DEFAULT_SETTINGS, isoDay, newFeedToken, normalizeSettings, type ReminderSettings } from "@/lib/reminders";
 
 async function uid() { const { data, error } = await supabase.auth.getUser(); if (error || !data.user) throw new Error("You must be signed in."); return data.user.id; }
@@ -46,8 +47,9 @@ export async function enablePush(): Promise<"ok" | "denied" | "unsupported" | "n
   const key = await fetch("/api/reminders/push").then((r) => (r.ok ? r.json() : null)).catch(() => null) as { publicKey?: string } | null;
   if (!key?.publicKey) return "not_configured";
   if ((await Notification.requestPermission()) !== "granted") return "denied";
-  const reg = await navigator.serviceWorker.register("/sw.js");
-  await navigator.serviceWorker.ready;
+  // same registration as the PWA (components/pwa/PwaRegister.tsx), never a second one
+  await registerServiceWorker();
+  const reg = await navigator.serviceWorker.ready;
   const sub = (await reg.pushManager.getSubscription()) ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(key.publicKey) });
   const res = await fetch("/api/reminders/push", { method: "POST", headers: await bearer(), body: JSON.stringify(sub.toJSON()) });
   if (!res.ok) throw new Error("PUSH_SAVE_FAILED");
@@ -55,7 +57,7 @@ export async function enablePush(): Promise<"ok" | "denied" | "unsupported" | "n
 }
 export async function disablePush() {
   if (!pushSupported()) return;
-  const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+  const reg = await navigator.serviceWorker.getRegistration(SW_URL);
   const sub = await reg?.pushManager.getSubscription();
   if (sub) { await fetch("/api/reminders/push", { method: "DELETE", headers: await bearer(), body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => undefined); await sub.unsubscribe().catch(() => undefined); }
 }

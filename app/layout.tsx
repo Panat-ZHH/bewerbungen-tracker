@@ -2,12 +2,27 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Instrument_Sans } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { PwaRegister } from "@/components/pwa/PwaRegister";
+import { InstallHint } from "@/components/pwa/InstallHint";
 
 // Display font for titles and big numbers, calm sans for everything else (self-hosted by next/font, no request to Google at runtime).
 const titleFont = Bricolage_Grotesque({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-title" });
 const bodyFont = Instrument_Sans({ subsets: ["latin", "latin-ext"], display: "swap", variable: "--font-body" });
 
-export const metadata: Metadata = { title: { default: "WendApply | Deine Lehrstellensuche", template: "%s | WendApply" }, description: "Finde deine Lehrstelle und behalte deine Bewerbungen im Blick." };
+export const metadata: Metadata = {
+  title: { default: "WendApply | Deine Lehrstellensuche", template: "%s | WendApply" },
+  description: "Finde deine Lehrstelle und behalte deine Bewerbungen im Blick.",
+  applicationName: "WendApply",
+  // PWA: manifest comes from app/manifest.ts; icons from public/icons (scripts/pwa-icons.mjs). app/icon.png stays the default favicon.
+  appleWebApp: { capable: true, title: "WendApply", statusBarStyle: "default" },
+  formatDetection: { telephone: false },
+  // Next only emits the generic mobile-web-app-capable tag; older iOS versions still look for the Apple one.
+  other: { "apple-mobile-web-app-capable": "yes" },
+  icons: {
+    icon: [{ url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" }, { url: "/icons/icon-16.png", sizes: "16x16", type: "image/png" }, { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+};
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -23,7 +38,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="de" suppressHydrationWarning className={`${titleFont.variable} ${bodyFont.variable}`}>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
-      <body>{children}<Toaster /></body>
+      <body>{children}<Toaster /><InstallHint /><PwaRegister /></body>
     </html>
   );
 }
