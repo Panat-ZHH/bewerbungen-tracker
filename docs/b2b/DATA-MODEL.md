@@ -75,15 +75,11 @@ The school admin then attaches classes with the class join code (`school_attach_
 `SCHOOL_PACKAGES` / `priceQuote()` in `lib/b2b/licence.ts` (CHF 990 / 1'490 / 3'990 per year; monthly payment = yearly
 price + `MONTHLY_SURCHARGE`, **10 % is an assumption**, the business plan only says "mit Aufpreis").
 
-### Extension point: other plan holders (family / private plans)
+### Other plan holders (family plans)
 
-The family-accounts agent should **not** add columns to `school_licences`. Instead:
-1. Create its own table (e.g. `family_plans`: id, holder user_id, package, status, pilot/valid dates, billing_interval,
-   notes) with the **same column names and status values**.
-2. Reuse `public._licence_state(status, pilot_end, valid_from, valid_until)` for the effective state (immutable, no access check).
-3. In TS, reuse `LicenceState`, `licenceState()`, `BillingInterval`, `PlanDefinition` and add a second catalogue
-   (`PlanHolder = "family" | "private"`) next to `SCHOOL_PACKAGES`.
-4. `export_my_data()` picks up the new table automatically if it has a foreign key to `auth.users`.
+Superseded by `20261116140000_family_accounts.sql`: the shared family contract chose to **extend** `school_licences`
+instead of adding a second table. Every row now has exactly one owner (`school_id` or `family_id`) and a `plan_type`
+(`school` | `family`). School rows are unchanged (same packages, same status set, same seat logic). See "Familien" below.
 
 ## RPCs
 
@@ -198,6 +194,44 @@ Known, not changed (UI/product decisions, low risk):
   e-mail address has an account. Fix if wanted: always answer "Anfrage gesendet".
 * `avatars` bucket is public by design (profile pictures are shown to friends and teachers); URLs contain the user id.
 * `social_avatars` lets only the class **owner** (not co-teachers) see student avatars (functional gap, not a leak).
+
+## Familien (family / private accounts, `20261116140000_family_accounts.sql`)
+
+Full description in German: `docs/family/README.md`. Tests: `tests/family-db.test.mjs` (PGlite, two families, consent, seats, RLS, export, deletion).
+
+| Object | What |
+|---|---|
+| `profiles.account_type` | `school_student` \| `independent_student` (default) \| `parent`. Class members were migrated to `school_student`; joining a class turns `independent_student` into `school_student` (trigger). Teachers/school admins keep `user_roles.role`. Direct table writes (role `authenticated`) cannot change `account_type` or `birth_year` (trigger `profiles_account_guard`); only `account_set_type()` can. |
+| `profiles.birth_year` | year only (data minimisation). Consent needed while `current_year - birth_year <= 16` (conservative); unknown = consent needed. |
+| `families` | id, name, created_by (`set null`), created_at. Deleted automatically when no active/pending member is left (plans and invites cascade). |
+| `family_members` | (family_id, user_id) PK, role `parent`/`child`, status `pending`/`active`/`removed`, consent_status, consent_at, consent_by, share_settings jsonb, joined_at. One non-removed family per person (partial unique index). |
+| `family_invites` | code (8 chars, PK), family_id, created_by, direction, expires_at (7 days), used_by, used_at. Single use. Max 10 open per family. |
+| `waitlist_requests` | email, kind (`family`/`parent`/`student`/`school`/`other`), message, user_id; unique (lower(email), kind). Service role only. |
+| `school_licences` (extended) | `family_id`, `plan_type`, `seats_parents` (1), `seats_children` (1), `trial_ends_at`, `assigned_by` (text), `external_ref` (unused placeholder). Family rows: `package = 'family'`, `student_limit = seats_children`, status also `trial`/`paused`; trial = 30 days by default. |
+
+RLS: own membership rows, own invites, the own family's row; nothing else. Family plan rows are not readable directly (only via
+`family_get_my().plan`, never `notes`). anon: no table privilege; the only anon RPC is `waitlist_join`.
+
+Seats: without a plan a family has 1 parent + 1 child seat; with a plan the governing plan (newest usable, else newest) decides.
+`family_join` / `family_create_invite` raise `WA010 FAMILY_SEAT_LIMIT` (German `details`). An expired/paused plan does **not**
+block anything yet (no payment exists); it is shown as `plan.state`.
+
+| RPC | Caller | Notes |
+|---|---|---|
+| `account_set_type(p_type, p_birth_year default null)` | signed in | class members can only be `school_student`; type switch refused while in a family with the other role (`IN_FAMILY`); a child in a family cannot make itself older (`BIRTH_YEAR_LOCKED`) |
+| `family_get_my()` | signed in | `{family, my_role, my_status, my_consent_status, my_share_settings, my_sharing_active, members[], plan, invites[]}` or null |
+| `family_create(p_name)` | `parent` without family | uuid |
+| `family_create_invite(p_direction)` | parent (`parent_invites_child`) / student child (`child_invites_parent`; creates "Meine Familie" if needed, birth year required) | `{code, expires_at, family_id}` |
+| `family_join(p_code)` | signed in | `INVITE_INVALID/USED/EXPIRED/WRONG_ACCOUNT_TYPE`, `ALREADY_IN_FAMILY`, `BIRTH_YEAR_REQUIRED`, `WA010` |
+| `family_set_consent(p_child_id, p_granted)` | active parent of that family | `CONSENT_NOT_REQUIRED` for 16+ children |
+| `family_set_share(p_settings)` | active child, own row | keys `progress`, `applications`, `village`, `documents` (booleans) |
+| `family_child_overview(p_child_id)` | active parent of that family | only shared parts, only while sharing is allowed; never notes, salary, links, location, file paths, classes, classmates |
+| `family_remove_member(p_user_id)` / `family_leave()` | parent / anyone | removed rows keep status `removed`, all sharing off |
+| `family_export_my_data()` | signed in | also embedded as `family` in `export_my_data()`; invite codes redacted everywhere |
+| `admin_assign_family_plan(p_family_id, p_status, p_trial_ends_at, p_seats_children, p_seats_parents, p_notes, p_assigned_by)` | **service role only** | uuid of the new plan row |
+| `waitlist_join(p_email, p_kind, p_message)` | anon + signed in | always `{ok:true}` for valid input |
+
+`account_delete_summary()` now also returns `family_member` and `family_others`.
 
 ## UI guidance (other agents)
 
