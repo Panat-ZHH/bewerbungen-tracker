@@ -186,6 +186,23 @@ for (const { key, vp } of VIEWPORTS) {
     check(await visible(page, "Herr Bachmann"), "teachers listed");
     check(!(await page.locator("text=/Stripe|Bezahlen|Kreditkarte/i").count()), "no payment UI");
     check(["sch1", "sch2"].every((id) => state.calls.some((c) => c.rpc === "school_admin_overview" && c.body.p_school_id === id)), "overview loaded per school");
+    // Attach a class by join code: success, then the licence-full error (WA001) with its German details.
+    const attachBodies = [];
+    await ctx.route(`${SUPA}/rest/v1/rpc/school_attach_class`, async (route) => {
+      const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
+      if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
+      const body = JSON.parse(route.request().postData() || "{}"); attachBodies.push(body);
+      if (body.p_join_code === "VOLL-01") return route.fulfill({ status: 400, contentType: "application/json", headers: cors, body: JSON.stringify({ code: "WA001", message: "LICENCE_LIMIT_REACHED", details: "Die Schullizenz ist voll (300 von 300 Plätzen belegt). Die Schulleitung kann die Lizenz erweitern.", hint: null }) });
+      return route.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ class_id: "c9", name: "Sek 2c", students: 19 }) });
+    });
+    const attachInput = page.getByLabel("Klasse hinzufügen").first();
+    await attachInput.fill("sek2-c9");
+    await page.getByRole("button", { name: "Zuordnen" }).first().click();
+    check(await visible(page, "«Sek 2c» ist jetzt der Schule zugeordnet (19 Schüler:innen)."), "class can be attached by join code");
+    check(attachBodies[0]?.p_school_id === "sch1" && attachBodies[0]?.p_join_code === "SEK2-C9", "attach sends school id and upper-cased code", JSON.stringify(attachBodies[0]));
+    await attachInput.fill("VOLL-01");
+    await page.getByRole("button", { name: "Zuordnen" }).first().click();
+    check(await visible(page, "Die Schullizenz ist voll (300 von 300 Plätzen belegt)"), "licence-full error is shown in German");
     check(await noOverflow(page), "no horizontal overflow");
     await shot(page, `${key}-school-admin`);
     await ctx.close();

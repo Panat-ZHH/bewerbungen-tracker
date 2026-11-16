@@ -3,6 +3,7 @@
  * Plain TS (no JSX) so tests can import it directly. Pricing is public; there is deliberately no online purchase or payment code here.
  * Swiss spelling only (ss, never the sharp s).
  */
+import { SCHOOL_PACKAGES, PILOT_DAYS } from "../../lib/b2b/licence.ts";
 
 export const TAGLINE = "Den Bewerbungsprozess sichtbar, planbar und motivierend machen.";
 export const BRAND_TAGLINE = `WendApply · ${TAGLINE}`;
@@ -29,13 +30,13 @@ const core = [
 ];
 
 export const PACKAGES: Package[] = [
-  { id: "starter", name: "Starter", maxStudents: 100, pricePerYear: 990, audience: "Kleine Schulen", features: [...core, "Support per E-Mail"] },
-  { id: "professional", name: "Professional", maxStudents: 300, pricePerYear: 1490, audience: "Das Kernpaket für die meisten Sekundarschulen", recommended: true, features: [...core, "Persönliche Einführung für das Kollegium"] },
-  { id: "enterprise", name: "Enterprise", maxStudents: 800, pricePerYear: 3990, audience: "Grosse Schulen mit erweiterter Administration", features: [...core, "Erweiterte Administration für die Schule", "Persönliche Einführung für das Kollegium"] },
+  { id: "starter", name: "Starter", maxStudents: SCHOOL_PACKAGES.starter.studentLimit!, pricePerYear: SCHOOL_PACKAGES.starter.yearlyPriceChf!, audience: "Kleine Schulen", features: [...core, "Support per E-Mail"] },
+  { id: "professional", name: "Professional", maxStudents: SCHOOL_PACKAGES.professional.studentLimit!, pricePerYear: SCHOOL_PACKAGES.professional.yearlyPriceChf!, audience: "Das Kernpaket für die meisten Sekundarschulen", recommended: true, features: [...core, "Persönliche Einführung für das Kollegium"] },
+  { id: "enterprise", name: "Enterprise", maxStudents: SCHOOL_PACKAGES.enterprise.studentLimit!, pricePerYear: SCHOOL_PACKAGES.enterprise.yearlyPriceChf!, audience: "Grosse Schulen mit erweiterter Administration", features: [...core, "Erweiterte Administration für die Schule", "Persönliche Einführung für das Kollegium"] },
 ];
 
 export const PILOT = {
-  days: 30,
+  days: PILOT_DAYS,
   classes: "1 bis 2 Klassen",
   /** Already promised on the live site before the B2B plan ("kostenloser Pilot"). Open question in docs/b2b/REPORT-b2b-site.md. */
   free: true,

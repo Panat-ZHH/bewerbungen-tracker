@@ -2,7 +2,7 @@ import { shownName } from "@/lib/profile-name-utils";
 import { supabase } from "@/lib/supabase";
 import type { ApplicationCategory, ApplicationStatus, ClassDeadline, ClassMember, ClassMembership, ClassStudentApplications, ClassStudentOverview, SchoolClass, StatusCounts } from "@/types";
 
-function databaseError(error: { code?: string; message?: string; details?: string | null; hint?: string | null }) { const parts = [error.code, error.message, error.details, error.hint].filter(Boolean); return Object.assign(new Error(`Database error: ${parts.join(" | ")}`), { code: error.code }); }
+function databaseError(error: { code?: string; message?: string; details?: string | null; hint?: string | null }) { const parts = [error.code, error.message, error.details, error.hint].filter(Boolean); return Object.assign(new Error(`Database error: ${parts.join(" | ")}`), { code: error.code, details: error.details ?? null }); }
 
 /** Stable error codes raised by the RPCs (found in Error.message). FORBIDDEN = wrong role or not your class. */
 export type ClassErrorCode = "AUTH_REQUIRED" | "FORBIDDEN" | "NOT_FOUND" | "CLASS_NOT_FOUND" | "INVALID_NAME" | "INVALID_REQUEST" | "EXPIRED" | "REVOKED" | "USED_UP" | "INVALID" | "RATE_LIMITED";

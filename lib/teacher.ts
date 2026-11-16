@@ -6,7 +6,7 @@ import { isPlacedFromCounts, schnupperCounts } from "@/lib/status";
 // Typed camelCase wrappers for the teacher-role RPCs (migration 20261107000000_teacher_role.sql, spec docs/teacher-contract.md).
 // Teachers never read tables directly; everything goes through security-definer RPCs.
 
-function databaseError(error: { code?: string; message?: string; details?: string | null; hint?: string | null }) { const parts = [error.code, error.message, error.details, error.hint].filter(Boolean); return Object.assign(new Error(`Database error: ${parts.join(" | ")}`), { code: error.code }); }
+function databaseError(error: { code?: string; message?: string; details?: string | null; hint?: string | null }) { const parts = [error.code, error.message, error.details, error.hint].filter(Boolean); return Object.assign(new Error(`Database error: ${parts.join(" | ")}`), { code: error.code, details: error.details ?? null }); }
 
 /** Stable error codes raised by the RPCs (found in Error.message). */
 export type TeacherErrorCode =

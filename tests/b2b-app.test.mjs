@@ -21,7 +21,7 @@ test("isMissingFeature recognises undeployed tables and RPCs only", () => {
 
 test("packages match the public price list (no payment logic)", () => {
   assert.equal(PACKAGE_INFO.starter.limit, 100); assert.equal(PACKAGE_INFO.professional.limit, 300); assert.equal(PACKAGE_INFO.enterprise.limit, 800);
-  assert.match(PACKAGE_INFO.professional.price, /1490/);
+  assert.match(PACKAGE_INFO.professional.price, /1.490/);
   assert.equal(packageLabel("professional"), "Professional"); assert.equal(packageLabel("nope"), "Kein Paket"); assert.equal(packageLabel(null), "Kein Paket");
   assert.equal(statusLabel("pilot"), "Pilotphase"); assert.equal(statusLabel("expired"), "Abgelaufen"); assert.equal(statusLabel("?"), "Unbekannt");
 });

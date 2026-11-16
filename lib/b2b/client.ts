@@ -142,3 +142,16 @@ export async function getMySchools(): Promise<SchoolOverview[] | null> {
 // ---------- my data ----------
 /** Server-side export of everything stored about me (export_my_data). undefined = RPC not deployed yet. */
 export async function exportMyDataFromServer(): Promise<unknown | undefined> { return optionalRpc<unknown>("export_my_data"); }
+
+// ---------- school admin: attach / detach classes ----------
+/** Attaches a class to the school by its join code (school_attach_class). Raises WA001-WA003 when the licence is full / inactive. */
+export async function attachClassToSchool(schoolId: string, joinCode: string): Promise<{ classId: string; name: string; students: number }> {
+  const { data, error } = await supabase.rpc("school_attach_class", { p_school_id: schoolId, p_join_code: joinCode.trim().toUpperCase() });
+  if (error) fail(error);
+  const r = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row;
+  return { classId: String(r.class_id ?? ""), name: String(r.name ?? ""), students: num(r.students) };
+}
+export async function detachClassFromSchool(schoolId: string, classId: string): Promise<void> {
+  const { error } = await supabase.rpc("school_detach_class", { p_school_id: schoolId, p_class_id: classId });
+  if (error) fail(error);
+}

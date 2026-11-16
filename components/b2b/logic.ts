@@ -1,5 +1,7 @@
 // Pure helpers for the B2B screens (teacher class overview, class goals, school admin, "Meine Daten").
 // No React, no runtime aliases: unit-tested with node --test (tests/b2b-app.test.mjs).
+import { SCHOOL_PACKAGES, PILOT_DAYS } from "../../lib/b2b/licence.ts";
+import type { LicencePackage } from "../../lib/b2b/types.ts";
 
 // ---------- feature detection ----------
 /**
@@ -17,14 +19,21 @@ export function isMissingFeature(error: unknown): boolean {
 }
 
 // ---------- packages and licences ----------
-export type LicencePackage = "pilot" | "starter" | "professional" | "enterprise" | "custom";
+export type { LicencePackage };
 export type LicenceStatus = "pilot" | "active" | "expired" | "cancelled";
+/** Labels, seat limits and prices derive from SCHOOL_PACKAGES (lib/b2b/licence.ts), the single price source. */
+const swissChf = (n: number) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+const info = (p: LicencePackage, label: string) => {
+  const d = SCHOOL_PACKAGES[p];
+  const price = d.yearlyPriceChf === null ? "nach Vereinbarung" : d.yearlyPriceChf === 0 ? "kostenlos" : `CHF ${swissChf(d.yearlyPriceChf)} pro Jahr`;
+  return { label, limit: d.studentLimit, price };
+};
 export const PACKAGE_INFO: Record<LicencePackage, { label: string; limit: number | null; price: string }> = {
-  pilot: { label: "Pilot (30 Tage)", limit: null, price: "kostenlos" },
-  starter: { label: "Starter", limit: 100, price: "CHF 990 pro Jahr" },
-  professional: { label: "Professional", limit: 300, price: "CHF 1490 pro Jahr" },
-  enterprise: { label: "Enterprise", limit: 800, price: "CHF 3990 pro Jahr" },
-  custom: { label: "Individuelles Angebot", limit: null, price: "nach Vereinbarung" },
+  pilot: info("pilot", `Pilot (${PILOT_DAYS} Tage)`),
+  starter: info("starter", "Starter"),
+  professional: info("professional", "Professional"),
+  enterprise: info("enterprise", "Enterprise"),
+  custom: info("custom", "Individuelles Angebot"),
 };
 export const STATUS_LABEL: Record<LicenceStatus, string> = { pilot: "Pilotphase", active: "Aktiv", expired: "Abgelaufen", cancelled: "Gekündigt" };
 export function packageLabel(p: string | null | undefined): string { return (PACKAGE_INFO as Record<string, { label: string }>)[p ?? ""]?.label ?? "Kein Paket"; }
