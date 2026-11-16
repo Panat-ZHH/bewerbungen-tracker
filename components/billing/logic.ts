@@ -187,3 +187,60 @@ export function checkoutBody(owner: BillingOwner, plan: PlanId, payment: Payment
 export function ownerQuery(owner: BillingOwner): string {
   return owner.kind === "school" ? `schoolId=${encodeURIComponent(owner.id)}` : `familyId=${encodeURIComponent(owner.id)}`;
 }
+
+// ---------------------------------------------------------------- in-app payment (Payment Element on /familie/bezahlen)
+/**
+ * Pay inside the app (Stripe Checkout Session ui_mode "elements" + Payment Element in our own design) instead of the
+ * hosted checkout.stripe.com page. Needs the flag ON and a publishable key; `NEXT_PUBLIC_STRIPE_CHECKOUT_UI=hosted`
+ * switches back to the hosted page (fallback). Families only; schools keep the hosted page (UID, invoice address).
+ * NEXT_PUBLIC_* are inlined at build time, so they are read with their literal names.
+ */
+export function inAppPaymentEnabled(
+  env: { enabled?: boolean; publishableKey?: string; ui?: string } = {
+    enabled: onlinePaymentEnabled(),
+    publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+    ui: process.env.NEXT_PUBLIC_STRIPE_CHECKOUT_UI,
+  },
+): boolean {
+  return Boolean(env.enabled) && /^pk_(test|live)_/.test(env.publishableKey ?? "") && env.ui !== "hosted";
+}
+
+export const PAY_PATH = "/familie/bezahlen";
+export const PAY_DONE_PATH = "/familie/bezahlen/fertig";
+
+/** Link to the in-app payment page for a family. */
+export function payPageHref(familyId: string, interval: BillingInterval = "year"): string {
+  return `${PAY_PATH}?${new URLSearchParams({ familie: familyId, interval }).toString()}`;
+}
+/** `?familie=<uuid>&interval=month|year` of the payment page (null family = invalid link). */
+export function readPayParams(search: string): { familyId: string | null; interval: BillingInterval } {
+  const q = new URLSearchParams(search);
+  const id = q.get("familie") ?? "";
+  const interval = q.get("interval") === "month" ? "month" : "year";
+  return { familyId: /^[0-9a-f-]{36}$/i.test(id) ? id : null, interval };
+}
+/** `?session_id=cs_…` on the return page. */
+export function readReturnSession(search: string): string | null {
+  const id = new URLSearchParams(search).get("session_id") ?? "";
+  return /^cs_(test|live)_[A-Za-z0-9]{10,200}$/.test(id) ? id : null;
+}
+
+/** Amount for the pay button / summary, always with two decimals (Swiss format with a dot). */
+export function payAmountText(plan: Plan, interval: BillingInterval): string {
+  const chf = planPrice(plan, interval) ?? 0;
+  return `CHF ${chf.toFixed(2)}`;
+}
+export const PER_INTERVAL: Record<BillingInterval, string> = { month: "pro Monat", year: "pro Jahr" };
+
+/** German text for a failed confirm() (decline, 3DS failed, validation). Never shows Stripe's raw English codes. */
+export function paymentErrorMessage(e: { code?: string | null; declineCode?: string | null; message?: string | null } | null | undefined): string {
+  const decline = e?.declineCode ?? "";
+  if (decline === "insufficient_funds") return "Die Karte hat nicht genug Guthaben. Versuch es mit einer anderen Karte.";
+  if (decline === "expired_card") return "Die Karte ist abgelaufen. Bitte nimm eine andere Karte.";
+  if (decline === "incorrect_cvc" || decline === "invalid_cvc") return "Der Sicherheitscode (CVC) stimmt nicht. Prüf ihn und versuch es nochmals.";
+  if (decline === "authentication_required" || decline === "authentication_failed") return "Die Bestätigung bei deiner Bank hat nicht geklappt. Versuch es nochmals.";
+  if (decline) return "Deine Bank hat die Zahlung abgelehnt. Versuch es mit einer anderen Karte oder Zahlungsart.";
+  if (e?.code === "paymentFailed") return "Die Zahlung hat nicht geklappt. Es wurde nichts belastet. Versuch es nochmals.";
+  if (e?.code === "validation_error" || e?.code === "incomplete") return "Bitte füll die Zahlungsangaben vollständig aus.";
+  return "Die Zahlung hat nicht geklappt. Es wurde nichts belastet. Versuch es nochmals.";
+}
