@@ -13,7 +13,7 @@ import { CANTONS } from "@/lib/job-filters/geo";
 import { addProfession, emptyAnswers, hasAnyAnswer, loadOnboarding, MAX_PROFESSIONS, PROFESSION_SUGGESTIONS, removeProfession, saveOnboarding, SCHOOL_LEVELS, startYearOptions, type OnboardingAnswers } from "@/lib/onboarding";
 import {
   checkFirstApplication, completeTour, FIRST_APPLICATION_STATUSES, LAST_STEP, loadTourStatus, needsTour, parseTourParams, PROFILE_PARTS,
-  resumeStep, saveFirstApplication, saveTourStep, tourDoneInMeta, tourExitPath, type FirstApplicationInput,
+  resumeStep, saveFirstApplication, saveTourStep, tourDoneInMeta, tourExitPath, TOUR_FAMILY_LINK, TOUR_FAMILY_PATH, type FirstApplicationInput,
 } from "@/lib/onboarding-tour";
 import { clearRoleCache, landingPath, loadMyRole } from "@/lib/role";
 import { reward } from "@/lib/rewards";
@@ -112,6 +112,8 @@ export function StudentOnboarding() {
     leave();
   });
   const finish = () => run(async () => { if (!mode.replay) await completeTour(LAST_STEP); leave(); });
+  /** "Eltern verbinden (freiwillig)": finish the tour like "Fertig", then open /familie. */
+  const finishToFamily = () => run(async () => { if (!mode.replay) await completeTour(LAST_STEP); clearRoleCache(); router.replace(TOUR_FAMILY_PATH); });
 
   const profileNext = (event: FormEvent) => {
     event.preventDefault();
@@ -310,6 +312,7 @@ export function StudentOnboarding() {
               <p className="text-small text-muted">Den KI-Check findest du jederzeit unter «Dokumente».</p>
               <DoodleUnderline className="h-3 w-28 text-[var(--sun)]" />
               {nav(<Button type="button" variant="sun" full size="lg" loading={busy} onClick={() => void finish()}>{mode.replay ? "Zurück zu den Einstellungen" : mode.next ? "Weiter" : "Zum Dashboard"} <ArrowRight size={16} strokeWidth={2.4} /></Button>)}
+              <button type="button" onClick={() => void finishToFamily()} disabled={busy} data-testid="tour-family-link" className={cn(linkButton, "mx-auto flex")}>{TOUR_FAMILY_LINK}</button>
             </>
           )}
 

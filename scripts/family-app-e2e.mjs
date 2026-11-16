@@ -146,16 +146,16 @@ for (const { key, vp } of VIEWPORTS) {
     const be = familyBackend({ id: "u1", name: "Lina Meier" });
     const { ctx, page, state } = await actor({ meta: { role: "student", role_confirmed: true, student_onboarded: true, onboarding_tour_done: true, account_type: "independent_student", birth_year: 2012 }, rpc: be.rpc, vp });
     await page.goto(`${BASE}/familie/einladung/abcd1234`, { waitUntil: "domcontentloaded" });
-    check(await visible(page, "Code von deinen Eltern", 90000), "invite link opens the family page");
-    check(await page.getByLabel("Familien-Code").inputValue() === "ABCD 1234", "code from the link is pre-filled");
+    check(await visible(page, "Deine Eltern haben dich eingeladen", 90000), "invite link opens the family page (join is primary)");
+    check(await page.getByLabel("Code von deinen Eltern").inputValue() === "ABCD 1234", "code from the link is pre-filled");
     check(calls(state, "account_set_type").some((c) => c.body.p_type === "independent_student" && c.body.p_birth_year === 2012), "account_set_type(independent_student, 2012)");
-    await page.getByLabel("Familien-Code").fill("ALT00000");
+    await page.getByLabel("Code von deinen Eltern").fill("ALT00000");
     await page.getByRole("button", { name: "Familie beitreten" }).click();
     check(await visible(page, "Dieser Code ist abgelaufen"), "expired code: German message");
-    await page.getByLabel("Familien-Code").fill("VOLL0000");
+    await page.getByLabel("Code von deinen Eltern").fill("VOLL0000");
     await page.getByRole("button", { name: "Familie beitreten" }).click();
-    check(await visible(page, "kein Platz mehr frei"), "full family: seat message");
-    await page.getByLabel("Familien-Code").fill("abcd-1234");
+    check(await visible(page, "schon ein Kind verbunden"), "full family: seat message (contact page, no 'Zugang anfragen')");
+    await page.getByLabel("Code von deinen Eltern").fill("abcd-1234");
     await page.getByRole("button", { name: "Familie beitreten" }).click();
     check(await visible(page, "Deine Eltern müssen zuerst zustimmen"), "under 16: plain-language consent notice");
     check(calls(state, "family_join").at(-1)?.body.p_code === "ABCD1234", "join sends the normalised code");
@@ -171,8 +171,8 @@ for (const { key, vp } of VIEWPORTS) {
     await shot(page, `${key}-child-family`);
     await page.getByRole("button", { name: "Familie verlassen" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Verlassen" }).click();
-    check(await visible(page, "Code von deinen Eltern"), "after leaving: back to join/invite");
-    await page.getByRole("button", { name: "Code für Eltern erstellen" }).click();
+    check(await visible(page, "Deine Eltern verbinden"), "after leaving: back to the connect card");
+    await page.getByRole("button", { name: "Link für meine Eltern erstellen" }).click();
     check(await visible(page, "ELTE 6789"), "child can invite a parent");
     check(calls(state, "family_create_invite").at(-1)?.body.p_direction === "child_invites_parent", "invite direction child_invites_parent");
     if (key === "mobile-light") {
@@ -204,8 +204,8 @@ scope = "school student desktop";
   await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" });
   check(await visible(page, "Klassen", 90000), "dashboard loads");
   await page.waitForTimeout(1500);
-  check(!(await page.getByRole("link", { name: "Familie" }).count()), "no family item for students in a class");
-  check(!calls(state, "account_set_type").length && !calls(state, "family_get_my").length, "no family RPC calls for school students");
+  check(await page.getByRole("link", { name: "Familie" }).count() > 0, "students in a class also get the family item (P9)");
+  check(!calls(state, "account_set_type").length, "no account type change for school students");
   check(page.url().endsWith("/dashboard"), "stays on the dashboard");
   await ctx.close();
 }

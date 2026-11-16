@@ -12,7 +12,9 @@ export type PlanStatus = "trial" | "pilot" | "active" | "paused" | "cancelled";
 export type ShareSettings = { progress: boolean; applications: boolean; village: boolean; documents: boolean };
 
 export type FamilyMember = { userId: string; displayName: string; role: FamilyRole; status: MemberStatus; consentStatus: ConsentStatus; shareSettings: ShareSettings | null };
+/** `status` = raw licence status; `state` = computed by the server (_family_plan_state: trial|pilot|active|paused|expired|…), null if unknown. */
 export type FamilyPlan = { planType: string; status: PlanStatus | string; state: string | null; seatsParents: number; seatsChildren: number; trialEndsAt: string | null };
+/** An open invite I created (family_get_my.invites): unused and not expired. */
 export type FamilyInvite = { code: string; direction: InviteDirection; expiresAt: string | null };
 export type MyFamily = { id: string; name: string; myRole: FamilyRole; members: FamilyMember[]; plan: FamilyPlan | null; myShare: ShareSettings | null; invites: FamilyInvite[] };
 
@@ -101,7 +103,43 @@ export function normalizeInviteCode(input: string): string { return String(input
 export function isValidInviteCode(input: string): boolean { return normalizeInviteCode(input).length === INVITE_CODE_LENGTH; }
 /** "ABCD1234" -> "ABCD 1234" for reading aloud / typing. */
 export function formatInviteCode(code: string): string { const c = normalizeInviteCode(code); return c.length === 8 ? `${c.slice(0, 4)} ${c.slice(4)}` : c; }
-export function inviteLink(origin: string, code: string): string { return `${origin.replace(/\/$/, "")}${FAMILY_INVITE_PATH}/${encodeURIComponent(normalizeInviteCode(code))}`; }
+/** Who opens an invite link: `eltern` (child invites parent) or `kind` (parent invites child). Drives the signup role preselect. */
+export type InviteAudience = "eltern" | "kind";
+export const inviteAudience = (direction: InviteDirection): InviteAudience => (direction === "child_invites_parent" ? "eltern" : "kind");
+/** Invite link; with a direction it carries `?fuer=eltern|kind` so a logged-out visitor gets the right signup role. */
+export function inviteLink(origin: string, code: string, direction?: InviteDirection): string {
+  const base = `${origin.replace(/\/$/, "")}${FAMILY_INVITE_PATH}/${encodeURIComponent(normalizeInviteCode(code))}`;
+  return direction ? `${base}?fuer=${inviteAudience(direction)}` : base;
+}
+/** Reads `fuer` from a query string or from a path with a query (`/familie/einladung/X?fuer=kind`). */
+export function readInviteAudience(searchOrPath: string | null | undefined): InviteAudience | null {
+  const q = String(searchOrPath ?? "");
+  const i = q.indexOf("?");
+  const v = new URLSearchParams(i >= 0 ? q.slice(i + 1).split("#")[0] : "").get("fuer");
+  return v === "eltern" || v === "kind" ? v : null;
+}
+/** "ABCD1234" from /familie/einladung/ABCD1234 (null for any other path). */
+export function familyInviteCodeFromPath(pathname: string | null | undefined): string | null {
+  const m = new RegExp(`^${FAMILY_INVITE_PATH}/([^/?#]+)`).exec(String(pathname ?? ""));
+  if (!m) return null;
+  try { const code = normalizeInviteCode(decodeURIComponent(m[1])); return code.length === INVITE_CODE_LENGTH ? code : null; } catch { return null; }
+}
+/** `?next=` for the login redirect of a protected page: path + query + hash (null for the default landing). */
+export function loginNextFor(pathname: string | null | undefined, search = "", hash = ""): string | null {
+  if (!pathname || pathname === "/dashboard") return null;
+  return `${pathname}${search && search !== "?" ? search : ""}${hash && hash !== "#" ? hash : ""}`;
+}
+/**
+ * Signup role to preselect for a safe `next`: family pages -> parent, unless the invite is meant for a child (`fuer=kind`)
+ * -> private student. `hint` = which invite hint to show. null = keep the default.
+ */
+export function signupPreset(next: string | null | undefined): { choice: SignupChoice; hint: "parent" | "child" | null } | null {
+  const n = String(next ?? "");
+  if (!(n === FAMILY_PATH || n.startsWith(`${FAMILY_PATH}/`) || n.startsWith(`${FAMILY_PATH}?`) || n.startsWith(`${FAMILY_PATH}#`))) return null;
+  const invite = n.startsWith(`${FAMILY_INVITE_PATH}/`);
+  if (readInviteAudience(n) === "kind") return { choice: "independent", hint: "child" };
+  return { choice: "parent", hint: invite ? "parent" : null };
+}
 export function inviteShareText(direction: InviteDirection, code: string, link: string): string {
   const who = direction === "parent_invites_child" ? "Ich lade dich in unsere Familie bei WendApply ein." : "Ich möchte dir meinen Fortschritt bei WendApply zeigen.";
   return `${who} Öffne den Link oder gib den Code ${formatInviteCode(code)} unter «Familie» ein: ${link}`;
@@ -143,9 +181,25 @@ export function readMyFamily(data: unknown, myUserId?: string | null): MyFamily 
   const me = myUserId ? members.find((m) => m.userId === myUserId) : undefined;
   const myRole = oneOf(root.my_role, ["parent", "child"] as const, me?.role ?? "child");
   const myShare = root.my_share_settings ? readShare(root.my_share_settings) : me?.shareSettings ?? (myRole === "child" ? { ...DEFAULT_SHARE } : null);
-  const invites = (Array.isArray(root.invites) ? root.invites : []).map(obj).filter((i): i is Row => !!i && !!normalizeInviteCode(str(i.code)))
-    .map((i) => ({ code: normalizeInviteCode(str(i.code)), direction: oneOf(i.direction, ["parent_invites_child", "child_invites_parent"] as const, myRole === "parent" ? "parent_invites_child" : "child_invites_parent"), expiresAt: i.expires_at ? str(i.expires_at) : null }));
-  return { id: str(fam.id), name: str(fam.name).trim() || "Meine Familie", myRole, members, plan: readPlan(root.plan), myShare, invites };
+  return { id: str(fam.id), name: str(fam.name).trim() || "Meine Familie", myRole, members, plan: readPlan(root.plan), myShare, invites: readInvites(root.invites) };
+}
+/** Open invites from family_get_my (tolerant: drops rows without a valid code). */
+export function readInvites(v: unknown): FamilyInvite[] {
+  return (Array.isArray(v) ? v : []).map((x) => obj(x)).filter((x): x is Row => !!x).map((x) => ({
+    code: normalizeInviteCode(str(x.code)), direction: oneOf(x.direction, ["parent_invites_child", "child_invites_parent"] as const, "child_invites_parent"),
+    expiresAt: x.expires_at ? str(x.expires_at) : null,
+  })).filter((i) => i.code.length === INVITE_CODE_LENGTH);
+}
+/** Newest open invite of one direction (null if none). The server orders by created_at, so the last one wins. */
+export function openInvite(f: Pick<MyFamily, "invites"> | null | undefined, direction: InviteDirection): FamilyInvite | null {
+  const list = (f?.invites ?? []).filter((i) => i.direction === direction);
+  return list.length ? list[list.length - 1] : null;
+}
+/** A family I could leave without losing anything: only me in it, and no plan row (S9 "empty-family switch"). */
+export function isEmptyOwnFamily(f: MyFamily | null | undefined, myUserId?: string | null): boolean {
+  if (!f || f.plan) return false;
+  const others = f.members.filter((m) => m.status !== "removed" && (!myUserId || m.userId !== myUserId));
+  return myUserId ? others.length === 0 : f.members.filter((m) => m.status !== "removed").length <= 1;
 }
 export const childrenOf = (f: MyFamily) => f.members.filter((m) => m.role === "child");
 export const parentsOf = (f: MyFamily) => f.members.filter((m) => m.role === "parent");
@@ -224,8 +278,8 @@ const STATUS_TEXT: Record<string, string> = { saved: "Gemerkt", preparing: "In V
 export const statusText = (s: string) => STATUS_TEXT[s] ?? s;
 
 // ---------------------------------------------------------------- plan card
-export const PLAN_STATUS_LABEL: Record<string, string> = { trial: "Testphase", pilot: "Pilot", active: "Aktiv", paused: "Pausiert", cancelled: "Beendet" };
-export const PLAN_STATUS_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "danger"> = { trial: "info", pilot: "info", active: "success", paused: "warning", cancelled: "neutral" };
+export const PLAN_STATUS_LABEL: Record<string, string> = { trial: "Testphase", pilot: "Pilot", active: "Aktiv", paused: "Pausiert", cancelled: "Beendet", expired: "Abgelaufen" };
+export const PLAN_STATUS_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "danger"> = { trial: "info", pilot: "info", active: "success", paused: "warning", cancelled: "neutral", expired: "neutral" };
 export function daysLeft(iso: string | null | undefined, now: Date = new Date()): number | null {
   if (!iso) return null;
   const t = Date.parse(iso.length === 10 ? `${iso}T23:59:59` : iso);
@@ -237,11 +291,34 @@ export function formatDateCh(iso: string | null | undefined): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
 }
-/** One line describing the plan: "Testphase · noch 12 Tage" / "Familienpaket: 1 Elternteil, 1 Kind". */
+/** Plan states (server `state`) that give access: the child sees "Familienpaket aktiv" only for these. */
+export const PLAN_ACCESS_STATES = ["trial", "pilot", "active"] as const;
+/** True when the family plan currently gives access (uses the computed `state`, falls back to the raw status). */
+export function planGivesAccess(plan: FamilyPlan | null | undefined): boolean {
+  if (!plan) return false;
+  return (PLAN_ACCESS_STATES as readonly string[]).includes(plan.state ?? plan.status);
+}
+/**
+ * Child-facing plan line (S8): neutral, never payment details. Active -> badge "Aktiv" + "Familienpaket aktiv".
+ * Everything else (none, past_due, expired, paused) -> no badge + "Das Familienpaket bucht ein Elternteil …".
+ */
+export function childPlanLine(plan: FamilyPlan | null | undefined): { active: boolean; badge: string | null; text: string } {
+  return planGivesAccess(plan)
+    ? { active: true, badge: "Aktiv", text: "Familienpaket aktiv" }
+    : { active: false, badge: null, text: "Das Familienpaket bucht ein Elternteil. Für dich bleibt WendApply kostenlos." };
+}
+
+/**
+ * One line describing the plan: "Testphase · noch 12 Tage" / "Familienpaket: 1 Elternteil, 1 Kind".
+ * `online` (online payment flag, onlinePaymentEnabled()): with online payment on, "Bald verfügbar" never appears (S7); a missing plan has no status.
+ * The status label follows the computed `state` when the server sends it (an expired row is never "Aktiv").
+ */
 export function planSummary(plan: FamilyPlan | null, now: Date = new Date(), opts: { online?: boolean } = {}): { title: string; status: string; detail: string } {
-  void opts; // flag-aware wording: Part B (BILLING-FLOW-SPEC.md S7/S8)
+  if (!plan && opts.online) return { title: "Familienpaket", status: "", detail: "Für Schülerinnen und Schüler bleibt WendApply kostenlos. Das Familienpaket bucht ein Elternteil." };
   if (!plan) return { title: "Familienpaket", status: "Bald verfügbar", detail: "Das Familienpaket ist noch nicht freigeschaltet. Du kannst WendApply trotzdem schon nutzen." };
-  const status = PLAN_STATUS_LABEL[plan.status] ?? plan.status;
+  if (plan.state === "expired") return { title: "Familienpaket", status: "Abgelaufen", detail: "Das Familienpaket ist abgelaufen." };
+  const key = plan.state && plan.state in PLAN_STATUS_LABEL ? plan.state : plan.status;
+  const status = PLAN_STATUS_LABEL[key] ?? key;
   const seats = `${plan.seatsParents} ${plan.seatsParents === 1 ? "Elternteil" : "Elternteile"}, ${plan.seatsChildren} ${plan.seatsChildren === 1 ? "Kind" : "Kinder"}`;
   const left = plan.status === "trial" ? daysLeft(plan.trialEndsAt, now) : null;
   const detail = left === null ? seats : left === 0 ? `${seats} · Testphase endet heute` : `${seats} · noch ${left} ${left === 1 ? "Tag" : "Tage"} Testphase`;
@@ -249,18 +326,39 @@ export function planSummary(plan: FamilyPlan | null, now: Date = new Date(), opt
 }
 
 // ---------------------------------------------------------------- errors
+// Same wording as FAMILY_COPY.seat / wrongType (lib/family-copy.ts); kept here so this module stays import-free for node --test.
+export const SEAT_FULL_CHILD = "In eurer Familie ist schon ein Kind verbunden. Das Familienpaket gilt für 1 Kind. Für ein weiteres Kind schreib uns über die Kontaktseite.";
+export const SEAT_FULL_PARENT = "In dieser Familie ist schon ein Elternteil verbunden. Für ein zweites Elternteil schreib uns über die Kontaktseite.";
+export const WRONG_TYPE_PARENT = "Dieser Code ist für ein Elternkonto. Du bist als Schüler/in angemeldet.";
+export const WRONG_TYPE_CHILD = "Dieser Code ist für ein Schülerkonto. Du bist als Elternteil angemeldet.";
+export const ALREADY_IN_FAMILY_TEXT = "Du bist schon in einer Familie. Verlasse sie zuerst, wenn du wechseln möchtest.";
+/** The RPC said "already in a family" (family_join / family_create): the UI may offer the empty-family switch (S9). */
+export function isAlreadyInFamily(error: unknown): boolean {
+  const e = (error ?? {}) as { message?: unknown; code?: unknown };
+  return /ALREADY_IN_FAMILY/.test(`${str(e.message)} ${str(e.code)}`);
+}
+/** The RPC needs a birth year first (BIRTH_YEAR_REQUIRED): the student UI shows the Jahrgang gate. */
+export function isBirthYearRequired(error: unknown): boolean {
+  const e = (error ?? {}) as { message?: unknown; code?: unknown };
+  return /BIRTH_YEAR_REQUIRED/.test(`${str(e.message)} ${str(e.code)}`);
+}
 /** German message for an error raised by a family RPC (the server raises short codes; unknown errors get a generic text). */
 export function familyError(error: unknown): string {
   const e = (error ?? {}) as { message?: unknown; code?: unknown; details?: unknown };
   const text = `${str(e.message)} ${str(e.code)}`;
+  // Codes whose DB detail is outdated or not specific enough: our own copy wins (no "Zugang anfragen", no "bald verfügbar").
+  if (/FAMILY_SEAT_LIMIT|WA010/.test(text)) return /eltern|parent/i.test(str(e.details)) ? SEAT_FULL_PARENT : SEAT_FULL_CHILD;
+  if (/ALREADY_IN_FAMILY/.test(text)) return ALREADY_IN_FAMILY_TEXT;
+  if (/INVITE_WRONG_ACCOUNT_TYPE/.test(text)) return /schülerkonto/i.test(str(e.details)) ? WRONG_TYPE_CHILD : WRONG_TYPE_PARENT;
+  if (/BIRTH_YEAR_REQUIRED/.test(text)) return "Bitte gib zuerst deinen Jahrgang an.";
   // The migration raises short codes with a German, user-facing `detail` (e.g. INVALID_NAME, BIRTH_YEAR_LOCKED): prefer it.
   const detail = str(e.details).trim();
   if (detail && /^[A-Z_]+$/.test(str(e.message).trim())) return detail;
-  if (/seat|platz|SEATS?_FULL|limit/i.test(text)) return "In dieser Familie ist kein Platz mehr frei. Für mehr Plätze kannst du über «Zugang anfragen» mit uns Kontakt aufnehmen.";
+  if (/seat|platz|SEATS?_FULL|limit/i.test(text)) return SEAT_FULL_CHILD;
   if (/expired|abgelaufen/i.test(text)) return "Dieser Code ist abgelaufen. Bitte um einen neuen Code (er gilt 7 Tage).";
   if (/used|already_used|bereits verwendet/i.test(text)) return "Dieser Code wurde schon verwendet. Jeder Code funktioniert nur einmal.";
   if (/invalid|not.?found|unknown|INVALID_CODE/i.test(text)) return "Diesen Code kennen wir nicht. Prüfe die 8 Zeichen und versuche es nochmals.";
-  if (/already|ALREADY_MEMBER|bereits/i.test(text)) return "Du bist schon in einer Familie. Verlasse sie zuerst, wenn du wechseln möchtest.";
+  if (/already|ALREADY_MEMBER|bereits/i.test(text)) return ALREADY_IN_FAMILY_TEXT;
   if (/\bSELF\b|OWN_FAMILY|SAME_ROLE|WRONG_ROLE|WRONG_ACCOUNT_TYPE/i.test(text)) return "Dieser Code passt nicht zu deinem Konto (Elternteil oder Kind).";
   if (/consent|zustimmung/i.test(text)) return "Dafür braucht es zuerst die Zustimmung eines Elternteils.";
   if (/FORBIDDEN|42501|permission|not allowed|NOT_A?_?PARENT/i.test(text)) return "Das darfst du in dieser Familie nicht ändern.";

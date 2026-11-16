@@ -17,7 +17,8 @@ import { InviteBanner } from "@/components/onboarding/invite-banner";
 import { LoginValueProp } from "@/components/onboarding/login-value-prop";
 import { AuthBrand } from "@/components/onboarding/auth-frame";
 import { BirthYearField, SIGNUP_OPTIONS } from "@/components/onboarding/role-cards";
-import { isValidBirthYear, signupMetadata, type SignupChoice } from "@/lib/family-core";
+import { isValidBirthYear, signupMetadata, signupPreset, type SignupChoice } from "@/lib/family-core";
+import { FAMILY_COPY } from "@/lib/family-copy";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleTrail } from "@/components/ui/doodles";
 
 type AuthMode = "login" | "signup";
@@ -34,13 +35,20 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [inviteHint, setInviteHint] = useState<"parent" | "child" | null>(null);
 
   useEffect(() => {
     // Error handed over by /auth/callback (or by Supabase directly, in the query or the hash).
     const params = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    if (params.get("deleted") === "1") {
+    // Family invite links: preselect the matching signup role (parent, or private student with ?fuer=kind) + a short hint.
+    const preset = signupPreset(safeNextPath(params.get("next")));
+    if (preset) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
+      setRole(preset.choice);
+      setInviteHint(preset.hint);
+    }
+    if (params.get("deleted") === "1") {
       setSuccess("Dein Konto und alle deine Daten wurden gelöscht. Danke, dass du WendApply genutzt hast.");
       window.history.replaceState(null, "", "/login");
       return;
@@ -57,6 +65,12 @@ export default function LoginPage() {
   async function goHome() {
     const requested = new URLSearchParams(window.location.search).get("next");
     router.replace(await resolveLanding(safeNextPath(requested) ?? pendingInvitePath()));
+  }
+
+  /** The e-mail confirmation link comes back to this origin (also on previews) and keeps the safe ?next= (e.g. an invite). */
+  function confirmRedirect() {
+    const next = safeNextPath(new URLSearchParams(window.location.search).get("next")) ?? pendingInvitePath();
+    return `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
   }
 
   function switchMode(nextMode: AuthMode) {
@@ -84,7 +98,7 @@ export default function LoginPage() {
     try {
       result = mode === "login"
         ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: signupMetadata(role, birthYear) } });
+        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: signupMetadata(role, birthYear), emailRedirectTo: confirmRedirect() } });
     } catch (reason) {
       setError(authMessage(reason));
       setLoading(false);
@@ -153,6 +167,7 @@ export default function LoginPage() {
           <DoodleArrow className="absolute -left-14 top-6 hidden h-12 w-16 text-[var(--ink)] lg:block" />
 
           <form onSubmit={submit} className="panel space-y-5 p-5 shadow-[var(--shadow-lg)] sm:p-7">
+            {inviteHint && <p role="note" data-testid="family-signup-hint" className="rounded-[var(--radius-md)] bg-[var(--info-bg)] px-3 py-2 text-sm font-semibold text-[var(--info-fg)]">{inviteHint === "parent" ? FAMILY_COPY.parent.signupHint : FAMILY_COPY.child.signupHint}</p>}
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             {success && <StatusMessage tone="success" icon={<CheckCircle2 />}>{success}</StatusMessage>}
 

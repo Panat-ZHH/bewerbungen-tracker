@@ -3,6 +3,7 @@
  * Plain TS so `node --experimental-strip-types --test` can import it. Prices always come from lib/billing/plans.ts.
  * Swiss spelling only (ss, never the sharp s).
  */
+import { FAMILY_COPY } from "../../lib/family-copy.ts";
 import { BILLING, PLANS, formatChf, isStripeEnabledClient, planIntervals, planPrice, planVatIncluded, yearlySavingChf, type BillingInterval, type Plan, type PlanId } from "../../lib/billing/plans.ts";
 
 export type { BillingInterval };
@@ -118,22 +119,22 @@ export function readBillingStatus(v: unknown): BillingStatus | null {
   };
 }
 
-/** A paid subscription exists (managed in the customer portal, no second purchase). */
-export function hasSubscription(s: BillingStatus | null): boolean {
-  if (!s) return false;
-  if (s.source === "stripe") return true;
-  return !!s.subscriptionStatus && !["canceled", "incomplete_expired"].includes(s.subscriptionStatus);
-}
-
-/** Lifecycle of a family/school subscription for the UI (BILLING-FLOW-SPEC.md §3.5). The family UI uses only this. */
+// ---------------------------------------------------------------- billing phase (BILLING-FLOW-SPEC §3.5)
+/** One state for the whole UI, derived from GET /api/billing/status. The family UI uses only this. */
 export type BillingPhase = "none" | "incomplete" | "trialing" | "active" | "past_due" | "canceling" | "paused" | "unpaid" | "ended";
+export const BILLING_PHASES: readonly BillingPhase[] = ["none", "incomplete", "trialing", "active", "past_due", "canceling", "paused", "unpaid", "ended"];
 
-/** Maps GET /api/billing/status to a BillingPhase. `status` is the computed licence state (trial, pilot, active, expired, ...). */
+/**
+ * Stripe subscription status (+ cancel_at_period_end) or, for manual/pilot rows, the licence state -> BillingPhase.
+ * A licence state `expired` always wins (the period is over even if Stripe still says canceled/active).
+ */
 export function billingPhase(s: BillingStatus | null): BillingPhase {
   if (!s) return "none";
   if (s.status === "expired") return "ended";
   const sub = s.subscriptionStatus;
   if (!sub) {
+    if (s.source === "stripe") return s.status === "active" ? (s.cancelAtPeriodEnd ? "canceling" : "active") : s.status ? "ended" : "none";
+    // Manual / pilot licence (no Stripe subscription): trial and pilot read as a trial, active as active.
     if (s.status === "trial" || s.status === "trialing" || s.status === "pilot") return "trialing";
     if (s.status === "active") return "active";
     if (s.status === "paused") return "paused";
@@ -150,40 +151,71 @@ export function billingPhase(s: BillingStatus | null): BillingPhase {
     default: return "none";
   }
 }
+/** Phases where a (still) valid subscription exists: no second checkout, manage it in the portal instead. */
+export const SUBSCRIBED_PHASES: readonly BillingPhase[] = ["trialing", "active", "canceling", "past_due", "unpaid", "paused"];
+/** Phases where the family can (re)buy: nothing yet, an abandoned first payment, or an ended subscription. */
+export const BUYABLE_PHASES: readonly BillingPhase[] = ["none", "incomplete", "ended"];
+/** Phases that need the parent's attention: banner on top of /familie + primary "Karte aktualisieren". */
+export const ATTENTION_PHASES: readonly BillingPhase[] = ["past_due", "unpaid"];
 
-const STATUS_LABEL: Record<string, string> = {
-  active: "Aktiv", trialing: "Testphase", trial: "Testphase", pilot: "Pilot", past_due: "Zahlung überfällig", unpaid: "Unbezahlt",
-  incomplete: "Zahlung ausstehend", incomplete_expired: "Abgelaufen", canceled: "Gekündigt", cancelled: "Gekündigt",
-  expired: "Abgelaufen", paused: "Pausiert",
-};
 export type Tone = "neutral" | "info" | "success" | "warning" | "danger";
-const STATUS_TONE: Record<string, Tone> = {
-  active: "success", trialing: "info", trial: "info", pilot: "info", past_due: "warning", unpaid: "danger", incomplete: "warning",
-  incomplete_expired: "neutral", canceled: "neutral", cancelled: "neutral", expired: "danger", paused: "warning",
+const PHASE_BADGE_KEY: Record<BillingPhase, keyof typeof FAMILY_COPY.badge> = {
+  none: "none", incomplete: "incomplete", trialing: "trialing", active: "active", past_due: "pastDue", canceling: "canceling", paused: "paused", unpaid: "unpaid", ended: "ended",
 };
+const PHASE_TONE: Record<BillingPhase, Tone> = {
+  none: "neutral", incomplete: "warning", trialing: "info", active: "success", past_due: "warning", canceling: "neutral", paused: "warning", unpaid: "danger", ended: "neutral",
+};
+/** Badge of a phase (§4.3); `none` has no badge (label ""). */
+export function phaseBadge(phase: BillingPhase): { label: string; tone: Tone } {
+  return { label: FAMILY_COPY.badge[PHASE_BADGE_KEY[phase]], tone: PHASE_TONE[phase] };
+}
+/** Body text of a phase with {date} filled (§4.3 `phase.*`); `none` -> "". */
+export function phaseText(phase: BillingPhase, date: string): string {
+  const t: Record<BillingPhase, string> = {
+    none: "", active: FAMILY_COPY.phase.active, trialing: FAMILY_COPY.phase.trialing, canceling: FAMILY_COPY.phase.canceling,
+    past_due: FAMILY_COPY.phase.pastDue, unpaid: FAMILY_COPY.phase.unpaid, paused: FAMILY_COPY.phase.paused,
+    incomplete: FAMILY_COPY.phase.incomplete, ended: FAMILY_COPY.phase.ended,
+  };
+  if (!date && /\{date\}/.test(t[phase])) return phase === "canceling" ? "Gekündigt. Das Familienpaket endet am Ende der Laufzeit." : "";
+  return t[phase].replace("{date}", date);
+}
+
+/** A subscription exists that can be managed in the portal (no second purchase). False for ended ones (they can be re-bought). */
+export function hasSubscription(s: BillingStatus | null): boolean {
+  if (!s) return false;
+  const phase = billingPhase(s);
+  if (phase === "ended" || phase === "none") return false;
+  if (s.source === "stripe") return true;
+  return !!s.subscriptionStatus;
+}
+
+/** Status badge for the subscription details (schools and families). Same words as the family badges (§4.3). */
 export function billingStatusLabel(s: BillingStatus | null): { label: string; tone: Tone } {
-  const key = s?.subscriptionStatus ?? s?.status ?? null;
-  if (!key) return { label: "Kein Abo", tone: "neutral" };
-  return { label: STATUS_LABEL[key] ?? key, tone: STATUS_TONE[key] ?? "neutral" };
+  if (!s || (!s.subscriptionStatus && !s.status)) return { label: "Kein Abo", tone: "neutral" };
+  if (!s.subscriptionStatus && s.status === "pilot") return { label: "Pilot", tone: "info" };
+  const phase = billingPhase(s);
+  if (phase === "none") return { label: "Kein Abo", tone: "neutral" };
+  return phaseBadge(phase);
 }
 /** Extra line for invoice payers / cancellations, or null. */
 export function billingHint(s: BillingStatus | null): string | null {
   if (!s) return null;
   if (s.cancelAtPeriodEnd) return "Das Abo ist gekündigt und läuft bis zum Ende der Laufzeit weiter.";
   if (s.collectionMethod === "send_invoice" && s.latestInvoiceStatus === "open") return `Die Rechnung ist offen. Bitte innert ${BILLING.invoiceDaysUntilDue} Tagen bezahlen.`;
-  if (s.subscriptionStatus === "past_due") return "Die letzte Zahlung ist fehlgeschlagen. Bitte aktualisiere die Zahlungsmethode unter «Abo verwalten».";
+  if (s.subscriptionStatus === "past_due") return "Die letzte Zahlung hat nicht geklappt. Bitte aktualisiere die Zahlungsmethode unter «Abo verwalten».";
   return null;
 }
 
 // ---------------------------------------------------------------- API errors and return pages
 /** Friendly German text for a failed billing API call (status + `{ error }` code). */
-export function billingErrorMessage(status: number, code?: string | null): string {
+export function billingErrorMessage(status: number, code?: string | null, online: boolean = onlinePaymentEnabled()): string {
   if (status === 503 && code === "price_not_found") return "Dieses Paket ist online gerade nicht verfügbar. Schreib uns über die Kontaktseite.";
-  if (status === 503 || (status === 404 && (!code || code === "billing_disabled"))) return "Die Online-Bezahlung ist noch nicht freigeschaltet. Melde dich über die Kontaktseite, wir helfen gern weiter.";
+  // Flag on (S7): never "noch nicht freigeschaltet", the payment is just not reachable right now.
+  if (status === 503 || (status === 404 && (!code || code === "billing_disabled"))) return online ? FAMILY_COPY.api.unreachable : "Die Online-Bezahlung ist noch nicht freigeschaltet. Melde dich über die Kontaktseite, wir helfen gern weiter.";
   if (status === 404 && code === "no_customer") return "Es gibt noch kein Abo, das verwaltet werden kann.";
   if (status === 401) return "Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.";
   if (status === 403) return "Das darf nur die Schuladministration bzw. ein Elternteil der Familie.";
-  if (status === 409 && code === "already_subscribed") return "Es gibt bereits ein Abo. Änderungen machst du unter «Abo verwalten».";
+  if (status === 409 && code === "already_subscribed") return "Es gibt bereits ein Abo. Änderungen und Verlängerung machst du unter «Abo verwalten».";
   if (status === 409) return "Dieses Paket kann gerade nicht online gebucht werden. Schreib uns über die Kontaktseite.";
   if (status === 400) return "Die Angaben sind unvollständig. Bitte lade die Seite neu und versuche es nochmals.";
   if (status === 0) return "Keine Verbindung. Prüfe deine Internetverbindung und versuche es nochmals.";
@@ -197,8 +229,20 @@ export function readBillingReturn(search: string): BillingReturn | null {
 }
 export const RETURN_MESSAGE: Record<BillingReturn, { tone: "success" | "info"; title: string; text: string }> = {
   success: { tone: "success", title: "Danke für deine Bestellung!", text: "Die Zahlung ist eingegangen. Die Freischaltung kann ein paar Sekunden dauern. Die Quittung kommt per E-Mail." },
-  cancel: { tone: "info", title: "Bezahlung abgebrochen", text: "Es wurde nichts belastet. Du kannst jederzeit nochmals ein Paket wählen." },
+  cancel: { tone: "info", title: FAMILY_COPY.return.cancelTitle, text: "Es wurde nichts belastet. Du kannst jederzeit nochmals ein Paket wählen." },
 };
+/** Family return notices (§3.4 / §4.3), keyed like `[data-billing-return]`. */
+export type FamilyReturnState = "cancel" | "activating" | "active" | "slow";
+export const FAMILY_RETURN_MESSAGE: Record<FamilyReturnState, { tone: "success" | "info" | "warning"; title: string; text: string }> = {
+  cancel: { tone: "info", title: FAMILY_COPY.return.cancelTitle, text: FAMILY_COPY.return.cancelText },
+  activating: { tone: "info", title: FAMILY_COPY.return.activatingTitle, text: FAMILY_COPY.return.activatingText },
+  active: { tone: "success", title: FAMILY_COPY.return.activeTitle, text: FAMILY_COPY.return.activeText },
+  slow: { tone: "warning", title: FAMILY_COPY.return.slowTitle, text: FAMILY_COPY.return.slowText },
+};
+/** `?billing=portal` = back from the Stripe customer portal (reload the status silently). */
+export function isPortalReturn(search: string): boolean {
+  return new URLSearchParams(search).get("billing") === "portal";
+}
 /** Query string without the billing return params (for history.replaceState). */
 export function stripBillingParams(search: string): string {
   const q = new URLSearchParams(search);

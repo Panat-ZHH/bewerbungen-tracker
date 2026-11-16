@@ -120,3 +120,17 @@ Vorschlag Aufbewahrung: Einträge nach 12 Monaten löschen (noch nicht automatis
 2. Altersgrenze 16 bestätigen (Schweiz: DSG kennt keine feste Grenze, DSGVO Art. 8 erlaubt 13–16 je nach Land).
 3. Soll ein abgelaufener Plan später etwas sperren (z. B. die Elternansicht)?
 4. Bekommt jede neue Familie automatisch eine Testphase, oder nur auf Anfrage?
+
+## Student flow (2026-11-16, BILLING-FLOW-SPEC §3.2/§3.3)
+
+- `/familie` without a parent: one card "Deine Eltern verbinden" (`components/family/student-start.tsx`). Step 1 creates the
+  link (`?fuer=eltern`), step 2 waits; the page refreshes every 15 s and on focus until a parent is in the family.
+  "Du hast schon einen Code von deinen Eltern?" is collapsed. With an invite link the join form comes first.
+- No birth year (school students): an inline "Jahrgang" question (`setBirthYear` → `account_set_type`), then the original
+  action runs again by itself.
+- Own empty family + a parent's code → "Der Familie deiner Eltern beitreten?" → `switchToFamily` (leave, then join).
+- The child sees only "Familienpaket aktiv" or "Für dich bleibt WendApply kostenlos", never payment problems, and never calls `/api/billing`.
+- "Familie" is in the menu for every student. Logged-out invite links keep `?next=` with query and hash, remember the code
+  (pending invite kind `family`), preselect the signup role (Elternteil, or Schüler:in privat with `?fuer=kind`) and send
+  the confirmation e-mail back to `/auth/callback?next=…` on the same origin (the preview URLs must be on the Supabase redirect allow-list).
+- Copy for the whole family/billing flow: `lib/family-copy.ts` (`FAMILY_COPY`, `fill`).

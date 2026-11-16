@@ -4,6 +4,9 @@ import type { ApplicationStatus, UserRole } from "../types/index.ts";
 
 export const TOUR_PATH = "/onboarding";
 export const SETTINGS_PATH = "/settings";
+/** Optional link on "Fertig": connect the parents (BILLING-FLOW-SPEC §3.2). Same path as FAMILY_PATH in lib/family-core. */
+export const TOUR_FAMILY_PATH = "/familie";
+export const TOUR_FAMILY_LINK = "Eltern verbinden (freiwillig)";
 export const TOUR_STEPS = ["Willkommen", "Profil & Ziele", "Erste Bewerbung", "KI-Check", "Fertig"] as const;
 export const TOUR_STEP_COUNT = TOUR_STEPS.length;
 export const LAST_STEP = TOUR_STEP_COUNT - 1;

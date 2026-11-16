@@ -19,7 +19,8 @@ import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
-import { FAMILY_PATH, isParentMeta, parentGuardRedirect } from "@/lib/family-core";
+import { FAMILY_PATH, familyInviteCodeFromPath, isParentMeta, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
+import { storePendingInvite } from "@/components/friends/shared";
 import { NotificationsBell } from "./notifications-bell";
 
 type NavItem = { label: string; href: string; icon: typeof Search; keys: string[]; prefixes?: string[] };
@@ -40,7 +41,7 @@ const teacherNavigation: NavItem[] = [
   { label: "Klassen", href: "/teacher", icon: GraduationCap, keys: ["Übersicht", "Klassen", "Lehrer", "Teacher"], prefixes: ["/teacher"] },
 ];
 const teacherPrimaryHrefs = ["/teacher", "/profile", "/settings"];
-/** Family area: in "Mehr" for private students (not for students in a class: school-managed accounts stay as they are). */
+/** Family area: in "Mehr" for every student (school students connect their parents too). */
 const familyItem: NavItem = { label: "Familie", href: FAMILY_PATH, icon: Heart, keys: ["Familie", "Family"], prefixes: [FAMILY_PATH] };
 /** Parent accounts (account_type parent) only manage their family: Familie, Profil, Einstellungen. */
 const parentNavigation: NavItem[] = [familyItem];
@@ -86,7 +87,12 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   }, []);
 
   useEffect(() => {
-    if (!checkingSession && !user) router.replace(pathname && pathname !== "/dashboard" ? `/login?next=${encodeURIComponent(pathname)}` : "/login");
+    if (checkingSession || user) return;
+    // Keep the query and hash (e.g. /familie?plan=family&interval=month#abo) and remember a family invite across signup.
+    const next = loginNextFor(pathname, window.location.search, window.location.hash);
+    const familyCode = familyInviteCodeFromPath(pathname);
+    if (familyCode) storePendingInvite(familyCode, "family");
+    router.replace(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
   }, [checkingSession, pathname, router, user]);
 
   // Resolve the role once per user, ask once if there is none yet, and keep each role on its own pages.
@@ -149,8 +155,8 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const displayName = (isPlaceholderName(profileName, user.email) ? undefined : profileName) ?? (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
   const isTeacher = role === "teacher";
   const isParent = !isTeacher && isParentMeta(user.user_metadata);
-  // Parents get the compact menu (like teachers); private students (no class) find "Familie" under "Mehr".
-  const studentNav = inClass === false ? [...navigation, familyItem] : navigation;
+  // Parents get the compact menu (like teachers); every student finds "Familie" under "Mehr" (desktop: in the sidebar).
+  const studentNav = [...navigation, familyItem];
   const compact = isTeacher || isParent;
   const compactNav = isTeacher ? teacherNavigation : parentNavigation;
   const items = compact ? compactNav : studentNav;

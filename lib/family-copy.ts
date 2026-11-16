@@ -1,8 +1,7 @@
-/**
- * All UI copy of the family + family billing flow (BILLING-FLOW-SPEC.md §4), Swiss German, Du-form, ss (never the sharp s).
- * Plain TS (no aliases) so node --test can import it. Prices and intervals never live here: they come from the
- * components/billing/logic.ts helpers (intervalPriceText, savingText, termText, seatsText, vatNote) and are filled in with `fill`.
- */
+// All user-facing copy of the family + billing flow (BILLING-FLOW-SPEC.md §4). Swiss German (ss, never the sharp s), Du-form.
+// Plain TS, no imports: unit tests read it with node --experimental-strip-types. Prices never live here: placeholders
+// like {price}, {saving}, {seats}, {term} and {vat} are filled from components/billing/logic.ts (intervalPriceText, savingText, ...).
+
 export const FAMILY_COPY = {
   page: {
     leadParent: "Begleite dein Kind bei der Lehrstellensuche. Du siehst nur, was dein Kind mit dir teilt.",
@@ -102,6 +101,7 @@ export const FAMILY_COPY = {
     error: "Wir konnten den Stand deines Familienpakets gerade nicht laden.",
     contact: "Kontakt",
   },
+  /** Badge per billing phase; `none` has no badge (empty string). */
   badge: {
     none: "",
     incomplete: "Zahlung ausstehend",
@@ -166,5 +166,5 @@ export const FAMILY_COPY = {
   },
 } as const;
 
-/** Fills `{key}` placeholders: fill("Schritt {n} von {total}", { n: 1, total: 3 }). Unknown keys become "". */
-export const fill = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(v[k] ?? ""));
+/** Replaces `{key}` placeholders: fill("Schritt {n} von {total}", { n: 1, total: 3 }) -> "Schritt 1 von 3". Unknown keys become "". */
+export const fill = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(v[k] ?? ""));
