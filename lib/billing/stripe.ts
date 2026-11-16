@@ -30,6 +30,9 @@ export function webhookStripe(stripe: Stripe = getStripe()): WebhookStripe {
   return { retrieveSubscription: (id) => stripe.subscriptions.retrieve(id, { expand: ["latest_invoice"] }) };
 }
 
+/** Narrows Stripe's open string unions (they include a branded OtherString) to the values we handle. */
+const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | null => (allowed.includes(v as T) ? (v as T) : null);
+
 const priceCache = new Map<string, { id: string; at: number }>();
 
 export function apiStripe(stripe: Stripe = getStripe()): BillingApiStripe {
@@ -66,6 +69,36 @@ export function apiStripe(stripe: Stripe = getStripe()): BillingApiStripe {
         managed_payments: { enabled: false },
       });
       return { url: session.url ?? null };
+    },
+    async createElementsSession(p) {
+      // Same subscription + metadata as the hosted page, so the webhook (checkout.session.completed, customer.subscription.*,
+      // invoice.paid) handles both identically. The form itself is the Payment Element on /familie/bezahlen, styled with
+      // the Appearance API. SCA/3DS runs in Stripe's modal; redirect-based methods come back to return_url.
+      const session = await stripe.checkout.sessions.create({
+        ui_mode: "elements",
+        mode: "subscription",
+        customer: p.customer,
+        line_items: [{ price: p.price, quantity: 1 }],
+        client_reference_id: p.metadata.user_id,
+        metadata: p.metadata,
+        subscription_data: { metadata: p.metadata },
+        return_url: p.returnUrl,
+        billing_address_collection: "auto",
+        customer_update: { name: "auto", address: "auto" },
+        managed_payments: { enabled: false },
+      });
+      return { clientSecret: session.client_secret ?? null };
+    },
+    async retrieveCheckoutSession(id) {
+      try {
+        const s = await stripe.checkout.sessions.retrieve(id);
+        const status = pick(s.status, ["open", "complete", "expired"] as const);
+        const pay = pick(s.payment_status, ["paid", "unpaid", "no_payment_required"] as const);
+        return { status, paymentStatus: pay, metadata: (s.metadata ?? {}) as Record<string, string> };
+      } catch (error) {
+        if ((error as { statusCode?: number }).statusCode === 404) return null;
+        throw error;
+      }
     },
     async createInvoiceSubscription(p) {
       const sub = await stripe.subscriptions.create({
