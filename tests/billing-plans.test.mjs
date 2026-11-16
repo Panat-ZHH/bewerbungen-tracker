@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { PLANS, BILLING, STRIPE_PLANS, isStripeEnabled, isStripeEnabledClient, planByLookupKey, formatChf, planIntervals, lookupKeyFor, planPrice, planVatIncluded, yearlySavingChf } from "../lib/billing/plans.ts";
+import { PLANS, BILLING, STRIPE_PLANS, isStripeEnabled, isStripeEnabledClient, planByLookupKey, formatChf, planIntervals, lookupKeyFor, planPrice, yearlySavingChf } from "../lib/billing/plans.ts";
 import { SCHOOL_PACKAGES, PILOT_DAYS, formatChf as licenceFormatChf, priceQuote } from "../lib/b2b/licence.ts";
 import { PACKAGES, PILOT, FAMILY } from "../components/public/marketing.ts";
 
@@ -18,15 +18,14 @@ test("catalogue: business plan prices and limits", () => {
   for (const [id, p] of Object.entries(PLANS)) assert.equal(p.id, id);
 });
 
-test("family plan: 1 parent + 1 child, card only, CHF 7.90/month or CHF 79/year incl. VAT (decided 2026-11-16)", () => {
+test("family plan: 1 parent + 1 child, card only, CHF 7.90/month or CHF 79/year, no VAT (decided 2026-11-16)", () => {
   const f = PLANS.family;
   assert.equal(f.kind, "family");
   assert.deepEqual(f.seats, { parents: 1, children: 1 });
   assert.equal(f.priceChfPerYear, 79);
   assert.equal(f.priceChfPerMonth, 7.9);
   assert.equal(f.placeholder, undefined, "no placeholder any more");
-  assert.equal(planVatIncluded(f), true, "consumer price incl. VAT");
-  assert.equal(planVatIncluded(PLANS.starter), false, "school prices excl. VAT");
+  assert.equal("vatIncluded" in f, false, "no VAT: WendApply is not MWST-registered");
   assert.equal(f.checkout, true);
   assert.equal(f.invoiceAllowed, false);
   assert.deepEqual(planIntervals(f), ["year", "month"]);
@@ -65,8 +64,8 @@ test("lookup keys match the contract and are unique", () => {
   assert.equal(planByLookupKey(""), undefined);
 });
 
-test("BILLING defaults: CHF, excl. VAT, yearly only, 30 days to pay", () => {
-  assert.deepEqual({ ...BILLING }, { currency: "chf", vatIncluded: false, monthlySurchargePct: 0, invoiceDaysUntilDue: 30 });
+test("BILLING defaults: CHF, no VAT (not registered), yearly only, 30 days to pay", () => {
+  assert.deepEqual({ ...BILLING }, { currency: "chf", vatRegistered: false, monthlySurchargePct: 0, invoiceDaysUntilDue: 30 });
 });
 
 test("feature flags default OFF and only 'true' switches them on", () => {

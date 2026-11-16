@@ -5,8 +5,8 @@ Go-live checklist (German + English): [GO-LIVE.md](GO-LIVE.md).
 
 ## What it does
 
-- **Schools** buy a yearly licence (Starter CHF 990 / ≤100 students, Professional CHF 1'490 / ≤300, Enterprise CHF 3'990 / ≤800, excl. MWST), either **by card** (Stripe Checkout) or **by invoice** (Stripe Invoicing, `send_invoice`, 30 days to pay). Pilot (30 days, ≤60 students) and "Individuell" stay manual, no Stripe.
-- **Families** (1 student + 1 parent account) buy the family package **by card only**, **monthly CHF 7.90 or yearly CHF 79** (incl. MWST; yearly saves CHF 15.80). Decided by Panat 2026-11-16.
+- **Schools** buy a yearly licence (Starter CHF 990 / ≤100 students, Professional CHF 1'490 / ≤300, Enterprise CHF 3'990 / ≤800) – final prices, no VAT (not MWST-registered) – either **by card** (Stripe Checkout) or **by invoice** (Stripe Invoicing, `send_invoice`, 30 days to pay). Pilot (30 days, ≤60 students) and "Individuell" stay manual, no Stripe.
+- **Families** (1 student + 1 parent account) buy the family package **by card only**, **monthly CHF 7.90 or yearly CHF 79** (no VAT; yearly saves CHF 15.80). Decided by Panat 2026-11-16.
 - Stripe webhooks keep `billing_subscriptions` and `school_licences` (`source='stripe'`) in sync. The existing student-limit trigger enforces the seat limit.
 - Admins/parents manage, cancel and download invoices in the **Stripe Customer Portal** ("Abo verwalten").
 - Students are always free.
@@ -99,4 +99,4 @@ Code never uses these IDs. It looks prices up by lookup key, so live mode just n
 - **Amounts** always come from Stripe prices (lookup key), never from the client. Placeholder prices are refused with a live key.
 - `BILLING_DB=memory` throws in Netlify's production context.
 - Error responses are generic (`billing_failed`) and logs contain no secrets.
-- Open points: VAT/MWST is not calculated yet (decision); Stripe's "Managed Payments" is disabled per session (decision); rate limiting on `/api/billing/checkout` relies on auth + one open subscription per owner.
+- Decided 2026-11-16: no VAT (not MWST-registered, `BILLING.vatRegistered=false`, no VAT wording); Stripe "Managed Payments" stays off per session. Open point: rate limiting on `/api/billing/checkout` relies on auth + one open subscription per owner.

@@ -2,9 +2,9 @@
 
 import { Check } from "lucide-react";
 import type { Plan, PlanId } from "@/lib/billing/plans";
-import { VAT_NOTE, priceText, seatsText } from "./logic";
+import { priceText, seatsText } from "./logic";
 
-/** Radio cards for the school plans. Prices always from lib/billing/plans.ts, shown "exkl. MWST". */
+/** Radio cards for the school plans. Prices always from lib/billing/plans.ts, final prices (no VAT). */
 export function PlanPicker({ plans, value, onChange, recommended = "professional", name = "plan" }: { plans: Plan[]; value: PlanId; onChange: (id: PlanId) => void; recommended?: PlanId; name?: string }) {
   return (
     <fieldset>
@@ -20,7 +20,7 @@ export function PlanPicker({ plans, value, onChange, recommended = "professional
                 {p.id === recommended && <span className="ml-auto rounded-full bg-[var(--sun)] px-2 py-0.5 text-xs font-bold text-[var(--on-sun)]">Empfohlen</span>}
               </span>
               <span className="tabular text-sm font-semibold">{priceText(p)}</span>
-              <span className="text-small text-muted">{seatsText(p)} · {VAT_NOTE}</span>
+              <span className="text-small text-muted">{seatsText(p)}</span>
               {checked && <Check size={16} strokeWidth={3} aria-hidden className="absolute bottom-3 right-3 text-[var(--brand)]" />}
             </label>
           );

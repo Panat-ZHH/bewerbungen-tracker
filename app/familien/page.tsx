@@ -55,7 +55,7 @@ const privacy: Item[] = [
 const link = "font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]";
 
 const faq: FaqItem[] = [
-  { q: "Was kostet das Familienpaket?", a: `${FAMILY.priceMonthText} pro Monat oder ${FAMILY.priceYearText} pro Jahr (${FAMILY.vatNote}). Mit der Jahreszahlung spart ihr ${FAMILY.savingText} gegenüber 12 Monatszahlungen. Enthalten sind 1 Schüleraccount und 1 Elternaccount.` },
+  { q: "Was kostet das Familienpaket?", a: `${FAMILY.priceMonthText} pro Monat oder ${FAMILY.priceYearText} pro Jahr. Mit der Jahreszahlung spart ihr ${FAMILY.savingText} gegenüber 12 Monatszahlungen. Enthalten sind 1 Schüleraccount und 1 Elternaccount.` },
   { q: "Unsere Schule nutzt WendApply schon. Brauchen wir das Familienpaket?", a: "Nein. Für Schülerinnen und Schüler einer Schule mit Lizenz ist WendApply kostenlos. Das Familienpaket ist für Familien, deren Schule WendApply (noch) nicht nutzt, oder für Eltern, die den Fortschritt begleiten möchten." },
   { q: "Kann mein Kind WendApply auch allein nutzen?", a: "Ja. Jugendliche können ein eigenes Konto erstellen und WendApply ohne Elternkonto nutzen. Das Teilen mit Eltern ist freiwillig." },
   { q: "Ab welchem Alter braucht es eine Einwilligung?", a: <>Für Kinder unter 16 geben die Eltern die Einwilligung, bevor Daten mit dem Elternkonto geteilt werden. Die App selbst kann Ihr Kind auch ohne Einwilligung nutzen, nur das Teilen bleibt aus. Mehr dazu unter <Link className={link} href="/datenschutz-jugend">Datenschutz für Jugendliche</Link>.</> },
@@ -113,7 +113,7 @@ export default function FamilienPage() {
             <h3 id="pkg-family" className="text-title !text-[1.75rem]">{FAMILY.name}</h3>
             <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
             <p className="mt-5 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{FAMILY.priceMonthText}</span><span className="text-sm text-muted">pro Monat</span></p>
-            <p className="text-small mt-1 text-muted">oder {FAMILY.priceYearText} pro Jahr ({FAMILY.savingText} günstiger als 12 Monatszahlungen), {FAMILY.vatNote}</p>
+            <p className="text-small mt-1 text-muted">oder {FAMILY.priceYearText} pro Jahr ({FAMILY.savingText} günstiger als 12 Monatszahlungen)</p>
             <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
               {FAMILY.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
             </ul>

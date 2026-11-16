@@ -11,8 +11,8 @@ import { FAMILY_COPY, fill } from "@/lib/family-copy";
 import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
-  FREE_NOTICE, VAT_NOTE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
-  onlinePaymentEnabled, paymentOptions, priceWithVat, schoolPlans, seatsText, termText, vatNote, type BillingInterval, type BillingOwner,
+  FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
+  onlinePaymentEnabled, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
   type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
 import { IntervalChoice } from "./interval-choice";
@@ -74,7 +74,7 @@ function SubscriptionDetails({ status, owner, canManage }: { status: BillingStat
   return (
     <div className="space-y-3" data-billing-state="subscribed">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-        <dt className="text-muted">Abo</dt><dd className="font-bold">{plan ? plan.name : "–"}{plan && <span className="font-normal text-muted"> · {priceWithVat(plan)}</span>}</dd>
+        <dt className="text-muted">Abo</dt><dd className="font-bold">{plan ? plan.name : "–"}{plan && <span className="font-normal text-muted"> · {priceText(plan)}</span>}</dd>
         <dt className="text-muted">Status</dt><dd><Badge tone={label.tone}>{label.label}</Badge></dd>
         {status.collectionMethod && <><dt className="text-muted">Zahlungsart</dt><dd className="font-semibold">{status.collectionMethod === "send_invoice" ? "Rechnung" : "Kreditkarte"}</dd></>}
         {status.validUntil && <><dt className="text-muted">{status.cancelAtPeriodEnd ? "Läuft bis" : "Verlängert am"}</dt><dd className="font-semibold">{formatDate(status.validUntil)}</dd></>}
@@ -128,7 +128,7 @@ function SchoolCheckout({ owner, onInvoice }: { owner: BillingOwner; onInvoice: 
         </Button>
         <ButtonLink href="/kontakt" variant="ghost" icon={<Mail size={16} aria-hidden />}>Individuelles Angebot</ButtonLink>
       </div>
-      <p className="text-small text-muted">Alle Preise in CHF pro Jahr, {VAT_NOTE}. Jahresabo, kündbar auf Ende der Laufzeit. Schülerinnen und Schüler bezahlen nie etwas.</p>
+      <p className="text-small text-muted">Alle Preise in CHF pro Jahr. Jahresabo, kündbar auf Ende der Laufzeit. Schülerinnen und Schüler bezahlen nie etwas.</p>
     </div>
   );
 }
@@ -373,7 +373,7 @@ function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: stri
         </Button>
         {busy && <p role="status" className="text-small font-semibold">{FAMILY_COPY.step3.redirecting}</p>}
       </div>
-      <p className="text-small text-muted">{fill(FAMILY_COPY.step3.note, { term: termText(billing.interval), vat: vatNote(plan) })} {FAMILY_COPY.step3.childFree}</p>
+      <p className="text-small text-muted">{fill(FAMILY_COPY.step3.note, { term: termText(billing.interval) })} {FAMILY_COPY.step3.childFree}</p>
     </div>
   );
 }
@@ -412,7 +412,7 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
     return current || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
       <div className="space-y-2" data-billing-state="choose-later">
         <p className="text-body">{fill(FAMILY_COPY.step3.text, { seats: seatsText(familyPlan()) })}</p>
-        <p className="tabular text-sm font-bold" data-family-price>{priceWithVat(familyPlan())}</p>
+        <p className="tabular text-sm font-bold" data-family-price>{priceText(familyPlan())}</p>
         <p className="text-small text-muted">{FAMILY_COPY.step3.childFree}</p>
       </div>
     );
@@ -479,6 +479,6 @@ function ParentFamilyBilling({ familyId }: { familyId: string }) {
 export function FamilyBilling({ familyId, isParent, enabled = onlinePaymentEnabled() }: { familyId: string | null; isParent: boolean; enabled?: boolean }) {
   if (!enabled) return null;
   if (!isParent) return <div className="space-y-2" data-billing-state="child"><p className="text-small text-muted">{FAMILY_COPY.child.planNone}</p></div>;
-  if (!familyId) return <div className="space-y-2" data-billing-state="no-family"><p className="tabular text-lg font-extrabold" data-family-price>{priceWithVat(familyPlan())}</p><p className="text-small text-muted">{FAMILY_COPY.step1.text}</p></div>;
+  if (!familyId) return <div className="space-y-2" data-billing-state="no-family"><p className="tabular text-lg font-extrabold" data-family-price>{priceText(familyPlan())}</p><p className="text-small text-muted">{FAMILY_COPY.step1.text}</p></div>;
   return <ParentFamilyBilling familyId={familyId} />;
 }

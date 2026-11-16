@@ -134,7 +134,7 @@ async function runState(flag, base) {
       await page.goto(`${base}/preise`, { waitUntil: "networkidle" });
       const notice = page.locator("[data-billing-notice]");
       check(await notice.getAttribute("data-billing-notice") === flag, `flag state rendered (${flag})`);
-      check(await page.getByText("exkl. MWST").first().isVisible(), "prices are marked exkl. MWST");
+      check(!(await page.getByText(/MWST/).first().isVisible().catch(() => false)), "no VAT wording on prices");
       check(await page.getByRole("link", { name: /Offerte für Professional anfragen/ }).isVisible(), "offer flow is still there");
       const online = await page.getByRole("link", { name: "Professional online abschliessen" }).count();
       if (on) {
@@ -167,7 +167,7 @@ async function runState(flag, base) {
       if (on) {
         check(await visible(page, "Zahlungsart"), "plan + payment choice shown (no subscription yet)");
         check(await page.getByRole("radio", { name: /Enterprise/ }).isChecked(), "?plan=enterprise preselects the plan");
-        check(await page.getByText("exkl. MWST").first().isVisible(), "exkl. MWST in the picker");
+        check(!(await page.getByText(/MWST/).first().isVisible().catch(() => false)), "no VAT wording in the picker");
         const st = calls.find((c) => c.path === "/api/billing/status");
         check(st && st.query.includes(`schoolId=${SCHOOL_ID}`) && st.auth === "Bearer a.b.c", "status is loaded with schoolId and the bearer token", JSON.stringify(st));
         await elementShot(page, "#abo", `schul-admin-billing-${flag}-${key}`);

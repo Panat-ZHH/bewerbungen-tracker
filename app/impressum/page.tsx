@@ -16,8 +16,8 @@ export default function ImpressumPage() {
         <p className="mt-2">Panat Ruangsri, Tim Biedermann <Todo>Namen und Vertretungsform bestätigen</Todo></p></section>
       <section aria-labelledby="kontakt"><h2 id="kontakt" className="text-heading">Kontakt</h2>
         <p className="mt-2">E-Mail: <a className="text-[var(--brand)] underline underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a><br />Telefon: <Todo>Telefonnummer angeben oder Zeile streichen</Todo></p></section>
-      <section aria-labelledby="register"><h2 id="register" className="text-heading">Handelsregister und MWST</h2>
-        <p className="mt-2">UID / Handelsregister-Nr.: <Todo>UID bestätigen</Todo><br />MWST-Nr.: <Todo>falls vorhanden</Todo></p></section>
+      <section aria-labelledby="register"><h2 id="register" className="text-heading">Handelsregister</h2>
+        <p className="mt-2">UID / Handelsregister-Nr.: <Todo>UID bestätigen</Todo><br />Nicht mehrwertsteuerpflichtig, es wird keine MWST erhoben.</p></section>
       <section aria-labelledby="haftung"><h2 id="haftung" className="text-heading">Haftungsausschluss</h2>
         <p className="mt-2 text-muted">Wir erstellen die Inhalte dieser Website mit Sorgfalt, übernehmen aber keine Gewähr für Richtigkeit, Vollständigkeit und Aktualität. Für Inhalte verlinkter externer Seiten sind ausschliesslich deren Betreiber verantwortlich. Stellenangaben stammen von Dritten.</p></section>
       <section aria-labelledby="datenquellen"><h2 id="datenquellen" className="text-heading">Datenquellen</h2>

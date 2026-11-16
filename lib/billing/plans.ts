@@ -17,7 +17,7 @@ export interface Plan {
   id: PlanId;
   kind: PlanKind;
   name: string;
-  /** Yearly price in CHF, excl. VAT. 0 = free (pilot); null = contact / individual offer. */
+  /** Yearly price in CHF (final price, no VAT: WendApply is not VAT-registered). 0 = free (pilot); null = contact / individual offer. */
   priceChfPerYear: number | null;
   /** Seat limit for students; null = set individually. */
   studentLimit: number | null;
@@ -26,12 +26,10 @@ export interface Plan {
   maxClasses?: number;
   /** Stripe price lookup_key of the yearly price, e.g. 'wendapply_starter_yearly_chf'; null = no Stripe price. */
   lookupKey: string | null;
-  /** Monthly price in CHF (same VAT basis as the yearly one). Unset = yearly only. */
+  /** Monthly price in CHF (final price). Unset = yearly only. */
   priceChfPerMonth?: number;
   /** Stripe lookup_key of the monthly price, e.g. 'wendapply_family_monthly_chf'. Set together with priceChfPerMonth. */
   lookupKeyMonthly?: string;
-  /** Prices include Swiss VAT (consumer prices, Stripe tax_behavior=inclusive). Unset = BILLING.vatIncluded (schools: excl.). */
-  vatIncluded?: boolean;
   /** Can be bought by card via Stripe Checkout. */
   checkout: boolean;
   /** Can be paid by invoice (Stripe Invoicing, send_invoice). */
@@ -50,22 +48,26 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "family",
     kind: "family",
     name: "Familienpaket",
-    // Decided by Panat 2026-11-16: CHF 7.90 per month or CHF 79 per year (saves CHF 15.80 vs 12 x 7.90). Consumer price, incl. VAT.
+    // Decided by Panat 2026-11-16: CHF 7.90 per month or CHF 79 per year (saves CHF 15.80 vs 12 x 7.90).
     priceChfPerYear: 79,
     priceChfPerMonth: 7.9,
     studentLimit: 1,
     seats: { parents: 1, children: 1 },
     lookupKey: "wendapply_family_yearly_chf",
     lookupKeyMonthly: "wendapply_family_monthly_chf",
-    vatIncluded: true,
     checkout: true,
     invoiceAllowed: false, // families: card only
   },
 };
 
-export const BILLING = { currency: "chf", vatIncluded: false, monthlySurchargePct: 0, invoiceDaysUntilDue: 30 } as const satisfies {
+/**
+ * vatRegistered: false – decided by Panat 2026-11-16: WendApply/Wendico is not MWST-registered, so no VAT is charged or
+ * shown ("CHF 7.90 pro Monat", no "inkl./exkl. MWST"). Stripe prices have no tax_behavior, no Stripe Tax, Managed Payments off.
+ * If VAT registration ever becomes necessary (turnover > CHF 100'000), this is the switch to revisit (copy + Stripe tax).
+ */
+export const BILLING = { currency: "chf", vatRegistered: false, monthlySurchargePct: 0, invoiceDaysUntilDue: 30 } as const satisfies {
   currency: "chf";
-  vatIncluded: false;
+  vatRegistered: false;
   monthlySurchargePct: 0;
   invoiceDaysUntilDue: 30;
 };
@@ -105,9 +107,6 @@ export function lookupKeyFor(plan: Plan, interval: BillingInterval = "year"): st
 export function planPrice(plan: Plan, interval: BillingInterval = "year"): number | null {
   return interval === "month" ? plan.priceChfPerMonth ?? null : plan.priceChfPerYear;
 }
-
-/** Does the plan's price include VAT? */
-export const planVatIncluded = (plan: Plan): boolean => plan.vatIncluded ?? BILLING.vatIncluded;
 
 /** CHF saved per year by paying yearly instead of 12 monthly payments (0 if there is no monthly price). */
 export function yearlySavingChf(plan: Plan): number {

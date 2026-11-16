@@ -1,7 +1,7 @@
 # Billing UI (part stripe-ui)
 
 All payment UI lives in `components/billing/`; pages only mount it. Prices always come from `lib/billing/plans.ts`
-(shown "exkl. MWST"). Swiss spelling (ss).
+(final prices, no VAT wording – not MWST-registered). Swiss spelling (ss).
 
 | File | What |
 |---|---|
@@ -16,7 +16,7 @@ All payment UI lives in `components/billing/`; pages only mount it. Prices alway
 ## Flag OFF (default) – site behaves as before
 
 - /preise: offer buttons ("Offerte anfragen"), family "Zugang anfragen" → /familien#warteliste, family price CHF 7.90/Monat oder CHF 79/Jahr,
-  note "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.", prices "exkl. MWST".
+  note "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.", prices without any VAT note.
 - /schul-admin: section "Abo & Rechnung" with the same note and "Kontakt aufnehmen". No buy buttons, no API calls.
 - /familie: plan card keeps "Bezahlung bald verfügbar" + "Zugang anfragen" (waitlist modal) + the note.
 
@@ -36,7 +36,7 @@ All payment UI lives in `components/billing/`; pages only mount it. Prices alway
 - School return: `?billing=success` → "Danke für deine Bestellung!" (+ status reload), `?billing=cancel` → "Bezahlung abgebrochen".
 - API 503/404 (server flag off or route not deployed): friendly message + "Nochmals versuchen" + contact. Never a crash.
 
-Family price (2026-11-16): CHF 7.90 per month or CHF 79 per year, incl. MWST, shown in both flag states.
+Family price (2026-11-16): CHF 7.90 per month or CHF 79 per year (no VAT), shown in both flag states.
 
 ## Parent flow on /familie (BILLING-FLOW-SPEC.md §3.1, §3.4, §3.5)
 

@@ -77,7 +77,7 @@ export const MAIL = {
 
 /**
  * Familien / Privatkunden (parents and independent young people). Price decided by Panat on 2026-11-16 and read from
- * PLANS.family (lib/billing/plans.ts): CHF 7.90 per month or CHF 79 per year, incl. VAT. Online purchase only when the
+ * PLANS.family (lib/billing/plans.ts): CHF 7.90 per month or CHF 79 per year (no VAT). Online purchase only when the
  * payment flag is on; otherwise access is still granted manually (waitlist).
  */
 export const FAMILY = {
@@ -90,7 +90,6 @@ export const FAMILY = {
   priceMonthText: formatChf(PLANS.family.priceChfPerMonth ?? 0),
   priceYearText: formatChf(PLANS.family.priceChfPerYear ?? 0),
   savingText: formatChf(yearlySavingChf(PLANS.family)),
-  vatNote: PLANS.family.vatIncluded ? "inkl. MWST" : "exkl. MWST",
   status: "bald verfügbar",
   features: [
     "1 Schüleraccount",

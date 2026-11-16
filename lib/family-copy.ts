@@ -1,6 +1,6 @@
 // All user-facing copy of the family + billing flow (BILLING-FLOW-SPEC.md §4). Swiss German (ss, never the sharp s), Du-form.
 // Plain TS, no imports: unit tests read it with node --experimental-strip-types. Prices never live here: placeholders
-// like {price}, {saving}, {seats}, {term} and {vat} are filled from components/billing/logic.ts (intervalPriceText, savingText, ...).
+// like {price}, {saving}, {seats}, {term} are filled from components/billing/logic.ts (intervalPriceText, savingText, ...).
 
 export const FAMILY_COPY = {
   page: {
@@ -58,7 +58,7 @@ export const FAMILY_COPY = {
     intervalLegend: "Abrechnung",
     yearBadge: "Spare {saving}",
     cta: "Familienpaket buchen · {price}",
-    note: "{term}. Preise {vat}. Sichere Bezahlung mit Karte über Stripe.",
+    note: "{term}. Sichere Bezahlung mit Karte über Stripe.",
     childFree: "Für dein Kind bleibt WendApply kostenlos.",
     redirecting: "Wir öffnen die sichere Bezahlseite …",
   },

@@ -16,7 +16,7 @@ test("family package: 1 student + 1 parent account, CHF 7.90/month or CHF 79/yea
   assert.equal(FAMILY.priceMonthText, "CHF 7.90");
   assert.equal(FAMILY.priceYearText, "CHF 79");
   assert.equal(FAMILY.savingText, "CHF 15.80");
-  assert.equal(FAMILY.vatNote, "inkl. MWST");
+  assert.equal("vatNote" in FAMILY, false, "no VAT wording (not MWST-registered)");
   for (const t of ["1 Schüleraccount", "1 Elternaccount", "Gemeinsame Bewerbungsübersicht", "Unterstützung und Begleitung durch die Eltern"]) assert.ok(FAMILY.features.includes(t), t);
   for (const f of ["app/familien/page.tsx", "app/preise/page.tsx"]) {
     const src = read(f);

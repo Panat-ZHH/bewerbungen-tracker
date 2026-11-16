@@ -4,7 +4,7 @@
  * Swiss spelling only (ss, never the sharp s).
  */
 import { FAMILY_COPY } from "../../lib/family-copy.ts";
-import { BILLING, PLANS, formatChf, isStripeEnabledClient, planIntervals, planPrice, planVatIncluded, yearlySavingChf, type BillingInterval, type Plan, type PlanId } from "../../lib/billing/plans.ts";
+import { BILLING, PLANS, formatChf, isStripeEnabledClient, planIntervals, planPrice, yearlySavingChf, type BillingInterval, type Plan, type PlanId } from "../../lib/billing/plans.ts";
 
 export type { BillingInterval };
 
@@ -19,9 +19,6 @@ export function onlinePaymentEnabled(): boolean {
 
 /** Honest copy while the flag is off. */
 export const FREE_NOTICE = "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.";
-export const VAT_NOTE = BILLING.vatIncluded ? "inkl. MWST" : "exkl. MWST";
-/** VAT note of one plan (family = consumer price incl. VAT, schools excl. VAT). */
-export const vatNote = (plan: Plan): string => (planVatIncluded(plan) ? "inkl. MWST" : "exkl. MWST");
 
 /** School plans that can be bought online, in catalogue order (starter, professional, enterprise). */
 export function schoolPlans(): Plan[] {
@@ -47,7 +44,7 @@ export const PAYMENT_LABEL: Record<PaymentMethod, { title: string; text: string 
 
 const PER: Record<BillingInterval, string> = { year: "pro Jahr", month: "pro Monat" };
 
-/** "<formatChf> pro Jahr" (+ VAT note separately). null price = on request, 0 = free. Plans with a monthly price: both. */
+/** "<formatChf> pro Jahr" (final price, no VAT – BILLING.vatRegistered is false). null price = on request, 0 = free. Plans with a monthly price: both. */
 export function priceText(plan: Plan): string {
   if (plan.priceChfPerYear === null) return "Preis auf Anfrage";
   if (plan.priceChfPerYear === 0) return "Kostenlos";
@@ -58,9 +55,6 @@ export function priceText(plan: Plan): string {
 export function intervalPriceText(plan: Plan, interval: BillingInterval): string {
   const n = planPrice(plan, interval);
   return n === null ? "Preis auf Anfrage" : `${formatChf(n)} ${PER[interval]}`;
-}
-export function priceWithVat(plan: Plan): string {
-  return plan.priceChfPerYear ? `${priceText(plan)}, ${vatNote(plan)}` : priceText(plan);
 }
 /** Intervals a plan can be bought in (family: month + year; schools: year). */
 export const billingIntervals = (plan: Plan): BillingInterval[] => planIntervals(plan);

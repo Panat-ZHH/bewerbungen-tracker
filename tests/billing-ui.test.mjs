@@ -5,9 +5,9 @@ import { readFileSync, readdirSync } from "node:fs";
 import { test } from "node:test";
 import { PLANS, formatChf } from "../lib/billing/plans.ts";
 import {
-  FREE_NOTICE, VAT_NOTE, PAYMENT_LABEL, RETURN_MESSAGE, onlinePaymentEnabled, schoolPlans, familyPlan, isPurchasable, paymentOptions,
-  priceText, priceWithVat, seatsText, buyHref, readBillingStatus, hasSubscription, billingStatusLabel, billingHint, billingErrorMessage,
-  readBillingReturn, stripBillingParams, checkoutBody, ownerQuery, intervalPriceText, savingText, termText, vatNote, billingIntervals,
+  FREE_NOTICE, PAYMENT_LABEL, RETURN_MESSAGE, onlinePaymentEnabled, schoolPlans, familyPlan, isPurchasable, paymentOptions,
+  priceText, seatsText, buyHref, readBillingStatus, hasSubscription, billingStatusLabel, billingHint, billingErrorMessage,
+  readBillingReturn, stripBillingParams, checkoutBody, ownerQuery, intervalPriceText, savingText, termText, billingIntervals,
 } from "../components/billing/logic.ts";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
@@ -27,29 +27,27 @@ test("flag: off by default and for anything but 'true'", () => {
   assert.equal(withFlag("true", onlinePaymentEnabled), true);
 });
 
-test("honest copy while off; prices are excl. VAT", () => {
+test("honest copy while off; no VAT wording anywhere (not MWST-registered, decided 2026-11-16)", () => {
   assert.equal(FREE_NOTICE, "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.");
-  assert.equal(VAT_NOTE, "exkl. MWST");
+  for (const f of [...BILLING_FILES, ...PARENT_FILES, "app/preise/page.tsx", "app/familien/page.tsx", "app/hilfe/page.tsx", "components/public/marketing.ts", "lib/family-copy.ts"]) {
+    assert.doesNotMatch(read(f), /MWST|MwSt|VAT_NOTE|vatNote/, f);
+  }
 });
 
 test("plans and prices come from lib/billing/plans.ts", () => {
   assert.deepEqual(schoolPlans().map((p) => p.id), ["starter", "professional", "enterprise"]);
   for (const p of schoolPlans()) assert.equal(priceText(p), `${formatChf(PLANS[p.id].priceChfPerYear)} pro Jahr`);
-  assert.equal(priceWithVat(PLANS.professional), "CHF 1'490 pro Jahr, exkl. MWST");
+  assert.equal(priceText(PLANS.professional), "CHF 1'490 pro Jahr");
   assert.equal(priceText(PLANS.individual), "Preis auf Anfrage");
   assert.equal(priceText(PLANS.pilot), "Kostenlos");
-  assert.equal(priceWithVat(PLANS.pilot), "Kostenlos");
   assert.equal(familyPlan(), PLANS.family);
   assert.equal(seatsText(PLANS.family), "1 Schüleraccount + 1 Elternaccount");
-  // family: CHF 7.90 per month or CHF 79 per year, incl. VAT (decided 2026-11-16)
+  // family: CHF 7.90 per month or CHF 79 per year, no VAT (decided 2026-11-16)
   assert.equal(priceText(PLANS.family), "CHF 7.90 pro Monat oder CHF 79 pro Jahr");
-  assert.equal(priceWithVat(PLANS.family), "CHF 7.90 pro Monat oder CHF 79 pro Jahr, inkl. MWST");
   assert.equal(intervalPriceText(PLANS.family, "month"), "CHF 7.90 pro Monat");
   assert.equal(intervalPriceText(PLANS.family, "year"), "CHF 79 pro Jahr");
   assert.equal(savingText(PLANS.family), "CHF 15.80 günstiger als 12 Monatszahlungen");
   assert.equal(savingText(PLANS.starter), null);
-  assert.equal(vatNote(PLANS.family), "inkl. MWST");
-  assert.equal(vatNote(PLANS.starter), "exkl. MWST");
   assert.deepEqual(billingIntervals(PLANS.family), ["year", "month"]);
   assert.match(termText("month"), /Monatsabo/);
   assert.match(termText("year"), /Jahresabo/);
@@ -131,7 +129,7 @@ test("/preise: flag off keeps offer + Zugang-anfragen flows and the honest note;
   assert.match(p, /Offerte anfragen/, "offer button stays in both states");
   assert.match(p, /online\s*\?\s*<div[\s\S]*?<ButtonLink href=\{buyHref\("family", "year"\)\} variant="sun"[\s\S]*?<ButtonLink href=\{buyHref\("family", "month"\)\} variant="secondary"[\s\S]*?:\s*<ButtonLink href="\/familien#warteliste"/, "family: yearly (primary) + monthly buy when on, Zugang anfragen when off");
   assert.match(p, /\{online && <ButtonLink href=\{buyHref\(p\.id\)\}/, "school online button only when on");
-  assert.match(p, /pro Jahr, \{VAT_NOTE\}/);
+  assert.match(p, /pro Jahr<\/span>/);
   assert.doesNotMatch(p, /Mehrwertsteuer dazukommt/);
 });
 

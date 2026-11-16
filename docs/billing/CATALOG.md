@@ -6,7 +6,7 @@ the billing API/UI and `scripts/stripe/setup-products.mjs`, which mirrors it int
 
 ## Plans
 
-| Plan | Kind | CHF (schools excl. MWST, family incl. MWST) | Students | Stripe lookup key(s) | Card (Checkout) | Invoice |
+| Plan | Kind | CHF (final prices, no VAT) | Students | Stripe lookup key(s) | Card (Checkout) | Invoice |
 |---|---|---|---|---|---|---|
 | pilot | school | 0 (30 days, 1–2 classes) | 60 | – (licence row only) | – | – |
 | starter | school | 990 | 100 | `wendapply_starter_yearly_chf` | yes | yes |
@@ -15,8 +15,9 @@ the billing API/UI and `scripts/stripe/setup-products.mjs`, which mirrors it int
 | individual | school | contact | individual | – | – | – |
 | family | family | **7.90 / month or 79 / year** (decided by Panat 2026-11-16; yearly saves 15.80) | 1 student + 1 parent account | `wendapply_family_monthly_chf`, `wendapply_family_yearly_chf` | yes | – (card only) |
 
-`BILLING`: currency `chf`, `vatIncluded: false` (school prices use `tax_behavior=exclusive`); the family plan overrides it with
-`vatIncluded: true` (consumer price, `tax_behavior=inclusive`). Schools are yearly only; plans with `priceChfPerMonth` +
+`BILLING`: currency `chf`, `vatRegistered: false` – WendApply is not MWST-registered (Panat, 2026-11-16): no VAT is charged
+or shown anywhere, prices are simply "CHF 7.90 pro Monat" / "CHF 79 pro Jahr" / "CHF 990 pro Jahr". New Stripe prices get no
+`tax_behavior` (the older test-mode prices keep theirs; irrelevant without Stripe Tax). Schools are yearly only; plans with `priceChfPerMonth` +
 `lookupKeyMonthly` (family) also get a monthly price. Helpers: `planIntervals`, `lookupKeyFor(plan, interval)`, `planPrice`,
 `yearlySavingChf`. Checkout takes `interval: "year" | "month"` (default year).
 (`monthlySurchargePct: 0`), invoices due after 30 days. The old `MONTHLY_SURCHARGE` in licence.ts is only for manual offers.
@@ -27,7 +28,7 @@ Feature flags: `STRIPE_ENABLED=true` (server) and `NEXT_PUBLIC_STRIPE_ENABLED=tr
 ## Stripe objects
 
 - **Product** per paid plan, found by `metadata.plan_id` (+ `metadata.app=wendapply`); metadata `plan_id`, `student_limit`, `kind`.
-- **Price** per plan: CHF, recurring yearly, `tax_behavior=exclusive`, `lookup_key` as above, set as the product's default price.
+- **Price** per plan: CHF, recurring yearly (family also monthly), no `tax_behavior`, `lookup_key` as above, set as the product's default price.
   Code must always look prices up by **lookup key** (`prices.list({ lookup_keys: [...] })`), never by hard-coded `price_…` ID.
   `planByLookupKey()` maps a price back to the plan (e.g. in the webhook).
 - **Customer Portal configuration** (`metadata.wendapply_portal=default`): cancel at period end (no proration),
@@ -47,7 +48,7 @@ Test-mode IDs (sandbox `acct_1UcSQNJBozPvqHEJ`, created 2026-11-16):
 | family monthly (CHF 7.90) | `prod_Vdl0VIPC2oWhBz` | `price_1UcUa5JBozPvqHEJ5unlOB0E` |
 | portal | `bpc_1UcTUkJBozPvqHEJwjgKCpGU` | |
 
-(2026-11-16: the CHF 49 placeholder prices and a CHF 59 test price are archived; the new family prices are incl. MWST.)
+(2026-11-16: the CHF 49 placeholder prices and a CHF 59 test price are archived; 2026-11-16 later: VAT wording removed from the product descriptions – no VAT.)
 
 ## Running the setup script
 

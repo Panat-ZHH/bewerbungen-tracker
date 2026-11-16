@@ -22,7 +22,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PLANS, BILLING, planIntervals, lookupKeyFor, planPrice, planVatIncluded } from "../../lib/billing/plans.ts";
+import { PLANS, BILLING, planIntervals, lookupKeyFor, planPrice } from "../../lib/billing/plans.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const args = new Set(process.argv.slice(2));
@@ -119,8 +119,8 @@ function desiredProduct(plan) {
   return {
     name: `WendApply ${plan.name}`,
     description: plan.kind === "family"
-      ? `Familienpaket: ${plan.seats?.children ?? 1} Schüleraccount + ${plan.seats?.parents ?? 1} Elternaccount, Monats- oder Jahresabo (inkl. MWST)`
-      : `Schullizenz bis ${plan.studentLimit} Schülerinnen und Schüler, Jahresabo (exkl. MWST)`,
+      ? `Familienpaket: ${plan.seats?.children ?? 1} Schüleraccount + ${plan.seats?.parents ?? 1} Elternaccount, Monats- oder Jahresabo`
+      : `Schullizenz bis ${plan.studentLimit} Schülerinnen und Schüler, Jahresabo`,
     metadata: { plan_id: plan.id, student_limit: String(plan.studentLimit ?? ""), kind: plan.kind, app: "wendapply" },
   };
 }
@@ -149,12 +149,11 @@ async function ensurePrice(plan, product, interval = "year") {
   const lookupKey = lookupKeyFor(plan, interval);
   const chf = planPrice(plan, interval);
   const amount = Math.round(chf * 100);
-  const taxBehavior = planVatIncluded(plan) ? "inclusive" : "exclusive";
   const [existing] = (await api("GET", "/v1/prices", { "lookup_keys[]": lookupKey })).data;
   const priceMeta = { plan_id: plan.id, app: "wendapply", interval, ...(plan.placeholder ? { placeholder: "true" } : {}) };
   const matches = existing && existing.active && existing.unit_amount === amount && existing.currency === BILLING.currency
-    && existing.recurring?.interval === interval && existing.recurring?.interval_count === 1 && existing.product === product.id
-    && existing.tax_behavior === taxBehavior;
+    && existing.recurring?.interval === interval && existing.recurring?.interval_count === 1 && existing.product === product.id;
+  // No VAT (BILLING.vatRegistered=false): new prices get no tax_behavior; existing test prices with one are kept as is.
   if (matches) {
     unchanged.push(`price ${lookupKey} ${existing.id}`);
     return existing;
@@ -165,7 +164,6 @@ async function ensurePrice(plan, product, interval = "year") {
     currency: BILLING.currency,
     unit_amount: amount,
     recurring: { interval, interval_count: 1 },
-    tax_behavior: taxBehavior,
     lookup_key: lookupKey,
     transfer_lookup_key: existing ? true : undefined,
     nickname: `${plan.name} ${BILLING.currency.toUpperCase()} ${chf}/${per}${plan.placeholder ? " (PLACEHOLDER)" : ""}`,

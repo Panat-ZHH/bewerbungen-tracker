@@ -9,7 +9,7 @@ import { PublicShell, Section } from "@/components/public/public-shell";
 import { CtaBand } from "@/components/public/cta-band";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { FAMILY, MAIL, PACKAGES, PILOT, chf, perStudentMonth, perStudentYear } from "@/components/public/marketing";
-import { FREE_NOTICE, PAYMENT_LABEL, VAT_NOTE, buyHref, familyPlan, intervalPriceText, onlinePaymentEnabled, priceText, savingText, vatNote } from "@/components/billing/logic";
+import { FREE_NOTICE, PAYMENT_LABEL, buyHref, familyPlan, intervalPriceText, onlinePaymentEnabled, priceText, savingText } from "@/components/billing/logic";
 
 
 export const metadata: Metadata = publicMetadata({ canonical: "/preise" });
@@ -27,8 +27,8 @@ const faq: FaqItem[] = [
   { q: "Wir haben mehrere Schulhäuser oder sind ein Schulverband.", a: "Für mehrere Standorte und Schulverbände erstellen wir ein individuelles Angebot. Schreiben Sie uns, wie viele Standorte und Schülerinnen und Schüler es sind." },
   { q: "Können wir zuerst testen?", a: <>Ja, mit dem <Link className={link} href="/pilot">30-Tage-Pilot</Link> für 1 bis 2 Klassen. Danach entscheiden Sie in einem gemeinsamen Gespräch über die Jahreslizenz.</> },
   { q: "Gibt es ein Angebot für Familien?", a: online
-    ? <>Ja: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}, {vatNote(fam)}. Buchbar im Elternkonto unter <Link className={link} href="/familie">Meine Familie</Link>.</>
-    : <>Ja, bald: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}, {vatNote(fam)}. Mehr unter <Link className={link} href="/familien">Für Familien</Link>.</> },
+    ? <>Ja: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}. Buchbar im Elternkonto unter <Link className={link} href="/familie">Meine Familie</Link>.</>
+    : <>Ja, bald: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}. Mehr unter <Link className={link} href="/familien">Für Familien</Link>.</> },
   online
     ? { q: "Kann man online bestellen?", a: `Ja. Die Schuladministration wählt das Paket in WendApply unter «Abo & Rechnung» und bezahlt mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title} (zahlbar innert 30 Tagen). Eine Offerte mit Vertrag ist weiterhin möglich.` }
     : { q: "Kann man online bestellen?", a: `Noch nicht. ${FREE_NOTICE} Bis dahin erhalten Sie eine Offerte und einen Vertrag, wie bei Schulen üblich.` },
@@ -44,7 +44,7 @@ export default function PreisePage() {
         <h1 id="preise-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Für Schüler kostenlos.</span></h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">Die Schule bezahlt eine Jahreslizenz nach Anzahl Schülerinnen und Schüler. Lehrpersonen sind immer inbegriffen. Im Paket Professional sind das bei {pro.maxStudents} Schülerinnen und Schülern rund CHF {chf(perStudentMonth(pro), 2)} pro Schüler und Monat.</p>
         <p role="note" data-billing-notice={online ? "on" : "off"} className={`status ${online ? "status-success" : "status-info"} mt-6 max-w-2xl text-[15px] font-semibold`}>
-          {online ? `Online abschliessen: mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title}. Alle Schulpreise ${VAT_NOTE}.` : `${FREE_NOTICE} Für eine Offerte schreiben Sie uns.`}
+          {online ? `Online abschliessen: mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title}.` : `${FREE_NOTICE} Für eine Offerte schreiben Sie uns.`}
         </p>
       </section>
 
@@ -55,7 +55,7 @@ export default function PreisePage() {
               {p.recommended && <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">Empfohlen</span>}
               <h2 id={`pkg-${p.id}`} className="text-title !text-[1.75rem]">{p.name}</h2>
               <p className="text-small mt-1 text-muted">{p.audience}</p>
-              <p className="mt-5 flex items-baseline gap-2"><span className="text-sm font-semibold">CHF</span><span className="num-big !text-5xl">{chf(p.pricePerYear)}</span><span className="text-sm text-muted">pro Jahr, {VAT_NOTE}</span></p>
+              <p className="mt-5 flex items-baseline gap-2"><span className="text-sm font-semibold">CHF</span><span className="num-big !text-5xl">{chf(p.pricePerYear)}</span><span className="text-sm text-muted">pro Jahr</span></p>
               <p className="mt-2 text-[15px] font-semibold">bis {p.maxStudents} Schülerinnen und Schüler</p>
               <p className="text-small mt-1 text-muted">entspricht ab CHF {chf(perStudentYear(p), 2)} pro Schüler und Jahr</p>
               <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
@@ -86,7 +86,7 @@ export default function PreisePage() {
             <h3 id="pkg-family" className="text-title flex items-center gap-2 !text-[1.75rem]"><Heart size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />{FAMILY.name}</h3>
             <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
             <p className="mt-4 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{intervalPriceText(fam, "month")}</span></p>
-            <p className="text-small mt-1 text-muted">oder {intervalPriceText(fam, "year")} ({savingText(fam)}), {vatNote(fam)}</p>
+            <p className="text-small mt-1 text-muted">oder {intervalPriceText(fam, "year")} ({savingText(fam)})</p>
           </div>
           <ul className="space-y-2 text-[15px]">
             {FAMILY.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
@@ -120,7 +120,7 @@ export default function PreisePage() {
             );
           })}
         </ul>
-        <p className="text-small mt-5 text-muted">Alle Preise in CHF pro Schuljahr, {VAT_NOTE}.</p>
+        <p className="text-small mt-5 text-muted">Alle Preise in CHF pro Schuljahr.</p>
       </Section>
 
       <Section id="fragen" title="Fragen zu Preisen">
