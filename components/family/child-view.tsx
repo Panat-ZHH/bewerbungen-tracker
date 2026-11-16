@@ -50,7 +50,7 @@ export function ChildView({ family, me, email, onChanged }: { family: MyFamily; 
         </section>
         <div className="min-w-0 space-y-6">
           {(parents.length === 0 || !seats.parents.full) && <InvitePanel direction="child_invites_parent" />}
-          <PlanCard plan={family.plan} email={email} />
+          <PlanCard plan={family.plan} email={email} familyId={family.id} />
           <Button variant="ghost" onClick={() => setLeaving(true)} icon={<LogOut size={16} />}>Familie verlassen</Button>
         </div>
       </div>

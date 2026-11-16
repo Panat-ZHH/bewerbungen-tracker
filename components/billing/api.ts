@@ -1,0 +1,47 @@
+"use client";
+
+/**
+ * Browser calls to the billing API (contract in STRIPE-PLAN.md). Every call sends the Supabase access token as Bearer;
+ * the server decides who may buy/manage. Errors come back as a friendly German message, never as a throw.
+ */
+import { supabase } from "@/lib/supabase";
+import { billingErrorMessage, checkoutBody, ownerQuery, readBillingStatus, type BillingOwner, type BillingStatus, type PaymentMethod } from "./logic";
+import type { PlanId } from "@/lib/billing/plans";
+
+export type ApiOutcome<T> = { ok: true; data: T } | { ok: false; status: number; code: string | null; message: string };
+
+async function call<T>(path: string, init: RequestInit = {}): Promise<ApiOutcome<T>> {
+  let status = 0;
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    const res = await fetch(path, {
+      ...init,
+      headers: { ...(init.body ? { "content-type": "application/json" } : {}), ...(token ? { authorization: `Bearer ${token}` } : {}) },
+      cache: "no-store",
+    });
+    status = res.status;
+    let body: unknown = null;
+    try { body = await res.json(); } catch { /* empty or HTML (e.g. 404 page) */ }
+    if (!res.ok) {
+      const code = body && typeof body === "object" && typeof (body as { error?: unknown }).error === "string" ? (body as { error: string }).error : null;
+      return { ok: false, status, code, message: billingErrorMessage(status, code) };
+    }
+    return { ok: true, data: body as T };
+  } catch {
+    return { ok: false, status, code: null, message: billingErrorMessage(status) };
+  }
+}
+
+export async function fetchBillingStatus(owner: BillingOwner): Promise<ApiOutcome<BillingStatus | null>> {
+  const r = await call<unknown>(`/api/billing/status?${ownerQuery(owner)}`);
+  return r.ok ? { ok: true, data: readBillingStatus(r.data) } : r;
+}
+
+export function startCheckout(owner: BillingOwner, plan: PlanId, payment: PaymentMethod) {
+  return call<{ url: string | null; invoice?: boolean }>("/api/billing/checkout", { method: "POST", body: JSON.stringify(checkoutBody(owner, plan, payment)) });
+}
+
+export function openPortal(owner: BillingOwner) {
+  return call<{ url: string }>("/api/billing/portal", { method: "POST", body: JSON.stringify(owner.kind === "school" ? { schoolId: owner.id } : { familyId: owner.id }) });
+}

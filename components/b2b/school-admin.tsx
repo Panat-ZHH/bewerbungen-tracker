@@ -15,10 +15,12 @@ import { licenceError } from "@/lib/b2b/licence";
 import { ErrorBanner, teacherError } from "@/components/teacher/shared";
 import { PACKAGE_INFO, daysRemaining, licenceUsage, packageLabel, pilotText, statusLabel, type LicencePackage } from "./logic";
 import { ProgressBar } from "./progress-bar";
+import { BillingCard } from "@/components/billing/billing-card";
+import { onlinePaymentEnabled } from "@/components/billing/logic";
 
 const STATUS_TONE: Record<string, BadgeTone> = { pilot: "info", active: "success", expired: "danger", cancelled: "neutral" };
 
-/** School administration: licence, student count vs. limit, pilot, classes and teachers; classes are attached with their join code. No payments here. */
+/** School administration: licence, student count vs. limit, pilot, "Abo & Rechnung" (components/billing, behind the flag), classes and teachers; classes are attached with their join code. */
 export function SchoolAdminView() {
   const [schools, setSchools] = useState<SchoolOverview[] | null | undefined>(undefined);
   const [error, setError] = useState("");
@@ -32,12 +34,12 @@ export function SchoolAdminView() {
       {schools === undefined && !error && <div className="space-y-3" aria-busy="true"><Skeleton className="h-32 rounded-[var(--radius-lg)]" /><Skeleton className="h-48 rounded-[var(--radius-lg)]" /></div>}
       {schools === null && <EmptyState icon={<Building2 size={26} />} title="Schulverwaltung wird eingerichtet" description="Die Schulverwaltung ist für dein Konto noch nicht freigeschaltet. Melde dich bei uns, wenn deine Schule WendApply einsetzen möchte." action={<ButtonLink href="/kontakt" variant="sun" icon={<Mail size={16} />}>Kontakt aufnehmen</ButtonLink>} />}
       {schools && schools.length === 0 && <EmptyState icon={<ShieldCheck size={26} />} title="Keine Schule zugeordnet" description="Dein Konto ist keiner Schule als Administrator:in zugeordnet. Die Zuordnung übernimmt das WendApply-Team nach Vertragsabschluss oder für einen Pilot." action={<ButtonLink href="/kontakt" variant="secondary" icon={<Mail size={16} />}>Kontakt aufnehmen</ButtonLink>} />}
-      {schools?.map((s) => <SchoolBlock key={s.id} school={s} onChanged={load} />)}
+      {schools?.map((s, i) => <SchoolBlock key={s.id} school={s} first={i === 0} onChanged={load} />)}
     </div>
   );
 }
 
-function SchoolBlock({ school, onChanged }: { school: SchoolOverview; onChanged: () => void }) {
+function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; first: boolean; onChanged: () => void }) {
   const l = school.licence;
   const pkg = (l?.package ?? "") as LicencePackage;
   const limit = l?.studentLimit ?? PACKAGE_INFO[pkg]?.limit ?? null;
@@ -65,7 +67,9 @@ function SchoolBlock({ school, onChanged }: { school: SchoolOverview; onChanged:
               {l.validUntil && <><dt className="text-muted">Gültig bis</dt><dd className="font-semibold">{formatDateCh(l.validUntil)}{validDays !== null && validDays >= 0 && validDays <= 30 && <Badge tone="warning" className="ml-2">in {validDays} Tagen</Badge>}</dd></>}
             </dl>
           )}
-          <p className="text-small flex items-start gap-2 text-muted"><Mail size={14} className="mt-0.5 shrink-0" aria-hidden /><span>Paketwechsel über Kontakt: Schreib uns über die <Link href="/kontakt" className="font-semibold underline underline-offset-2">Kontaktseite</Link>. Hier werden keine Zahlungen abgewickelt.</span></p>
+          <p className="text-small flex items-start gap-2 text-muted"><Mail size={14} className="mt-0.5 shrink-0" aria-hidden />{onlinePaymentEnabled()
+            ? <span>Abo, Zahlung und Rechnungen: siehe «Abo &amp; Rechnung». Paketwechsel über Kontakt oder im Kundenportal.</span>
+            : <span>Paketwechsel über Kontakt: Schreib uns über die <Link href="/kontakt" className="font-semibold underline underline-offset-2">Kontaktseite</Link>. Hier werden keine Zahlungen abgewickelt.</span>}</p>
         </div>
 
         <div className="panel-flat space-y-3 p-5">
@@ -80,6 +84,8 @@ function SchoolBlock({ school, onChanged }: { school: SchoolOverview; onChanged:
           )}
         </div>
       </div>
+
+      <BillingCard schoolId={school.id} anchor={first} />
 
       <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
         <section aria-labelledby={`classes-${school.id}`}>

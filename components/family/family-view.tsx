@@ -98,7 +98,7 @@ function NoFamily({ parent, email, initialCode, onChanged }: { parent: boolean; 
       </form>
       <div className="space-y-6">
         <JoinForm initialCode={initialCode} onJoined={onChanged} title="Code von deinem Kind" intro="Hat dein Kind dich eingeladen? Gib den Code hier ein." />
-        <PlanCard plan={null} email={email} />
+        <PlanCard plan={null} email={email} isParent />
       </div>
     </div>
   );

@@ -8,23 +8,35 @@ import { Field, Input, Textarea } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { joinWaitlist } from "@/lib/family";
+import { FamilyBilling } from "@/components/billing/billing-card";
+import { BillingReturnNotice } from "@/components/billing/billing-return";
+import { FREE_NOTICE, onlinePaymentEnabled } from "@/components/billing/logic";
 import { familyError, PLAN_STATUS_TONE, planSummary, waitlistProblem, type FamilyPlan, type WaitlistKind } from "@/lib/family-core";
 
-/** Family plan status (manually assigned by the WendApply team) + "Bezahlung bald verfügbar – Zugang anfragen". No payment integration on purpose. */
-export function PlanCard({ plan, email, kind = "family" }: { plan: FamilyPlan | null; email: string; kind?: WaitlistKind }) {
+/**
+ * Family plan status + how to get it. Online payment off (default): honest "kostenlos" note and "Zugang anfragen".
+ * On: the purchase/portal part lives in components/billing (FamilyBilling); only a parent can buy.
+ */
+export function PlanCard({ plan, email, kind = "family", familyId = null, isParent = false, online = onlinePaymentEnabled() }: { plan: FamilyPlan | null; email: string; kind?: WaitlistKind; familyId?: string | null; isParent?: boolean; online?: boolean }) {
   const [open, setOpen] = useState(false);
   const s = planSummary(plan);
   return (
-    <section aria-labelledby="family-plan" className="panel-flat space-y-3 p-5">
+    <section id="abo" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-3 p-5" data-billing-enabled={online ? "on" : "off"}>
+      <BillingReturnNotice />
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{s.title}</h2>
         <Badge tone={plan ? PLAN_STATUS_TONE[plan.status] ?? "neutral" : "info"}>{s.status}</Badge>
       </div>
       <p className="text-body text-muted">{s.detail}</p>
-      <div className="flex flex-col gap-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--line)] p-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard size={16} aria-hidden className="shrink-0" />Bezahlung bald verfügbar</p>
-        <Button size="sm" variant="sun" onClick={() => setOpen(true)} icon={<Mail size={14} />}>Zugang anfragen</Button>
-      </div>
+      {online ? <FamilyBilling familyId={familyId} isParent={isParent} enabled /> : (
+        <div className="space-y-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--line)] p-3" data-billing-state="off">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard size={16} aria-hidden className="shrink-0" />Bezahlung bald verfügbar</p>
+            <Button size="sm" variant="sun" onClick={() => setOpen(true)} icon={<Mail size={14} />}>Zugang anfragen</Button>
+          </div>
+          <p className="text-small text-muted">{FREE_NOTICE}</p>
+        </div>
+      )}
       <RequestAccessModal open={open} onClose={() => setOpen(false)} email={email} kind={kind} />
     </section>
   );
