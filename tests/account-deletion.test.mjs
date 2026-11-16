@@ -221,7 +221,7 @@ test("SQL: account_delete_summary counts only the caller's data; admin functions
   const s = (await db.query("select public.account_delete_summary() s")).rows[0].s;
   const docs = Number((await db.query("select count(*) n from public.cvs where user_id=$1", [U.student])).rows[0].n);
   assert.ok(docs >= 1);
-  assert.deepEqual(s, { role: "student", applications: 2, documents: docs, friends: 2, classes_joined: 2, classes_owned: 0, students_in_owned_classes: 0 });
+  assert.deepEqual(s, { role: "student", applications: 2, documents: docs, friends: 2, classes_joined: 2, classes_owned: 0, students_in_owned_classes: 0, family_member: false, family_others: 0 });
   await as(db, U.teacher);
   const t = (await db.query("select public.account_delete_summary() s")).rows[0].s;
   assert.equal(t.classes_owned, 1); assert.equal(t.students_in_owned_classes, 2);

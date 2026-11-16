@@ -428,7 +428,7 @@ test("account deletion still leaves nothing behind (new tables cascade)", async 
 });
 
 // ---------- privilege audit with Supabase-like default privileges ----------
-test("audit: with Supabase default grants, anon can execute no SECURITY DEFINER RPC except invite_context; all tables have RLS", async () => {
+test("audit: with Supabase default grants, anon can execute no SECURITY DEFINER RPC except invite_context and waitlist_join; all tables have RLS", async () => {
   const db = new PGlite();
   await db.exec(`
     create role authenticated; create role anon; create role service_role;
@@ -449,7 +449,7 @@ test("audit: with Supabase default grants, anon can execute no SECURITY DEFINER 
     from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.prosecdef`)).rows;
   const noPath = fns.filter((r) => !(r.proconfig ?? []).some((c) => c.startsWith("search_path="))).map((r) => r.proname);
   assert.deepEqual(noPath, [], `SECURITY DEFINER without search_path: ${noPath}`);
-  const anon = [...new Set(fns.filter((r) => r.anon_exec && !r.trg && r.proname !== "invite_context").map((r) => r.proname))].sort();
+  const anon = [...new Set(fns.filter((r) => r.anon_exec && !r.trg && !["invite_context", "waitlist_join"].includes(r.proname)).map((r) => r.proname))].sort();
   assert.deepEqual(anon, [], `anon may execute: ${anon.join(", ")}`);
   const internal = fns.filter((r) => r.auth_exec && (r.proname.startsWith("_") || r.proname.startsWith("platform_") || r.trg)).map((r) => r.proname);
   assert.deepEqual([...new Set(internal)].sort(), [], "internal / trigger / platform functions must not be callable by users");
