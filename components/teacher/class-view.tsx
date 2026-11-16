@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Archive, CalendarDays, Megaphone, Settings2, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Archive, CalendarDays, LayoutGrid, Megaphone, Settings2, Target, UserPlus, Users } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -19,9 +19,11 @@ import { AnnouncementsPanel } from "./announcements-panel";
 import { ClassSettingsPanel } from "./class-settings-panel";
 import { AttentionPanel } from "./attention-panel";
 import { ClassCalendar } from "./class-calendar";
+import { ClassOverviewPanel } from "@/components/b2b/class-overview";
+import { ClassGoalsPanel } from "@/components/b2b/class-goals";
 
-type Tab = "students" | "invite" | "calendar" | "news" | "settings";
-const TABS: Tab[] = ["students", "invite", "calendar", "news", "settings"];
+type Tab = "students" | "overview" | "goals" | "invite" | "calendar" | "news" | "settings";
+const TABS: Tab[] = ["students", "overview", "goals", "invite", "calendar", "news", "settings"];
 
 export function TeacherClassView({ classId }: { classId: string }) {
   const [cls, setCls] = useState<DashboardClass | null>(null);
@@ -61,11 +63,15 @@ export function TeacherClassView({ classId }: { classId: string }) {
               note={kpi.inactive ? <Badge tone="warning">{kpi.inactive} inaktiv</Badge> : undefined}
             />
           )}
-          <Segmented className="[&_button]:min-h-11" label="Bereich der Klasse" value={tab} onChange={setTab} options={[{ value: "students", label: "Schüler:innen", icon: <Users size={14} />, count: kpi.students }, { value: "invite", label: "Einladen", icon: <UserPlus size={14} /> }, { value: "calendar", label: "Kalender", icon: <CalendarDays size={14} /> }, { value: "news", label: "Mitteilungen", icon: <Megaphone size={14} /> }, { value: "settings", label: "Einstellungen", icon: <Settings2 size={14} /> }]} />
-          <div role="tabpanel" aria-label={{ students: "Schüler:innen", invite: "Einladen", calendar: "Kalender", news: "Mitteilungen", settings: "Einstellungen" }[tab]}>
+          <Segmented className="[&_button]:min-h-11" label="Bereich der Klasse" value={tab} onChange={setTab} options={[{ value: "students", label: "Schüler:innen", icon: <Users size={14} />, count: kpi.students }, { value: "overview", label: "Überblick", icon: <LayoutGrid size={14} /> }, { value: "goals", label: "Ziele", icon: <Target size={14} /> }, { value: "invite", label: "Einladen", icon: <UserPlus size={14} /> }, { value: "calendar", label: "Kalender", icon: <CalendarDays size={14} /> }, { value: "news", label: "Mitteilungen", icon: <Megaphone size={14} /> }, { value: "settings", label: "Einstellungen", icon: <Settings2 size={14} /> }]} />
+          <div role="tabpanel" aria-label={{ students: "Schüler:innen", overview: "Überblick", goals: "Ziele", invite: "Einladen", calendar: "Kalender", news: "Mitteilungen", settings: "Einstellungen" }[tab]}>
             {tab === "students" && (students.length === 0
               ? <EmptyState icon={<Users size={26} />} title="Noch keine Schüler:innen" description="Lade deine Klasse per Link, Code oder QR-Code ein. Sobald jemand beitritt, erscheint die Person hier." action={<Button variant="sun" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
               : <div className="space-y-10"><AttentionPanel classId={classId} /><StudentsPanel cls={cls} students={students} onChanged={load} /></div>)}
+            {tab === "overview" && (students.length === 0
+              ? <EmptyState icon={<LayoutGrid size={26} />} title="Noch kein Überblick" description="Der Überblick erscheint, sobald Schülerinnen und Schüler der Klasse beigetreten sind." action={<Button variant="sun" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
+              : <ClassOverviewPanel classId={classId} />)}
+            {tab === "goals" && <ClassGoalsPanel classId={classId} archived={cls.archived} />}
             {tab === "invite" && <InvitePanel cls={cls} />}
             {tab === "calendar" && <ClassCalendar classId={classId} archived={cls.archived} />}
             {tab === "news" && <AnnouncementsPanel classId={classId} />}

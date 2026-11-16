@@ -35,7 +35,7 @@ export function inviteState(invite: Pick<ClassInvitation, "revoked" | "expiresAt
 export const INVITE_STATE_LABEL: Record<InviteState, string> = { active: "Aktiv", revoked: "Widerrufen", expired: "Abgelaufen", used: "Aufgebraucht" };
 
 export type StudentFilter = "all" | "inactive" | "hidden" | "interview" | "schnupper" | "offer" | "placed";
-export type StudentSort = "name" | "total" | "activity" | "joined";
+export type StudentSort = "name" | "total" | "progress" | "activity" | "joined";
 export const STUDENT_FILTERS: { value: StudentFilter; label: string }[] = [
   { value: "all", label: "Alle" }, { value: "inactive", label: "Inaktiv" }, { value: "hidden", label: "Teilt nicht" },
   { value: "interview", label: "Mit Gespräch" }, { value: "schnupper", label: "Mit Schnupperlehre" }, { value: "offer", label: "Mit Zusage" }, { value: "placed", label: "Lehrstelle gefunden" },
@@ -54,9 +54,18 @@ export function sortStudents(students: TeacherStudent[], sort: StudentSort): Tea
   const byName = (a: TeacherStudent, b: TeacherStudent) => a.displayName.localeCompare(b.displayName, "de");
   const time = (s: TeacherStudent) => (s.lastActivity ? new Date(s.lastActivity).getTime() : 0);
   const cmp: Record<StudentSort, (a: TeacherStudent, b: TeacherStudent) => number> = {
-    name: byName, total: (a, b) => b.total - a.total, activity: (a, b) => time(a) - time(b), joined: (a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime(),
+    name: byName, total: (a, b) => b.total - a.total, progress: (a, b) => progressRank(b) - progressRank(a), activity: (a, b) => time(a) - time(b), joined: (a, b) => new Date(b.joinedAt).getTime() - new Date(a.joinedAt).getTime(),
   };
   return [...students].sort((a, b) => Number(a.hidden) - Number(b.hidden) || cmp[sort](a, b) || byName(a, b));
+}
+
+/** Furthest meaningful step (Lehrstelle > Zusage > Gespräch/Schnuppern > verschickt > nichts). Volume never counts more than a step. */
+export function progressRank(s: Pick<TeacherStudent, "placed" | "offers" | "interviews" | "schnupper" | "total" | "statusCounts">): number {
+  if (s.placed) return 4;
+  if (s.offers > 0) return 3;
+  if (s.interviews > 0 || s.schnupper > 0) return 2;
+  const sent = s.total - (s.statusCounts?.saved ?? 0) - (s.statusCounts?.preparing ?? 0);
+  return sent > 0 ? 1 : 0;
 }
 
 export const NUDGE_COOLDOWN_DAYS = 3;
