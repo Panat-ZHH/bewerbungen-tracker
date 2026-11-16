@@ -8,17 +8,22 @@ import robots from "../app/robots.ts";
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
 const FILES = ["app/familien/page.tsx", "components/public/waitlist-form.tsx", "app/preise/page.tsx", "app/hilfe/page.tsx", "components/public/marketing.ts", "components/public/public-shell.tsx"];
 
-test("family package: 1 parent + 1 child, no invented price", () => {
+test("family package: 1 student + 1 parent account, CHF 7.90/month or CHF 79/year from the catalogue", () => {
   assert.equal(FAMILY.seatsParents, 1);
   assert.equal(FAMILY.seatsChildren, 1);
-  assert.equal(FAMILY.pricePerYear, null);
-  assert.equal(FAMILY.pricePlaceholder, "Preis folgt – noch nicht festgelegt");
+  assert.equal(FAMILY.pricePerYear, 79);
+  assert.equal(FAMILY.pricePerMonth, 7.9);
+  assert.equal(FAMILY.priceMonthText, "CHF 7.90");
+  assert.equal(FAMILY.priceYearText, "CHF 79");
+  assert.equal(FAMILY.savingText, "CHF 15.80");
+  assert.equal(FAMILY.vatNote, "inkl. MWST");
+  for (const t of ["1 Schüleraccount", "1 Elternaccount", "Gemeinsame Bewerbungsübersicht", "Unterstützung und Begleitung durch die Eltern"]) assert.ok(FAMILY.features.includes(t), t);
   for (const f of ["app/familien/page.tsx", "app/preise/page.tsx"]) {
     const src = read(f);
-    assert.match(src, /FAMILY\.pricePlaceholder/, f);
-    assert.match(src, /data-price-placeholder/, f);
+    assert.match(src, /data-family-price/, f);
+    assert.doesNotMatch(src, /pricePlaceholder|data-price-placeholder|noch nicht festgelegt/, f);
   }
-  // no CHF amount next to the family package on the Familien page
+  // amounts come from the catalogue, never typed into the page
   assert.doesNotMatch(read("app/familien/page.tsx"), /CHF\s*\d/);
 });
 

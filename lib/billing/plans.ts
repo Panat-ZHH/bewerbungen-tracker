@@ -10,6 +10,8 @@
 
 export type PlanId = "pilot" | "starter" | "professional" | "enterprise" | "individual" | "family";
 export type PlanKind = "school" | "family";
+/** Billing interval of a Stripe price. Every paid plan has a yearly price; some (family) also a monthly one. */
+export type BillingInterval = "year" | "month";
 
 export interface Plan {
   id: PlanId;
@@ -22,8 +24,14 @@ export interface Plan {
   seats?: { parents: number; children: number };
   pilotDays?: number;
   maxClasses?: number;
-  /** Stripe price lookup_key, e.g. 'wendapply_starter_yearly_chf'; null = no Stripe price. */
+  /** Stripe price lookup_key of the yearly price, e.g. 'wendapply_starter_yearly_chf'; null = no Stripe price. */
   lookupKey: string | null;
+  /** Monthly price in CHF (same VAT basis as the yearly one). Unset = yearly only. */
+  priceChfPerMonth?: number;
+  /** Stripe lookup_key of the monthly price, e.g. 'wendapply_family_monthly_chf'. Set together with priceChfPerMonth. */
+  lookupKeyMonthly?: string;
+  /** Prices include Swiss VAT (consumer prices, Stripe tax_behavior=inclusive). Unset = BILLING.vatIncluded (schools: excl.). */
+  vatIncluded?: boolean;
   /** Can be bought by card via Stripe Checkout. */
   checkout: boolean;
   /** Can be paid by invoice (Stripe Invoicing, send_invoice). */
@@ -42,13 +50,16 @@ export const PLANS: Record<PlanId, Plan> = {
     id: "family",
     kind: "family",
     name: "Familienpaket",
-    priceChfPerYear: 49, // PLACEHOLDER – Panat to decide
+    // Decided by Panat 2026-11-16: CHF 7.90 per month or CHF 79 per year (saves CHF 15.80 vs 12 x 7.90). Consumer price, incl. VAT.
+    priceChfPerYear: 79,
+    priceChfPerMonth: 7.9,
     studentLimit: 1,
     seats: { parents: 1, children: 1 },
     lookupKey: "wendapply_family_yearly_chf",
+    lookupKeyMonthly: "wendapply_family_monthly_chf",
+    vatIncluded: true,
     checkout: true,
     invoiceAllowed: false, // families: card only
-    placeholder: true,
   },
 };
 
@@ -72,8 +83,36 @@ export function isStripeEnabledClient(): boolean {
   return process.env.NEXT_PUBLIC_STRIPE_ENABLED === "true";
 }
 
+/** Maps a Stripe price lookup_key (yearly or monthly) back to its plan. */
 export function planByLookupKey(key: string): Plan | undefined {
-  return Object.values(PLANS).find((p) => p.lookupKey !== null && p.lookupKey === key);
+  if (!key) return undefined;
+  return Object.values(PLANS).find((p) => (p.lookupKey !== null && p.lookupKey === key) || p.lookupKeyMonthly === key);
+}
+
+/** Intervals a plan can be bought in: always "year" for Stripe plans, plus "month" when a monthly price exists. */
+export function planIntervals(plan: Plan): BillingInterval[] {
+  if (!plan.lookupKey) return [];
+  return plan.lookupKeyMonthly && plan.priceChfPerMonth ? ["year", "month"] : ["year"];
+}
+
+/** Stripe lookup_key for a plan + interval, or null when the plan has no such price. */
+export function lookupKeyFor(plan: Plan, interval: BillingInterval = "year"): string | null {
+  if (interval === "month") return plan.lookupKeyMonthly && plan.priceChfPerMonth ? plan.lookupKeyMonthly : null;
+  return plan.lookupKey;
+}
+
+/** Price in CHF for a plan + interval (null = no such price / on request). */
+export function planPrice(plan: Plan, interval: BillingInterval = "year"): number | null {
+  return interval === "month" ? plan.priceChfPerMonth ?? null : plan.priceChfPerYear;
+}
+
+/** Does the plan's price include VAT? */
+export const planVatIncluded = (plan: Plan): boolean => plan.vatIncluded ?? BILLING.vatIncluded;
+
+/** CHF saved per year by paying yearly instead of 12 monthly payments (0 if there is no monthly price). */
+export function yearlySavingChf(plan: Plan): number {
+  if (!plan.priceChfPerMonth || !plan.priceChfPerYear) return 0;
+  return Math.max(0, Math.round((plan.priceChfPerMonth * 12 - plan.priceChfPerYear) * 100) / 100);
 }
 
 /** "CHF 1'490" / "CHF 136.60" (Swiss thousands separator). */

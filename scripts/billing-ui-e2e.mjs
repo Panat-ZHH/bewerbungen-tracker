@@ -140,14 +140,15 @@ async function runState(flag, base) {
       if (on) {
         check(online === 1, "online button per school package");
         check(await page.getByRole("link", { name: "Professional online abschliessen" }).getAttribute("href") === "/schul-admin?plan=professional#abo", "online button leads to /schul-admin with the plan");
-        check(await page.getByRole("link", { name: "Familienpaket buchen" }).getAttribute("href") === "/familie?plan=family#abo", "family button leads to /familie");
-        check(await page.locator("[data-family-price]").textContent().then((t) => /CHF \d/.test(t)), "family price shown from plans.ts");
+        check(await page.getByRole("link", { name: "Monatlich buchen" }).getAttribute("href") === "/familie?plan=family&interval=month#abo", "family monthly button leads to /familie");
+        check(await page.getByRole("link", { name: "Jährlich buchen" }).getAttribute("href") === "/familie?plan=family&interval=year#abo", "family yearly button leads to /familie");
       } else {
         check(online === 0, "no online buttons while off");
         check(await visible(page, FREE, 5000), "honest 'aktuell kostenlos' note");
         check(await page.getByRole("link", { name: "Zugang anfragen" }).first().getAttribute("href") === "/familien#warteliste", "family: Zugang anfragen flow");
-        check(await page.locator("[data-price-placeholder]").count() === 1, "family price stays 'Preis folgt'");
+        check(await page.locator("[data-price-placeholder]").count() === 0, "no 'Preis folgt' placeholder any more");
       }
+      check(await page.locator("[data-family-price]").textContent().then((t) => t.includes("CHF 7.90")), "family price CHF 7.90 per month from plans.ts");
       check(await noOverflow(page), "no horizontal overflow");
       if (key === "desktop-light") await axe(page, "main");
       await page.screenshot({ path: `${OUT}preise-${flag}-${key}.png`, fullPage: key === "desktop-light" });
@@ -199,12 +200,14 @@ async function runState(flag, base) {
       check(await card.getAttribute("data-billing-enabled") === flag, `plan card in state ${flag}`);
       if (on) {
         check(await visible(page, "Bezahlung mit Kreditkarte"), "family: card only, no invoice choice");
-        check(await card.getByRole("radio").count() === 0, "no payment radio for families");
+        check(await card.getByRole("radio").count() === 2, "only the monthly/yearly radios, no payment radio for families");
+        check(await card.getByRole("radio", { name: /Jährlich/ }).isChecked(), "yearly preselected");
+        await card.getByRole("radio", { name: /Monatlich/ }).check();
         await elementShot(page, "#abo", `familie-plan-${flag}-${key}`);
         if (key === "desktop-light") await axe(page, "#abo");
-        await card.getByRole("button", { name: "Familienpaket buchen" }).click();
+        await card.getByRole("button", { name: /Familienpaket buchen/ }).click();
         await page.waitForURL(/billing=success|\/familie$/, { timeout: 60000 }).catch(() => {});
-        check(lastCheckout && lastCheckout.plan === "family" && lastCheckout.familyId === FAMILY_ID && lastCheckout.payment === "card", "card checkout with familyId", JSON.stringify(lastCheckout));
+        check(lastCheckout && lastCheckout.plan === "family" && lastCheckout.familyId === FAMILY_ID && lastCheckout.payment === "card" && lastCheckout.interval === "month", "monthly card checkout with familyId", JSON.stringify(lastCheckout));
         check(await visible(page, "Danke für deine Bestellung!", 60000), "?billing=success shows the thank-you message");
         check(!page.url().includes("billing="), "return params are removed from the URL", page.url());
         if (key === "desktop-light") await elementShot(page, "#abo", `familie-plan-on-return-success`);
@@ -230,7 +233,7 @@ async function runState(flag, base) {
       const { ctx, page, calls } = await actor(base, { role: "student", rpc: familyRpc("child"), vp: { w: 1280, h: 900 }, meta: { role: "student", account_type: "independent_student", account_type_synced: true } });
       await page.goto(`${base}/familie`, { waitUntil: "domcontentloaded" });
       check(await visible(page, "Das Familienpaket bucht ein Elternteil", 90000), "child gets an explanation instead of a buy button");
-      check(await page.getByRole("button", { name: "Familienpaket buchen" }).count() === 0, "no buy button for children");
+      check(await page.getByRole("button", { name: /Familienpaket buchen/ }).count() === 0, "no buy button for children");
       check(calls.length === 0, "no billing API calls for children");
       await ctx.close();
     }

@@ -61,7 +61,7 @@ export function apiStripe(stripe: Stripe = getStripe()): BillingApiStripe {
         customer_update: { name: "auto", address: "auto" },
         tax_id_collection: p.kind === "school" ? { enabled: true } : undefined,
         // The account has Stripe "Managed Payments" (Stripe as merchant of record) on by default, which rejects products
-        // without a tax code. WendApply sells itself, prices excl. MWST (plans.ts BILLING) => off per session.
+        // without a tax code. WendApply sells itself (schools excl. MWST, family incl. MWST, see plans.ts) => off per session.
         // Decision for Panat before go-live, see docs/billing/WEBHOOK-TEST.md.
         managed_payments: { enabled: false },
       });

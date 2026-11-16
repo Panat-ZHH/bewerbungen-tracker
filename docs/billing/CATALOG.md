@@ -6,18 +6,21 @@ the billing API/UI and `scripts/stripe/setup-products.mjs`, which mirrors it int
 
 ## Plans
 
-| Plan | Kind | CHF / year (excl. MWST) | Students | Stripe lookup key | Card (Checkout) | Invoice |
+| Plan | Kind | CHF (schools excl. MWST, family incl. MWST) | Students | Stripe lookup key(s) | Card (Checkout) | Invoice |
 |---|---|---|---|---|---|---|
 | pilot | school | 0 (30 days, 1–2 classes) | 60 | – (licence row only) | – | – |
 | starter | school | 990 | 100 | `wendapply_starter_yearly_chf` | yes | yes |
 | professional | school | 1'490 | 300 | `wendapply_professional_yearly_chf` | yes | yes |
 | enterprise | school | 3'990 | 800 | `wendapply_enterprise_yearly_chf` | yes | yes |
 | individual | school | contact | individual | – | – | – |
-| family | family | **49 – PLACEHOLDER, Panat to decide** | 1 parent + 1 child | `wendapply_family_yearly_chf` | yes | – (card only) |
+| family | family | **7.90 / month or 79 / year** (decided by Panat 2026-11-16; yearly saves 15.80) | 1 student + 1 parent account | `wendapply_family_monthly_chf`, `wendapply_family_yearly_chf` | yes | – (card only) |
 
-`BILLING`: currency `chf`, `vatIncluded: false` (Stripe prices use `tax_behavior=exclusive`), yearly only
+`BILLING`: currency `chf`, `vatIncluded: false` (school prices use `tax_behavior=exclusive`); the family plan overrides it with
+`vatIncluded: true` (consumer price, `tax_behavior=inclusive`). Schools are yearly only; plans with `priceChfPerMonth` +
+`lookupKeyMonthly` (family) also get a monthly price. Helpers: `planIntervals`, `lookupKeyFor(plan, interval)`, `planPrice`,
+`yearlySavingChf`. Checkout takes `interval: "year" | "month"` (default year).
 (`monthlySurchargePct: 0`), invoices due after 30 days. The old `MONTHLY_SURCHARGE` in licence.ts is only for manual offers.
-The public Familien page keeps showing "Preis folgt" (`FAMILY.pricePerYear = null`) until the family price is decided.
+The public pages (/preise, /familien, /hilfe) read the family price from `PLANS.family` via `FAMILY` in marketing.ts.
 
 Feature flags: `STRIPE_ENABLED=true` (server) and `NEXT_PUBLIC_STRIPE_ENABLED=true` (client). Anything else = off.
 
@@ -40,10 +43,11 @@ Test-mode IDs (sandbox `acct_1UcSQNJBozPvqHEJ`, created 2026-11-16):
 | starter | `prod_Vdl0uwfRsr4OWU` | `price_1UcTUVJBozPvqHEJafoI4HRT` |
 | professional | `prod_Vdl0h8zENNH4JM` | `price_1UcTUZJBozPvqHEJ1CvqWZwQ` |
 | enterprise | `prod_Vdl0MWDVOefzPa` | `price_1UcTUdJBozPvqHEJoUXCW847` |
-| family | `prod_Vdl0VIPC2oWhBz` | `price_1UcTVGJBozPvqHEJ2M9A65vb` |
+| family yearly (CHF 79) | `prod_Vdl0VIPC2oWhBz` | `price_1UcUZvJBozPvqHEJQuKm7P53` |
+| family monthly (CHF 7.90) | `prod_Vdl0VIPC2oWhBz` | `price_1UcUa5JBozPvqHEJ5unlOB0E` |
 | portal | `bpc_1UcTUkJBozPvqHEJwjgKCpGU` | |
 
-(The family price was changed 49 → 59 → 49 once to test the price-change path, so two archived family prices exist.)
+(2026-11-16: the CHF 49 placeholder prices and a CHF 59 test price are archived; the new family prices are incl. MWST.)
 
 ## Running the setup script
 
@@ -59,12 +63,12 @@ a second run reports `Created: 0 Updated: 0` and makes no API writes.
 
 **Live mode** (only after Panat's explicit go, see GO-LIVE.md): `STRIPE_ALLOW_LIVE=yes STRIPE_LIVE_SECRET_KEY=… node scripts/stripe/setup-products.mjs --live`
 (or a live-logged-in CLI). Without `STRIPE_ALLOW_LIVE=yes` the script exits with code 2. Plans marked
-`placeholder: true` (family) are **skipped** in live mode until the price is decided.
+`placeholder: true` are **skipped** in live mode (no plan is a placeholder any more).
 
 ## How to change a price
 
 1. Edit `priceChfPerYear` (and/or `studentLimit`) of the plan in `lib/billing/plans.ts`. For the family plan also remove
-   `placeholder: true` and the PLACEHOLDER comment once the price is final, and set `FAMILY.pricePerYear` in marketing.ts.
+   `priceChfPerMonth` for the monthly price. The public pages follow automatically (marketing.ts reads PLANS).
 2. `npm test` (prices on the public pages and in licence.ts follow automatically; adjust tests that pin old amounts,
    e.g. `tests/b2b-site.test.mjs`, `tests/billing-plans.test.mjs`).
 3. Run the setup script (test first, then live with approval). For a changed amount it creates a new Price with
@@ -73,7 +77,12 @@ a second run reports `Created: 0 Updated: 0` and makes no API writes.
 4. Changing the seat limit only updates product metadata `student_limit`; the enforced limit lives in the DB licence row
    (written by the webhook from `PLANS[plan].studentLimit`).
 
-To add a plan: add a `PlanId`, an entry in `PLANS` with a new `wendapply_<id>_yearly_chf` lookup key, run the script.
+To add a plan: add a `PlanId`, an entry in `PLANS` with a new `wendapply_<id>_yearly_chf` lookup key (and optionally
+`wendapply_<id>_monthly_chf` + `priceChfPerMonth`), run the script. The script also archives active prices of a plan's product
+that are no longer in the catalogue, and moves the product's default price before archiving.
+
+Note: run the script with `STRIPE_SECRET_KEY=` (empty) to force the Stripe CLI when `.env.local` holds a non-test key; the
+script refuses non-test keys in test mode.
 
 ## Invoices and Swiss QR-bill (checked 2026-11-16, test sandbox)
 

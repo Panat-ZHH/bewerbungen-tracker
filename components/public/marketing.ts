@@ -4,7 +4,7 @@
  * Swiss spelling only (ss, never the sharp s).
  */
 import { PILOT_DAYS } from "../../lib/b2b/licence.ts";
-import { PLANS } from "../../lib/billing/plans.ts";
+import { PLANS, formatChf, yearlySavingChf } from "../../lib/billing/plans.ts";
 
 export const TAGLINE = "Den Bewerbungsprozess sichtbar, planbar und motivierend machen.";
 export const BRAND_TAGLINE = `WendApply · ${TAGLINE}`;
@@ -76,26 +76,28 @@ export const MAIL = {
 };
 
 /**
- * Familien / Privatkunden (parents and independent young people). No price is set yet: the site shows a
- * clearly marked placeholder and there is no online purchase. Plan assignment happens manually by an admin.
+ * Familien / Privatkunden (parents and independent young people). Price decided by Panat on 2026-11-16 and read from
+ * PLANS.family (lib/billing/plans.ts): CHF 7.90 per month or CHF 79 per year, incl. VAT. Online purchase only when the
+ * payment flag is on; otherwise access is still granted manually (waitlist).
  */
 export const FAMILY = {
-  name: "Familienpaket",
-  seatsParents: 1,
-  seatsChildren: 1,
-  /**
-   * null = price not decided yet. Never invent one here. PLANS.family in lib/billing/plans.ts holds a PLACEHOLDER
-   * amount (placeholder: true) for the billing test setup only; the public site keeps showing "Preis folgt" until Panat decides.
-   */
-  pricePerYear: null as number | null,
-  pricePlaceholder: "Preis folgt – noch nicht festgelegt",
+  name: PLANS.family.name,
+  seatsParents: PLANS.family.seats?.parents ?? 1,
+  seatsChildren: PLANS.family.seats?.children ?? 1,
+  pricePerYear: PLANS.family.priceChfPerYear as number | null,
+  pricePerMonth: (PLANS.family.priceChfPerMonth ?? null) as number | null,
+  /** "CHF 7.90" / "CHF 79" / "CHF 15.80" (saving per year vs. 12 monthly payments). */
+  priceMonthText: formatChf(PLANS.family.priceChfPerMonth ?? 0),
+  priceYearText: formatChf(PLANS.family.priceChfPerYear ?? 0),
+  savingText: formatChf(yearlySavingChf(PLANS.family)),
+  vatNote: PLANS.family.vatIncluded ? "inkl. MWST" : "exkl. MWST",
   status: "bald verfügbar",
   features: [
-    "1 Elternteil + 1 Kind (weitere Kinder später möglich)",
-    "Alle Funktionen für Jugendliche: Stellen, Bewerbungen, Fristen, Dorf",
-    "Fortschritt fürs Elternkonto, soweit das Kind ihn teilt",
-    "Einwilligung der Eltern für Kinder unter 16",
-    "Export und Löschung der eigenen Daten",
+    "1 Schüleraccount",
+    "1 Elternaccount",
+    "Gemeinsame Bewerbungsübersicht",
+    "Unterstützung und Begleitung durch die Eltern",
+    "Alle Family-Funktionen: Stellen, Bewerbungen, Fristen, Dorf, Einwilligung für Kinder unter 16, Export und Löschung",
   ],
 };
 

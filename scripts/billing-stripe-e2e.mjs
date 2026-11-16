@@ -141,9 +141,9 @@ try {
     ok("school invoice: paid (out of band) → invoice.paid applied", (await waitForLog(new RegExp(`invoice.paid.*applied.*${sub2.id}|invoice.paid.*${sub2.id}.*applied`))).length > 0);
   }
 
-  // 3) Family, card (placeholder price, test mode only)
+  // 3) Family, card, monthly CHF 7.90 (yearly CHF 79 checked below)
   const family = randomUUID();
-  const r3 = await checkout({ token: "t", body: { plan: "family", familyId: family, payment: "card" } }, deps());
+  const r3 = await checkout({ token: "t", body: { plan: "family", familyId: family, payment: "card", interval: "month" } }, deps());
   ok("family card: API returns Checkout URL", r3.status === 200 && /^https:\/\/checkout\.stripe\.com\//.test(String(r3.body.url)), `status ${r3.status}`);
   const r3b = await checkout({ token: "t", body: { plan: "family", familyId: family, payment: "invoice" } }, deps());
   ok("family invoice refused (card only)", r3b.status === 400 && r3b.body.error === "invoice_not_allowed");
@@ -152,13 +152,16 @@ try {
     ok("family card: 4242 paid, redirected to /familie?billing=success", back.includes("/familie?billing=success"), back.replace(/session_id=[^&]+/, "session_id=…"));
     const sub3 = (await stripe.subscriptions.list({ customer: customers.get(family), limit: 1 })).data[0];
     ok("family card: subscription active with family_id", sub3?.status === "active" && sub3.metadata.family_id === family, `${sub3?.id} ${sub3?.status}`);
+    const p3 = sub3?.items.data[0]?.price;
+    ok("family card: monthly price CHF 7.90", p3?.unit_amount === 790 && p3?.recurring?.interval === "month" && p3?.lookup_key === "wendapply_family_monthly_chf", `${p3?.unit_amount} ${p3?.recurring?.interval}`);
     ok("family card: webhook applied", (await waitForLog(new RegExp(`${sub3?.id}.*applied|applied.*${sub3?.id}`))).length > 0);
   }
 
-  // Live-mode guard for the placeholder price
-  const live = { ...deps(), liveMode: true };
-  const r5 = await checkout({ token: "t", body: { plan: "family", familyId: randomUUID(), payment: "card" } }, live);
-  ok("placeholder family price is refused with a live key (409)", r5.status === 409 && r5.body.error === "plan_not_available");
+  // Family yearly: Checkout session uses the CHF 79 price
+  const r5 = await checkout({ token: "t", body: { plan: "family", familyId: randomUUID(), payment: "card", interval: "year" } }, deps());
+  ok("family yearly: API returns Checkout URL", r5.status === 200 && /^https:\/\/checkout\.stripe\.com\//.test(String(r5.body.url)), `status ${r5.status}`);
+  const [yearly] = (await stripe.prices.list({ lookup_keys: ["wendapply_family_yearly_chf"] })).data;
+  ok("family yearly price is CHF 79 per year", yearly?.unit_amount === 7900 && yearly?.recurring?.interval === "year", `${yearly?.unit_amount}`);
 } finally {
   await browser.close();
 }

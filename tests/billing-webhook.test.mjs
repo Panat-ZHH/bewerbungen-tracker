@@ -182,6 +182,7 @@ test("permanent DB errors -> 200 + recorded; transient errors -> 500 and the eve
 test("mapping helpers: plan by lookup key beats metadata, individual student limit, legacy invoice.subscription", () => {
   assert.equal(planOfSubscription(sub({ metadata: { plan_id: "enterprise" } })), "starter");
   assert.equal(planOfSubscription(sub({ items: { data: [{ price: { lookup_key: "other" } }] }, metadata: { plan_id: "individual" } })), "individual");
+  assert.equal(planOfSubscription(sub({ items: { data: [{ price: { lookup_key: "wendapply_family_monthly_chf" } }] }, metadata: {} })), "family", "monthly family price maps to the family plan");
   assert.equal(planOfSubscription(sub({ items: { data: [] }, metadata: { plan_id: "pilot" } })), null, "pilot is never paid");
   const p = subscriptionParams(sub({ items: { data: [] }, metadata: { plan_id: "individual", school_id: SCHOOL, student_limit: "450" } }), { id: "evt_x", type: "t", created: NOW });
   assert.equal(p.p_student_limit, 450);

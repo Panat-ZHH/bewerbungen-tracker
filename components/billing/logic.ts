@@ -3,7 +3,9 @@
  * Plain TS so `node --experimental-strip-types --test` can import it. Prices always come from lib/billing/plans.ts.
  * Swiss spelling only (ss, never the sharp s).
  */
-import { BILLING, PLANS, formatChf, isStripeEnabledClient, type Plan, type PlanId } from "../../lib/billing/plans.ts";
+import { BILLING, PLANS, formatChf, isStripeEnabledClient, planIntervals, planPrice, planVatIncluded, yearlySavingChf, type BillingInterval, type Plan, type PlanId } from "../../lib/billing/plans.ts";
+
+export type { BillingInterval };
 
 export type PaymentMethod = "card" | "invoice";
 export type BillingOwner = { kind: "school"; id: string } | { kind: "family"; id: string };
@@ -17,6 +19,8 @@ export function onlinePaymentEnabled(): boolean {
 /** Honest copy while the flag is off. */
 export const FREE_NOTICE = "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.";
 export const VAT_NOTE = BILLING.vatIncluded ? "inkl. MWST" : "exkl. MWST";
+/** VAT note of one plan (family = consumer price incl. VAT, schools excl. VAT). */
+export const vatNote = (plan: Plan): string => (planVatIncluded(plan) ? "inkl. MWST" : "exkl. MWST");
 
 /** School plans that can be bought online, in catalogue order (starter, professional, enterprise). */
 export function schoolPlans(): Plan[] {
@@ -40,23 +44,44 @@ export const PAYMENT_LABEL: Record<PaymentMethod, { title: string; text: string 
   invoice: { title: "Rechnung", text: `Sie erhalten eine Rechnung per E-Mail, zahlbar innert ${BILLING.invoiceDaysUntilDue} Tagen.` },
 };
 
-/** "<formatChf> pro Jahr" (+ VAT note separately). null price = on request, 0 = free. */
+const PER: Record<BillingInterval, string> = { year: "pro Jahr", month: "pro Monat" };
+
+/** "<formatChf> pro Jahr" (+ VAT note separately). null price = on request, 0 = free. Plans with a monthly price: both. */
 export function priceText(plan: Plan): string {
   if (plan.priceChfPerYear === null) return "Preis auf Anfrage";
   if (plan.priceChfPerYear === 0) return "Kostenlos";
+  if (planIntervals(plan).includes("month")) return `${intervalPriceText(plan, "month")} oder ${intervalPriceText(plan, "year")}`;
   return `${formatChf(plan.priceChfPerYear)} pro Jahr`;
 }
+/** "<formatChf> pro Monat" / "<formatChf> pro Jahr" for one interval. */
+export function intervalPriceText(plan: Plan, interval: BillingInterval): string {
+  const n = planPrice(plan, interval);
+  return n === null ? "Preis auf Anfrage" : `${formatChf(n)} ${PER[interval]}`;
+}
 export function priceWithVat(plan: Plan): string {
-  return plan.priceChfPerYear ? `${priceText(plan)}, ${VAT_NOTE}` : priceText(plan);
+  return plan.priceChfPerYear ? `${priceText(plan)}, ${vatNote(plan)}` : priceText(plan);
+}
+/** Intervals a plan can be bought in (family: month + year; schools: year). */
+export const billingIntervals = (plan: Plan): BillingInterval[] => planIntervals(plan);
+export const INTERVAL_LABEL: Record<BillingInterval, string> = { month: "Monatlich", year: "Jährlich" };
+/** "<formatChf saving> günstiger als 12 Monatszahlungen" or null when there is no monthly price. */
+export function savingText(plan: Plan): string | null {
+  const s = yearlySavingChf(plan);
+  return s > 0 ? `${formatChf(s)} günstiger als 12 Monatszahlungen` : null;
+}
+/** "Monatsabo, kündbar auf Ende des Monats" / "Jahresabo, kündbar auf Ende der Laufzeit". */
+export function termText(interval: BillingInterval): string {
+  return interval === "month" ? "Monatsabo, kündbar auf Ende des Monats" : "Jahresabo, kündbar auf Ende der Laufzeit";
 }
 export function seatsText(plan: Plan): string {
-  if (plan.kind === "family") return `${plan.seats?.parents ?? 1} Elternteil + ${plan.seats?.children ?? 1} Kind`;
+  if (plan.kind === "family") return `${plan.seats?.children ?? 1} Schüleraccount + ${plan.seats?.parents ?? 1} Elternaccount`;
   return plan.studentLimit ? `bis ${plan.studentLimit} Schülerinnen und Schüler` : "Anzahl nach Absprache";
 }
 
 /** Where the "online abschliessen" buttons on /preise lead (sign-in is handled there). */
-export function buyHref(id: PlanId): string {
-  return PLANS[id].kind === "family" ? `/familie?plan=${id}#abo` : `/schul-admin?plan=${id}#abo`;
+export function buyHref(id: PlanId, interval?: BillingInterval): string {
+  const i = interval && planIntervals(PLANS[id]).includes(interval) ? `&interval=${interval}` : "";
+  return PLANS[id].kind === "family" ? `/familie?plan=${id}${i}#abo` : `/schul-admin?plan=${id}${i}#abo`;
 }
 
 // ---------------------------------------------------------------- status
@@ -156,8 +181,8 @@ export function stripBillingParams(search: string): string {
   return s ? `?${s}` : "";
 }
 
-export function checkoutBody(owner: BillingOwner, plan: PlanId, payment: PaymentMethod) {
-  return owner.kind === "school" ? { plan, schoolId: owner.id, payment } : { plan, familyId: owner.id, payment: "card" as const };
+export function checkoutBody(owner: BillingOwner, plan: PlanId, payment: PaymentMethod, interval: BillingInterval = "year") {
+  return owner.kind === "school" ? { plan, schoolId: owner.id, payment, interval } : { plan, familyId: owner.id, payment: "card" as const, interval };
 }
 export function ownerQuery(owner: BillingOwner): string {
   return owner.kind === "school" ? `schoolId=${encodeURIComponent(owner.id)}` : `familyId=${encodeURIComponent(owner.id)}`;

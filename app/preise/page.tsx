@@ -9,7 +9,7 @@ import { PublicShell, Section } from "@/components/public/public-shell";
 import { CtaBand } from "@/components/public/cta-band";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { FAMILY, MAIL, PACKAGES, PILOT, chf, perStudentMonth, perStudentYear } from "@/components/public/marketing";
-import { FREE_NOTICE, PAYMENT_LABEL, VAT_NOTE, buyHref, familyPlan, onlinePaymentEnabled, priceText } from "@/components/billing/logic";
+import { FREE_NOTICE, PAYMENT_LABEL, VAT_NOTE, buyHref, familyPlan, intervalPriceText, onlinePaymentEnabled, priceText, savingText, vatNote } from "@/components/billing/logic";
 
 
 export const metadata: Metadata = publicMetadata({ canonical: "/preise" });
@@ -27,8 +27,8 @@ const faq: FaqItem[] = [
   { q: "Wir haben mehrere Schulhäuser oder sind ein Schulverband.", a: "Für mehrere Standorte und Schulverbände erstellen wir ein individuelles Angebot. Schreiben Sie uns, wie viele Standorte und Schülerinnen und Schüler es sind." },
   { q: "Können wir zuerst testen?", a: <>Ja, mit dem <Link className={link} href="/pilot">30-Tage-Pilot</Link> für 1 bis 2 Klassen. Danach entscheiden Sie in einem gemeinsamen Gespräch über die Jahreslizenz.</> },
   { q: "Gibt es ein Angebot für Familien?", a: online
-    ? <>Ja: das {FAMILY.name} für 1 Elternteil und 1 Kind, {priceText(familyPlan())}, {VAT_NOTE}. Buchbar im Elternkonto unter <Link className={link} href="/familie">Meine Familie</Link>.</>
-    : <>Ja, bald: das {FAMILY.name} für 1 Elternteil und 1 Kind. Der Preis ist noch nicht festgelegt. Mehr unter <Link className={link} href="/familien">Für Familien</Link>.</> },
+    ? <>Ja: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}, {vatNote(fam)}. Buchbar im Elternkonto unter <Link className={link} href="/familie">Meine Familie</Link>.</>
+    : <>Ja, bald: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}, {vatNote(fam)}. Mehr unter <Link className={link} href="/familien">Für Familien</Link>.</> },
   online
     ? { q: "Kann man online bestellen?", a: `Ja. Die Schuladministration wählt das Paket in WendApply unter «Abo & Rechnung» und bezahlt mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title} (zahlbar innert 30 Tagen). Eine Offerte mit Vertrag ist weiterhin möglich.` }
     : { q: "Kann man online bestellen?", a: `Noch nicht. ${FREE_NOTICE} Bis dahin erhalten Sie eine Offerte und einen Vertrag, wie bei Schulen üblich.` },
@@ -44,7 +44,7 @@ export default function PreisePage() {
         <h1 id="preise-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Für Schüler kostenlos.</span></h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">Die Schule bezahlt eine Jahreslizenz nach Anzahl Schülerinnen und Schüler. Lehrpersonen sind immer inbegriffen. Im Paket Professional sind das bei {pro.maxStudents} Schülerinnen und Schülern rund CHF {chf(perStudentMonth(pro), 2)} pro Schüler und Monat.</p>
         <p role="note" data-billing-notice={online ? "on" : "off"} className={`status ${online ? "status-success" : "status-info"} mt-6 max-w-2xl text-[15px] font-semibold`}>
-          {online ? `Online abschliessen: mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title}. Alle Preise ${VAT_NOTE}.` : `${FREE_NOTICE} Für eine Offerte schreiben Sie uns.`}
+          {online ? `Online abschliessen: mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title}. Alle Schulpreise ${VAT_NOTE}.` : `${FREE_NOTICE} Für eine Offerte schreiben Sie uns.`}
         </p>
       </section>
 
@@ -84,19 +84,21 @@ export default function PreisePage() {
           <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{online ? "Online buchbar" : FAMILY.status}</span>
           <div>
             <h3 id="pkg-family" className="text-title flex items-center gap-2 !text-[1.75rem]"><Heart size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />{FAMILY.name}</h3>
-            <p className="text-small mt-1 text-muted">{FAMILY.seatsParents} Elternteil + {FAMILY.seatsChildren} Kind, weitere Kinder später möglich</p>
-            {online
-              ? <p className="mt-4 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{priceText(fam)}</span><span className="text-sm text-muted">{VAT_NOTE}</span></p>
-              : <p className="mt-4 inline-flex w-fit rounded-[var(--radius-sm)] border-2 border-dashed border-[var(--warning-line)] bg-[var(--warning-bg)] px-3 py-2 text-base font-bold text-[var(--warning-fg)]" data-price-placeholder>{FAMILY.pricePlaceholder}</p>}
+            <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
+            <p className="mt-4 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{intervalPriceText(fam, "month")}</span></p>
+            <p className="text-small mt-1 text-muted">oder {intervalPriceText(fam, "year")} ({savingText(fam)}), {vatNote(fam)}</p>
           </div>
           <ul className="space-y-2 text-[15px]">
-            {FAMILY.features.slice(1).map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
+            {FAMILY.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
           </ul>
           {online
-            ? <ButtonLink href={buyHref("family")} variant="sun" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Familienpaket buchen</ButtonLink>
+            ? <div className="flex flex-col gap-2">
+                <ButtonLink href={buyHref("family", "month")} variant="sun" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Monatlich buchen</ButtonLink>
+                <ButtonLink href={buyHref("family", "year")} variant="secondary" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Jährlich buchen</ButtonLink>
+              </div>
             : <ButtonLink href="/familien#warteliste" variant="secondary" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Zugang anfragen</ButtonLink>}
         </div>
-        <p className="text-small mt-4 text-muted">{online ? `Bezahlung mit ${PAYMENT_LABEL.card.title}, Jahresabo, kündbar auf Ende der Laufzeit.` : "Kein Online-Kauf: Der Zugang wird in der Startphase manuell freigeschaltet."} Für Schülerinnen und Schüler einer Schule mit Lizenz bleibt WendApply kostenlos.</p>
+        <p className="text-small mt-4 text-muted">{online ? `Bezahlung mit ${PAYMENT_LABEL.card.title}, monatlich oder jährlich, kündbar auf Ende der Laufzeit.` : "Noch kein Online-Kauf: Der Zugang wird in der Startphase manuell freigeschaltet."} Für Schülerinnen und Schüler einer Schule mit Lizenz bleibt WendApply kostenlos.</p>
       </section>
 
       <Section id="konditionen" title="Gut zu wissen" tint>

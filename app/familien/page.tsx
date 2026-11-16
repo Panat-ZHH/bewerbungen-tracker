@@ -11,6 +11,10 @@ import { CtaBand } from "@/components/public/cta-band";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { WaitlistForm } from "@/components/public/waitlist-form";
 import { FAMILY, MAIL_FAMILY, WAITLIST_KIND_FAMILY } from "@/components/public/marketing";
+import { onlinePaymentEnabled } from "@/components/billing/logic";
+
+/** Online payment (feature flag, default off). */
+const online = onlinePaymentEnabled();
 
 export const metadata: Metadata = publicMetadata({ canonical: "/familien" });
 
@@ -47,7 +51,7 @@ const privacy: Item[] = [
 const link = "font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]";
 
 const faq: FaqItem[] = [
-  { q: "Was kostet das Familienpaket?", a: "Der Preis ist noch nicht festgelegt. Es gibt noch keinen Kauf und keine Zahlung in der App. Wer sich auf die Warteliste setzt, erfährt den Preis zuerst und entscheidet dann." },
+  { q: "Was kostet das Familienpaket?", a: `${FAMILY.priceMonthText} pro Monat oder ${FAMILY.priceYearText} pro Jahr (${FAMILY.vatNote}). Mit der Jahreszahlung spart ihr ${FAMILY.savingText} gegenüber 12 Monatszahlungen. Enthalten sind 1 Schüleraccount und 1 Elternaccount.` },
   { q: "Unsere Schule nutzt WendApply schon. Brauchen wir das Familienpaket?", a: "Nein. Für Schülerinnen und Schüler einer Schule mit Lizenz ist WendApply kostenlos. Das Familienpaket ist für Familien, deren Schule WendApply (noch) nicht nutzt, oder für Eltern, die den Fortschritt begleiten möchten." },
   { q: "Kann mein Kind WendApply auch allein nutzen?", a: "Ja. Jugendliche können ein eigenes Konto erstellen und WendApply ohne Elternkonto nutzen. Das Teilen mit Eltern ist freiwillig." },
   { q: "Ab welchem Alter braucht es eine Einwilligung?", a: <>Für Kinder unter 16 geben die Eltern die Einwilligung, bevor Daten mit dem Elternkonto geteilt werden. Die App selbst kann Ihr Kind auch ohne Einwilligung nutzen, nur das Teilen bleibt aus. Mehr dazu unter <Link className={link} href="/datenschutz-jugend">Datenschutz für Jugendliche</Link>.</> },
@@ -101,15 +105,16 @@ export default function FamilienPage() {
           <div className="panel relative flex flex-col p-6 sm:p-7" aria-labelledby="pkg-family">
             <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{FAMILY.status}</span>
             <h3 id="pkg-family" className="text-title !text-[1.75rem]">{FAMILY.name}</h3>
-            <p className="text-small mt-1 text-muted">{FAMILY.seatsParents} Elternteil + {FAMILY.seatsChildren} Kind</p>
-            <p className="mt-5 inline-flex w-fit rounded-[var(--radius-sm)] border-2 border-dashed border-[var(--warning-line)] bg-[var(--warning-bg)] px-3 py-2 text-base font-bold text-[var(--warning-fg)]" data-price-placeholder>{FAMILY.pricePlaceholder}</p>
+            <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
+            <p className="mt-5 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{FAMILY.priceMonthText}</span><span className="text-sm text-muted">pro Monat</span></p>
+            <p className="text-small mt-1 text-muted">oder {FAMILY.priceYearText} pro Jahr ({FAMILY.savingText} günstiger als 12 Monatszahlungen), {FAMILY.vatNote}</p>
             <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
               {FAMILY.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
             </ul>
             <ButtonLink href="#warteliste" full className="mt-7" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Auf die Warteliste</ButtonLink>
           </div>
           <ul className="space-y-4 text-[15px] leading-relaxed">
-            <li className="flex gap-3"><ShieldCheck size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />Noch kein Kauf möglich: Der Zugang wird während der Startphase manuell freigeschaltet.</li>
+            <li className="flex gap-3"><ShieldCheck size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{online ? "Buchbar im Elternkonto unter «Meine Familie»: monatlich oder jährlich, kündbar auf Ende der Laufzeit." : "Noch kein Online-Kauf: Der Zugang wird während der Startphase manuell freigeschaltet."}</li>
             <li className="flex gap-3"><Users size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />Jugendliche ohne Elternkonto können WendApply auch allein nutzen.</li>
             <li className="flex gap-3"><House size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />Nutzt die Schule WendApply, bleibt der Schulzugang kostenlos und unverändert.</li>
           </ul>
@@ -144,7 +149,7 @@ export default function FamilienPage() {
         </div>
       </Section>
 
-      <Section id="warteliste" title={<>Auf die Warteliste / <span className="marker">Zugang anfragen</span></>} intro="Wir starten mit wenigen Familien. Trag dich ein, dann melden wir uns, sobald ein Platz frei ist und der Preis feststeht." tint>
+      <Section id="warteliste" title={<>Auf die Warteliste / <span className="marker">Zugang anfragen</span></>} intro="Wir starten mit wenigen Familien. Trag dich ein, dann melden wir uns, sobald ein Platz frei ist." tint>
         <div className="max-w-2xl">
           <WaitlistForm kind={WAITLIST_KIND_FAMILY} mailFallback={MAIL_FAMILY} />
         </div>

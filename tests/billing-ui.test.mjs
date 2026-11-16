@@ -7,7 +7,7 @@ import { PLANS, formatChf } from "../lib/billing/plans.ts";
 import {
   FREE_NOTICE, VAT_NOTE, PAYMENT_LABEL, RETURN_MESSAGE, onlinePaymentEnabled, schoolPlans, familyPlan, isPurchasable, paymentOptions,
   priceText, priceWithVat, seatsText, buyHref, readBillingStatus, hasSubscription, billingStatusLabel, billingHint, billingErrorMessage,
-  readBillingReturn, stripBillingParams, checkoutBody, ownerQuery,
+  readBillingReturn, stripBillingParams, checkoutBody, ownerQuery, intervalPriceText, savingText, termText, vatNote, billingIntervals,
 } from "../components/billing/logic.ts";
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
@@ -39,7 +39,19 @@ test("plans and prices come from lib/billing/plans.ts", () => {
   assert.equal(priceText(PLANS.pilot), "Kostenlos");
   assert.equal(priceWithVat(PLANS.pilot), "Kostenlos");
   assert.equal(familyPlan(), PLANS.family);
-  assert.equal(seatsText(PLANS.family), "1 Elternteil + 1 Kind");
+  assert.equal(seatsText(PLANS.family), "1 Schüleraccount + 1 Elternaccount");
+  // family: CHF 7.90 per month or CHF 79 per year, incl. VAT (decided 2026-11-16)
+  assert.equal(priceText(PLANS.family), "CHF 7.90 pro Monat oder CHF 79 pro Jahr");
+  assert.equal(priceWithVat(PLANS.family), "CHF 7.90 pro Monat oder CHF 79 pro Jahr, inkl. MWST");
+  assert.equal(intervalPriceText(PLANS.family, "month"), "CHF 7.90 pro Monat");
+  assert.equal(intervalPriceText(PLANS.family, "year"), "CHF 79 pro Jahr");
+  assert.equal(savingText(PLANS.family), "CHF 15.80 günstiger als 12 Monatszahlungen");
+  assert.equal(savingText(PLANS.starter), null);
+  assert.equal(vatNote(PLANS.family), "inkl. MWST");
+  assert.equal(vatNote(PLANS.starter), "exkl. MWST");
+  assert.deepEqual(billingIntervals(PLANS.family), ["year", "month"]);
+  assert.match(termText("month"), /Monatsabo/);
+  assert.match(termText("year"), /Jahresabo/);
   assert.equal(seatsText(PLANS.starter), `bis ${PLANS.starter.studentLimit} Schülerinnen und Schüler`);
   // no hard-coded CHF amounts in the billing components / pages (all through formatChf / PLANS)
   for (const f of [...BILLING_FILES, "components/family/plan-card.tsx"]) assert.doesNotMatch(read(f), /CHF\s?\d/, f);
@@ -50,8 +62,9 @@ test("payment: schools card or invoice, families card only", () => {
   assert.deepEqual(paymentOptions(PLANS.family), ["card"]);
   assert.deepEqual(paymentOptions({ ...PLANS.starter, invoiceAllowed: false }), ["card"]);
   assert.match(PAYMENT_LABEL.invoice.text, /30 Tagen/);
-  assert.deepEqual(checkoutBody({ kind: "school", id: SCHOOL }, "starter", "invoice"), { plan: "starter", schoolId: SCHOOL, payment: "invoice" });
-  assert.deepEqual(checkoutBody({ kind: "family", id: FAMILY }, "family", "invoice"), { plan: "family", familyId: FAMILY, payment: "card" }, "families never invoice");
+  assert.deepEqual(checkoutBody({ kind: "school", id: SCHOOL }, "starter", "invoice"), { plan: "starter", schoolId: SCHOOL, payment: "invoice", interval: "year" });
+  assert.deepEqual(checkoutBody({ kind: "family", id: FAMILY }, "family", "invoice"), { plan: "family", familyId: FAMILY, payment: "card", interval: "year" }, "families never invoice");
+  assert.deepEqual(checkoutBody({ kind: "family", id: FAMILY }, "family", "card", "month"), { plan: "family", familyId: FAMILY, payment: "card", interval: "month" });
   assert.equal(ownerQuery({ kind: "school", id: SCHOOL }), `schoolId=${SCHOOL}`);
   assert.equal(ownerQuery({ kind: "family", id: FAMILY }), `familyId=${FAMILY}`);
 });
@@ -63,6 +76,9 @@ test("purchasable plans and /preise links", () => {
   for (const id of ["pilot", "individual", "x", null, "__proto__"]) assert.equal(isPurchasable(id, "school"), false, String(id));
   assert.equal(buyHref("professional"), "/schul-admin?plan=professional#abo");
   assert.equal(buyHref("family"), "/familie?plan=family#abo");
+  assert.equal(buyHref("family", "month"), "/familie?plan=family&interval=month#abo");
+  assert.equal(buyHref("family", "year"), "/familie?plan=family&interval=year#abo");
+  assert.equal(buyHref("starter", "month"), "/schul-admin?plan=starter#abo", "schools: no monthly price");
 });
 
 test("status payload: tolerant normaliser, labels, hints", () => {
@@ -112,7 +128,7 @@ test("/preise: flag off keeps offer + Zugang-anfragen flows and the honest note;
   assert.match(p, /const online = onlinePaymentEnabled\(\)/);
   assert.match(p, /FREE_NOTICE/);
   assert.match(p, /Offerte anfragen/, "offer button stays in both states");
-  assert.match(p, /online\s*\?\s*<ButtonLink href=\{buyHref\("family"\)\}[\s\S]*?:\s*<ButtonLink href="\/familien#warteliste"/, "family: buy when on, Zugang anfragen when off");
+  assert.match(p, /online\s*\?\s*<div[\s\S]*?<ButtonLink href=\{buyHref\("family", "month"\)\}[\s\S]*?<ButtonLink href=\{buyHref\("family", "year"\)\}[\s\S]*?:\s*<ButtonLink href="\/familien#warteliste"/, "family: monthly/yearly buy when on, Zugang anfragen when off");
   assert.match(p, /\{online && <ButtonLink href=\{buyHref\(p\.id\)\}/, "school online button only when on");
   assert.match(p, /pro Jahr, \{VAT_NOTE\}/);
   assert.doesNotMatch(p, /Mehrwertsteuer dazukommt/);

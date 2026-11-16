@@ -1,6 +1,6 @@
 // Billing API logic – PURE (deps injected). Routes: app/api/billing/{checkout,portal,status}/route.ts.
 // Contract: STRIPE-PLAN.md "API". Tests: tests/billing-api.test.mjs.
-import { BILLING, PLANS, type Plan, type PlanId } from "./plans.ts";
+import { BILLING, PLANS, lookupKeyFor, type BillingInterval, type Plan, type PlanId } from "./plans.ts";
 import { authorizeOwner, parseOwner, type BillingAuthDeps, type BillingOwner } from "./auth.ts";
 import type { BillingStatusBase, BillingStatusForSchool } from "./db-types.ts";
 
@@ -58,7 +58,7 @@ export function purchasablePlan(id: unknown): Plan | null {
   return plan.lookupKey && plan.checkout ? plan : null;
 }
 
-/** POST /api/billing/checkout  body { plan, schoolId? , familyId?, payment: 'card'|'invoice' } */
+/** POST /api/billing/checkout  body { plan, schoolId? , familyId?, payment: 'card'|'invoice', interval?: 'year'|'month' (default year) } */
 export async function checkout(input: { token: string | null; body: unknown }, deps: BillingApiDeps): Promise<ApiResult> {
   const closed = gate(deps);
   if (closed) return closed;
@@ -67,6 +67,10 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   if (!plan) return err(400, "invalid_plan");
   const payment: PaymentMethod = body.payment === undefined ? "card" : (body.payment as PaymentMethod);
   if (payment !== "card" && payment !== "invoice") return err(400, "invalid_payment");
+  const interval: BillingInterval = body.interval === undefined || body.interval === null ? "year" : (body.interval as BillingInterval);
+  if (interval !== "year" && interval !== "month") return err(400, "invalid_interval");
+  const lookupKey = lookupKeyFor(plan, interval);
+  if (!lookupKey) return err(400, "invalid_interval"); // e.g. monthly for a school plan
   const owner = parseOwner(body);
   if (!owner) return err(400, "invalid_owner");
   if (owner.kind !== plan.kind) return err(400, "plan_owner_mismatch");
@@ -78,12 +82,12 @@ export async function checkout(input: { token: string | null; body: unknown }, d
 
   if (await deps.db.hasOpenSubscription(owner)) return err(409, "already_subscribed"); // change/cancel via the portal
 
-  const price = await deps.stripe.priceIdForLookupKey(plan.lookupKey!);
+  const price = await deps.stripe.priceIdForLookupKey(lookupKey);
   if (!price) {
-    deps.log?.("billing checkout: price missing in Stripe", { lookupKey: plan.lookupKey });
+    deps.log?.("billing checkout: price missing in Stripe", { lookupKey });
     return err(503, "price_not_found");
   }
-  const metadata = { app: "wendapply", plan_id: plan.id, ...ownerMeta(owner), user_id: auth.user.id };
+  const metadata = { app: "wendapply", plan_id: plan.id, interval, ...ownerMeta(owner), user_id: auth.user.id };
   const customer = (await deps.db.findCustomerId(owner))
     ?? (await deps.stripe.createCustomer({ email: auth.user.email, name: await deps.db.ownerName(owner), metadata: { app: "wendapply", ...ownerMeta(owner), user_id: auth.user.id } }));
 

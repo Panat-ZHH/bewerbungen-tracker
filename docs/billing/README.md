@@ -6,7 +6,7 @@ Go-live checklist (German + English): [GO-LIVE.md](GO-LIVE.md).
 ## What it does
 
 - **Schools** buy a yearly licence (Starter CHF 990 / ≤100 students, Professional CHF 1'490 / ≤300, Enterprise CHF 3'990 / ≤800, excl. MWST), either **by card** (Stripe Checkout) or **by invoice** (Stripe Invoicing, `send_invoice`, 30 days to pay). Pilot (30 days, ≤60 students) and "Individuell" stay manual, no Stripe.
-- **Families** (1 parent + 1 child) buy the family package **by card only**. Price is still a placeholder in code; Panat's decision (CHF 7.90/month, CHF 79/year) is applied in a follow-up commit.
+- **Families** (1 student + 1 parent account) buy the family package **by card only**, **monthly CHF 7.90 or yearly CHF 79** (incl. MWST; yearly saves CHF 15.80). Decided by Panat 2026-11-16.
 - Stripe webhooks keep `billing_subscriptions` and `school_licences` (`source='stripe'`) in sync. The existing student-limit trigger enforces the seat limit.
 - Admins/parents manage, cancel and download invoices in the **Stripe Customer Portal** ("Abo verwalten").
 - Students are always free.
@@ -46,7 +46,8 @@ Setup: `next dev -p 3100` with `STRIPE_ENABLED=true`, `BILLING_DB=memory` (no Su
 - **School invoice** (Professional): hosted invoice URL; `send_invoice`, `open`, due in 30 days, CHF 1'490.00; licence `active` right away; paid out of band → `invoice.paid` applied.
 - **Family card**: Checkout → paid → `/familie?billing=success`; subscription with `family_id`; webhook applied. Invoice for families → `400 invoice_not_allowed`.
 - **Portal**: `billing.stripe.com` session URL for the school customer.
-- **Live guard**: placeholder family price with a live key → `409 plan_not_available`.
+- **Live guard**: plans marked `placeholder: true` are refused with a live key (`409 plan_not_available`); since 2026-11-16 no plan is a placeholder.
+- **Family monthly/yearly** (2026-11-16): test-mode Checkout sessions for both prices open with CHF 7.90 / CHF 79; the webhook maps both lookup keys to `family`.
 - Webhook delivery: 17 × 200. 2 × 500 came from an expired CLI token mid-run; they are transient errors that Stripe retries by design.
 - HTTP: forged signature → `400 invalid_signature`; flag on but no service-role key → `503 billing_not_configured`.
 - **Flag off**: `checkout`, `portal`, `status`, `webhook` → all `503 billing_disabled`; `/preise` shows "WendApply ist aktuell kostenlos. Online-Bezahlung folgt." and no buy buttons.
@@ -71,7 +72,7 @@ The script aborts if Stripe answers in live mode. The Stripe CLI's OAuth token e
 | starter | `prod_Vdl0uwfRsr4OWU` | `price_1UcTUVJBozPvqHEJafoI4HRT` |
 | professional | `prod_Vdl0h8zENNH4JM` | `price_1UcTUZJBozPvqHEJ1CvqWZwQ` |
 | enterprise | `prod_Vdl0MWDVOefzPa` | `price_1UcTUdJBozPvqHEJoUXCW847` |
-| family | `prod_Vdl0VIPC2oWhBz` | `price_1UcTVGJBozPvqHEJ2M9A65vb` (placeholder CHF 49) |
+| family | `prod_Vdl0VIPC2oWhBz` | yearly CHF 79 `price_1UcUZvJBozPvqHEJQuKm7P53`, monthly CHF 7.90 `price_1UcUa5JBozPvqHEJ5unlOB0E` (`wendapply_family_monthly_chf`) |
 
 Code never uses these IDs. It looks prices up by lookup key, so live mode just needs the same script run with `--live`.
 

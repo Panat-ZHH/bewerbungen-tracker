@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { PLANS, BILLING, STRIPE_PLANS, isStripeEnabled, isStripeEnabledClient, planByLookupKey, formatChf } from "../lib/billing/plans.ts";
+import { PLANS, BILLING, STRIPE_PLANS, isStripeEnabled, isStripeEnabledClient, planByLookupKey, formatChf, planIntervals, lookupKeyFor, planPrice, planVatIncluded, yearlySavingChf } from "../lib/billing/plans.ts";
 import { SCHOOL_PACKAGES, PILOT_DAYS, formatChf as licenceFormatChf, priceQuote } from "../lib/b2b/licence.ts";
 import { PACKAGES, PILOT, FAMILY } from "../components/public/marketing.ts";
 
@@ -18,17 +18,28 @@ test("catalogue: business plan prices and limits", () => {
   for (const [id, p] of Object.entries(PLANS)) assert.equal(p.id, id);
 });
 
-test("family plan: 1 parent + 1 child, card only, CHF 49 marked PLACEHOLDER", () => {
+test("family plan: 1 parent + 1 child, card only, CHF 7.90/month or CHF 79/year incl. VAT (decided 2026-11-16)", () => {
   const f = PLANS.family;
   assert.equal(f.kind, "family");
   assert.deepEqual(f.seats, { parents: 1, children: 1 });
-  assert.equal(f.priceChfPerYear, 49);
-  assert.equal(f.placeholder, true);
+  assert.equal(f.priceChfPerYear, 79);
+  assert.equal(f.priceChfPerMonth, 7.9);
+  assert.equal(f.placeholder, undefined, "no placeholder any more");
+  assert.equal(planVatIncluded(f), true, "consumer price incl. VAT");
+  assert.equal(planVatIncluded(PLANS.starter), false, "school prices excl. VAT");
   assert.equal(f.checkout, true);
   assert.equal(f.invoiceAllowed, false);
-  assert.match(readFileSync(new URL("../lib/billing/plans.ts", import.meta.url), "utf8"), /PLACEHOLDER – Panat to decide/);
-  // the public site still shows "Preis folgt" until the price is decided
-  assert.equal(FAMILY.pricePerYear, null);
+  assert.deepEqual(planIntervals(f), ["year", "month"]);
+  assert.deepEqual(planIntervals(PLANS.starter), ["year"]);
+  assert.equal(planPrice(f, "month"), 7.9);
+  assert.equal(planPrice(f, "year"), 79);
+  assert.equal(yearlySavingChf(f), 15.8);
+  assert.equal(formatChf(f.priceChfPerMonth), "CHF 7.90");
+  assert.equal(formatChf(yearlySavingChf(f)), "CHF 15.80");
+  assert.doesNotMatch(readFileSync(new URL("../lib/billing/plans.ts", import.meta.url), "utf8"), /PLACEHOLDER/);
+  // the public site follows the catalogue
+  assert.equal(FAMILY.pricePerYear, 79);
+  assert.equal(FAMILY.pricePerMonth, 7.9);
 });
 
 test("lookup keys match the contract and are unique", () => {
@@ -42,6 +53,14 @@ test("lookup keys match the contract and are unique", () => {
   }
   for (const id of ["starter", "professional", "enterprise"]) assert.ok(PLANS[id].checkout && PLANS[id].invoiceAllowed, id);
   assert.equal(planByLookupKey("wendapply_professional_yearly_chf")?.id, "professional");
+  assert.equal(planByLookupKey("wendapply_family_yearly_chf")?.id, "family");
+  assert.equal(planByLookupKey("wendapply_family_monthly_chf")?.id, "family");
+  assert.equal(lookupKeyFor(PLANS.family, "month"), "wendapply_family_monthly_chf");
+  assert.equal(lookupKeyFor(PLANS.family, "year"), "wendapply_family_yearly_chf");
+  assert.equal(lookupKeyFor(PLANS.starter, "month"), null);
+  const all = STRIPE_PLANS.flatMap((p) => planIntervals(p).map((i) => lookupKeyFor(p, i)));
+  assert.equal(new Set(all).size, all.length, "all lookup keys unique");
+  for (const k of all) assert.match(k, /^wendapply_[a-z]+_(yearly|monthly)_chf$/);
   assert.equal(planByLookupKey("nope"), undefined);
   assert.equal(planByLookupKey(""), undefined);
 });

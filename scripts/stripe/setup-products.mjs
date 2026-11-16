@@ -8,7 +8,7 @@
  *
  * What it does (each step "find first, create only if missing"):
  *  1. one Product per plan with a lookupKey, found by metadata.plan_id (metadata: plan_id, student_limit, kind)
- *  2. one yearly CHF Price per plan, found by lookup_key. If the amount in plans.ts changed, a new Price is created
+ *  2. one CHF Price per plan and interval (yearly; family also monthly), found by lookup_key. If the amount in plans.ts changed, a new Price is created
  *     with transfer_lookup_key=true and the old Price is archived (existing subscriptions keep their old price).
  *  3. a Customer Portal configuration (metadata.wendapply_portal=default): cancel at period end, update payment
  *     method, invoice history, update billing address / e-mail / tax ID.
@@ -22,7 +22,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { PLANS, BILLING } from "../../lib/billing/plans.ts";
+import { PLANS, BILLING, planIntervals, lookupKeyFor, planPrice, planVatIncluded } from "../../lib/billing/plans.ts";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const args = new Set(process.argv.slice(2));
@@ -119,7 +119,7 @@ function desiredProduct(plan) {
   return {
     name: `WendApply ${plan.name}`,
     description: plan.kind === "family"
-      ? `Familienpaket: ${plan.seats?.parents ?? 1} Elternteil + ${plan.seats?.children ?? 1} Kind, Jahresabo`
+      ? `Familienpaket: ${plan.seats?.children ?? 1} Schüleraccount + ${plan.seats?.parents ?? 1} Elternaccount, Monats- oder Jahresabo (inkl. MWST)`
       : `Schullizenz bis ${plan.studentLimit} Schülerinnen und Schüler, Jahresabo (exkl. MWST)`,
     metadata: { plan_id: plan.id, student_limit: String(plan.studentLimit ?? ""), kind: plan.kind, app: "wendapply" },
   };
@@ -145,32 +145,50 @@ async function ensureProduct(plan, allProducts) {
   return product;
 }
 
-async function ensurePrice(plan, product) {
-  const amount = Math.round(plan.priceChfPerYear * 100);
-  const [existing] = (await api("GET", "/v1/prices", { "lookup_keys[]": plan.lookupKey })).data;
-  const priceMeta = { plan_id: plan.id, app: "wendapply", ...(plan.placeholder ? { placeholder: "true" } : {}) };
+async function ensurePrice(plan, product, interval = "year") {
+  const lookupKey = lookupKeyFor(plan, interval);
+  const chf = planPrice(plan, interval);
+  const amount = Math.round(chf * 100);
+  const taxBehavior = planVatIncluded(plan) ? "inclusive" : "exclusive";
+  const [existing] = (await api("GET", "/v1/prices", { "lookup_keys[]": lookupKey })).data;
+  const priceMeta = { plan_id: plan.id, app: "wendapply", interval, ...(plan.placeholder ? { placeholder: "true" } : {}) };
   const matches = existing && existing.active && existing.unit_amount === amount && existing.currency === BILLING.currency
-    && existing.recurring?.interval === "year" && existing.recurring?.interval_count === 1 && existing.product === product.id;
+    && existing.recurring?.interval === interval && existing.recurring?.interval_count === 1 && existing.product === product.id
+    && existing.tax_behavior === taxBehavior;
   if (matches) {
-    unchanged.push(`price ${plan.lookupKey} ${existing.id}`);
+    unchanged.push(`price ${lookupKey} ${existing.id}`);
     return existing;
   }
+  const per = interval === "month" ? "Monat" : "Jahr";
   const price = await api("POST", "/v1/prices", {
     product: product.id,
     currency: BILLING.currency,
     unit_amount: amount,
-    recurring: { interval: "year", interval_count: 1 },
-    tax_behavior: BILLING.vatIncluded ? "inclusive" : "exclusive",
-    lookup_key: plan.lookupKey,
+    recurring: { interval, interval_count: 1 },
+    tax_behavior: taxBehavior,
+    lookup_key: lookupKey,
     transfer_lookup_key: existing ? true : undefined,
-    nickname: `${plan.name} ${BILLING.currency.toUpperCase()} ${plan.priceChfPerYear}/Jahr${plan.placeholder ? " (PLACEHOLDER)" : ""}`,
+    nickname: `${plan.name} ${BILLING.currency.toUpperCase()} ${chf}/${per}${plan.placeholder ? " (PLACEHOLDER)" : ""}`,
     metadata: priceMeta,
   });
   if (existing) {
+    // Stripe refuses to archive a product's default price: move the default to the new price first.
+    if (!price.dry && product.default_price === existing.id) { await api("POST", `/v1/products/${product.id}`, { default_price: price.id }); product.default_price = price.id; }
     await api("POST", `/v1/prices/${existing.id}`, { active: false });
-    updated.push(`price ${plan.lookupKey} ${existing.id} -> ${price.id} (CHF ${existing.unit_amount / 100} -> ${plan.priceChfPerYear}, old price archived)`);
-  } else created.push(`price ${plan.lookupKey} ${price.id}`);
+    updated.push(`price ${lookupKey} ${existing.id} -> ${price.id} (CHF ${existing.unit_amount / 100} -> ${chf}, old price archived)`);
+  } else created.push(`price ${lookupKey} ${price.id}`);
   return price;
+}
+
+/** Archives active prices of the product that are not one of the catalogue's current lookup keys (e.g. old placeholders). */
+async function archiveStrayPrices(plan, product, keep) {
+  if (DRY && product.id === "(dry-run)") return;
+  const prices = await listAll("/v1/prices", { product: product.id, active: true });
+  for (const p of prices) {
+    if (keep.has(p.id) || p.id === product.default_price) continue;
+    await api("POST", `/v1/prices/${p.id}`, { active: false });
+    updated.push(`price ${p.lookup_key ?? "(no lookup key)"} ${p.id} archived (CHF ${p.unit_amount / 100}/${p.recurring?.interval}, not in catalogue)`);
+  }
 }
 
 async function ensureDefaultPrice(product, price) {
@@ -245,15 +263,20 @@ async function main() {
     if (!plan.lookupKey || plan.priceChfPerYear === null) continue;
     if (LIVE && plan.placeholder) { console.log(`  skip ${plan.id}: price is a PLACEHOLDER – decide it in lib/billing/plans.ts first`); continue; }
     const product = await ensureProduct(plan, allProducts);
-    const price = await ensurePrice(plan, product);
-    await ensureDefaultPrice(product, price);
-    report.push({ plan: plan.id, product: product.id, price: price.id, lookupKey: plan.lookupKey, chf: plan.priceChfPerYear });
+    const keep = new Set();
+    for (const interval of planIntervals(plan)) {
+      const price = await ensurePrice(plan, product, interval);
+      keep.add(price.id);
+      if (interval === "year") await ensureDefaultPrice(product, price);
+      report.push({ plan: plan.id, product: product.id, price: price.id, lookupKey: lookupKeyFor(plan, interval), chf: planPrice(plan, interval), interval });
+    }
+    await archiveStrayPrices(plan, product, keep);
   }
   const portal = await ensurePortal();
   const inv = await checkInvoiceMethods();
 
   console.log("\nCatalogue:");
-  for (const r of report) console.log(`  ${r.plan.padEnd(13)} ${r.product}  ${r.price}  ${r.lookupKey}  CHF ${r.chf}`);
+  for (const r of report) console.log(`  ${r.plan.padEnd(13)} ${r.product}  ${r.price}  ${r.lookupKey}  CHF ${r.chf}/${r.interval}`);
   console.log(`  portal        ${portal.id}${portal.is_default ? " (account default)" : ""}`);
   console.log(`\nCreated: ${created.length}  Updated: ${updated.length}  Unchanged: ${unchanged.length}  API writes: ${writes}`);
   for (const c of created) console.log(`  + ${c}`);

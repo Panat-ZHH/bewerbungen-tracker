@@ -83,7 +83,7 @@ test("auth rejection: no token 401, bad token 401, wrong school 403, teacher/oth
   assert.equal(calls.length, 0, "nothing reaches Stripe or the DB before auth passes");
 });
 
-test("validation: plan, payment, owner kind, invoice only for schools, placeholder never live", async () => {
+test("validation: plan, payment, interval, owner kind, invoice only for schools", async () => {
   const { deps } = makeDeps();
   const t = "tok-admin";
   assert.equal((await checkout({ token: t, body: { plan: "pilot", schoolId: SCHOOL } }, deps)).body.error, "invalid_plan");
@@ -93,8 +93,11 @@ test("validation: plan, payment, owner kind, invoice only for schools, placehold
   assert.equal((await checkout({ token: t, body: { plan: "starter" } }, deps)).body.error, "invalid_owner");
   assert.equal((await checkout({ token: t, body: { plan: "family", schoolId: SCHOOL } }, deps)).body.error, "plan_owner_mismatch");
   assert.equal((await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY, payment: "invoice" } }, deps)).body.error, "invoice_not_allowed");
+  assert.equal((await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY, interval: "week" } }, deps)).body.error, "invalid_interval");
+  assert.equal((await checkout({ token: t, body: { plan: "starter", schoolId: SCHOOL, interval: "month" } }, deps)).body.error, "invalid_interval", "schools: yearly only");
+  // the family price is final now (no placeholder): it may be sold in live mode too
   const live = makeDeps({ liveMode: true }).deps;
-  assert.deepEqual(await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY } }, live), { status: 409, body: { error: "plan_not_available" } });
+  assert.equal((await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY } }, live)).status, 200);
 });
 
 test("card checkout: creates the customer once, Checkout session with owner metadata and return URLs", async () => {
@@ -108,7 +111,7 @@ test("card checkout: creates the customer once, Checkout session with owner meta
   assert.equal(session.customer, "cus_new");
   assert.equal(session.price, "price_for_wendapply_professional_yearly_chf");
   assert.equal(session.kind, "school");
-  assert.deepEqual(session.metadata, { app: "wendapply", plan_id: "professional", school_id: SCHOOL, user_id: ADMIN.id });
+  assert.deepEqual(session.metadata, { app: "wendapply", plan_id: "professional", interval: "year", school_id: SCHOOL, user_id: ADMIN.id });
   assert.equal(session.successUrl, "https://wendapply.test/schul-admin?billing=success&session_id={CHECKOUT_SESSION_ID}");
   assert.equal(session.cancelUrl, "https://wendapply.test/schul-admin?billing=cancel");
   // existing customer is reused; family returns to /familie
@@ -120,7 +123,21 @@ test("card checkout: creates the customer once, Checkout session with owner meta
   const fs = f.calls.find((c) => c[0] === "checkout")[1];
   assert.equal(fs.customer, "cus_existing");
   assert.match(fs.successUrl, /^https:\/\/wendapply\.test\/familie\?billing=success/);
-  assert.deepEqual(fs.metadata, { app: "wendapply", plan_id: "family", family_id: FAMILY, user_id: PARENT.id });
+  assert.deepEqual(fs.metadata, { app: "wendapply", plan_id: "family", interval: "year", family_id: FAMILY, user_id: PARENT.id });
+  assert.equal(fs.price, "price_for_wendapply_family_yearly_chf");
+});
+
+test("family checkout: monthly (CHF 7.90) and yearly (CHF 79) use their own lookup keys", async () => {
+  const m = makeDeps();
+  const rm = await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY, interval: "month" } }, m.deps);
+  assert.equal(rm.status, 200);
+  assert.deepEqual(m.calls.find((c) => c[0] === "price"), ["price", "wendapply_family_monthly_chf"]);
+  const ms = m.calls.find((c) => c[0] === "checkout")[1];
+  assert.equal(ms.price, "price_for_wendapply_family_monthly_chf");
+  assert.equal(ms.metadata.interval, "month");
+  const y = makeDeps();
+  await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY, interval: "year" } }, y.deps);
+  assert.deepEqual(y.calls.find((c) => c[0] === "price"), ["price", "wendapply_family_yearly_chf"]);
 });
 
 test("invoice payment for schools: send_invoice subscription, days_until_due from BILLING, hosted invoice URL", async () => {

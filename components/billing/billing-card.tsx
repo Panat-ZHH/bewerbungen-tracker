@@ -9,9 +9,11 @@ import { PLANS, type PlanId } from "@/lib/billing/plans";
 import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
-  FREE_NOTICE, VAT_NOTE, billingHint, billingStatusLabel, familyPlan, hasSubscription, isPurchasable, onlinePaymentEnabled,
-  paymentOptions, priceWithVat, schoolPlans, seatsText, type BillingOwner, type BillingStatus, type PaymentMethod,
+  FREE_NOTICE, VAT_NOTE, billingHint, billingIntervals, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
+  onlinePaymentEnabled, paymentOptions, priceWithVat, schoolPlans, seatsText, termText, vatNote, type BillingInterval, type BillingOwner,
+  type BillingStatus, type PaymentMethod,
 } from "./logic";
+import { IntervalChoice } from "./interval-choice";
 import { PaymentChoice } from "./payment-choice";
 import { PlanPicker } from "./plan-picker";
 
@@ -20,6 +22,12 @@ const wantedPlan = (kind: "school" | "family"): PlanId | null => {
   if (typeof window === "undefined") return null;
   const p = new URLSearchParams(window.location.search).get("plan");
   return isPurchasable(p, kind) ? p : null;
+};
+/** ?interval=month|year from /preise links; default yearly. */
+const wantedInterval = (options: BillingInterval[]): BillingInterval => {
+  if (typeof window === "undefined") return "year";
+  const v = new URLSearchParams(window.location.search).get("interval");
+  return v === "month" || v === "year" ? (options.includes(v) ? v : "year") : "year";
 };
 
 type Load = { state: "loading" } | { state: "error"; message: string } | { state: "ready"; status: BillingStatus | null };
@@ -79,9 +87,9 @@ function SubscriptionDetails({ status, owner, canManage }: { status: BillingStat
 function useCheckout(owner: BillingOwner, onInvoice: (url: string | null) => void) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  async function buy(plan: PlanId, payment: PaymentMethod) {
+  async function buy(plan: PlanId, payment: PaymentMethod, interval: BillingInterval = "year") {
     setBusy(true); setError("");
-    const r = await startCheckout(owner, plan, payment);
+    const r = await startCheckout(owner, plan, payment, interval);
     if (!r.ok) { setError(r.message); setBusy(false); return; }
     if (r.data?.invoice) { setBusy(false); onInvoice(r.data.url ?? null); return; }
     if (r.data?.url) { window.location.assign(r.data.url); return; }
@@ -180,6 +188,8 @@ export function FamilyBilling({ familyId, isParent, enabled = onlinePaymentEnabl
   const owner: BillingOwner | null = familyId ? { kind: "family", id: familyId } : null;
   const { load, reload } = useBillingStatus(owner, enabled && isParent);
   const plan = familyPlan();
+  const intervals = billingIntervals(plan);
+  const [interval, setBillingInterval] = useState<BillingInterval>(() => wantedInterval(intervals));
   const checkout = useCheckout(owner ?? { kind: "family", id: "" }, () => { void reload(); }); // families never pay by invoice
   if (!enabled) return null;
   const price = <p className="tabular text-lg font-extrabold" data-family-price>{priceWithVat(plan)}</p>;
@@ -191,10 +201,13 @@ export function FamilyBilling({ familyId, isParent, enabled = onlinePaymentEnabl
   return (
     <div className="space-y-3" data-billing-state="choose">
       {price}
+      <IntervalChoice plan={plan} options={intervals} value={interval} onChange={setBillingInterval} name={`interval-${owner.id}`} />
       <PaymentChoice options={paymentOptions(plan)} value="card" onChange={() => {}} />
       {checkout.error && <StatusMessage tone="danger">{checkout.error}</StatusMessage>}
-      <Button variant="sun" loading={checkout.busy} onClick={() => checkout.buy(plan.id, "card")} icon={<CreditCard size={16} aria-hidden />}>Familienpaket buchen</Button>
-      <p className="text-small text-muted">Jahresabo für {seatsText(plan)}, kündbar auf Ende der Laufzeit.</p>
+      <Button variant="sun" loading={checkout.busy} onClick={() => checkout.buy(plan.id, "card", interval)} icon={<CreditCard size={16} aria-hidden />}>
+        Familienpaket buchen ({intervalPriceText(plan, interval)})
+      </Button>
+      <p className="text-small text-muted">{termText(interval)}, für {seatsText(plan)}, {vatNote(plan)}.</p>
     </div>
   );
 }

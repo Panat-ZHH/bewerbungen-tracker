@@ -14,7 +14,7 @@ All payment UI lives in `components/billing/`; pages only mount it. Prices alway
 
 ## Flag OFF (default) – site behaves as before
 
-- /preise: offer buttons ("Offerte anfragen"), family "Zugang anfragen" → /familien#warteliste, family price "Preis folgt",
+- /preise: offer buttons ("Offerte anfragen"), family "Zugang anfragen" → /familien#warteliste, family price CHF 7.90/Monat oder CHF 79/Jahr,
   note "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.", prices "exkl. MWST".
 - /schul-admin: section "Abo & Rechnung" with the same note and "Kontakt aufnehmen". No buy buttons, no API calls.
 - /familie: plan card keeps "Bezahlung bald verfügbar" + "Zugang anfragen" (waitlist modal) + the note.
@@ -22,19 +22,18 @@ All payment UI lives in `components/billing/`; pages only mount it. Prices alway
 ## Flag ON
 
 - /preise: "Online abschliessen" per school package → `/schul-admin?plan=<id>#abo` (sign-in there), offer button stays
-  as secondary; family "Familienpaket buchen" → `/familie?plan=family#abo`; family price from plans.ts.
+  as secondary; family "Monatlich buchen" / "Jährlich buchen" → `/familie?plan=family&interval=month|year#abo`; family price from plans.ts.
 - /schul-admin "Abo & Rechnung" (id `abo` on the first school): loads `GET /api/billing/status?schoolId=`.
   No subscription → PlanPicker (`?plan=` preselects) + PaymentChoice → `POST /api/billing/checkout`
   (card: redirect to the returned URL; invoice: "Rechnung angefordert" + link to the hosted invoice if any).
   Subscription → plan, status, payment method, renewal date, hints (open invoice, past_due, cancelled) + "Abo verwalten"
   → `POST /api/billing/portal`.
-- /familie plan card: parent → price + "Familienpaket buchen" (card only) or subscription + "Abo verwalten";
+- /familie plan card: parent → price + monthly/yearly toggle (`IntervalChoice`, `?interval=` preselects, default yearly) + "Familienpaket buchen" (card only) or subscription + "Abo verwalten";
   child → explanation, no button, no API call; parent without family → "erst Familie erstellen".
 - Return: `?billing=success` → "Danke für deine Bestellung!" (+ status reload), `?billing=cancel` → "Bezahlung abgebrochen".
 - API 503/404 (server flag off or route not deployed): friendly message + "Nochmals versuchen" + contact. Never a crash.
 
-Note: `PLANS.family` is still marked `placeholder: true`; with the flag on, its amount is shown (test mode). Before going
-live, set the real family price in plans.ts (the API refuses placeholder plans in live mode).
+Family price (2026-11-16): CHF 7.90 per month or CHF 79 per year, incl. MWST, shown in both flag states.
 
 ## Tests
 
