@@ -22,5 +22,5 @@ repo is public. `docs/*/shots/` is now in `.gitignore` (the shot scripts still w
   until the migrations are applied (needs Panat's approval).
 - Open product/legal decisions (REPORT-b2b-merge.md, REVIEW.md #3–#5, REPORT-fam-merge.md): pilot free?, 10 % monthly surcharge,
   seat limit 60, family price, consent age 16, VAT wording, legal review of AVV/DSFA/privacy texts.
-- A service worker ships for the first time on production; it excludes Supabase/API from caches (pwa-qa 22/22 earlier).
+- The service worker (already on main) changes with this branch; it excludes Supabase/API from caches (pwa-qa 22/22 earlier).
 - Screenshots remain in earlier git history of this branch (not on main); harmless demo data.
