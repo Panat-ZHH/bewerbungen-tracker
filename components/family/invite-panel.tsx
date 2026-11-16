@@ -10,7 +10,7 @@ import { createInvite, joinFamily } from "@/lib/family";
 import { familyError, formatDateCh, formatInviteCode, inviteLink, inviteShareText, isValidInviteCode, normalizeInviteCode, type InviteDirection } from "@/lib/family-core";
 
 const TEXT: Record<InviteDirection, { title: string; intro: string; button: string }> = {
-  parent_invites_child: { title: "Kind einladen", intro: "Erstelle einen Code und gib ihn deinem Kind. Es gibt ihn in WendApply unter «Familie» ein oder öffnet den Link.", button: "Einladungscode erstellen" },
+  parent_invites_child: { title: "Kind einladen", intro: "Erstelle einen Code und gib ihn deinem Kind. Es gibt ihn in WendApply unter «Familie» ein oder öffnet den Link.", button: "Code für mein Kind erstellen" },
   child_invites_parent: { title: "Elternteil einladen", intro: "Erstelle einen Code für deine Mutter, deinen Vater oder eine andere erziehungsberechtigte Person. Sie braucht ein eigenes WendApply-Konto als Elternteil.", button: "Code für Eltern erstellen" },
 };
 

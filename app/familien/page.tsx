@@ -11,10 +11,14 @@ import { CtaBand } from "@/components/public/cta-band";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { WaitlistForm } from "@/components/public/waitlist-form";
 import { FAMILY, MAIL_FAMILY, WAITLIST_KIND_FAMILY } from "@/components/public/marketing";
-import { onlinePaymentEnabled } from "@/components/billing/logic";
+import { buyHref, onlinePaymentEnabled } from "@/components/billing/logic";
 
 /** Online payment (feature flag, default off). */
 const online = onlinePaymentEnabled();
+/** Flag on: every family CTA leads to the parent page with yearly preselected (BILLING-FLOW-SPEC S5). */
+const FAMILY_BUY_HREF = buyHref("family", "year");
+/** "bald verfügbar" only while the flag is off (S7). */
+const FAMILY_STATUS = online ? "online buchbar" : FAMILY.status;
 
 export const metadata: Metadata = publicMetadata({ canonical: "/familien" });
 
@@ -80,11 +84,13 @@ export default function FamilienPage() {
       <JsonLd data={faqJsonLd(faq)} />
       <section aria-labelledby="familien-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.15fr_.85fr]">
         <div className="min-w-0">
-          <p className="sticker sticker-paper tilt-l mb-5 text-sm">Für Familien · {FAMILY.status}</p>
+          <p className="sticker sticker-paper tilt-l mb-5 text-sm">Für Familien · {FAMILY_STATUS}</p>
           <h1 id="familien-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Gemeinsam durch die Lehrstellensuche. <span className="marker [box-decoration-break:clone]">Mit Privatsphäre.</span></h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">WendApply hilft Jugendlichen, Bewerbungen, Fristen und Fortschritt im Griff zu haben. Eltern sehen, wie es vorwärtsgeht, aber nur das, was ihr Kind teilen möchte.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <ButtonLink href="#warteliste" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zugang anfragen</ButtonLink>
+            {online
+              ? <ButtonLink href={FAMILY_BUY_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Familienpaket buchen</ButtonLink>
+              : <ButtonLink href="#warteliste" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zugang anfragen</ButtonLink>}
             <ButtonLink href="#so-gehts" size="lg" variant="secondary">So funktioniert es</ButtonLink>
           </div>
           <p className="text-small mt-5 text-muted">Nutzt eure Schule WendApply? Dann ist es für Schülerinnen und Schüler kostenlos. <Link className={link} href="/schulen">Für Schulen</Link></p>
@@ -103,7 +109,7 @@ export default function FamilienPage() {
       <Section id="familienpaket" title={<>Das <span className="marker">Familienpaket</span></>} intro="Ein Paket für ein Elternteil und ein Kind. Weitere Kinder und ein zweites Elternteil sollen später dazukommen können." tint>
         <div className="grid items-start gap-8 md:grid-cols-[1fr_1fr]">
           <div className="panel relative flex flex-col p-6 sm:p-7" aria-labelledby="pkg-family">
-            <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{FAMILY.status}</span>
+            <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{FAMILY_STATUS}</span>
             <h3 id="pkg-family" className="text-title !text-[1.75rem]">{FAMILY.name}</h3>
             <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
             <p className="mt-5 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{FAMILY.priceMonthText}</span><span className="text-sm text-muted">pro Monat</span></p>
@@ -111,7 +117,9 @@ export default function FamilienPage() {
             <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
               {FAMILY.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
             </ul>
-            <ButtonLink href="#warteliste" full className="mt-7" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Auf die Warteliste</ButtonLink>
+            {online
+              ? <ButtonLink href={FAMILY_BUY_HREF} full className="mt-7" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Familienpaket buchen</ButtonLink>
+              : <ButtonLink href="#warteliste" full className="mt-7" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Auf die Warteliste</ButtonLink>}
           </div>
           <ul className="space-y-4 text-[15px] leading-relaxed">
             <li className="flex gap-3"><ShieldCheck size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{online ? "Buchbar im Elternkonto unter «Meine Familie»: monatlich oder jährlich, kündbar auf Ende der Laufzeit." : "Noch kein Online-Kauf: Der Zugang wird während der Startphase manuell freigeschaltet."}</li>
@@ -149,11 +157,13 @@ export default function FamilienPage() {
         </div>
       </Section>
 
-      <Section id="warteliste" title={<>Auf die Warteliste / <span className="marker">Zugang anfragen</span></>} intro="Wir starten mit wenigen Familien. Trag dich ein, dann melden wir uns, sobald ein Platz frei ist." tint>
-        <div className="max-w-2xl">
-          <WaitlistForm kind={WAITLIST_KIND_FAMILY} mailFallback={MAIL_FAMILY} />
-        </div>
-      </Section>
+      {!online && (
+        <Section id="warteliste" title={<>Auf die Warteliste / <span className="marker">Zugang anfragen</span></>} intro="Wir starten mit wenigen Familien. Trag dich ein, dann melden wir uns, sobald ein Platz frei ist." tint>
+          <div className="max-w-2xl">
+            <WaitlistForm kind={WAITLIST_KIND_FAMILY} mailFallback={MAIL_FAMILY} />
+          </div>
+        </Section>
+      )}
 
       <CtaBand title="Fragen zu WendApply für Familien?" text="Schreib uns. Wir erklären gern, wie WendApply funktioniert und was Eltern sehen und was nicht.">
         <ButtonLink href={MAIL_FAMILY} size="lg" icon={<Mail size={18} strokeWidth={2.2} aria-hidden />}>E-Mail schreiben</ButtonLink>
