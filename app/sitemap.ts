@@ -6,6 +6,7 @@ const BASE = "https://wendapply.ch";
 export const PUBLIC_PATHS: { path: string; priority: number; changeFrequency: "weekly" | "monthly" | "yearly" }[] = [
   { path: "/", priority: 1, changeFrequency: "weekly" },
   { path: "/schulen", priority: 0.9, changeFrequency: "monthly" },
+  { path: "/familien", priority: 0.8, changeFrequency: "monthly" },
   { path: "/preise", priority: 0.9, changeFrequency: "monthly" },
   { path: "/pilot", priority: 0.8, changeFrequency: "monthly" },
   { path: "/anleitung", priority: 0.8, changeFrequency: "monthly" },

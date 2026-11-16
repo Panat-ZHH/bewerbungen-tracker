@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Building2, CalendarDays, Check, FileText, Mail, Presentation, School } from "lucide-react";
+import { ArrowRight, Building2, CalendarDays, Check, FileText, Heart, Mail, Presentation, School } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { PublicShell, Section } from "@/components/public/public-shell";
 import { CtaBand } from "@/components/public/cta-band";
 import { Faq, type FaqItem } from "@/components/public/faq";
-import { MAIL, PACKAGES, PILOT, chf, perStudentMonth, perStudentYear } from "@/components/public/marketing";
+import { FAMILY, MAIL, PACKAGES, PILOT, chf, perStudentMonth, perStudentYear } from "@/components/public/marketing";
 
 const title = "Preise für Schulen: Jahreslizenz ab CHF 990";
-const description = "WendApply für Sekundarschulen: Starter bis 100 Schülerinnen und Schüler CHF 990, Professional bis 300 CHF 1'490, Enterprise bis 800 CHF 3'990 pro Jahr. Für Schülerinnen und Schüler kostenlos.";
+const description = "WendApply für Sekundarschulen: Starter bis 100 Schülerinnen und Schüler CHF 990, Professional bis 300 CHF 1'490, Enterprise bis 800 CHF 3'990 pro Jahr. Für Schülerinnen und Schüler kostenlos. Familienpaket bald verfügbar.";
 
 export const metadata: Metadata = {
   title, description, alternates: { canonical: "/preise" },
@@ -24,6 +24,7 @@ const faq: FaqItem[] = [
   { q: "Kann die Schule monatlich bezahlen?", a: "Wir empfehlen den Jahresvertrag. Eine monatliche Zahlung ist gegen Aufpreis möglich. Die Details stehen in der Offerte." },
   { q: "Wir haben mehrere Schulhäuser oder sind ein Schulverband.", a: "Für mehrere Standorte und Schulverbände erstellen wir ein individuelles Angebot. Schreiben Sie uns, wie viele Standorte und Schülerinnen und Schüler es sind." },
   { q: "Können wir zuerst testen?", a: <>Ja, mit dem <Link className={link} href="/pilot">30-Tage-Pilot</Link> für 1 bis 2 Klassen. Danach entscheiden Sie in einem gemeinsamen Gespräch über die Jahreslizenz.</> },
+  { q: "Gibt es ein Angebot für Familien?", a: <>Ja, bald: das {FAMILY.name} für 1 Elternteil und 1 Kind. Der Preis ist noch nicht festgelegt. Mehr unter <Link className={link} href="/familien">Für Familien</Link>.</> },
   { q: "Kann man online bestellen?", a: "Nein. Sie erhalten eine Offerte und einen Vertrag, wie bei Schulen üblich. Es gibt keinen Online-Kauf und keine Zahlung in der App." },
 ];
 
@@ -62,6 +63,24 @@ export default function PreisePage() {
           </div>
           <ButtonLink href={MAIL.multi} variant="secondary" icon={<Mail size={16} strokeWidth={2.2} aria-hidden />}>Individuelles Angebot</ButtonLink>
         </div>
+      </section>
+
+      <section id="familien" aria-labelledby="familien-h" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 pb-14 sm:px-6 sm:pb-20">
+        <h2 id="familien-h" className="text-title max-w-3xl">Für Familien</h2>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">Für Eltern und Jugendliche, deren Schule WendApply (noch) nicht nutzt. Das Familienpaket ist {FAMILY.status}.</p>
+        <div className="panel relative mt-8 grid gap-6 p-6 sm:p-7 md:grid-cols-[1fr_1.2fr_auto] md:items-center" aria-labelledby="pkg-family">
+          <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{FAMILY.status}</span>
+          <div>
+            <h3 id="pkg-family" className="text-title flex items-center gap-2 !text-[1.75rem]"><Heart size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />{FAMILY.name}</h3>
+            <p className="text-small mt-1 text-muted">{FAMILY.seatsParents} Elternteil + {FAMILY.seatsChildren} Kind, weitere Kinder später möglich</p>
+            <p className="mt-4 inline-flex w-fit rounded-[var(--radius-sm)] border-2 border-dashed border-[var(--warning-line)] bg-[var(--warning-bg)] px-3 py-2 text-base font-bold text-[var(--warning-fg)]" data-price-placeholder>{FAMILY.pricePlaceholder}</p>
+          </div>
+          <ul className="space-y-2 text-[15px]">
+            {FAMILY.features.slice(1).map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
+          </ul>
+          <ButtonLink href="/familien#warteliste" variant="secondary" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Zugang anfragen</ButtonLink>
+        </div>
+        <p className="text-small mt-4 text-muted">Kein Online-Kauf: Der Zugang wird in der Startphase manuell freigeschaltet. Für Schülerinnen und Schüler einer Schule mit Lizenz bleibt WendApply kostenlos.</p>
       </section>
 
       <Section id="konditionen" title="Gut zu wissen" tint>
