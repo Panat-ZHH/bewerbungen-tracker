@@ -161,7 +161,7 @@ async function runState(flag, base) {
       let lastCheckout = null;
       const { ctx, page, calls } = await actor(base, { role: "teacher", rpc: schoolRpc, vp, billing: { checkout: (body, json) => { lastCheckout = body; return json({ url: null, invoice: true }); } } });
       await page.goto(`${base}/schul-admin?plan=enterprise#abo`, { waitUntil: "domcontentloaded" });
-      check(await visible(page, "Abo & Rechnung", 90000), "'Abo & Rechnung' section is shown");
+      check(await visible(page, "Lizenz & Rechnung", 90000), "'Lizenz & Rechnung' section is shown");
       const section = page.locator("#abo");
       check(await section.getAttribute("data-billing-enabled") === flag, `section in state ${flag}`);
       if (on) {

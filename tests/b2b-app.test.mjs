@@ -169,7 +169,7 @@ test("B2B UI: Swiss spelling (no Eszett), no payment code, no application conten
   const overview = await readFile(new URL("../components/b2b/class-overview.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(overview, /\.company|\.position|\.notes/);
   const admin = await readFile(new URL("../components/b2b/school-admin.tsx", import.meta.url), "utf8");
-  assert.match(admin, /Paketwechsel über Kontakt/);
+  assert.match(admin, /<BillingCard schoolId=\{school\.id\}/, "contact/offer path lives in the Lizenz & Rechnung card");
 });
 
 test("settings: 'Meine Daten' export + existing deletion flows are kept", async () => {

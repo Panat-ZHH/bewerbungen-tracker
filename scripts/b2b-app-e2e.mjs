@@ -226,7 +226,7 @@ scope = "not-deployed mobile";
   check(await visible(page, "Klassenziele kommen bald"), "goals tab explains the feature is not ready");
   check(!(await page.getByRole("button", { name: "Ziel erstellen" }).count()), "no create button without the table");
   await page.goto(`${BASE}/schul-admin`, { waitUntil: "domcontentloaded" });
-  check(await visible(page, "Schulverwaltung wird eingerichtet", 60000), "school admin page degrades gracefully");
+  check(await visible(page, "Keine Schule zugeordnet", 60000), "school admin page degrades gracefully");
   await shot(page, "not-deployed-school-admin");
   await ctx.close();
 }

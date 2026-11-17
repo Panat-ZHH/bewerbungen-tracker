@@ -92,13 +92,28 @@ export function Paywall({ access }: { access: AccessInfo | null }) {
 /** Teacher / school admin without a valid school licence. `email`: shown so the school admin can add exactly this login. */
 export function LicenceGate({ access = null, email }: { access?: AccessInfo | null; email?: string | null }) {
   const ended = access?.expired_reason === "licence_ended";
+  // The school admin IS the school administration: no "give your admin this address", no role switch (forbidden for them) (schule-02/09).
+  if (access?.role === "school_admin") {
+    return (
+      <GateFrame testId="licence-gate" icon={<School />} title={ended ? <>Eure Schullizenz ist <span className="marker">abgelaufen</span></> : <>Eure Schule hat noch keine <span className="marker">Lizenz</span></>}>
+        <p className="text-body">
+          {ended ? "Lehrpersonen und Schüler:innen eurer Schule haben keinen Zugang mehr. Die Daten bleiben gespeichert. Mit einer neuen Lizenz geht es sofort weiter." : "Lehrpersonen und Schüler:innen können WendApply nutzen, sobald eure Schule eine Schullizenz hat."}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <ButtonLink href="/schul-admin#abo" size="lg" data-primary-action="">{ended ? "Lizenz verlängern" : "Lizenz wählen"}</ButtonLink>
+          {!ended && <ButtonLink href="/pilot" size="lg" variant="ghost">Pilot anfragen</ButtonLink>}
+        </div>
+        <p className="text-small text-muted">Fragen? Schreib uns an <a href={`mailto:${SUPPORT_EMAIL}`} className={linkClass}>{SUPPORT_EMAIL}</a>.</p>
+      </GateFrame>
+    );
+  }
   return (
     <GateFrame testId="licence-gate" icon={<School />} title={<>Zugang nur mit <span className="marker">Schullizenz</span></>}>
       <p className="text-body">
         {ended ? "Die Lizenz deiner Schule ist abgelaufen. Deine Klassen und Daten bleiben gespeichert. Bitte deine Schuladministration, die Lizenz zu verlängern." : "Lehrpersonen und Schulen nutzen WendApply mit einer Schullizenz. Für dein Konto ist noch keine gültige Lizenz hinterlegt."}
       </p>
       {/* lehrperson-06: an expired licence needs no «has your school a licence?» questions. */}
-      {email && !ended && <p className="text-body">Hat deine Schule schon eine Lizenz? Gib deiner Schuladministration diese Adresse:<strong className="mt-1 block [overflow-wrap:anywhere]">{email}</strong></p>}
+      {email && !ended && <p className="text-body">Arbeitet deine Schule schon mit WendApply? Schick diese E-Mail-Adresse deiner Schuladministration. Sie meldet dich bei uns, und wir schalten dich frei:<strong className="mt-1 block [overflow-wrap:anywhere]">{email}</strong></p>}
       {!ended && <p className="text-body">
         Möchte deine Schule WendApply nutzen, oder hat sie schon eine Lizenz? Schreib uns an <a href={`mailto:${SUPPORT_EMAIL}`} className={linkClass}>{SUPPORT_EMAIL}</a>. Wir schalten dich frei.
       </p>}

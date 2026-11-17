@@ -5,7 +5,7 @@ import type { Plan, PlanId } from "@/lib/billing/plans";
 import { priceText, seatsText } from "./logic";
 
 /** Radio cards for the school plans. Prices always from lib/billing/plans.ts, final prices (no VAT). */
-export function PlanPicker({ plans, value, onChange, recommended = "professional", name = "plan" }: { plans: Plan[]; value: PlanId; onChange: (id: PlanId) => void; recommended?: PlanId; name?: string }) {
+export function PlanPicker({ plans, value, onChange, recommended = "professional", name = "plan", current = null }: { plans: Plan[]; value: PlanId; onChange: (id: PlanId) => void; recommended?: PlanId; name?: string; current?: PlanId | null }) {
   return (
     <fieldset>
       <legend className="mb-2 text-sm font-bold">Paket</legend>
@@ -17,7 +17,7 @@ export function PlanPicker({ plans, value, onChange, recommended = "professional
               <span className="flex items-center gap-2">
                 <input type="radio" name={name} value={p.id} checked={checked} onChange={() => onChange(p.id)} className="size-4 shrink-0 accent-[var(--brand)]" />
                 <span className="font-bold">{p.name}</span>
-                {p.id === recommended && <span className="ml-auto rounded-full bg-[var(--sun)] px-2 py-0.5 text-xs font-bold text-[var(--on-sun)]">Empfohlen</span>}
+                {p.id === current ? <span className="ml-auto rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs font-bold">aktuell</span> : !current && p.id === recommended && <span className="ml-auto rounded-full bg-[var(--sun)] px-2 py-0.5 text-xs font-bold text-[var(--on-sun)]">Empfohlen</span>}
               </span>
               <span className="tabular text-sm font-semibold">{priceText(p)}</span>
               <span className="text-small text-muted">{seatsText(p)}</span>
