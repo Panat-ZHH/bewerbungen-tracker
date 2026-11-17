@@ -57,3 +57,11 @@ test("rolePickerHref carries a safe next", () => {
   assert.equal(role.rolePickerHref("/classes/join/ABC"), "/auth/role?next=%2Fclasses%2Fjoin%2FABC");
   assert.equal(role.rolePickerHref("//evil"), "/auth/role");
 });
+
+test("launch audit: teachers are kept off the family area, the AI check and the student onboarding", () => {
+  for (const path of ["/familie", "/familie/", "/familie?plan=family", "/familie/einladung/ABCD1234", "/bewerbung-check", "/onboarding", "/onboarding?next=%2Fmap"]) assert.equal(role.guardRedirect("teacher", path), "/teacher", path);
+  for (const path of ["/familie", "/familie/einladung/ABCD1234", "/bewerbung-check", "/onboarding"]) assert.equal(role.guardRedirect("student", path), null, path);
+  assert.equal(role.guardRedirect("teacher", "/familien"), null, "public marketing page /familien stays open");
+  assert.equal(role.landingPath("teacher", "/familie"), "/teacher");
+  assert.equal(role.landingPath("student", "/familie/einladung/ABCD1234"), "/familie/einladung/ABCD1234");
+});

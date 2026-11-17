@@ -97,7 +97,8 @@ export function createMockSupabase({ role = "student", authed = true, apps = [],
   const price = { road: 20, flowers: 30, tree: 40, bench: 50, fountain: 150, amusement_park: 500 };
   function rpc(name, b) {
     switch (name) {
-      case "social_my_profile": return [{ user_id: user.id, role, display_name: state.social.display_name, avatar_seed: state.social.avatar_seed, invite_code: state.social.invite_code, share_with_friends: state.social.share_with_friends, email: user.email }];
+      case "set_my_role": if (b.p_role === "teacher" || b.p_role === "student") state.role = b.p_role; return null;
+      case "social_my_profile": return [{ user_id: user.id, role: state.role, display_name: state.social.display_name, avatar_seed: state.social.avatar_seed, invite_code: state.social.invite_code, share_with_friends: state.social.share_with_friends, email: user.email }];
       case "social_update_profile": Object.assign(state.social, { ...(b.p_display_name ? { display_name: b.p_display_name } : {}), ...(b.p_avatar_seed ? { avatar_seed: b.p_avatar_seed } : {}), ...(b.p_share_with_friends !== null && b.p_share_with_friends !== undefined ? { share_with_friends: b.p_share_with_friends } : {}) }); return rpc("social_my_profile", {});
       case "social_list": return state.connections;
       case "social_friends_overview": return state.connections.filter((c) => c.state === "friend").map((c) => ({ user_id: c.other_user_id, display_name: c.display_name, avatar_seed: c.avatar_seed, shared: true, total: 4, status_counts: { applied: 3, interview: 1 }, map_points_earned: 400, map_items: 2 }));
@@ -121,6 +122,7 @@ export function createMockSupabase({ role = "student", authed = true, apps = [],
       case "class_my_classes": return state.memberships;
       case "class_preview": { if (String(b.p_code).toUpperCase() !== "KLAS7Q2") throw dbError("CLASS_NOT_FOUND"); return [{ class_id: "c1", name: "Informatik 4a", school_year: "2026/27", teacher_name: "Herr Keller", member_count: 3, already_member: state.memberships.length > 0 }]; }
       case "class_join": { if (String(b.p_code).toUpperCase() !== "KLAS7Q2") throw dbError("CLASS_NOT_FOUND"); const m = { class_id: "c1", name: "Informatik 4a", school_year: "2026/27", teacher_name: "Herr Keller", share_applications: false, joined_at: day(0) }; if (!state.memberships.length) state.memberships.push(m); return [m]; }
+      case "class_set_sharing_v2": { const m = state.memberships.find((x) => x.class_id === b.p_class_id); if (m) { m.share_applications = !!b.p_share; m.share_companies = !!b.p_companies; if (b.p_status !== null && b.p_status !== undefined) m.share_status = !!b.p_status; } return null; }
       case "class_set_sharing": { const m = state.memberships.find((x) => x.class_id === b.p_class_id); if (m) m.share_applications = !!b.p_share; return null; }
       case "class_leave": state.memberships = state.memberships.filter((x) => x.class_id !== b.p_class_id); return null;
       case "class_rename": { const c = state.classes.find((x) => x.id === b.p_class_id); if (c) { c.name = b.p_name; if (b.p_school_year) c.school_year = b.p_school_year; } return null; }
@@ -154,7 +156,12 @@ export function createMockSupabase({ role = "student", authed = true, apps = [],
     try { body = req.postDataJSON() ?? {}; } catch { body = {}; }
     if (p.startsWith("/auth/v1/")) {
       calls.push({ kind: "auth", method, path: p });
-      if (p.startsWith("/auth/v1/user")) return state.authed ? reply(200, state.user) : reply(401, { code: 401, msg: "Auth session missing!" });
+      if (p.startsWith("/auth/v1/user")) {
+        if (!state.authed) return reply(401, { code: 401, msg: "Auth session missing!" });
+        // supabase.auth.updateUser({ data }) -> PUT /auth/v1/user: merge into user_metadata like GoTrue does.
+        if (method === "PUT" && body && typeof body.data === "object") Object.assign(state.user.user_metadata, body.data);
+        return reply(200, state.user);
+      }
       if (p.startsWith("/auth/v1/token")) {
         if (state.failNextAuth || body.password === "falsch") return reply(400, { code: 400, error_code: "invalid_credentials", msg: "Invalid login credentials", error: "invalid_grant", error_description: "Invalid login credentials" });
         state.authed = true; return reply(200, session);

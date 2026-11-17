@@ -14,7 +14,9 @@ export const ONBOARDING_PATH = "/teacher/onboarding";
 export const STUDENT_ONBOARDING_PATH = "/onboarding";
 
 /** Routes that only make sense for students. Teachers are sent to /teacher. */
-const STUDENT_ONLY = ["/dashboard", "/applications", "/map", "/cvs", "/search", "/analytics", "/friends"];
+const STUDENT_ONLY = ["/dashboard", "/applications", "/map", "/cvs", "/search", "/analytics", "/friends", "/bewerbung-check", "/onboarding"];
+/** Family area (/familie, invite links): only students and parents can be family members (DB: _family_is_student), so teachers go home. */
+const NOT_FOR_TEACHERS = ["/familie"];
 
 function under(pathname: string, prefix: string) { return pathname === prefix || pathname.startsWith(`${prefix}/`); }
 export function homeFor(role: UserRole): string { return role === "teacher" ? TEACHER_HOME : STUDENT_HOME; }
@@ -25,7 +27,7 @@ export function isStudentOnlyPath(pathname: string) { return STUDENT_ONLY.some((
 export function guardRedirect(role: UserRole, pathname: string): string | null {
   const path = pathname.split(/[?#]/)[0] || "/";
   if (role === "student" && isTeacherPath(path)) return STUDENT_HOME;
-  if (role === "teacher" && isStudentOnlyPath(path)) return TEACHER_HOME;
+  if (role === "teacher" && (isStudentOnlyPath(path) || NOT_FOR_TEACHERS.some((prefix) => under(path, prefix)))) return TEACHER_HOME;
   if (role === "teacher") {
     // /classes is the student page: teachers use /teacher (one place for classes). Join links stay reachable.
     if (path === "/classes" || path === "/classes/") return TEACHER_HOME;

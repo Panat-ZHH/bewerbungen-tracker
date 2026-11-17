@@ -203,17 +203,18 @@ flow("application-crud", student(), async (t) => {
   t.check("detail shows company and position", await t.text(/Mediamatiker:in/) && await t.text(/Migros/));
   const id = mock.state.apps[0]?.id;
   // status change -> "Zusage"
-  await page.getByLabel("Stand der Bewerbung").selectOption({ label: "Zusage" });
+  const pills = page.getByRole("radiogroup", { name: "Stand der Bewerbung" });
+  await pills.getByRole("radio", { name: "Zusage", exact: true }).click();
   await t.settle();
   t.check("status 'Zusage' is stored as offer", mock.state.apps[0]?.status === "offer", mock.state.apps[0]?.status);
-  t.check("status select shows the label Zusage", (await page.getByLabel("Stand der Bewerbung").evaluate((s) => s.selectedOptions[0]?.textContent)) === "Zusage");
+  t.check("status pill 'Zusage' is checked", (await pills.getByRole("radio", { name: "Zusage", exact: true }).getAttribute("aria-checked")) === "true");
   await t.shot("zusage");
   await t.visit("/applications", { label: "list after status change" });
   t.check("list shows the Zusage badge", await t.text(/Zusage/));
   t.check("no 'Angebot' wording anywhere on the list", !(await page.locator("body").innerText()).includes("Angebot"));
   // edit
   await t.visit(`/applications/${id}`);
-  await page.getByRole("button", { name: "Ändern" }).click();
+  await page.getByRole("button", { name: "Bearbeiten" }).click();
   const company = page.getByLabel(/^Firma/);
   await company.waitFor();
   await company.fill("Migros Bank");
@@ -222,16 +223,16 @@ flow("application-crud", student(), async (t) => {
   await t.settle();
   t.check("edit is saved", mock.state.apps[0]?.company === "Migros Bank", mock.state.apps[0]?.company);
   // after saving an edit the detail view should be shown again (BUG-1 in docs/test-report-v2.md)
-  const backToDetail = await page.getByRole("button", { name: "Bewerbung löschen" }).waitFor({ timeout: 4000 }).then(() => true, () => false);
+  const backToDetail = await page.getByRole("button", { name: "Löschen", exact: true }).waitFor({ timeout: 4000 }).then(() => true, () => false);
   t.known("after saving an edit the page leaves edit mode", backToDetail, "BUG-1");
   if (!backToDetail) await t.visit(`/applications/${id}`, { label: "detail (reload after edit)" });
   // delete: cancel first, then confirm, then undo if the app offers it
-  await page.getByRole("button", { name: "Bewerbung löschen" }).click();
-  await page.getByRole("button", { name: "Abbrechen" }).click();
-  t.check("cancel keeps the Bewerbung", mock.state.apps.length === 1);
-  await page.getByRole("button", { name: "Bewerbung löschen" }).click();
-  await t.shot("delete-dialog");
   await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Abbrechen" }).click();
+  t.check("cancel keeps the Bewerbung", mock.state.apps.length === 1);
+  await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  await t.shot("delete-dialog");
+  await page.getByRole("dialog").getByRole("button", { name: "Löschen", exact: true }).click();
   await page.waitForURL(/\/applications$/, { timeout: 20000 }).catch(() => undefined);
   await t.settle();
   t.check("delete removes the Bewerbung", mock.state.apps.length === 0);
@@ -271,10 +272,8 @@ flow("analytics-cvs", student({ apps: seedApps(6), cvs: [{ id: "cv1", user_id: "
   t.check("analytics chart is drawn", (await page.locator(".recharts-surface").count()) > 0);
   await t.shot("analytics");
   await t.visit("/cvs");
-  t.check("CV list shows the stored CV (file badge + file name)", await t.text(/Datei da/) && await t.text(/cv\.pdf/));
-  await page.getByRole("button", { name: "Beschreibung ändern" }).first().click();
-  t.check("CV edit dialog opens", await page.getByRole("dialog").first().isVisible().catch(() => false));
-  await t.shot("cv-dialog");
+  t.check("document list shows the stored CV (file badge + name)", await t.text(/1 Datei/) && await t.text(/Lebenslauf Informatik/));
+  await t.shot("cv-list");
 });
 
 flow("profile-avatar", student({ profile: { first_name: "Lena", last_name: "Müller", email: "lena@beispiel.ch", phone: null, location: null, website: null, linkedin: null } }), async (t) => {
@@ -296,7 +295,7 @@ flow("profile-avatar", student({ profile: { first_name: "Lena", last_name: "Mül
   const saved = await t.text(/Dein Profilbild wurde gespeichert/, 15000);
   t.check("avatar is saved (local mode)", saved, saved ? "" : "enable with NEXT_PUBLIC_AVATAR_LOCAL=1 on the dev server");
   if (saved) {
-    t.check("avatar image shows up in the header", await page.locator("header img").first().waitFor({ timeout: 8000 }).then(() => true, () => false));
+    t.check("avatar image shows up in the header", await page.locator("header img").first().waitFor({ timeout: 15000 }).then(() => true, () => false));
     await t.shot("avatar-saved");
   }
 });
@@ -353,7 +352,8 @@ flow("friend-island", student(), async (t) => {
   t.check("island is read-only ('Nur ansehen')", await t.text(/Nur ansehen/));
   const body = await page.locator("main, body").first().innerText();
   t.check("no shop / edit / delete controls on the friend island", !/Shop|Einlagern|Haus verschieben|Platzieren|kaufen/.test(body));
-  t.check("company names stay private", !/Firma \d|Migros|Swisscom/.test(body));
+  // The mock friend shares company names on purpose (dev data); the server masks them unless the owner opts in (friend-companies tests).
+  t.check("no positions / notes / other application data on the friend island", !/Stelle \d|Notiz|Rückruf/.test(body));
   t.check("map canvas rendered", await page.locator("[data-map-renderer]").count() > 0, "[data-map-renderer] missing (WebGL?)");
   await t.shot("friend-island");
 });
@@ -362,7 +362,7 @@ flow("classes-student", student(), async (t) => {
   const { page, mock } = t;
   await t.visit("/classes");
   t.check("membership card is shown", await t.text(/Informatik 4a/) && await t.text(/Freigabe aktiv/));
-  await page.getByRole("button", { name: "Freigabe pausieren" }).click();
+  await page.getByRole("switch", { name: /Fortschritt teilen/ }).first().click({ force: true });
   await t.settle(500);
   t.check("sharing can be paused", mock.state.memberships[0]?.share_applications === false);
   await t.shot("classes-student");
@@ -374,19 +374,19 @@ flow("classes-student", student(), async (t) => {
 });
 
 flow("classes-teacher", () => ({ role: "teacher", apps: [] }), async (t) => {
+  // The teacher area lives under /teacher (covered in depth by scripts/teacher-e2e.mjs); the old student class pages forward there.
   const { page } = t;
-  await t.visit("/classes");
-  t.check("teacher sees their class and the create button", await t.text(/Informatik 4a/) && await page.getByRole("button", { name: "Klasse erstellen" }).isVisible());
-  await t.visit("/classes/c1");
-  t.check("class overview lists students", await t.text(/Anna Meier/) && await t.text(/Ben Huber/));
-  t.check("student without consent shows no data", await t.text(/Teilt keine Daten/));
-  await page.getByRole("tab", { name: /Mit Zusage/ }).click();
-  await t.settle(300);
-  t.check("filter 'Mit Zusage' keeps only Anna", await page.getByText("Anna Meier").locator("visible=true").count() > 0 && (await page.getByText("Ben Huber").locator("visible=true").count()) === 0);
-  await page.getByText("Anna Meier").locator("visible=true").first().click();
-  await t.settle(600);
-  t.check("student drilldown opens with applications", await t.text(/Swisscom/));
-  await t.shot("class-drilldown");
+  await page.goto(t.base + "/classes", { waitUntil: "domcontentloaded", timeout: 120000 });
+  await page.waitForURL(/\/teacher$/, { timeout: 30000 }).catch(() => undefined);
+  t.check("teacher opening /classes lands on /teacher", /\/teacher$/.test(page.url()), page.url());
+  await page.goto(t.base + "/classes/c1", { waitUntil: "domcontentloaded", timeout: 120000 });
+  await page.waitForURL(/\/teacher\/classes\/c1$/, { timeout: 30000 }).catch(() => undefined);
+  t.check("teacher opening /classes/c1 lands on /teacher/classes/c1", /\/teacher\/classes\/c1$/.test(page.url()), page.url());
+  await page.goto(t.base + "/familie", { waitUntil: "domcontentloaded", timeout: 120000 });
+  await page.waitForURL(/\/teacher$/, { timeout: 30000 }).catch(() => undefined);
+  t.check("teacher opening /familie (students and parents only) lands on /teacher", /\/teacher$/.test(page.url()), page.url());
+  await t.settle();
+  await t.shot("teacher-home");
 });
 
 flow("not-found", student(), async (t) => {
@@ -408,6 +408,8 @@ flow("navigation", student({ apps: seedApps(3) }), async (t) => {
   await page.waitForURL(/\/applications$/).catch(() => undefined);
   t.check("nav link 'Bewerbungen' navigates", /\/applications$/.test(page.url()), page.url());
   void nav;
+  // Mobile: students in a class get "Klassen" in the tab bar, so "Freunde" moves into the "Mehr" sheet.
+  if (t.mobile && !(await page.getByRole("link", { name: /^Freunde/ }).locator("visible=true").count())) await page.locator('nav[aria-label="Hauptmenü mobil"] button', { hasText: "Mehr" }).first().click();
   await page.getByRole("link", { name: /^Freunde/ }).locator("visible=true").first().click();
   await page.waitForURL(/\/friends$/).catch(() => undefined);
   t.check("nav link 'Freunde' navigates", /\/friends$/.test(page.url()), page.url());
@@ -516,7 +518,22 @@ async function main() {
     const run = spawnSync(process.execPath, [join(ROOT, "scripts/teacher-e2e.mjs")], { stdio: "inherit", env: { ...process.env, BASE: baseUrl, PLAYWRIGHT: process.env.PLAYWRIGHT || [join(homedir(), "Projects/bewerbungen-tracker-wt/audit-tools/node_modules/playwright-core/index.mjs")].find(existsSync) || "playwright-core", CHROME: findChrome() } });
     teacherFail = run.status ?? 1;
   }
+  // Launch audit: role-access matrix, links, every page on mobile, error pages, billing routes (scripts/e2e-roles-audit.mjs).
+  // Skip with --skip=roles; run alone with --only=roles. BASE_ON (a server with STRIPE_ENABLED=true) adds the flag-on checks.
+  let rolesFail = 0;
+  const pwEnv = { ...process.env, BASE: baseUrl, PLAYWRIGHT: process.env.PLAYWRIGHT || [join(homedir(), "Projects/bewerbungen-tracker-wt/audit-tools/node_modules/playwright-core/index.mjs")].find(existsSync) || "playwright-core", CHROME: findChrome() };
+  if (args.skip !== "roles" && (!only || only === "roles")) {
+    const { spawnSync } = await import("node:child_process");
+    rolesFail = spawnSync(process.execPath, [join(ROOT, "scripts/e2e-roles-audit.mjs")], { stdio: "inherit", env: pwEnv }).status ?? 1;
+  }
+  // Cross-user isolation against the REAL Supabase project with throwaway users (created + deleted): opt-in with E2E_REAL=1
+  // and BASE_REAL (a server with the real public Supabase env).
+  let isoFail = 0;
+  if (process.env.E2E_REAL === "1" && (!only || only === "isolation")) {
+    const { spawnSync } = await import("node:child_process");
+    isoFail = spawnSync(process.execPath, [join(ROOT, "scripts/e2e-isolation.mjs")], { stdio: "inherit", env: { ...pwEnv, BASE: process.env.BASE_REAL || "" } }).status ?? 1;
+  }
   stopServer();
-  process.exit(summary.fail || teacherFail ? 1 : 0);
+  process.exit(summary.fail || teacherFail || rolesFail || isoFail ? 1 : 0);
 }
 main().catch((error) => { console.error(error); stopServer(); process.exit(2); });

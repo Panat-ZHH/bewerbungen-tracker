@@ -113,8 +113,8 @@ async function flow(tag, vp) {
   await tp.getByRole("tab", { name: /Einladen/ }).click(); await wait(tp, "KLAS-7Q2"); await shot(tp, "08-invite");
   await tp.getByRole("button", { name: "Offenen Link erstellen" }).click(); await tp.waitForTimeout(600);
   const open = S.invites.find((i) => !i.email); check(!!open, "open invite link created (class_invite_create)");
-  await tp.getByLabel("E-Mail-Adressen").fill("lena@beispiel.ch, anna@schule.ch\nkaputt");
-  await tp.getByRole("button", { name: "Einladungen erstellen" }).click(); await wait(tp, "persönliche Links bereit"); await shot(tp, "09-invite-created");
+  await tp.getByLabel("Adressen oder Klassenliste").fill("lena@beispiel.ch\nanna@schule.ch\nkaputt");
+  await tp.getByRole("button", { name: /Einladungen? erstellen$/ }).click(); await tp.getByRole("status").filter({ hasText: "anna@schule.ch" }).first().waitFor({ timeout: 15000 }).catch(() => undefined); await shot(tp, "09-invite-created");
   const mailInvite = S.invites.find((i) => i.email === "lena@beispiel.ch"); check(S.invites.filter((i) => i.email).length === 2 && !!mailInvite, "email list invites created, invalid entry skipped");
   await tp.getByRole("button", { name: /Einladung für anna@schule.ch widerrufen/ }).click(); await tp.waitForTimeout(500);
   check(S.invites.find((i) => i.email === "anna@schule.ch").revoked, "invite revoked (class_invite_revoke)");
