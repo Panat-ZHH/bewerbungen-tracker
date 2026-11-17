@@ -329,6 +329,9 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 @keyframes wiggle { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 @keyframes sticker-in { from { opacity: 0; transform: scale(.6) rotate(-10deg); } to { opacity: 1; transform: scale(1) rotate(var(--tilt, -2deg)); } }
 .animate-rise { animation: rise var(--dur-slow) var(--ease) both; }
+/* Transform-only variant for above-the-fold content: opacity:0 at first paint gives Lighthouse NO_FCP. */
+@keyframes lift { from { transform: translateY(8px); } to { transform: none; } }
+.animate-lift { animation: lift var(--dur-slow) var(--ease) both; }
 .animate-fade { animation: fade var(--dur) var(--ease) both; }
 .animate-sheet { animation: sheet-up var(--dur-slow) var(--ease) both; }
 @keyframes panel-in { from { transform: translateX(100%); } to { transform: none; } }

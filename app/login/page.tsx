@@ -170,7 +170,7 @@ export default function LoginPage() {
     <main className="workspace-bg min-h-[100dvh] overflow-x-clip px-4 pb-10 sm:px-6">
       <div className="mx-auto grid w-full max-w-[1080px] lg:min-h-[100dvh] lg:grid-cols-[1.15fr_minmax(0,430px)] lg:items-center lg:gap-16">
         {/* Setting off: logo, one loud line, what you get. No hero panel, it all sits on paper. */}
-        <section className="animate-rise relative pt-4 lg:pb-16 lg:pt-0">
+        <section className="animate-lift relative pt-4 lg:pb-16 lg:pt-0">
           <AuthBrand className="h-12 lg:h-auto" />
           <h1 className="mt-5 text-display lg:mt-12 lg:text-[clamp(3.5rem,5.4vw,4.75rem)] lg:leading-[.95] lg:tracking-[-.04em]">
             {isSignup ? <>Konto <span className="marker">erstellen</span></> : <>Schön, dass du <span className="marker">da bist.</span></>}
@@ -185,7 +185,7 @@ export default function LoginPage() {
           </div>
         </section>
 
-        <section className="animate-rise relative mt-6 w-full max-w-[430px] justify-self-center lg:mt-0 lg:py-10">
+        <section className="animate-lift relative mt-6 w-full max-w-[430px] justify-self-center lg:mt-0 lg:py-10">
           <InviteBanner />
           <DoodleArrow className="absolute -left-14 top-6 hidden h-12 w-16 text-[var(--ink)] lg:block" />
 
