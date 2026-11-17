@@ -56,7 +56,7 @@ export async function deleteUserFiles(admin: SupabaseClient, userId: string): Pr
 
 export type DeletionResult = { files: number; classesTransferred: number; classesDeleted: number; remaining: Record<string, number> };
 
-export type BillingBlocker = { kind: "family" | "school"; plan_id: string; status: string };
+export type BillingBlocker = { kind: "family" | "school" | "solo"; plan_id: string; status: string };
 
 /** Thrown when the user is the last parent / school admin of a subscription that still renews (would keep charging). */
 export class BillingActiveError extends Error {

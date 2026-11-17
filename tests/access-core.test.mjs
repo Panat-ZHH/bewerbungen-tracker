@@ -191,3 +191,13 @@ test("scripts/admin/add-admin.mjs: finds the user by e-mail, upserts platform_ad
   await assert.rejects(run({ url: "", key: "", args: parseArgs(["a@b.ch"]), fetchFn }));
   await assert.rejects(run({ url: "https://x", key: "sb_publishable_abc", args: parseArgs(["a@b.ch"]), fetchFn }));
 });
+
+test("account deletion: a running Einzelabo gets its own 409 message (G4)", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/account/delete/route.ts", import.meta.url), "utf8");
+  assert.match(route, /b\.kind === "solo"/);
+  assert.match(route, /Dein Einzelabo läuft noch/);
+  assert.doesNotMatch(route, /ß/);
+  const server = await readFile(new URL("../lib/account-delete-server.ts", import.meta.url), "utf8");
+  assert.match(server, /kind: "family" \| "school" \| "solo"/);
+});
