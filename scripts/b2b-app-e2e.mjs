@@ -102,7 +102,7 @@ for (const { key, vp } of VIEWPORTS) {
     check(await noOverflow(page), "no horizontal overflow");
     await shot(page, `${key}-teacher-overview`);
 
-    await page.getByRole("tab", { name: /Ziele/ }).click();
+    await page.getByRole("tab", { name: /^Mehr/ }).click(); await page.getByRole("tab", { name: /Ziele/ }).click();
     check(await visible(page, "Noch keine Klassenziele"), "goals tab: empty state");
     await page.getByRole("button", { name: "Ziel erstellen" }).first().click();
     await page.getByLabel("Titel").fill("Alle schnuppern zweimal bis zu den Sportferien");
@@ -222,7 +222,7 @@ scope = "not-deployed mobile";
   check(await visible(page, "Klassenstatistik"), "overview falls back to the existing teacher RPCs");
   check(await visible(page, "Noch keine Bewerbung erfasst"), "fallback derives support reasons");
   check(await visible(page, "Meldet selbst: noch keine Lehrstelle"), "fallback keeps the self report of a hidden student");
-  await page.getByRole("tab", { name: /Ziele/ }).click();
+  await page.getByRole("tab", { name: /^Mehr/ }).click(); await page.getByRole("tab", { name: /Ziele/ }).click();
   check(await visible(page, "Klassenziele kommen bald"), "goals tab explains the feature is not ready");
   check(!(await page.getByRole("button", { name: "Ziel erstellen" }).count()), "no create button without the table");
   await page.goto(`${BASE}/schul-admin`, { waitUntil: "domcontentloaded" });

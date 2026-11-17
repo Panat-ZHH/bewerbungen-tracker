@@ -5,7 +5,7 @@ import { TeacherDashboardView } from "@/components/teacher/dashboard";
 
 export default function Page() {
   return (
-    <WorkspaceShell active="Übersicht">
+    <WorkspaceShell active="Klassen">
       <TeacherDashboardView />
     </WorkspaceShell>
   );

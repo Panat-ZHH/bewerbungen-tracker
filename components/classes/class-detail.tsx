@@ -94,7 +94,7 @@ export function ClassDetail({ classId }: { classId: string }) {
 
           {cls && (
             <div className="inset flex flex-wrap items-center justify-between gap-3 p-4">
-              <div><p className="text-sm font-bold">Beitrittscode</p><p className="text-small text-muted">Teile den Code, damit weitere Schüler:innen beitreten können.</p></div>
+              <div><p className="text-sm font-bold">Klassencode</p><p className="text-small text-muted">Teile den Code, damit weitere Schüler:innen beitreten können.</p></div>
               <CodeActions code={cls.joinCode} name={cls.name} />
             </div>
           )}

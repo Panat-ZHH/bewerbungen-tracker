@@ -54,9 +54,9 @@ export function formatDate(value?: string) {
 
 /** Stacked status bar: flat segments with ink dividers inside an ink contour, so it never relies on colour alone. `legend` adds a text key. */
 export function StatusBar({ counts, total, legend = false }: { counts: StatusCounts; total: number; legend?: boolean }) {
-  if (!total) return <div className="h-3 w-full rounded-full border-[length:var(--border-w)] border-dashed border-[var(--neutral-line)]" aria-label="Keine Bewerbungen" />;
+  if (!total) return <div role="img" className="h-3 w-full rounded-full border-[length:var(--border-w)] border-dashed border-[var(--neutral-line)]" aria-label="Keine Bewerbungen" />;
   const present = STATUS_ORDER.filter((s) => counts[s]);
-  const summary = present.map((s) => `${statusLabels[s]}: ${counts[s]}`).join(", ");
+  const summary = present.map((s) => `${statusLabels[s]}: ${counts[s]}`).join(", ") || `${total} ${total === 1 ? "Bewerbung" : "Bewerbungen"}`;
   return (
     <div>
       <div role="img" aria-label={summary} title={summary} className="flex h-3 w-full overflow-hidden rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface-2)] [&>*+*]:border-l-[length:var(--border-w)] [&>*+*]:border-[var(--outline)]">

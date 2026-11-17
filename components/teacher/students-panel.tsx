@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { BellRing, CheckCircle2, ChevronRight, Download, EyeOff, Search, Trash2 } from "lucide-react";
+import { BellRing, CheckCircle2, ChevronDown, ChevronRight, Download, EyeOff, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { useAvatarUrls } from "@/components/ui/use-avatars";
 import { Badge } from "@/components/ui/badge";
@@ -18,13 +18,13 @@ import { exportClassApplications } from "@/lib/teacher-more";
 import { statusLabels } from "@/lib/utils";
 import { StatusBar, TABLE_HEAD, TABLE_ROW, formatDate } from "@/components/classes/shared";
 import { nudgeStudent, removeClassStudent, teacherErrorCode, type DashboardClass, type TeacherStudent } from "./api";
-import { STUDENT_FILTERS, canNudge, filterStudents, sortStudents, studentCsvColumns, studentMatches, type StudentFilter, type StudentSort } from "./logic";
+import { PRIMARY_FILTERS, STUDENT_FILTERS, canNudge, filterStudents, sortStudents, studentCsvColumns, studentMatches, type StudentFilter, type StudentSort } from "./logic";
 import { relativeDays, teacherError } from "./shared";
 
 function StatusBadges({ s }: { s: TeacherStudent }) {
   return (
     <span className="flex flex-wrap gap-1.5">
-      {s.placed && <Badge tone="success"><CheckCircle2 size={12} className="mr-1" aria-hidden />Lehrstelle gefunden</Badge>}
+      {s.placed && <Badge tone="success"><CheckCircle2 size={12} className="mr-1" aria-hidden />Zusage oder Lehrvertrag</Badge>}
       {s.inactive && <Badge tone="warning">Inaktiv</Badge>}
       {s.hidden && <Badge><EyeOff size={12} className="mr-1" aria-hidden />Teilt nicht</Badge>}
     </span>
@@ -42,6 +42,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
   const [nudgeError, setNudgeError] = useState("");
   const [removing, setRemoving] = useState<TeacherStudent | null>(null);
   const [removeError, setRemoveError] = useState("");
+  const [moreFilters, setMoreFilters] = useState(false);
 
   const rows = useMemo(() => sortStudents(filterStudents(students, filter, query), sort), [students, filter, query, sort]);
   const counts = useMemo(() => Object.fromEntries(STUDENT_FILTERS.map((f) => [f.value, students.filter(studentMatches[f.value]).length])) as Record<StudentFilter, number>, [students]);
@@ -102,11 +103,19 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
           </label>
           <div className="flex flex-wrap gap-2 lg:ml-auto">
             <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<BellRing size={15} />} disabled={nudgeable.length === 0} onClick={() => { setNudge(nudgeable); setNudgeError(""); }}>Inaktive erinnern ({nudgeable.length})</Button>
-            <Button variant="ghost" className="min-h-11 sm:min-h-11" icon={<Download size={15} />} disabled={rows.length === 0} onClick={exportCsv}>CSV Übersicht</Button>
-            <Button variant="ghost" className="min-h-11 sm:min-h-11" icon={<Download size={15} />} disabled={rows.length === 0 || busy} onClick={() => void exportApplications()}>CSV Bewerbungen</Button>
+            <details className="group relative">
+              <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)] [&::-webkit-details-marker]:hidden"><Download size={15} aria-hidden />Exportieren<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden /></summary>
+              <div className="panel absolute right-0 z-20 mt-1 flex w-60 flex-col p-1">
+                <Button variant="ghost" className="min-h-11 justify-start sm:min-h-11" disabled={rows.length === 0} onClick={exportCsv}>Übersicht (CSV)</Button>
+                <Button variant="ghost" className="min-h-11 justify-start sm:min-h-11" disabled={rows.length === 0 || busy} onClick={() => void exportApplications()}>Alle Bewerbungen (CSV)</Button>
+              </div>
+            </details>
           </div>
         </div>
-        <Segmented className="[&_button]:min-h-11" label="Filter" value={filter} onChange={setFilter} options={STUDENT_FILTERS.map((f) => ({ ...f, count: counts[f.value] }))} />
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented className="[&_button]:min-h-11" label="Filter" value={filter} onChange={setFilter} options={STUDENT_FILTERS.filter((f) => moreFilters || PRIMARY_FILTERS.includes(f.value) || f.value === filter).map((f) => ({ ...f, count: counts[f.value] }))} />
+          {!moreFilters && <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" icon={<SlidersHorizontal size={14} />} onClick={() => setMoreFilters(true)}>Weitere Filter</Button>}
+        </div>
       </div>
 
       {rows.length === 0 && <EmptyState icon={<Search size={24} />} title="Niemand passt zur Auswahl" description="Ändere Suche oder Filter, um wieder Schüler:innen zu sehen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setFilter("all"); setQuery(""); }}>Zurücksetzen</Button>} />}
@@ -117,15 +126,13 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
           <li key={s.studentId} className="space-y-2.5 py-4">
             <Link href={`/teacher/classes/${cls.id}/students/${s.studentId}`} className="flex min-h-11 items-center gap-3">
               <Avatar name={studentLabel(s.displayName)} src={avatars[s.studentId]} size="sm" />
-              <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-bold">{studentLabel(s.displayName)}</p><p className="text-small tabular text-muted">{s.hidden ? "Teilt keine Daten" : `${s.total} Bewerbungen · ${relativeDays(s.lastActivity)}`}</p></div>
+              <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-bold">{studentLabel(s.displayName)}</p><p className="text-small tabular text-muted">{s.hidden ? "Teilt keine Daten" : `${s.total} ${s.total === 1 ? "Bewerbung" : "Bewerbungen"} · ${relativeDays(s.lastActivity)}`}</p></div>
               <ChevronRight size={18} strokeWidth={2.4} className="shrink-0" aria-hidden />
             </Link>
             {!s.hidden && <StatusBar counts={s.statusCounts} total={s.total} />}
             <StatusBadges s={s} />
-            <div className="flex flex-wrap items-center gap-2">
-              {s.inactive && <Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" icon={<BellRing size={14} />} disabled={!canNudge(s)} onClick={() => { setNudge([s]); setNudgeError(""); }}>{canNudge(s) ? "Erinnern" : "Kürzlich erinnert"}</Button>}
-              <Button size="sm" variant="ghost" className="min-h-11 sm:min-h-11" icon={<Trash2 size={14} />} aria-label={`${studentLabel(s.displayName)} aus der Klasse entfernen`} onClick={() => { setRemoving(s); setRemoveError(""); }}>Entfernen</Button>
-            </div>
+            {/* Removing lives on the pupil page (lehrperson-13): no destructive button while scrolling the list. */}
+            {s.inactive && <div className="flex flex-wrap items-center gap-2"><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" icon={<BellRing size={14} />} disabled={!canNudge(s)} onClick={() => { setNudge([s]); setNudgeError(""); }}>{canNudge(s) ? "Erinnern" : "Kürzlich erinnert"}</Button></div>}
           </li>
         ))}
       </ul>
