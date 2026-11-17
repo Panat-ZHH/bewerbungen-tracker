@@ -31,7 +31,7 @@ export function authMessage(reason: unknown): string {
   if (lower.includes("invalid login credentials")) return "E-Mail oder Passwort stimmt nicht. Versuch es noch einmal oder setze dein Passwort zurück.";
   if (lower.includes("email not confirmed")) return "Bitte bestätige zuerst deine E-Mail-Adresse. Wir haben dir einen Link geschickt.";
   if (lower.includes("user already registered") || lower.includes("already been registered")) return "Für diese E-Mail gibt es schon ein Konto. Melde dich an.";
-  if (lower.includes("password should be at least") || lower.includes("weak password")) return "Dein Passwort muss mindestens sechs Zeichen haben.";
+  if (lower.includes("password should be at least") || lower.includes("weak password")) return "Dein Passwort ist zu kurz oder zu einfach. Nimm mindestens acht Zeichen.";
   if (lower.includes("unable to validate email") || lower.includes("invalid email")) return "Diese E-Mail-Adresse sieht nicht richtig aus. Prüfe sie auf Tippfehler.";
   if (lower.includes("rate limit") || lower.includes("too many") || lower.includes("security purposes")) return "Zu viele Versuche. Warte kurz und versuch es dann noch einmal.";
   if (lower.includes("signups not allowed")) return "Neue Konten sind gerade nicht möglich.";
@@ -57,7 +57,7 @@ export function oauthErrorMessage(params: URLSearchParams | string): string | nu
 /** Rough password quality hint for sign-up (no blocking, just guidance). */
 export function passwordHint(password: string): { level: 0 | 1 | 2 | 3; label: string } {
   if (!password) return { level: 0, label: "" };
-  if (password.length < 6) return { level: 1, label: "Noch zu kurz – mindestens 6 Zeichen" };
+  if (password.length < 8) return { level: 1, label: "Noch zu kurz – mindestens 8 Zeichen" };
   const variety = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((re) => re.test(password)).length;
   if (password.length >= 10 && variety >= 3) return { level: 3, label: "Stark" };
   if (password.length >= 8 && variety >= 2) return { level: 2, label: "Okay" };
@@ -78,7 +78,18 @@ export function deadlineInfo(deadline: string, today = new Date()): DeadlineInfo
   return { days, label: `in ${days} Tagen`, tone: "neutral" };
 }
 
-/** Is `value` a safe same-site path to return to after login? */
+const SAME_SITE = "https://same-site.invalid";
+/**
+ * Is `value` a safe same-site path to return to after login? Browsers strip tab/CR/LF from URLs and read "\\" as "/",
+ * so "/\t/evil.com" or "/\\evil.com" would become "//evil.com" (another site): any control character or backslash is
+ * refused, and the path must still resolve to this origin.
+ */
 export function safeNextPath(next: string | null | undefined): string | null {
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") && !next.startsWith("/login") ? next : null;
+  if (typeof next !== "string" || !next.startsWith("/") || next.startsWith("//") || next.length > 2048) return null;
+  if (/[\u0000-\u001f\u007f\\]/.test(next)) return null;
+  let url: URL;
+  try { url = new URL(next, SAME_SITE); } catch { return null; }
+  if (url.origin !== SAME_SITE || url.pathname.startsWith("//")) return null;
+  if (next.startsWith("/login") || url.pathname.startsWith("/login")) return null;
+  return next;
 }
