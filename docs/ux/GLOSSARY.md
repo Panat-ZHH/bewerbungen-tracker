@@ -335,3 +335,22 @@ eltern = Eltern-Fixer, schule = Schul-Fixer, gesperrt = Logikdatei → nur melde
 - **KI-Dienst:** Der Bewerbungs-Check schickt Text an einen KI-Anbieter (supabase/functions/ai-review/anthropic.ts), aber
   docs/legal/hosting.md und die Datenschutzerklärung nennen keinen KI-Anbieter. → Gemeldet in _ux/findings/BUGS.md, Website-Copy
   erwähnt den Anbieter deshalb nicht namentlich, nur «ein KI-Dienst» (wie die bestehende FAQ).
+
+---
+
+## 6. Abgleich mit `_ux/PRINCIPLES.md` (gelesen 2026-11-17)
+
+Übereinstimmend: ein Begriff pro Konzept (Heuristik 4), Fehler = was passiert ist + was tun, ohne «Oops», ohne «!» (R-4.4),
+Buttons mit Verb zuerst, max. 3 Wörter (R-5.2), ein Primär-Button pro Viewport (R-5.1), leere Zustände mit 3 Teilen und genau
+einem Button (R-8.5a), Einfache Sprache mit ≤ 15 Wörtern pro Satz und ≤ 3 Sätzen pro Absatz in der App, keine Tech- oder
+englischen Wörter. Die Anrede überlässt PRINCIPLES §8 ausdrücklich diesem Glossar (Entscheid: §2 oben).
+
+Präzisierungen, die vorgehen (weil sie hier genauer sind):
+- PRINCIPLES Heuristik 2 nennt «Lehrbetrieb» als Wort der Nutzenden. In der **App** gilt trotzdem **«Firma»** (Feld,
+  Freigabe-Schalter «Firmen zeigen», Datenschutzpanels; 58 Stellen, für 13-Jährige verständlich). «Lehrbetrieb» nur auf der
+  Website/SEO (§1.2).
+- Formulierung «nochmals»/«noch einmal»: Standard ist **«versuch es noch einmal»** (so steht es schon in lib/ux.ts). Das
+  Beispiel in PRINCIPLES R-4.4 («versuche es nochmals») bitte entsprechend lesen.
+- «Weiter» ist nur zwischen Schritten eines mehrstufigen Ablaufs erlaubt; der letzte Schritt nennt die Aktion («Fertig»,
+  «Konto erstellen»). Das entspricht R-5.2.
+- Leere Zustände: Der Titel sagt, was fehlt, der Text sagt, wofür der Ort da ist bzw. was hier erscheint, und der Button füllt ihn (= R-8.5a).
