@@ -5,7 +5,7 @@ import { isStripeEnabled } from "./plans.ts";
 import { supabaseAuthDeps, type BillingOwner } from "./auth.ts";
 import { apiStripe, getStripe, isLiveMode, isStripeConfigured, webhookStripe } from "./stripe.ts";
 import { sharedMemoryBillingDb } from "./memory-db.ts";
-import type { BillingApiDb, BillingApiDeps } from "./api.ts";
+import { safeBaseUrl, type BillingApiDb, type BillingApiDeps } from "./api.ts";
 import type { BillingDb, WebhookDeps } from "./webhook.ts";
 import type { BillingApplySubscriptionResult } from "./db-types.ts";
 
@@ -94,7 +94,8 @@ export function webhookDeps(): WebhookDeps {
 export function apiDeps(request: Request): BillingApiDeps {
   const enabled = isStripeEnabled();
   const configured = isStripeConfigured() && Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const base = (process.env.APP_URL || process.env.URL || new URL(request.url).origin).replace(/\/$/, "");
+  const extraHosts = (process.env.BILLING_ALLOWED_HOSTS ?? "").split(",").map((h) => h.trim().toLowerCase()).filter(Boolean);
+  const base = safeBaseUrl([process.env.APP_URL, process.env.URL, new URL(request.url).origin], extraHosts);
   // Clients are built on first use only, so a disabled/unconfigured server never needs the keys.
   const lazy = <T extends object>(make: () => T): T => {
     let made: T | undefined;

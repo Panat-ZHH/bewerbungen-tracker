@@ -45,9 +45,25 @@ export function apiStripe(stripe: Stripe = getStripe()): BillingApiStripe {
       if (id) priceCache.set(key, { id, at: Date.now() });
       return id;
     },
-    async createCustomer({ email, name, metadata }) {
-      const customer = await stripe.customers.create({ email: email ?? undefined, name: name ?? undefined, metadata, preferred_locales: ["de-CH", "de"] });
+    async createCustomer({ email, name, metadata, idempotencyKey }) {
+      const customer = await stripe.customers.create(
+        { email: email ?? undefined, name: name ?? undefined, metadata, preferred_locales: ["de-CH", "de"] },
+        idempotencyKey ? { idempotencyKey } : undefined,
+      );
       return customer.id;
+    },
+    async hasOpenStripeSubscription(customer) {
+      const { data } = await stripe.subscriptions.list({ customer, status: "all", limit: 20 });
+      return data.some((s) => ["active", "trialing", "past_due", "unpaid", "paused", "incomplete"].includes(s.status));
+    },
+    async expireOpenCheckoutSessions(customer) {
+      const { data } = await stripe.checkout.sessions.list({ customer, status: "open", limit: 20 });
+      let expired = 0;
+      for (const s of data) {
+        if (s.metadata?.app !== "wendapply") continue;
+        try { await stripe.checkout.sessions.expire(s.id); expired++; } catch { /* completed meanwhile: the webhook handles it */ }
+      }
+      return expired;
     },
     async createCheckoutSession(p) {
       const session = await stripe.checkout.sessions.create({

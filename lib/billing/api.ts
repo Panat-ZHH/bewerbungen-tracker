@@ -8,7 +8,16 @@ export type PaymentMethod = "card" | "invoice";
 
 export interface BillingApiStripe {
   priceIdForLookupKey(key: string): Promise<string | null>;
-  createCustomer(p: { email: string | null; name: string | null; metadata: Record<string, string> }): Promise<string>;
+  /** idempotencyKey: two concurrent first checkouts of the same owner + user get ONE Stripe customer (key lives 24 h). */
+  createCustomer(p: { email: string | null; name: string | null; metadata: Record<string, string>; idempotencyKey?: string }): Promise<string>;
+  /**
+   * Does the customer already have a subscription in Stripe that is not over (incl. incomplete = payment in progress)?
+   * Asked in addition to the DB mirror because the webhook lags a few seconds: a double click on "Rechnung anfordern" or
+   * a second tab right after paying would otherwise create a second subscription. Optional (fakes may omit it).
+   */
+  hasOpenStripeSubscription?(customer: string): Promise<boolean>;
+  /** Expires the customer's other OPEN Checkout Sessions of WendApply, so only the newest one can still be paid. Optional. */
+  expireOpenCheckoutSessions?(customer: string): Promise<number>;
   createCheckoutSession(p: { customer: string; price: string; kind: "school" | "family"; metadata: Record<string, string>; successUrl: string; cancelUrl: string }): Promise<{ url: string | null }>;
   /** In-app payment (Checkout Session ui_mode "elements" + Payment Element on our own page). */
   createElementsSession(p: { customer: string; price: string; kind: "school" | "family"; metadata: Record<string, string>; returnUrl: string }): Promise<{ clientSecret: string | null }>;
@@ -61,6 +70,32 @@ export interface BillingApiDeps {
 }
 
 export interface ApiResult { status: number; body: Record<string, unknown> }
+
+/** Canonical origin used when the configured / request origin is not on the allowlist. */
+export const CANONICAL_BASE_URL = "https://wendapply.ch";
+const ALLOWED_HOSTS = ["wendapply.ch", "www.wendapply.ch"];
+const LOCAL_HOSTS = ["localhost", "127.0.0.1"];
+/** Netlify production / branch / deploy-preview hosts of this site (e.g. stripe-preview--bewerbungen-pawat.netlify.app). */
+const NETLIFY_HOST = /^(?:[a-z0-9-]+--)?bewerbungen-pawat\.netlify\.app$/;
+
+/**
+ * Origin for Stripe success / cancel / return / portal URLs. Only allowlisted origins: wendapply.ch, this site's Netlify
+ * hosts, localhost (http allowed) and hosts in BILLING_ALLOWED_HOSTS (comma list). Anything else – e.g. a spoofed Host
+ * header when APP_URL/URL are unset – falls back to the canonical origin, so Stripe never redirects a payer elsewhere.
+ */
+export function safeBaseUrl(candidates: (string | null | undefined)[], extraHosts: string[] = []): string {
+  for (const raw of candidates) {
+    if (!raw) continue;
+    let u: URL;
+    try { u = new URL(raw); } catch { continue; }
+    const host = u.hostname.toLowerCase();
+    const local = LOCAL_HOSTS.includes(host);
+    if (u.protocol !== "https:" && !(local && u.protocol === "http:")) continue;
+    if (u.username || u.password) continue;
+    if (local || ALLOWED_HOSTS.includes(host) || NETLIFY_HOST.test(host) || extraHosts.includes(host)) return u.origin;
+  }
+  return CANONICAL_BASE_URL;
+}
 
 const err = (status: number, error: string): ApiResult => ({ status, body: { error } });
 export const DISABLED: ApiResult = { status: 503, body: { error: "billing_disabled", enabled: false } };
@@ -123,9 +158,16 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   const metadata = { app: "wendapply", plan_id: plan.id, interval, ...ownerMeta(owner), user_id: auth.user.id };
   let customer = await deps.db.findCustomerId(owner);
   if (!customer) {
-    customer = await deps.stripe.createCustomer({ email: auth.user.email, name: await deps.db.ownerName(owner), metadata: { app: "wendapply", ...ownerMeta(owner), user_id: auth.user.id } });
+    customer = await deps.stripe.createCustomer({
+      email: auth.user.email, name: await deps.db.ownerName(owner), metadata: { app: "wendapply", ...ownerMeta(owner), user_id: auth.user.id },
+      idempotencyKey: `wendapply-customer-${owner.kind}-${owner.id}-${auth.user.id}`,
+    });
     await deps.db.saveCustomer?.(owner, customer, auth.user.id).catch((e) => deps.log?.("billing checkout: could not save customer", { error: String(e) }));
+  } else if (await deps.stripe.hasOpenStripeSubscription?.(customer)) {
+    return err(409, "already_subscribed"); // paid / invoiced seconds ago, the webhook has not mirrored it yet
   }
+  // Double checkout (two tabs, interval switch on the pay page, back button): only the newest session stays payable.
+  await deps.stripe.expireOpenCheckoutSessions?.(customer);
 
   if (payment === "invoice") {
     const { hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({ customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata });
