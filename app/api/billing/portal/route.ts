@@ -6,7 +6,7 @@ import { limitIp, RateLimitedError, withUserLimit } from "@/lib/api-rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** POST { schoolId? | familyId? } -> { url } of the Stripe Customer Portal. Auth: Bearer token. */
+/** POST { schoolId? | familyId? } | { owner: "me" } (solo) -> { url } of the Stripe Customer Portal. Auth: Bearer token. */
 export async function POST(request: Request) {
   const limited = await limitIp("portal", request.headers);
   if (limited) return limited;

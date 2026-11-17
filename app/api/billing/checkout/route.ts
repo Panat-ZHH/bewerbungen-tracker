@@ -6,7 +6,7 @@ import { limitIp, RateLimitedError, withUserLimit } from "@/lib/api-rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** POST { plan, schoolId? | familyId?, payment: 'card'|'invoice' } -> { url } | { url, invoice: true }. Auth: Bearer token. */
+/** POST { plan, schoolId? | familyId?, payment: 'card'|'invoice' } | { plan: 'solo', interval, owner?: 'me' } -> { url } | { url, invoice: true } | { clientSecret }. Auth: Bearer token. */
 export async function POST(request: Request) {
   const limited = await limitIp("checkout", request.headers);
   if (limited) return limited;

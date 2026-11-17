@@ -14,11 +14,15 @@ the billing API/UI and `scripts/stripe/setup-products.mjs`, which mirrors it int
 | enterprise | school | 3'990 | 800 | `wendapply_enterprise_yearly_chf` | yes | yes |
 | individual | school | contact | individual | – | – | – |
 | family | family | **7.90 / month or 79 / year** (decided by Panat 2026-11-16; yearly saves 15.80) | 1 student + 1 parent account | `wendapply_family_monthly_chf`, `wendapply_family_yearly_chf` | yes | – (card only) |
+| solo ("Einzelabo") | individual | **4.90 / month or 49 / year** (SPEC 2026-11-17; yearly saves 9.80) | 1 student (owner = the student) | `wendapply_solo_monthly_chf`, `wendapply_solo_yearly_chf` | yes | – (card only) |
+
+`individual` (school "Individuell", contact sales) and `solo` (one student, kind `individual`) are different plans. The family
+plan has no 30-day trial any more: the per-user 7-day trial from signup replaces it (docs/access/SPEC.md).
 
 `BILLING`: currency `chf`, `vatRegistered: false` – WendApply is not MWST-registered (Panat, 2026-11-16): no VAT is charged
 or shown anywhere, prices are simply "CHF 7.90 pro Monat" / "CHF 79 pro Jahr" / "CHF 990 pro Jahr". New Stripe prices get no
 `tax_behavior` (the older test-mode prices keep theirs; irrelevant without Stripe Tax). Schools are yearly only; plans with `priceChfPerMonth` +
-`lookupKeyMonthly` (family) also get a monthly price. Helpers: `planIntervals`, `lookupKeyFor(plan, interval)`, `planPrice`,
+`lookupKeyMonthly` (family, solo) also get a monthly price. Helpers: `planIntervals`, `lookupKeyFor(plan, interval)`, `planPrice`,
 `yearlySavingChf`. Checkout takes `interval: "year" | "month"` (default year).
 (`monthlySurchargePct: 0`), invoices due after 30 days. The old `MONTHLY_SURCHARGE` in licence.ts is only for manual offers.
 The public pages (/preise, /familien, /hilfe) read the family price from `PLANS.family` via `FAMILY` in marketing.ts.

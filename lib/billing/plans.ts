@@ -8,9 +8,10 @@
  * How to change a price: docs/billing/CATALOG.md.
  */
 
-export type PlanId = "pilot" | "starter" | "professional" | "enterprise" | "individual" | "family";
-export type PlanKind = "school" | "family";
-/** Billing interval of a Stripe price. Every paid plan has a yearly price; some (family) also a monthly one. */
+export type PlanId = "pilot" | "starter" | "professional" | "enterprise" | "individual" | "family" | "solo";
+/** Who owns / buys a plan: a school, a family (parents), or one user ("individual": the solo plan, owner = the student). */
+export type PlanKind = "school" | "family" | "individual";
+/** Billing interval of a Stripe price. Every paid plan has a yearly price; some (family, solo) also a monthly one. */
 export type BillingInterval = "year" | "month";
 
 export interface Plan {
@@ -57,6 +58,21 @@ export const PLANS: Record<PlanId, Plan> = {
     lookupKeyMonthly: "wendapply_family_monthly_chf",
     checkout: true,
     invoiceAllowed: false, // families: card only
+    // No family trial any more (access model 2026-11-17): every user gets the 7-day trial from signup instead.
+  },
+  solo: {
+    id: "solo",
+    kind: "individual",
+    name: "Einzelabo",
+    // Decided 2026-11-17 (docs/access/SPEC.md §2): CHF 4.90 per month or CHF 49 per year, one student, card only, no VAT.
+    // Note: "individual" (above) is the SCHOOL offer "Individuell" – unrelated to this plan.
+    priceChfPerYear: 49,
+    priceChfPerMonth: 4.9,
+    studentLimit: 1,
+    lookupKey: "wendapply_solo_yearly_chf",
+    lookupKeyMonthly: "wendapply_solo_monthly_chf",
+    checkout: true,
+    invoiceAllowed: false, // card only
   },
 };
 

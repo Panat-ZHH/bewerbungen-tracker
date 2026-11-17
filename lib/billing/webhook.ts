@@ -2,14 +2,16 @@
 // the raw body and wires real dependencies in. Tests: tests/billing-webhook.test.mjs. Docs: docs/billing/WEBHOOK-TEST.md.
 //
 // Flow: verify signature -> duplicate check (stripe_events.processed_at) -> map the event to the FULL current subscription
-// state -> billing_apply_subscription (service role; marks the event processed itself) -> 200.
+// state -> billing_apply_subscription (schools / families) or billing_apply_user_subscription (solo plan, owner = one user;
+// both with the service role, both mark the event processed themselves) -> 200.
 // Events that need no DB change are recorded as processed so a redelivery is a cheap duplicate.
 // Answer codes: 400 bad signature / payload, 200 handled or permanently unprocessable (logged, Stripe must not retry
 // forever), 500 transient failure (Stripe retries with backoff, the event stays unprocessed).
 import type Stripe from "stripe";
 import { planByLookupKey } from "./plans.ts";
 import type {
-  BillingApplySubscriptionParams, BillingApplySubscriptionResult, BillingPlanId, CollectionMethod, InvoiceStatus, StripeSubscriptionStatus,
+  BillingApplySubscriptionParams, BillingApplySubscriptionResult, BillingApplyUserSubscriptionParams, BillingApplyUserSubscriptionResult,
+  BillingPlanId, CollectionMethod, InvoiceStatus, StripeSubscriptionStatus,
 } from "./db-types.ts";
 
 export const HANDLED_EVENTS = [
@@ -30,6 +32,8 @@ export interface BillingDb {
   markEventProcessed(eventId: string, type: string): Promise<void>;
   /** rpc('billing_apply_subscription', params); throws Error(message) on a database error. */
   applySubscription(params: BillingApplySubscriptionParams): Promise<BillingApplySubscriptionResult>;
+  /** rpc('billing_apply_user_subscription', params) – solo plan; throws Error(message) on a database error. */
+  applyUserSubscription(params: BillingApplyUserSubscriptionParams): Promise<BillingApplyUserSubscriptionResult>;
 }
 
 /** The few Stripe reads the webhook needs (real: stripe.subscriptions.retrieve). */
@@ -59,7 +63,7 @@ export const isPermanentDbError = (message: string) => PERMANENT_DB_ERRORS.some(
 
 const STATUSES: StripeSubscriptionStatus[] = ["incomplete", "incomplete_expired", "trialing", "active", "past_due", "canceled", "unpaid", "paused"];
 const INVOICE_STATUSES: InvoiceStatus[] = ["draft", "open", "paid", "uncollectible", "void"];
-const BILLING_PLAN_IDS: BillingPlanId[] = ["starter", "professional", "enterprise", "individual", "family"];
+const BILLING_PLAN_IDS: BillingPlanId[] = ["starter", "professional", "enterprise", "individual", "family", "solo"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const idOf = (value: string | { id: string } | null | undefined): string | null => (value == null ? null : typeof value === "string" ? value : value.id);
@@ -89,7 +93,55 @@ function periodOf(sub: Stripe.Subscription): { start: string | null; end: string
   };
 }
 
-export interface OwnerHint { schoolId?: string | null; familyId?: string | null; userId?: string | null }
+export interface OwnerHint { schoolId?: string | null; familyId?: string | null; userId?: string | null; ownerType?: string | null }
+
+/**
+ * Solo subscription (plan 'solo') -> billing_apply_user_subscription params. The owner is metadata.user_id, but only when
+ * metadata.owner_type = 'user' (our checkout sets both; every subscription also carries user_id = the BUYER, so user_id
+ * alone never makes a subscription personal). Without it the DB still accepts the event when it knows the customer.
+ */
+export function userSubscriptionParams(
+  sub: Stripe.Subscription,
+  event: Pick<Stripe.Event, "id" | "type" | "created">,
+  extra: { latestInvoiceStatus?: InvoiceStatus | null; owner?: OwnerHint } = {},
+): BillingApplyUserSubscriptionParams | { error: string } {
+  if (planOfSubscription(sub) !== "solo") return { error: "unknown_plan" };
+  const base = commonParams(sub, event, extra.latestInvoiceStatus);
+  if ("error" in base) return base;
+  const meta = sub.metadata ?? {};
+  // A solo price on a school / family subscription (e.g. switched by hand in the Dashboard): never re-owned to a user.
+  if (uuidOrNull(meta.school_id) || uuidOrNull(meta.family_id) || uuidOrNull(extra.owner?.schoolId) || uuidOrNull(extra.owner?.familyId)) {
+    return { error: "plan_owner_mismatch" };
+  }
+  const personal = (extra.owner?.ownerType ?? meta.owner_type) === "user";
+  const userId = personal ? uuidOrNull(extra.owner?.userId) ?? uuidOrNull(meta.user_id) : null;
+  return { ...base, p_plan_id: "solo", p_user_id: userId };
+}
+
+/** Fields shared by both DB writers (status, period, cancel, invoice, event guard). */
+function commonParams(sub: Stripe.Subscription, event: Pick<Stripe.Event, "id" | "type" | "created">, latestInvoiceStatus?: InvoiceStatus | null) {
+  if (!STATUSES.includes(sub.status as StripeSubscriptionStatus)) return { error: "unknown_status" } as const;
+  const customer = idOf(sub.customer as string | { id: string });
+  if (!customer) return { error: "no_customer" } as const;
+  const period = periodOf(sub);
+  const endedAt = isoFromUnix((sub as unknown as { ended_at?: number | null }).ended_at);
+  if (sub.status === "canceled" && endedAt && (!period.end || endedAt < period.end)) period.end = endedAt;
+  const latestInvoice = typeof sub.latest_invoice === "object" && sub.latest_invoice ? (sub.latest_invoice as Stripe.Invoice).status : null;
+  const invoiceStatus = latestInvoiceStatus ?? (latestInvoice && INVOICE_STATUSES.includes(latestInvoice as InvoiceStatus) ? (latestInvoice as InvoiceStatus) : null);
+  return {
+    p_stripe_customer_id: customer,
+    p_stripe_subscription_id: sub.id,
+    p_status: sub.status as StripeSubscriptionStatus,
+    p_current_period_start: period.start,
+    p_current_period_end: period.end,
+    p_cancel_at_period_end: Boolean(sub.cancel_at_period_end) || (sub.cancel_at != null && sub.status !== "canceled"),
+    p_collection_method: (sub.collection_method ?? "charge_automatically") as CollectionMethod,
+    p_latest_invoice_status: invoiceStatus,
+    p_event_id: event.id,
+    p_event_type: event.type,
+    p_event_created: isoFromUnix(event.created),
+  };
+}
 
 /** Maps a Stripe subscription (+ optional owner hint from the checkout session) to billing_apply_subscription params. */
 export function subscriptionParams(
@@ -99,6 +151,9 @@ export function subscriptionParams(
 ): BillingApplySubscriptionParams | { error: string } {
   const plan = planOfSubscription(sub);
   if (!plan) return { error: "unknown_plan" };
+  if (plan === "solo") return { error: "solo_plan" }; // -> userSubscriptionParams
+  // A personal (solo) subscription moved to a school / family price: not ours to re-own (would violate the owner check).
+  if ((sub.metadata ?? {}).owner_type === "user" || extra.owner?.ownerType === "user") return { error: "plan_owner_mismatch" };
   if (!STATUSES.includes(sub.status as StripeSubscriptionStatus)) return { error: "unknown_status" };
   const customer = idOf(sub.customer as string | { id: string });
   if (!customer) return { error: "no_customer" };
@@ -172,7 +227,7 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
         return { kind: "ignored", reason: "not_a_subscription_checkout" };
       }
       const meta = session.metadata ?? {};
-      owner = { schoolId: meta.school_id, familyId: meta.family_id, userId: meta.user_id ?? session.client_reference_id };
+      owner = { schoolId: meta.school_id, familyId: meta.family_id, userId: meta.user_id ?? session.client_reference_id, ownerType: meta.owner_type };
       sub = await retrieve(subId);
       break;
     }
@@ -209,6 +264,7 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
     }
   }
 
+  if (planOfSubscription(sub!) === "solo") return applySolo(sub!, event, { owner, latestInvoiceStatus }, deps);
   const params = subscriptionParams(sub!, event, { owner, latestInvoiceStatus });
   if ("error" in params) {
     // Not a WendApply subscription (e.g. a `stripe trigger` fixture without plan metadata): acknowledge, never retry.
@@ -228,6 +284,31 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
     log("stripe webhook: permanent DB error", { event: event.id, type: event.type, error: message.split(":")[0], subscription: sub!.id });
     await deps.db.markEventProcessed(event.id, event.type);
     return { kind: "skipped", reason: message.match(/[A-Z_]{5,}/)?.[0] ?? "db_error", subscription: sub!.id };
+  }
+}
+
+/** Solo plan: billing_apply_user_subscription. Same answer rules as the school / family path. */
+async function applySolo(
+  sub: Stripe.Subscription, event: Stripe.Event, extra: { latestInvoiceStatus?: InvoiceStatus | null; owner?: OwnerHint }, deps: WebhookDeps,
+): Promise<WebhookOutcome> {
+  const log = deps.log ?? (() => {});
+  const params = userSubscriptionParams(sub, event, extra);
+  if ("error" in params) {
+    log("stripe webhook: skipped", { event: event.id, type: event.type, reason: params.error, subscription: sub.id });
+    await deps.db.markEventProcessed(event.id, event.type);
+    return { kind: "ignored", reason: params.error };
+  }
+  if (!params.p_user_id) log("stripe webhook: solo without owner in metadata (ok if the customer is known)", { event: event.id, subscription: sub.id });
+  try {
+    const result = await deps.db.applyUserSubscription(params);
+    if (!result.applied) return { kind: result.reason === "duplicate_event" ? "duplicate" : "skipped", reason: result.reason ?? "not_applied", subscription: sub.id } as WebhookOutcome;
+    return { kind: "applied", subscription: sub.id, licenceStatus: null };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!isPermanentDbError(message)) throw error;
+    log("stripe webhook: permanent DB error", { event: event.id, type: event.type, error: message.split(":")[0], subscription: sub.id });
+    await deps.db.markEventProcessed(event.id, event.type);
+    return { kind: "skipped", reason: message.match(/[A-Z_]{5,}/)?.[0] ?? "db_error", subscription: sub.id };
   }
 }
 

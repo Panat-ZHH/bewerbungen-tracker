@@ -84,3 +84,23 @@ Checked against the migration text and run on PGlite with all earlier migrations
 - **Dependencies:** needs `schools`, `school_licences`, `families`, `family_members`, `is_school_admin`, `_licence_state`, `_licence_default_limit`, `_school_current_licence`, `_family_current_plan`, `_family_plan_state` – i.e. `20261116100000`…`20261116140000` must be live first.
 - **Rollback (if ever needed, manual):** drop the three tables and the functions `billing_apply_subscription`, `billing_status_for_school`, `billing_status_for_family`, `_billing_status_json`, `is_family_parent`, `_licence_source_default` (+ trigger `school_licences_source_default`); delete the `source = 'stripe'` licence rows; the two columns can stay (harmless) or be dropped.
 - **Before applying live:** backup (Supabase dashboard), apply in the SQL editor or `supabase db push` *with approval*, then run `select public.billing_status_for_school(id) from public.schools limit 3;` as a smoke test.
+
+## Solo plan ("Einzelabo") – 20261118010000_access_core.sql + 20261118030000_billing_solo.sql
+
+- Columns: `billing_customers.user_id`, `billing_subscriptions.user_id` (→ auth.users, on delete cascade). Owner check: exactly
+  one of `school_id` / `family_id` / `user_id`; `plan_id = 'solo'` ⇔ `user_id` set. No `school_licences` row for solo:
+  `public.app_access()` reads the subscription directly (active/trialing = access, past_due = 7-day grace from the period start).
+- `billing_apply_user_subscription(p_stripe_customer_id, p_stripe_subscription_id, p_status, p_current_period_end,
+  p_current_period_start, p_cancel_at_period_end, p_collection_method, p_latest_invoice_status, p_user_id, p_plan_id = 'solo',
+  p_event_id, p_event_type, p_event_created)` – service role only (refuses any signed-in caller with FORBIDDEN). Same rules as
+  `billing_apply_subscription`: processed event → `duplicate_event`, older `p_event_created` → `stale_event`, advisory lock
+  `billing_sub:<id>`, customer created on first sight with `user_id = created_by = p_user_id` and never re-owned. Errors:
+  `BILLING_OWNER_REQUIRED` (new customer without user), `BILLING_OWNER_MISMATCH` (other user / subscription of another customer),
+  `INVALID_PLAN` (customer of a school / family, or plan ≠ solo), `INVALID_STATUS`, `INVALID_REQUEST`. Unknown user (account
+  deleted) → `owner_not_found`, acknowledged. Deliberately a NEW name, not an overload of `billing_apply_subscription`
+  (named-arg calls from supabase-js would become ambiguous).
+- `billing_status_for_user(p_user_id)` – authenticated (own uid only, else FORBIDDEN) + service role. Shape: README "Solo plan".
+- `billing_solo_eligibility(p_user_id)` – service role only: `{ role, account_type, covered_by }` for the checkout gate.
+- `account_billing_blockers(uid)` – now also `kind: 'solo'` for the user's own renewing solo subscription.
+- RLS: policies "solo owner reads own customer" / "solo owner reads own subscriptions" (`user_id = auth.uid()`), OR-ed with
+  the school admin / parent policies. No direct writes for users (unchanged grants).

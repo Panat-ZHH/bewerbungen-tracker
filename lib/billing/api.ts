@@ -1,8 +1,8 @@
 // Billing API logic – PURE (deps injected). Routes: app/api/billing/{checkout,portal,status}/route.ts.
 // Contract: STRIPE-PLAN.md "API". Tests: tests/billing-api.test.mjs.
 import { BILLING, PLANS, lookupKeyFor, type BillingInterval, type Plan, type PlanId } from "./plans.ts";
-import { authorizeOwner, parseOwner, type BillingAuthDeps, type BillingOwner } from "./auth.ts";
-import type { BillingStatusBase, BillingStatusForSchool } from "./db-types.ts";
+import { authorizeOwner, parseOwner, wantsOwnBilling, type BillingAuthDeps, type BillingOwner } from "./auth.ts";
+import type { BillingStatusBase, BillingStatusForSchool, BillingStatusForUser, SoloEligibility } from "./db-types.ts";
 
 export type PaymentMethod = "card" | "invoice";
 
@@ -18,9 +18,9 @@ export interface BillingApiStripe {
   hasOpenStripeSubscription?(customer: string): Promise<boolean>;
   /** Expires the customer's other OPEN Checkout Sessions of WendApply, so only the newest one can still be paid. Optional. */
   expireOpenCheckoutSessions?(customer: string): Promise<number>;
-  createCheckoutSession(p: { customer: string; price: string; kind: "school" | "family"; metadata: Record<string, string>; successUrl: string; cancelUrl: string }): Promise<{ url: string | null }>;
+  createCheckoutSession(p: { customer: string; price: string; kind: Plan["kind"]; metadata: Record<string, string>; successUrl: string; cancelUrl: string }): Promise<{ url: string | null }>;
   /** In-app payment (Checkout Session ui_mode "elements" + Payment Element on our own page). */
-  createElementsSession(p: { customer: string; price: string; kind: "school" | "family"; metadata: Record<string, string>; returnUrl: string }): Promise<{ clientSecret: string | null }>;
+  createElementsSession(p: { customer: string; price: string; kind: Plan["kind"]; metadata: Record<string, string>; returnUrl: string }): Promise<{ clientSecret: string | null }>;
   /** Minimal view of a Checkout Session for the in-app return page. */
   retrieveCheckoutSession(id: string): Promise<CheckoutSessionView | null>;
   /**
@@ -41,6 +41,8 @@ export interface CheckoutSessionView {
 export type CheckoutUi = "hosted" | "elements";
 /** Return page of the in-app payment (Stripe adds the session id for redirect-based methods like TWINT or 3DS redirects). */
 export const IN_APP_RETURN_PATH = "/familie/bezahlen/fertig";
+/** Page of the solo plan ("Einzelabo"): Checkout success / cancel, portal return and in-app return all come back here. */
+export const SOLO_RETURN_PATH = "/abo";
 
 export interface BillingApiDb {
   /**
@@ -49,6 +51,7 @@ export interface BillingApiDb {
    * A Stripe customer holds the creator's card, billing address and invoices; a parent who joined later (after the
    * creator left or deleted the account) must never open that portal or renew that subscription on the old card.
    * Schools: any customer of the school (all school admins manage the school's billing).
+   * Users (solo): only the user's own customer (billing_customers.user_id = the caller).
    */
   findCustomerId(owner: BillingOwner, userId: string): Promise<string | null>;
   /**
@@ -65,6 +68,10 @@ export interface BillingApiDb {
   ownerName(owner: BillingOwner): Promise<string | null>;
   /** billing_status_for_school / _family called WITH THE CALLER'S TOKEN (the DB re-checks the role). */
   status(owner: BillingOwner, token: string): Promise<(BillingStatusBase & Partial<BillingStatusForSchool>) | null>;
+  /** billing_status_for_user(caller) WITH THE CALLER'S TOKEN (the DB re-checks uid = owner). Solo plan. */
+  userStatus(userId: string, token: string): Promise<BillingStatusForUser | null>;
+  /** billing_solo_eligibility(user) with the service role: role (student / parent / staff) and existing coverage. */
+  soloEligibility(userId: string): Promise<SoloEligibility>;
 }
 
 export interface BillingApiDeps {
@@ -116,12 +123,14 @@ function gate(deps: BillingApiDeps): ApiResult | null {
   return null;
 }
 
-const returnPath = (owner: BillingOwner) => (owner.kind === "school" ? "/schul-admin" : "/familie");
-const ownerMeta = (owner: BillingOwner): Record<string, string> => (owner.kind === "school" ? { school_id: owner.id } : { family_id: owner.id });
+const returnPath = (owner: BillingOwner) => (owner.kind === "school" ? "/schul-admin" : owner.kind === "family" ? "/familie" : SOLO_RETURN_PATH);
+/** Owner part of the Stripe metadata. Solo: owner_type 'user' + user_id (the webhook maps it to billing_subscriptions.user_id). */
+const ownerMeta = (owner: BillingOwner): Record<string, string> =>
+  owner.kind === "school" ? { school_id: owner.id } : owner.kind === "family" ? { family_id: owner.id } : { owner_type: "user", user_id: owner.id };
 
-/** Where the Stripe customer portal sends the user back. Families get `?billing=portal` so /familie reloads the status (§3.4). */
+/** Where the Stripe customer portal sends the user back. Families and solo get `?billing=portal` so the page reloads the status (§3.4). */
 export function portalReturnUrl(baseUrl: string, owner: BillingOwner): string {
-  return `${baseUrl}${returnPath(owner)}${owner.kind === "family" ? "?billing=portal" : ""}`;
+  return `${baseUrl}${returnPath(owner)}${owner.kind !== "school" ? "?billing=portal" : ""}`;
 }
 
 /** A plan that can be bought through Stripe (has a lookup key and checkout). */
@@ -132,7 +141,8 @@ export function purchasablePlan(id: unknown): Plan | null {
 }
 
 /** POST /api/billing/checkout  body { plan, schoolId? , familyId?, payment: 'card'|'invoice', interval?: 'year'|'month' (default year), ui?: 'hosted'|'elements' }
- *  hosted → { url } (redirect), elements (families, card) → { clientSecret } for the in-app Payment Element. */
+ *  Solo ("Einzelabo"): { plan: 'solo', interval, owner?: 'me' } – the owner is always the caller (students only).
+ *  hosted → { url } (redirect), elements (families / solo, card) → { clientSecret } for the in-app Payment Element. */
 export async function checkout(input: { token: string | null; body: unknown }, deps: BillingApiDeps): Promise<ApiResult> {
   const closed = gate(deps);
   if (closed) return closed;
@@ -143,22 +153,41 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   if (payment !== "card" && payment !== "invoice") return err(400, "invalid_payment");
   const ui: CheckoutUi = body.ui === undefined || body.ui === null ? "hosted" : (body.ui as CheckoutUi);
   if (ui !== "hosted" && ui !== "elements") return err(400, "invalid_ui");
-  // In-app payment is built for the family package (consumer, card/wallets). Schools keep the hosted page (UID, invoice address).
-  if (ui === "elements" && (plan.kind !== "family" || payment !== "card")) return err(400, "invalid_ui");
+  // In-app payment is built for consumers (family package, solo; card/wallets). Schools keep the hosted page (UID, invoice address).
+  if (ui === "elements" && (plan.kind === "school" || payment !== "card")) return err(400, "invalid_ui");
   const interval: BillingInterval = body.interval === undefined || body.interval === null ? "year" : (body.interval as BillingInterval);
   if (interval !== "year" && interval !== "month") return err(400, "invalid_interval");
   const lookupKey = lookupKeyFor(plan, interval);
   if (!lookupKey) return err(400, "invalid_interval"); // e.g. monthly for a school plan
-  const owner = parseOwner(body);
-  if (!owner) return err(400, "invalid_owner");
-  if (owner.kind !== plan.kind) return err(400, "plan_owner_mismatch");
+  const solo = plan.kind === "individual";
+  let owner: BillingOwner | null;
+  if (solo) {
+    // The solo plan always belongs to the caller: no schoolId / familyId, `owner` may only be "me".
+    if (body.schoolId || body.familyId || (body.owner !== undefined && body.owner !== "me")) return err(400, "invalid_owner");
+    owner = null; // = the caller, known after auth
+  } else {
+    owner = parseOwner(body);
+    if (!owner) return err(400, "invalid_owner");
+    if (owner.kind !== plan.kind) return err(400, "plan_owner_mismatch");
+  }
   if (payment === "invoice" && !plan.invoiceAllowed) return err(400, "invoice_not_allowed");
   if (plan.placeholder && deps.liveMode) return err(409, "plan_not_available");
 
-  const auth = await authorizeOwner(input.token, owner, deps.auth);
-  if (!auth.ok) return err(auth.status, auth.error);
-
-  if (await deps.db.hasOpenSubscription(owner)) return err(409, "already_subscribed"); // change/cancel via the portal
+  let auth: { ok: true; user: { id: string; email: string | null } };
+  if (solo) {
+    const user = input.token ? await deps.auth.getUser(input.token) : null;
+    if (!user) return err(401, "unauthenticated");
+    auth = { ok: true, user };
+    owner = { kind: "user", id: user.id };
+    const blocked = await soloBlocker(user.id, deps);
+    if (blocked) return blocked;
+  } else {
+    const a = await authorizeOwner(input.token, owner!, deps.auth);
+    if (!a.ok) return err(a.status, a.error);
+    auth = a;
+    if (await deps.db.hasOpenSubscription(owner!)) return err(409, "already_subscribed"); // change/cancel via the portal
+  }
+  if (!owner) return err(400, "invalid_owner");
 
   const price = await deps.stripe.priceIdForLookupKey(lookupKey);
   if (!price) {
@@ -204,7 +233,9 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   if (ui === "elements") {
     const session = await deps.stripe.createElementsSession({
       customer, price, kind: plan.kind, metadata,
-      returnUrl: `${deps.baseUrl}${IN_APP_RETURN_PATH}?session_id={CHECKOUT_SESSION_ID}`,
+      returnUrl: solo
+        ? `${deps.baseUrl}${SOLO_RETURN_PATH}?billing=success&session_id={CHECKOUT_SESSION_ID}`
+        : `${deps.baseUrl}${IN_APP_RETURN_PATH}?session_id={CHECKOUT_SESSION_ID}`,
     });
     if (!session.clientSecret) return err(502, "checkout_failed");
     return { status: 200, body: { clientSecret: session.clientSecret } };
@@ -219,6 +250,21 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   return { status: 200, body: { url: session.url } };
 }
 
+/**
+ * Solo checkout gate (after the token is verified): only students (account_type school_student / independent_student; not
+ * parents, teachers or school admins) and only when nothing covers them yet. Returns the error answer, or null = may buy.
+ *   403 solo_parent_use_family – parents buy the family package; 403 solo_students_only – teachers / school admins.
+ *   409 already_subscribed + coveredBy 'solo' | 'family' | 'school' – own open solo subscription (renew / change it in the
+ *   portal), covered by a family subscription or a valid school licence (would pay twice).
+ */
+async function soloBlocker(userId: string, deps: BillingApiDeps): Promise<ApiResult | null> {
+  const e = await deps.db.soloEligibility(userId);
+  if (e.role === "parent") return err(403, "solo_parent_use_family");
+  if (e.role !== "student") return err(403, "solo_students_only");
+  if (e.covered_by) return { status: 409, body: { error: "already_subscribed", coveredBy: e.covered_by } };
+  return null;
+}
+
 /** Stripe answered that the idempotency key is in use by a concurrent request or was used with other parameters. */
 export function isIdempotencyConflict(error: unknown): boolean {
   const e = (error ?? {}) as { type?: unknown; code?: unknown; rawType?: unknown };
@@ -230,14 +276,32 @@ export function invoiceIdempotencyKey(owner: BillingOwner, lookupKey: string, no
   return `wendapply-invoice-sub-${owner.kind}-${owner.id}-${lookupKey}-${Math.floor(now / 600_000)}`;
 }
 
-/** POST /api/billing/portal  body { schoolId? , familyId? } */
+/** Caller's own owner for `owner: "me"` (solo): verifies the token. */
+async function ownOwner(token: string | null, deps: BillingApiDeps): Promise<{ ok: true; owner: BillingOwner; user: { id: string; email: string | null } } | { ok: false; result: ApiResult }> {
+  const user = token ? await deps.auth.getUser(token) : null;
+  if (!user) return { ok: false, result: err(401, "unauthenticated") };
+  return { ok: true, owner: { kind: "user", id: user.id }, user };
+}
+
+/** POST /api/billing/portal  body { schoolId? , familyId? } | { owner: 'me' } (solo: the caller's own customer only) */
 export async function portal(input: { token: string | null; body: unknown }, deps: BillingApiDeps): Promise<ApiResult> {
   const closed = gate(deps);
   if (closed) return closed;
-  const owner = parseOwner((input.body && typeof input.body === "object" ? input.body : {}) as Record<string, unknown>);
-  if (!owner) return err(400, "invalid_owner");
-  const auth = await authorizeOwner(input.token, owner, deps.auth);
-  if (!auth.ok) return err(auth.status, auth.error);
+  const body = (input.body && typeof input.body === "object" ? input.body : {}) as Record<string, unknown>;
+  let owner: BillingOwner | null;
+  let auth: { ok: true; user: { id: string; email: string | null } };
+  if (wantsOwnBilling(body)) {
+    const me = await ownOwner(input.token, deps);
+    if (!me.ok) return me.result;
+    owner = me.owner;
+    auth = { ok: true, user: me.user };
+  } else {
+    owner = parseOwner(body);
+    if (!owner) return err(400, "invalid_owner");
+    const a = await authorizeOwner(input.token, owner, deps.auth);
+    if (!a.ok) return err(a.status, a.error);
+    auth = a;
+  }
   const customer = await deps.db.findCustomerId(owner, auth.user.id);
   if (!customer) return err(404, "no_customer");
   const session = await deps.stripe.createPortalSession({ customer, returnUrl: portalReturnUrl(deps.baseUrl, owner) });
@@ -261,6 +325,14 @@ export async function checkoutSession(input: { token: string | null; query: URLS
   if (!user) return err(401, "unauthenticated");
   const session = await deps.stripe.retrieveCheckoutSession(id);
   if (!session || session.metadata.app !== "wendapply") return err(404, "session_not_found");
+  if (session.metadata.owner_type === "user") {
+    // Solo: only the buyer themselves (never confirm someone else's session).
+    if (session.metadata.user_id !== user.id || session.metadata.plan_id !== "solo") return err(404, "session_not_found");
+    return {
+      status: 200,
+      body: { status: session.status, paymentStatus: session.paymentStatus, plan: "solo", interval: session.metadata.interval === "month" ? "month" : "year", owner: "me" },
+    };
+  }
   const owner = parseOwner({ schoolId: session.metadata.school_id, familyId: session.metadata.family_id });
   if (!owner) return err(404, "session_not_found");
   const allowed = owner.kind === "school" ? await deps.auth.isSchoolAdmin(input.token, owner.id) : await deps.auth.isFamilyParent(input.token, owner.id);
@@ -277,9 +349,14 @@ export async function checkoutSession(input: { token: string | null; query: URLS
   };
 }
 
-/** GET /api/billing/status?schoolId=|familyId= */
+/** GET /api/billing/status?schoolId=|familyId=|owner=me */
 export async function status(input: { token: string | null; query: URLSearchParams }, deps: BillingApiDeps): Promise<ApiResult> {
   if (!deps.enabled) return DISABLED;
+  if (wantsOwnBilling({ owner: input.query.get("owner"), schoolId: input.query.get("schoolId"), familyId: input.query.get("familyId") })) {
+    const me = await ownOwner(input.token, deps);
+    if (!me.ok) return me.result;
+    return { status: 200, body: userStatusBody(await deps.db.userStatus(me.user.id, input.token!)) };
+  }
   const owner = parseOwner({ schoolId: input.query.get("schoolId") ?? undefined, familyId: input.query.get("familyId") ?? undefined });
   if (!owner) return err(400, "invalid_owner");
   const auth = await authorizeOwner(input.token, owner, deps.auth);
@@ -303,5 +380,31 @@ export async function status(input: { token: string | null; query: URLSearchPara
       hasCustomer: Boolean(s?.has_customer),
       studentsUsed: s?.students_used ?? null,
     },
+  };
+}
+
+/**
+ * Body of GET /api/billing/status?owner=me (docs/billing/README.md "Solo status"). Same keys as the school / family answer
+ * where they make sense (plan, status, validUntil, cancelAtPeriodEnd, subscriptionStatus, …) plus owner, interval, graceUntil.
+ */
+export function userStatusBody(s: BillingStatusForUser | null): Record<string, unknown> {
+  const has = Boolean(s?.plan);
+  return {
+    enabled: true,
+    owner: "me",
+    plan: s?.plan ?? null,
+    status: s?.state ?? null,
+    interval: s?.interval ?? null,
+    studentLimit: has ? 1 : null,
+    validUntil: s?.valid_until ?? null,
+    graceUntil: s?.grace_until ?? null,
+    cancelAtPeriodEnd: Boolean(s?.cancel_at_period_end),
+    source: has ? "stripe" : null,
+    subscriptionStatus: s?.subscription_status ?? null,
+    collectionMethod: s?.collection_method ?? null,
+    latestInvoiceStatus: s?.latest_invoice_status ?? null,
+    currentPeriodEnd: s?.current_period_end ?? null,
+    hasCustomer: Boolean(s?.has_customer),
+    studentsUsed: null,
   };
 }

@@ -1,10 +1,11 @@
-// Who may buy / manage / see billing: school admins of the school, active parents of the family (children never).
+// Who may buy / manage / see billing: school admins of the school, active parents of the family (children never), and for
+// the solo plan ("Einzelabo") only the user themselves (owner { kind: "user", id: caller }).
 // Reuses the existing SQL helpers public.is_school_admin(uuid) and public.is_family_parent(uuid), called with the
 // CALLER's token (auth.uid() = the caller), so the rules live in one place: the database.
 // The checks themselves are pure (injected deps) so tests/billing-api.test.mjs runs without network.
 import { createClient } from "@supabase/supabase-js";
 
-export type BillingOwner = { kind: "school"; id: string } | { kind: "family"; id: string };
+export type BillingOwner = { kind: "school"; id: string } | { kind: "family"; id: string } | { kind: "user"; id: string };
 export interface BillingUser { id: string; email: string | null }
 
 export interface BillingAuthDeps {
@@ -32,11 +33,17 @@ export function parseOwner(input: { schoolId?: unknown; familyId?: unknown }): B
   return school ? { kind: "school", id } : { kind: "family", id };
 }
 
+/** `owner: "me"` in a body / `?owner=me` in a query: the caller's own (solo) billing. Never combined with schoolId / familyId. */
+export function wantsOwnBilling(input: { owner?: unknown; schoolId?: unknown; familyId?: unknown }): boolean {
+  return input.owner === "me" && !input.schoolId && !input.familyId;
+}
+
 export async function authorizeOwner(token: string | null, owner: BillingOwner, deps: BillingAuthDeps): Promise<AuthResult> {
   if (!token) return { ok: false, status: 401, error: "unauthenticated" };
   const user = await deps.getUser(token);
   if (!user) return { ok: false, status: 401, error: "unauthenticated" };
-  const allowed = owner.kind === "school" ? await deps.isSchoolAdmin(token, owner.id) : await deps.isFamilyParent(token, owner.id);
+  const allowed = owner.kind === "user" ? user.id === owner.id
+    : owner.kind === "school" ? await deps.isSchoolAdmin(token, owner.id) : await deps.isFamilyParent(token, owner.id);
   return allowed ? { ok: true, user } : { ok: false, status: 403, error: "forbidden" };
 }
 
