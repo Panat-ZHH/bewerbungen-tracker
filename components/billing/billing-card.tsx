@@ -7,12 +7,12 @@ import { CheckCircle2, CreditCard, ExternalLink, FileText, Lock, Mail, ReceiptTe
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
-import { PLANS, formatChf, yearlySavingChf, type PlanId } from "@/lib/billing/plans";
+import { BILLING, PLANS, formatChf, yearlySavingChf, type PlanId } from "@/lib/billing/plans";
 import { FAMILY_COPY, fill } from "@/lib/family-copy";
 import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
-  FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
+  FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyManageMode, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
   inAppPaymentEnabled, onlinePaymentEnabled, payPageHref, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
   type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
@@ -108,7 +108,7 @@ function InvoiceSent({ url }: { url: string | null }) {
   return (
     <StatusMessage tone="success" icon={<CheckCircle2 />}>
       <span className="block font-bold">Rechnung angefordert</span>
-      <span className="block">Die Rechnung kommt per E-Mail. Die Lizenz wird freigeschaltet, sobald sie bezahlt ist.</span>
+      <span className="block">{`Die Rechnung kommt per E-Mail. Die Lizenz ist in wenigen Sekunden aktiv. Die Rechnung ist innert ${BILLING.invoiceDaysUntilDue} Tagen zahlbar; bleibt sie offen, endet der Zugang nach einer kurzen Nachfrist.`}</span>
       {url && <a href={url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 font-semibold underline underline-offset-2">Rechnung ansehen<ExternalLink size={14} aria-hidden /><span className="sr-only"> (öffnet in neuem Tab)</span></a>}
     </StatusMessage>
   );
@@ -154,7 +154,7 @@ export function BillingOffNotice({ children }: { children?: React.ReactNode }) {
 export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentEnabled() }: { schoolId: string; anchor?: boolean; enabled?: boolean }) {
   const owner: BillingOwner = { kind: "school", id: schoolId };
   const { load, reload } = useBillingStatus(owner, enabled);
-  // Invoice requested: keep the confirmation (the licence follows once the invoice is paid, via the webhook).
+  // Invoice requested: keep the confirmation (send_invoice subscriptions are active right away; unpaid after the term => grace, then expired).
   const [invoice, setInvoice] = useState<{ url: string | null } | null>(null);
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (anchor && window.location.hash === "#abo") ref.current?.scrollIntoView({ block: "start" }); }, [anchor]);
@@ -435,10 +435,25 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
     );
   }
   const fix = p === "past_due" || p === "unpaid";
+  const manage = familyManageMode(status ?? null);
+  if (manage === "manual") {
+    // Trial / pilot / manual plan from WendApply: no portal, no "other parent"; a trial can be upgraded right away.
+    return (
+      <div className="space-y-3" data-billing-state={p} data-billing-manage="manual">
+        {text && <p className="text-body">{text}</p>}
+        <p className="text-small text-muted">{FAMILY_COPY.manage.manual}</p>
+        {p === "trialing" && (rebuy || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
+          <Button variant="secondary" onClick={() => setRebuy(true)} icon={<Sparkles size={16} aria-hidden />}>{FAMILY_COPY.manage.buyNow}</Button>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="space-y-3" data-billing-state={p}>
       {text && <p className={fix ? "text-body font-semibold" : "text-body"}>{text}</p>}
-      <FamilyPortalButton familyId={familyId} phase={p} primary={fix && current} label={fix ? FAMILY_COPY.cta.updateCard : p === "canceling" ? FAMILY_COPY.cta.renew : FAMILY_COPY.cta.manage} />
+      {manage === "other-parent"
+        ? <p className="text-small text-muted" data-billing-manage="other-parent">{FAMILY_COPY.manage.otherParent}</p>
+        : <FamilyPortalButton familyId={familyId} phase={p} primary={fix && current} label={fix ? FAMILY_COPY.cta.updateCard : p === "canceling" ? FAMILY_COPY.cta.renew : FAMILY_COPY.cta.manage} />}
     </div>
   );
 }

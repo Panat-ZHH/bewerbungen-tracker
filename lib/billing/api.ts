@@ -175,19 +175,30 @@ export async function checkout(input: { token: string | null; body: unknown }, d
       idempotencyKey: `wendapply-customer-${owner.kind}-${owner.id}-${auth.user.id}-${Math.floor(Date.now() / 600_000)}`,
     });
     await deps.db.saveCustomer?.(owner, customer, auth.user.id).catch((e) => deps.log?.("billing checkout: could not save customer", { error: String(e) }));
-  } else if (await deps.stripe.hasOpenStripeSubscription?.(customer)) {
+  }
+  // Also for a "new" customer: within 10 minutes the idempotency key above hands back the SAME customer when saving it
+  // failed, and that customer may have been paid seconds ago (re-audit 2 2026-11-17).
+  if (await deps.stripe.hasOpenStripeSubscription?.(customer)) {
     return err(409, "already_subscribed"); // paid / invoiced seconds ago, the webhook has not mirrored it yet
   }
   // Double checkout (two tabs, interval switch on the pay page, back button): only the newest session stays payable.
   await deps.stripe.expireOpenCheckoutSessions?.(customer);
 
   if (payment === "invoice") {
-    const { hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({
-      customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata,
-      // Same owner + price within 10 minutes = the same request (Stripe replays the first answer; a parallel one with a
-      // different customer is rejected by Stripe). Owner-based, not customer-based: two admins racing get one subscription.
-      idempotencyKey: invoiceIdempotencyKey(owner, lookupKey),
-    });
+    let hostedInvoiceUrl: string | null;
+    try {
+      ({ hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({
+        customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata,
+        // Same owner + price within 10 minutes = the same request (Stripe replays the first answer; a parallel one with a
+        // different customer is rejected by Stripe). Owner-based, not customer-based: two admins racing get one subscription.
+        idempotencyKey: invoiceIdempotencyKey(owner, lookupKey),
+      }));
+    } catch (error) {
+      // The parallel twin of a request that is creating this subscription right now (or did so with another customer):
+      // that is "already subscribed", not a server error (re-audit 2; was a generic 500).
+      if (isIdempotencyConflict(error)) return err(409, "already_subscribed");
+      throw error;
+    }
     return { status: 200, body: { url: hostedInvoiceUrl, invoice: true } };
   }
   if (ui === "elements") {
@@ -206,6 +217,12 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   });
   if (!session.url) return err(502, "checkout_failed");
   return { status: 200, body: { url: session.url } };
+}
+
+/** Stripe answered that the idempotency key is in use by a concurrent request or was used with other parameters. */
+export function isIdempotencyConflict(error: unknown): boolean {
+  const e = (error ?? {}) as { type?: unknown; code?: unknown; rawType?: unknown };
+  return e.code === "idempotency_key_in_use" || e.type === "StripeIdempotencyError" || e.rawType === "idempotency_error";
 }
 
 /** Idempotency key of an invoice subscription: owner + price + 10-minute bucket. */

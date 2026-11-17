@@ -199,7 +199,12 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
         return { kind: "ignored", reason: "invoice_without_subscription" };
       }
       sub = await retrieve(subId);
-      latestInvoiceStatus = event.type === "invoice.paid" ? "paid" : INVOICE_STATUSES.includes(invoice.status as InvoiceStatus) ? (invoice.status as InvoiceStatus) : "open";
+      // Only when this invoice IS the subscription's latest one: a late payment of an older invoice must not hide the
+      // newer, still open renewal invoice (the retrieved subscription's latest_invoice is used then; re-audit 2).
+      const latestId = idOf(sub.latest_invoice as string | { id: string } | null);
+      if (!latestId || latestId === invoice.id) {
+        latestInvoiceStatus = event.type === "invoice.paid" ? "paid" : INVOICE_STATUSES.includes(invoice.status as InvoiceStatus) ? (invoice.status as InvoiceStatus) : "open";
+      }
       break;
     }
   }

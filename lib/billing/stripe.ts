@@ -3,6 +3,7 @@
 import Stripe from "stripe";
 import type { WebhookStripe } from "./webhook.ts";
 import type { BillingApiStripe } from "./api.ts";
+import { priceMatchesCatalogue } from "./plans.ts";
 
 /** Pinned so a Stripe SDK upgrade never silently changes payload shapes (webhook.ts reads period/parent fields of this version). */
 export const STRIPE_API_VERSION = "2026-10-28.endive" as const;
@@ -41,7 +42,16 @@ export function apiStripe(stripe: Stripe = getStripe()): BillingApiStripe {
       const hit = priceCache.get(key);
       if (hit && Date.now() - hit.at < 10 * 60_000) return hit.id;
       const { data } = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 });
-      const id = data[0]?.id ?? null;
+      const price = data[0];
+      // Never sell a price that differs from the catalogue the page shows (amount, currency, interval): treat it as
+      // missing => 503 price_not_found, nothing is charged (re-audit 2 2026-11-17).
+      if (price && !priceMatchesCatalogue(price, key)) {
+        console.error("billing: Stripe price does not match lib/billing/plans.ts", JSON.stringify({
+          lookupKey: key, price: price.id, unit_amount: price.unit_amount, currency: price.currency, interval: price.recurring?.interval ?? null,
+        }));
+        return null;
+      }
+      const id = price?.id ?? null;
       if (id) priceCache.set(key, { id, at: Date.now() });
       return id;
     },

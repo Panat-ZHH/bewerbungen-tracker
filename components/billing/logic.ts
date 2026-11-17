@@ -91,6 +91,8 @@ export interface BillingStatus {
   subscriptionStatus: string | null;
   collectionMethod: string | null;
   latestInvoiceStatus: string | null;
+  /** The caller can open the customer portal (false: the plan was bought by another parent who manages it). null = unknown. */
+  hasCustomer: boolean | null;
 }
 
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
@@ -110,6 +112,7 @@ export function readBillingStatus(v: unknown): BillingStatus | null {
     subscriptionStatus: str(r.subscriptionStatus),
     collectionMethod: str(r.collectionMethod),
     latestInvoiceStatus: str(r.latestInvoiceStatus),
+    hasCustomer: typeof r.hasCustomer === "boolean" ? r.hasCustomer : null,
   };
 }
 
@@ -181,6 +184,19 @@ export function hasSubscription(s: BillingStatus | null): boolean {
   if (phase === "ended" || phase === "none") return false;
   if (s.source === "stripe") return true;
   return !!s.subscriptionStatus;
+}
+
+/**
+ * What the family card offers next to an existing plan (re-audit 2 2026-11-17):
+ * - "manual": a plan WendApply assigned by hand (trial / pilot / manual active, no Stripe subscription). There is no Stripe
+ *   customer to manage and no other parent who bought it; a trial can be upgraded to the paid package.
+ * - "other-parent": a Stripe subscription whose customer the caller may not open (bought by another parent).
+ * - "portal": the caller manages it in the Stripe customer portal.
+ */
+export function familyManageMode(s: BillingStatus | null): "manual" | "other-parent" | "portal" {
+  if (s && !s.subscriptionStatus && s.source !== "stripe") return "manual";
+  if (s?.hasCustomer === false) return "other-parent";
+  return "portal";
 }
 
 /** Status badge for the subscription details (schools and families). Same words as the family badges (§4.3). */
