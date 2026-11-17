@@ -2,7 +2,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { computeReminders, digestText, isoDay, normalizeSettings } from "@/lib/reminders";
 import { getMailer, type Mailer } from "@/lib/reminders-mail";
-import { sendPush, vapidFromEnv, type VapidKeys } from "@/lib/reminders-push";
+import { MAX_PUSH_SUBSCRIPTIONS_PER_USER, sendPush, vapidFromEnv, type VapidKeys } from "@/lib/reminders-push";
 
 export function adminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -41,7 +41,8 @@ export async function runDigest(admin: SupabaseClient, opts: { dryRun?: boolean;
         const { subject, text } = digestText(fresh, appBaseUrl());
         await mailer.send({ to: u.user.email, subject, text }); sum.emails++; delivered = true;
       } else if (vapid) {
-        const { data: subs } = await admin.from("push_subscriptions").select("id,endpoint,p256dh,auth").eq("user_id", row.user_id);
+        const { data: subs } = await admin.from("push_subscriptions").select("id,endpoint,p256dh,auth").eq("user_id", row.user_id)
+          .order("created_at", { ascending: false }).limit(MAX_PUSH_SUBSCRIPTIONS_PER_USER);
         for (const s of subs ?? []) {
           const r = await sendPush(s, { title: fresh.length === 1 ? fresh[0].title : `${fresh.length} Erinnerungen`, body: fresh.length === 1 ? fresh[0].detail : fresh.map((f) => f.company).join(", "), url: "/dashboard" }, vapid).catch(() => ({ ok: false, gone: false, status: 0 }));
           if (r.gone) await admin.from("push_subscriptions").delete().eq("id", s.id);

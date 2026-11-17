@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { limitIp, limitUser } from "@/lib/api-rate-limit";
+import { isPushServiceEndpoint } from "@/lib/reminders-push";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -37,7 +38,7 @@ export async function POST(request: Request) {
   const ctx = g.client;
   const body = await request.json().catch(() => null) as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } } | null;
   const { endpoint, keys } = body ?? {};
-  if (typeof endpoint !== "string" || !/^https:\/\//.test(endpoint) || endpoint.length > 2000 || typeof keys?.p256dh !== "string" || typeof keys?.auth !== "string") return Response.json({ code: "INVALID_REQUEST" }, { status: 400, headers });
+  if (!isPushServiceEndpoint(endpoint) || typeof keys?.p256dh !== "string" || keys.p256dh.length > 200 || typeof keys?.auth !== "string" || keys.auth.length > 100) return Response.json({ code: "INVALID_REQUEST" }, { status: 400, headers });
   const { error } = await ctx.client.from("push_subscriptions").upsert({ user_id: ctx.userId, endpoint, p256dh: keys.p256dh, auth: keys.auth }, { onConflict: "endpoint" });
   return error ? Response.json({ code: "SAVE_FAILED" }, { status: 500, headers }) : Response.json({ ok: true }, { headers });
 }
