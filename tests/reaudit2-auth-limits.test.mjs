@@ -32,9 +32,11 @@ test("AI review: a DOCX whose document.xml DECLARES a huge size is refused befor
   let allocatedFor = null;
   const spy = { ...realExtract, unzip: (b, only) => unzipSync(b, { filter: (f) => { const ok = only(f.name, f.originalSize); if (ok) allocatedFor = f.originalSize; return ok; } }) };
   const bomb = declareSize(makeDocx(), 0xfffffff0); // ~4 GB declared, the file itself is < 1 KB
-  await assert.rejects(extractApplicationText(bomb, spy), (e) => e.code === "too_long");
+  // too_long (this branch) or unsupported_file (reaudit2-sec's equivalent fix): either way it is refused un-inflated.
+  const refused = (e) => ["too_long", "unsupported_file"].includes(e.code);
+  await assert.rejects(extractApplicationText(bomb, spy), refused);
   assert.equal(allocatedFor, null, "word/document.xml must not be inflated");
-  await assert.rejects(extractApplicationText(declareSize(makeDocx(), MAX_DOCX_XML_BYTES + 1), realExtract), (e) => e.code === "too_long");
+  await assert.rejects(extractApplicationText(declareSize(makeDocx(), MAX_DOCX_XML_BYTES + 1), realExtract), refused);
 });
 
 test("AI review: a normal DOCX still works, a size that is declared too SMALL only truncates (no crash, no growth)", async () => {
