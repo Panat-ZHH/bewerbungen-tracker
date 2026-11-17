@@ -25,3 +25,14 @@ export function rateLimitText(reason: unknown): string | null {
   if (r.error === "rate_limited" && typeof r.message === "string" && r.message.trim()) return r.message.trim();
   return RATE_LIMIT_FALLBACK;
 }
+
+/**
+ * `.catch()` handler for optional parts (e.g. the server export): any error → `fallback`, EXCEPT a rate limit, which is
+ * re-thrown so the user sees the wait text instead of silently getting an incomplete result.
+ */
+export function unlessRateLimited<T>(fallback: T): (reason: unknown) => T {
+  return (reason: unknown) => {
+    if (isRateLimited(reason)) throw reason;
+    return fallback;
+  };
+}

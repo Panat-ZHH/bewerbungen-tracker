@@ -52,7 +52,11 @@ export async function enablePush(): Promise<"ok" | "denied" | "unsupported" | "n
   const reg = await navigator.serviceWorker.ready;
   const sub = (await reg.pushManager.getSubscription()) ?? await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toKey(key.publicKey) });
   const res = await fetch("/api/reminders/push", { method: "POST", headers: await bearer(), body: JSON.stringify(sub.toJSON()) });
-  if (!res.ok) throw new Error("PUSH_SAVE_FAILED");
+  if (!res.ok) {
+    // 429 { error: "rate_limited", message } → friendlyMessage() shows the German wait text
+    const body = res.status === 429 ? await res.json().catch(() => null) as { message?: string } | null : null;
+    throw Object.assign(new Error("PUSH_SAVE_FAILED"), res.status === 429 ? { status: 429, error: "rate_limited", message: body?.message ?? "rate_limited" } : {});
+  }
   return "ok";
 }
 export async function disablePush() {

@@ -48,8 +48,20 @@ export function dailyChecksFor(userLimit: number | null | undefined, config: Lim
   return typeof userLimit === "number" && Number.isInteger(userLimit) && userLimit >= 0 ? userLimit : config.defaultDailyChecks;
 }
 
+type HeaderBag = { get(name: string): string | null };
+
+/**
+ * Headers the client can forge on Supabase. x-nf-client-connection-ip is only trustworthy behind Netlify (Netlify sets
+ * it); requests to a Supabase edge function come through Cloudflare, which sets cf-connecting-ip itself. Without this
+ * filter a client could send a random x-nf-client-connection-ip with every request and get a fresh IP budget each time.
+ */
+const FORGEABLE_ON_SUPABASE = new Set(["x-nf-client-connection-ip"]);
+export function supabaseClientHeaders(headers: HeaderBag): HeaderBag {
+  return { get: (name: string) => (FORGEABLE_ON_SUPABASE.has(name.toLowerCase()) ? null : headers.get(name)) };
+}
+
 export const keys = {
-  ip: (headers: { get(name: string): string | null }) => ipKey("ai-review", headers),
+  ip: (headers: HeaderBag) => ipKey("ai-review", supabaseClientHeaders(headers)),
   burst: (userId: string) => `ai-review:user:${userId}:burst`,
   day: (userId: string) => `ai-review:user:${userId}:day`,
   userTokens: (userId: string) => `ai-review:user:${userId}:tokens`,
@@ -83,7 +95,7 @@ export class AiLimiter {
   }
 
   /** Before auth: kill switch + per-IP limit (also slows down token guessing). */
-  async checkRequest(headers: { get(name: string): string | null }): Promise<void> {
+  async checkRequest(headers: HeaderBag): Promise<void> {
     if (this.config.disabled) throw new ReviewFailure("unavailable", undefined, "disabled by AI_REVIEW_DISABLED", 3600);
     const r = await hit({ key: await keys.ip(headers), limit: this.config.ipPer10Min, windowSeconds: TEN_MIN }, opts(this.rpc));
     if (!r.allowed) fail(r, "rate_limited", MSG.ip, "ip limit");

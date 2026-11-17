@@ -218,11 +218,18 @@ export async function checkoutSession(input: { token: string | null; query: URLS
   const id = input.query.get("id") ?? "";
   if (!SESSION_ID.test(id)) return err(400, "invalid_session");
   if (!input.token) return err(401, "unauthenticated");
+  // Verify the token BEFORE calling Stripe: otherwise any string as token makes us call the Stripe API (amplification,
+  // burns the account's Stripe rate limit for real customers). The verified user is reused below (one verification,
+  // so the per-user limit of the route counts one request once).
+  const user = await deps.auth.getUser(input.token);
+  if (!user) return err(401, "unauthenticated");
   const session = await deps.stripe.retrieveCheckoutSession(id);
   if (!session || session.metadata.app !== "wendapply") return err(404, "session_not_found");
   const owner = parseOwner({ schoolId: session.metadata.school_id, familyId: session.metadata.family_id });
   if (!owner) return err(404, "session_not_found");
-  const auth = await authorizeOwner(input.token, owner, deps.auth);
+  const token = input.token;
+  const verified: BillingAuthDeps = { ...deps.auth, getUser: async (t) => (t === token ? user : deps.auth.getUser(t)) };
+  const auth = await authorizeOwner(input.token, owner, verified);
   if (!auth.ok) return err(auth.status === 401 ? 401 : 404, auth.status === 401 ? auth.error : "session_not_found"); // never confirm foreign sessions
   const plan = purchasablePlan(session.metadata.plan_id);
   const interval = session.metadata.interval === "month" ? "month" : "year";
