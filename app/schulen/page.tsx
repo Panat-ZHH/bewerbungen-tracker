@@ -3,7 +3,7 @@ import Link from "next/link";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { PublicShell } from "@/components/public/public-shell";
-import { BrowserShot, ButtonLink, Checks, FinalCta, PageHero, PhoneShot, Shot, SiteSection, Steps } from "@/components/public/site-ui";
+import { BrowserShot, ButtonLink, Checks, FinalCta, PageHero, PhoneShot, Shot, SiteSection, Stage, Steps } from "@/components/public/site-ui";
 import { MAIL, PILOT } from "@/components/public/marketing";
 import { onlinePaymentEnabled } from "@/components/billing/logic";
 
@@ -35,18 +35,18 @@ export default function SchulenPage() {
       <PageHero id="schulen-h" kicker="Für Sekundarschulen und Lehrpersonen" title="Den Bewerbungsprozess der Klasse sehen, ohne Listen zu führen."
         lead="WendApply hilft Sekundarschulen, den Bewerbungsprozess ihrer Schülerinnen und Schüler übersichtlich zu begleiten. Lehrpersonen sehen, wer Unterstützung braucht, und die Jugendlichen bleiben selbst am Steuer."
         note={<>Für Lehrpersonen gibt es keine Gratis-Testwoche. Der Zugang läuft über die Schullizenz oder den {PILOT.days}-Tage-Pilot. <Link className="s-link" href="/preise#schulen">Preise für Schulen</Link></>}
-        visual={<BrowserShot priority name="24-teacher-dashboard" alt="Übersicht für Lehrpersonen: Bewerbungen, Gespräche und Zusagen der Klasse, wer Unterstützung braucht, und die Klassenliste" />}>
+        visual={<Stage browser><BrowserShot priority name="24-teacher-dashboard" alt="Übersicht für Lehrpersonen: Bewerbungen, Gespräche und Zusagen der Klasse, wer Unterstützung braucht, und die Klassenliste" /></Stage>}>
         <ButtonLink href={MAIL.demo} size="lg">Demo vereinbaren</ButtonLink>
         <ButtonLink href="/pilot" size="lg" variant="secondary">Pilot anfragen</ButtonLink>
       </PageHero>
 
       <SiteSection id="lehrpersonen" kicker="Für Lehrpersonen" title="Die Klasse begleiten, ohne zusätzliche Listen">
-        <ul className="s-cols s-cols-3">
+        <ul className="s-cols">
           {teachers.map((t) => <li key={t.title}><h3 className="s-h3">{t.title}</h3><p className="s-text">{t.text}</p></li>)}
         </ul>
-        <div style={{ marginTop: 48, display: "flex", justifyContent: "center" }}>
-          <Shot center caption="Die Klassenübersicht: Fortschritt, offene Fristen und wer Aufmerksamkeit braucht.">
-            <PhoneShot name="m-teacher" alt="Klassenübersicht auf dem Handy: Anzahl Schülerinnen und Schüler, Bewerbungen, Gespräche und Zusagen und wer Aufmerksamkeit braucht" />
+        <div style={{ marginTop: 56, maxWidth: 560, marginInline: "auto" }}>
+          <Shot caption="Die Klassenübersicht auf dem Handy: Fortschritt, offene Fristen und wer Aufmerksamkeit braucht.">
+            <Stage short><PhoneShot name="m-teacher" alt="Klassenübersicht auf dem Handy: Anzahl Schülerinnen und Schüler, Bewerbungen, Gespräche und Zusagen und wer Aufmerksamkeit braucht" /></Stage>
           </Shot>
         </div>
       </SiteSection>
@@ -67,8 +67,8 @@ export default function SchulenPage() {
             <p className="s-lead">WendApply macht Fortschritt sichtbar und belohnt Eigeninitiative. Gezählt werden sinnvolle Schritte, nicht möglichst viele Bewerbungen.</p>
             <Checks items={["Stellen, Bewerbungen, Status, Fristen und Dokumente an einem Ort", "Jeder Schritt von der Schnupperlehre bis zum Lehrvertrag wird sichtbar", "Ein persönliches Dorf, das mit dem Fortschritt wächst"]} />
           </div>
-          <Shot center caption="Die Startseite der Schülerinnen und Schüler.">
-            <PhoneShot name="m-dashboard" alt="Startseite für Schülerinnen und Schüler: der Weg zur Lehrstelle mit Bewerbungen nach Status und den zuletzt geänderten Bewerbungen" />
+          <Shot caption="Die Startseite der Schülerinnen und Schüler.">
+            <Stage short><PhoneShot name="m-dashboard" alt="Startseite für Schülerinnen und Schüler: der Weg zur Lehrstelle mit Bewerbungen nach Status und den zuletzt geänderten Bewerbungen" /></Stage>
           </Shot>
         </div>
       </section>

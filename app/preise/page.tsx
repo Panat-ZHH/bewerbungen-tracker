@@ -53,6 +53,7 @@ export default function PreisePage() {
           <ul className="s-plans">
             <li className="s-plan" aria-labelledby="pkg-trial">
               <h3 id="pkg-trial" className="s-plan-name">Gratis-Testwoche</h3>
+              <p className="s-small" style={{ margin: "4px 0 0" }}>Für Schülerinnen, Schüler und Eltern</p>
               <p className="s-price"><span className="s-price-num">CHF 0</span><span className="s-small">{TRIAL_DAYS} Tage</span></p>
               <Checks plain items={["Alle Funktionen", "Ohne Zahlungsangaben", "Endet automatisch, nichts wird belastet"]} />
               <div className="s-plan-cta"><ButtonLink href={SIGNUP_HREF} full>Kostenlos testen</ButtonLink></div>

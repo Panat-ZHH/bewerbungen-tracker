@@ -5,17 +5,24 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { homeJsonLd } from "@/lib/seo/site";
 import { PublicShell } from "@/components/public/public-shell";
 import { AuthRedirect } from "@/components/public/auth-redirect";
-import { BrowserShot, ButtonLink, Checks, FinalCta, MoreLink, PhoneShot, Shot, SiteSection, Steps } from "@/components/public/site-ui";
+import { BrowserShot, ButtonLink, Checks, FinalCta, MoreLink, PhoneShot, Shot, SiteSection, Stage, Tiles } from "@/components/public/site-ui";
 import { Faq } from "@/components/public/faq";
 import { pickFaq } from "@/components/public/faq-content";
-import { LOGIN_HREF, PILOT, SIGNUP_HREF, TRIAL_DAYS } from "@/components/public/marketing";
+import { PILOT, SIGNUP_HREF, TRIAL_DAYS } from "@/components/public/marketing";
 
 export const metadata: Metadata = publicMetadata({ canonical: "/" });
 
-const steps = [
-  { title: "Stellen finden und merken", text: "Such Lehrstellen und Schnupperlehren von Yousty, jobs.ch und jobup.ch auf einmal. Was dich interessiert, merkst du mit einem Tipp." },
-  { title: "Bewerbungen im Griff", text: "Jede Bewerbung hat ihren Status, ihre Frist und deine Notizen. WendApply erinnert dich, bevor eine Frist abläuft." },
-  { title: "Dranbleiben", text: "Jede Bewerbung baut ein Haus in deinem Dorf. Und wenn du willst, sehen deine Lehrperson oder deine Eltern deinen Fortschritt." },
+/** Three product rows (text + real screenshot), replacing the old three-column step grid. */
+const rows = [
+  { id: "finden", title: "Stellen finden und merken", text: "Such Lehrstellen und Schnupperlehren von Yousty, jobs.ch und jobup.ch auf einmal. Was dich interessiert, merkst du mit einem Tipp.",
+    list: ["Mehrere Stellenbörsen in einer Suche", "Lehrbetriebe auf der Karte finden"],
+    shot: "m-search", alt: "Lehrstellensuche in WendApply: Suche nach Informatik-Lehrstellen mit Filtern für Ort und Umkreis und Treffern aus mehreren Stellenbörsen" },
+  { id: "bewerbungen", title: "Bewerbungen im Griff", text: "Jede Bewerbung hat ihren Status, ihre Frist und deine Notizen. WendApply erinnert dich, bevor eine Frist abläuft.",
+    list: ["Status, Frist und Notizen für jede Bewerbung", "Erinnerungen per E-Mail oder als Benachrichtigung"],
+    shot: "m-applications", alt: "Bewerbungsliste in WendApply mit Filtern und Bewerbungen bei erfundenen Lehrbetrieben, jede mit ihrem Status" },
+  { id: "dranbleiben", title: "Dranbleiben", text: "Jede Bewerbung baut ein Haus in deinem Dorf. Und wenn du willst, sehen deine Lehrperson oder deine Eltern deinen Fortschritt.",
+    list: ["Dein Weg zur Lehrstelle auf einer Seite", "Du entscheidest, wer was sieht"],
+    shot: "m-dashboard", alt: "Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen" },
 ];
 
 const audiences = [
@@ -44,62 +51,51 @@ export default function LandingPage() {
         <div className="s-wrap s-grid-2 s-wide-left">
           <div>
             <span className="s-kicker">Für die Lehrstellensuche in der Schweiz</span>
-            <h1 id="hero-h" className="s-h1">Von der ersten Bewerbung bis zur <span className="s-hl">Zusage</span>.</h1>
+            <h1 id="hero-h" className="s-h1">Von der ersten Bewerbung bis zur Zusage.</h1>
             <p className="s-lead">Stellen finden, Bewerbungen und Fristen an einem Ort festhalten und dranbleiben. Allein, mit deinen Eltern oder mit deiner Klasse.</p>
             <div className="s-actions">
               <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>
-              <ButtonLink href={LOGIN_HREF} size="lg" variant="secondary">Anmelden</ButtonLink>
+              <MoreLink href="/schulen">Für Schulen und Lehrpersonen</MoreLink>
             </div>
             <p className="s-small s-hero-note">{TRIAL_DAYS} Tage gratis, ohne Zahlungsangaben. Hat deine Schule eine Schullizenz, ist WendApply für dich gratis.</p>
-            <p className="s-small" style={{ marginTop: 8 }}>Lehrperson oder Schule? <Link className="s-link" href="/schulen">Für Schulen</Link></p>
           </div>
           <div className="s-hero-visual s-desk-only">
-            <PhoneShot name="m-search" small alt="" className="s-phone-back" />
-            <PhoneShot name="m-dashboard" alt="Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen und den nächsten Fristen" />
+            <Stage duo>
+              <PhoneShot name="m-search" small alt="" className="s-phone-back" />
+              <PhoneShot name="m-dashboard" alt="Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen und den nächsten Fristen" />
+            </Stage>
           </div>
         </div>
       </section>
 
-      <SiteSection id="so-gehts" kicker="In drei Schritten" title="So funktioniert es">
-        <Steps items={steps} />
-        <div className="s-mobile-only">
-          <Shot center caption="Dein Weg zur Lehrstelle auf einen Blick.">
-            <PhoneShot name="m-dashboard" alt="Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen" />
-          </Shot>
+      <section id="so-gehts" aria-labelledby="so-gehts-h" className="s-section">
+        <div className="s-wrap">
+          <div className="s-head">
+            <span className="s-kicker">So funktioniert es</span>
+            <h2 id="so-gehts-h" className="s-h2">Alles für die Lehrstellensuche an einem Ort</h2>
+          </div>
+          {rows.map((r, i) => (
+            <div key={r.id} id={r.id} className={`s-grid-2 s-row ${i % 2 ? "s-flip" : ""}`}>
+              <div>
+                <h3 className="s-h2 s-h2-sm">{r.title}</h3>
+                <p className="s-lead">{r.text}</p>
+                <Checks items={r.list} />
+              </div>
+              <Stage short><PhoneShot name={r.shot} alt={r.alt} /></Stage>
+            </div>
+          ))}
+          <div className="s-actions">
+            <MoreLink href="/funktionen">Alle Funktionen</MoreLink>
+            <MoreLink href="/anleitung">Zur Anleitung</MoreLink>
+          </div>
         </div>
-        <div className="s-actions" style={{ marginTop: 40 }}>
-          <MoreLink href="/funktionen">Alle Funktionen ansehen</MoreLink>
-          <MoreLink href="/anleitung">Zur Anleitung</MoreLink>
-        </div>
-      </SiteSection>
+      </section>
 
       <SiteSection id="fuer-wen" title="Für alle, die bei der Lehrstellensuche mithelfen">
-        <ul className="s-cols s-cols-4">
-          {audiences.map((a) => (
-            <li key={a.title}>
-              <h3 className="s-h3">{a.title}</h3>
-              <p className="s-text">{a.text}</p>
-              <MoreLink href={a.href}>{a.link}</MoreLink>
-            </li>
-          ))}
-        </ul>
+        <Tiles items={audiences} />
       </SiteSection>
 
-      <section id="schueler" aria-labelledby="schueler-h" className="s-section">
-        <div className="s-wrap s-grid-2">
-          <div>
-            <span className="s-kicker">Für Schülerinnen und Schüler</span>
-            <h2 id="schueler-h" className="s-h2">Finden, bewerben, dranbleiben</h2>
-            <p className="s-lead">Du suchst eine Lehrstelle oder eine Schnupperlehre? WendApply hält deine Bewerbungen zusammen, auch wenn es viele werden.</p>
-            <Checks items={["Stellen aus mehreren Stellenbörsen in einer Suche", "Lehrbetriebe auf der Karte finden", "Status, Frist und Notizen für jede Bewerbung", "Erinnerungen per E-Mail oder als Benachrichtigung"]} />
-          </div>
-          <Shot center caption="Eine Suche, mehrere Stellenbörsen: Yousty, jobs.ch und jobup.ch.">
-            <PhoneShot name="m-search" alt="Lehrstellensuche in WendApply: Suche nach Informatik-Lehrstellen mit Filtern für Ort und Umkreis und Treffern aus mehreren Stellenbörsen" />
-          </Shot>
-        </div>
-      </section>
-
-      <section id="lehrpersonen" aria-labelledby="lehrpersonen-h" className="s-section s-section-tint">
+      <section id="lehrpersonen" aria-labelledby="lehrpersonen-h" className="s-section">
         <div className="s-wrap s-grid-2 s-flip">
           <div>
             <span className="s-kicker">Für Lehrpersonen</span>
@@ -112,7 +108,7 @@ export default function LandingPage() {
             </div>
           </div>
           <Shot caption="Die Klassenübersicht zeigt nur freigegebene Angaben.">
-            <BrowserShot name="24-teacher-dashboard" alt="Übersicht für Lehrpersonen: Bewerbungen, Gespräche und Zusagen der Klasse, wer Unterstützung braucht, und die Klassenliste" />
+            <Stage browser><BrowserShot name="24-teacher-dashboard" alt="Übersicht für Lehrpersonen: Bewerbungen, Gespräche und Zusagen der Klasse, wer Unterstützung braucht, und die Klassenliste" /></Stage>
           </Shot>
         </div>
       </section>
@@ -137,7 +133,7 @@ export default function LandingPage() {
 
       <FinalCta title="Bereit für die erste Bewerbung?" text={`Ein Konto ist in einer Minute erstellt. Die ersten ${TRIAL_DAYS} Tage sind gratis.`}>
         <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>
-        <ButtonLink href="/schulen" size="lg" variant="secondary">Für Schulen</ButtonLink>
+        <MoreLink href="/schulen">Für Schulen</MoreLink>
       </FinalCta>
     </PublicShell>
   );

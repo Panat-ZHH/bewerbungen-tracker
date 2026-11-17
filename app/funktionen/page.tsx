@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { PublicShell } from "@/components/public/public-shell";
-import { ButtonLink, Checks, FinalCta, MoreLink, PageHero, PhoneShot, Shot, SiteSection } from "@/components/public/site-ui";
+import { ButtonLink, Checks, FinalCta, MoreLink, PageHero, PhoneShot, Shot, SiteSection, Stage, Steps } from "@/components/public/site-ui";
 import { SIGNUP_HREF, TRIAL_DAYS } from "@/components/public/marketing";
 
 export const metadata: Metadata = publicMetadata({ canonical: "/funktionen" });
@@ -41,27 +41,24 @@ export default function FunktionenPage() {
       </PageHero>
 
       {features.map((f, i) => (
-        <section key={f.id} id={f.id} aria-labelledby={`${f.id}-h`} className={`s-section ${i % 2 ? "s-section-tint" : ""}`}>
+        <section key={f.id} id={f.id} aria-labelledby={`${f.id}-h`} className="s-section">
           <div className={`s-wrap s-grid-2 ${i % 2 ? "s-flip" : ""}`}>
             <div>
-              <span className="s-num" aria-hidden>{String(i + 1).padStart(2, "0")}</span>
-              <h2 id={`${f.id}-h`} className="s-h2">{f.title}</h2>
+                            <h2 id={`${f.id}-h`} className="s-h2">{f.title}</h2>
               <p className="s-lead">{f.text}</p>
               {f.list && <Checks items={f.list} />}
             </div>
-            <Shot center caption={f.caption}><PhoneShot name={f.shot} alt={f.alt} /></Shot>
+            <Shot caption={f.caption}><Stage short><PhoneShot name={f.shot} alt={f.alt} /></Stage></Shot>
           </div>
         </section>
       ))}
 
       <SiteSection id="mehr" title="Und ausserdem">
-        <ul className="s-cols s-cols-3">
-          {more.map((m) => <li key={m.title}><h3 className="s-h3">{m.title}</h3><p className="s-text">{m.text}</p></li>)}
-        </ul>
+        <Steps plain items={more} />
         <Checks plain items={["Freunde per Einladungscode", "Klasse per Einladungslink, Klassencode oder QR-Code", "Familie: Fortschritt mit Eltern teilen"]} />
       </SiteSection>
 
-      <SiteSection id="lehrpersonen" title="Für Lehrpersonen" tint>
+      <SiteSection id="lehrpersonen" title="Für Lehrpersonen">
         <p className="s-lead" style={{ marginTop: 0 }}>Klassen erstellen, Fortschritt sehen, Fristen und Mitteilungen an alle senden.</p>
         <div className="s-actions" style={{ marginTop: 16 }}><MoreLink href="/schulen">Für Schulen und Lehrpersonen</MoreLink></div>
       </SiteSection>

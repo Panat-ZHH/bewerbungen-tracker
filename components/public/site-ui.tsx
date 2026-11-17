@@ -5,7 +5,7 @@ import { ArrowRight, Check, X } from "lucide-react";
 
 /**
  * Building blocks of the public website (server components, no client JS). Styles: components/public/site.css (scoped to .site).
- * Calm and editorial: thin rules, one accent (brand blue), ink buttons, real screenshots in neutral device frames.
+ * White, editorial: hairlines instead of shadows, one accent (brand blue), ink buttons, real screenshots on light neutral stages.
  */
 
 type Variant = "primary" | "secondary" | "ghost" | "sun";
@@ -51,18 +51,40 @@ export function SiteSection({ id, title, kicker, intro, children, tint, flush, n
   );
 }
 
-/** Numbered steps with a strong top rule ("01", "02" …). */
-export function Steps({ items, cols = 3 }: { items: { title: string; text: ReactNode }[]; cols?: number }) {
+/** Ordered steps as a quiet vertical list: title column + text column, hairlines between rows (no big "01 02 03"). */
+export function Steps({ items, plain }: { items: { title: string; text: ReactNode }[]; cols?: number; /** unordered rows, no numbers */ plain?: boolean }) {
+  const List = plain ? "ul" : "ol";
   return (
-    <ol className="s-steps" style={{ "--cols": cols, "--cols-md": cols > 3 ? 2 : cols } as React.CSSProperties}>
+    <List className="s-steps">
       {items.map((s, i) => (
         <li key={s.title}>
-          <span className="s-num" aria-hidden>{String(i + 1).padStart(2, "0")}</span>
-          <h3 className="s-h3">{s.title}</h3>
+          <h3 className="s-h3">{!plain && <span className="s-step-n" aria-hidden>{i + 1}</span>}{s.title}</h3>
           <p className="s-text">{s.text}</p>
         </li>
       ))}
-    </ol>
+    </List>
+  );
+}
+
+/** Light neutral panel that frames product screenshots; phones are cropped at the bottom edge. */
+export function Stage({ children, duo, short, browser, className = "" }: { children: ReactNode; duo?: boolean; short?: boolean; browser?: boolean; className?: string }) {
+  return <div className={`s-stage ${duo ? "s-stage-duo" : ""} ${short ? "s-stage-short" : ""} ${browser ? "s-stage-browser" : ""} ${className}`.replace(/\s+/g, " ").trim()}>{children}</div>;
+}
+
+/** Bordered 2x2 block of links (audiences). The whole tile is clickable. */
+export function Tiles({ items }: { items: { title: string; text: ReactNode; href: string; link: string }[] }) {
+  return (
+    <ul className="s-tiles">
+      {items.map((t) => (
+        <li key={t.title}>
+          <Link href={t.href} className="s-tile">
+            <h3 className="s-h3">{t.title}</h3>
+            <p className="s-text">{t.text}</p>
+            <span className="s-tile-go">{t.link}<ArrowRight size={16} strokeWidth={2} aria-hidden /></span>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -138,7 +160,7 @@ export function Shot({ caption, center, children }: { caption?: string; center?:
   );
 }
 
-/** Dark closing band with one heading, one sentence and the CTAs (centred). */
+/** Closing panel (light, bordered) with one heading, one sentence and the CTAs (centred). */
 export function FinalCta({ id = "cta", title, text, children }: { id?: string; title: ReactNode; text?: ReactNode; children: ReactNode }) {
   return (
     <section aria-labelledby={`${id}-h`} className="s-cta">

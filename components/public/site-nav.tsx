@@ -53,8 +53,11 @@ export function SiteNav({ items, loginHref, signupHref, logo, themeSwitch }: { i
             {items.map((n) => <li key={n.href}><Link href={n.href} aria-current={current(n.href)} onClick={() => setOpen(false)}>{n.label}</Link></li>)}
           </ul>
           <Link href={signupHref} className="s-btn s-btn-primary s-btn-lg s-btn-full" onClick={() => setOpen(false)}>Kostenlos testen</Link>
-          <p className="s-fine" style={{ marginTop: 12, textAlign: "center" }}>7 Tage gratis für Schülerinnen, Schüler und Eltern.</p>
-          <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>{themeSwitch}</div>
+          <Link href={loginHref} className="s-btn s-btn-secondary s-btn-lg s-btn-full" style={{ marginTop: 10 }} onClick={() => setOpen(false)}>Anmelden</Link>
+          <div className="s-menu-foot">
+            <p className="s-fine" style={{ margin: 0 }}>7 Tage gratis für Schülerinnen, Schüler und Eltern.</p>
+            {themeSwitch}
+          </div>
         </nav>
       </div>
     </>

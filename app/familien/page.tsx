@@ -4,7 +4,7 @@ import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqJsonLd } from "@/lib/seo/site";
 import { PublicShell, Section } from "@/components/public/public-shell";
-import { ButtonLink, Checks, FinalCta, PageHero, PhoneShot, Shot, SiteSection, Steps } from "@/components/public/site-ui";
+import { ButtonLink, Checks, FinalCta, PageHero, PhoneShot, Shot, SiteSection, Stage, Steps } from "@/components/public/site-ui";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { pickFaq } from "@/components/public/faq-content";
 import { WaitlistForm } from "@/components/public/waitlist-form";
@@ -48,24 +48,22 @@ export default function FamilienPage() {
         lead="Die Lehrstellensuche ist für die ganze Familie eine intensive Zeit. Mit WendApply siehst du, wo dein Kind steht. Was du siehst, entscheidet dein Kind."
         note="7 Tage gratis für Schülerinnen, Schüler und Eltern, ohne Zahlungsangaben."
         visualDesktopOnly
-        visual={<Shot center caption="So sieht es ein Elternkonto: nur, was das Kind freigibt."><PhoneShot name="m-familie" alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen, nur mit den Angaben, die das Kind teilt" /></Shot>}>
+        visual={<Shot caption="So sieht es ein Elternkonto: nur, was das Kind freigibt."><Stage><PhoneShot name="m-familie" alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen, nur mit den Angaben, die das Kind teilt" /></Stage></Shot>}>
         {online ? <ButtonLink href={FAMILY_BUY_HREF} size="lg">Familienpaket buchen</ButtonLink> : <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>}
         <ButtonLink href="/preise#familie" size="lg" variant="secondary">Preise ansehen</ButtonLink>
       </PageHero>
 
       <SiteSection id="eltern" title="Was du davon hast">
-        <ul className="s-cols s-cols-3">
-          {benefits.map((b) => <li key={b.title}><h3 className="s-h3">{b.title}</h3><p className="s-text">{b.text}</p></li>)}
-        </ul>
+        <Steps plain items={benefits} />
         <div className="s-mobile-only">
-          <Shot center caption="So sieht es ein Elternkonto: nur, was das Kind freigibt.">
-            <PhoneShot name="m-familie" alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen" />
+          <Shot caption="So sieht es ein Elternkonto: nur, was das Kind freigibt.">
+            <Stage short><PhoneShot name="m-familie" alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen" /></Stage>
           </Shot>
         </div>
       </SiteSection>
 
       <SiteSection id="so-gehts" kicker="In vier Schritten" title="So funktioniert es" tint>
-        <Steps items={steps} cols={4} />
+        <Steps items={steps} />
       </SiteSection>
 
       <SiteSection id="sichtbarkeit" title="Was du siehst und was nicht">
