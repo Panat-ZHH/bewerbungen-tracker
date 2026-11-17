@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Building2, ChevronDown, GraduationCap, HelpCircle, Mail, Plus, ReceiptText, ShieldCheck, TriangleAlert, UserPlus, Users } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
@@ -104,7 +103,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
           <h3 className="text-heading">Lizenz</h3>
           {!l ? <p className="text-sm text-muted">Für diese Schule ist noch keine Lizenz hinterlegt.</p> : isPilot ? (
             <div className="space-y-2 text-sm">
-              <p className="font-bold">{until ? `30-Tage-Pilot bis ${formatDateCh(until)}` : "30-Tage-Pilot"}{pilotDays !== null && <span className="font-normal text-muted"> ({pilotText(pilotDays)})</span>}</p>
+              <p className="font-bold">{until ? `30-Tage-Pilot bis ${formatDateCh(until)}` : "30-Tage-Pilot"}{pilotDays !== null && <span className="font-normal text-muted"> ({pilotText(pilotDays).replace(/^Noch/, "noch")})</span>}</p>
               <p className="text-muted">Danach braucht eure Schule eine Schullizenz, sonst pausiert der Zugang für Lehrpersonen und Schüler:innen.</p>
             </div>
           ) : (
@@ -114,7 +113,6 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
               {l.validUntil && <><dt className="text-muted">{expired ? "Abgelaufen am" : "Gültig bis"}</dt><dd className="font-semibold">{formatDateCh(l.validUntil)}{!expired && validDays !== null && validDays >= 0 && validDays <= 30 && <Badge tone="warning" className="ml-2">in {validDays} Tagen</Badge>}</dd></>}
             </dl>
           )}
-          {!onlinePaymentEnabled() && <p className="text-small flex items-start gap-2 text-muted"><Mail size={14} className="mt-0.5 shrink-0" aria-hidden /><span>Paketwechsel über die <Link href="/kontakt" className="font-semibold underline underline-offset-2">Kontaktseite</Link>. Hier werden keine Zahlungen abgewickelt.</span></p>}
         </div>
 
         <div className="panel-flat space-y-3 p-5">
