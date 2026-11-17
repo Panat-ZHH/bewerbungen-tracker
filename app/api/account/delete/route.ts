@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { confirmationMatches, isFreshSignIn } from "@/lib/account-deletion";
 import { deleteAccount } from "@/lib/account-delete-server";
+import { limitIp, limitUser } from "@/lib/api-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +22,8 @@ export async function POST(request: Request) {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceKey) return reply(503, "NOT_CONFIGURED", "Das Löschen ist auf diesem Server noch nicht eingerichtet. Bitte melde dich beim Support.");
 
+  const limitedIp = await limitIp("account-delete", request.headers);
+  if (limitedIp) return limitedIp;
   const token = /^Bearer (.+)$/i.exec(request.headers.get("authorization") ?? "")?.[1];
   if (!token) return reply(401, "UNAUTHENTICATED", "Bitte melde dich an.");
 
@@ -31,6 +34,8 @@ export async function POST(request: Request) {
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return reply(401, "UNAUTHENTICATED", "Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.");
   const user = data.user;
+  const limitedUser = await limitUser("account-delete", user.id);
+  if (limitedUser) return limitedUser;
 
   if (!isFreshSignIn(token)) return reply(403, "REAUTH_REQUIRED", "Bitte bestätige zuerst mit deinem Passwort oder mit Google, dass du es bist.");
   if (typeof body.confirm !== "string" || !confirmationMatches(body.confirm, user.email)) return reply(400, "CONFIRMATION_MISMATCH", "Die Bestätigung stimmt nicht. Tippe LÖSCHEN oder deine E-Mail-Adresse.");

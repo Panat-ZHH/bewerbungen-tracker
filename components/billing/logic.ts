@@ -207,6 +207,7 @@ export function billingErrorMessage(status: number, code?: string | null, online
   // Flag on (S7): never "noch nicht freigeschaltet", the payment is just not reachable right now.
   if (status === 503 || (status === 404 && (!code || code === "billing_disabled"))) return online ? FAMILY_COPY.api.unreachable : "Die Online-Bezahlung ist noch nicht freigeschaltet. Melde dich über die Kontaktseite, wir helfen gern weiter.";
   if (status === 404 && code === "no_customer") return "Es gibt noch kein Abo, das verwaltet werden kann.";
+  if (status === 429 || code === "rate_limited") return "Das waren gerade sehr viele Versuche. Bitte warte ein paar Minuten und versuche es dann nochmals.";
   if (status === 401) return "Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.";
   if (status === 403) return "Das darf nur die Schuladministration bzw. ein Elternteil der Familie.";
   if (status === 409 && code === "already_subscribed") return "Es gibt bereits ein Abo. Änderungen und Verlängerung machst du unter «Abo verwalten».";

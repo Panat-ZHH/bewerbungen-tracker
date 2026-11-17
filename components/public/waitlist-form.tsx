@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from "react";
 import { Mail, Send } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/input";
+import { rateLimitText } from "@/lib/rate-limit-text";
 
 type State = { kind: "idle" } | { kind: "sending" } | { kind: "done" } | { kind: "error"; message: string };
 
@@ -39,7 +40,9 @@ export function WaitlistForm({ kind, mailFallback }: { kind: string; mailFallbac
         throw error;
       }
       setState({ kind: "done" });
-    } catch {
+    } catch (reason) {
+      const limited = rateLimitText(reason);
+      if (limited) { setState({ kind: "error", message: limited }); return; }
       setState({ kind: "error", message: "Das hat gerade nicht geklappt. Schreib uns stattdessen eine E-Mail, wir melden uns." });
     }
   }
