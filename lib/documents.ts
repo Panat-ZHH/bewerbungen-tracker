@@ -1,14 +1,11 @@
 // Supabase access for "Meine Dokumente" and per-application attachments.
 // Table public.cvs holds the document rows (kind column), private bucket "cvs" holds the files, owner-only via RLS.
 import { supabase } from "@/lib/supabase";
+import { requireUserId } from "@/lib/session-user";
 import { safeFileName, validateDocumentFile } from "@/lib/documents-core";
 import type { CV, DocumentKind } from "@/types";
 
-async function userId() {
-  const { data, error } = await supabase.auth.getUser();
-  if (error || !data.user) throw new Error("You must be signed in.");
-  return data.user.id;
-}
+const userId = requireUserId;
 
 type Row = { id: string; name: string; type: CV["type"]; kind?: DocumentKind; description: string; updated_at: string; status: CV["status"]; file_name?: string; storage_path?: string; file_type?: string; file_size?: number };
 const fromRow = (row: Row): CV => ({ id: row.id, name: row.name, type: row.type, kind: row.kind ?? "lebenslauf", description: row.description, updatedAt: row.updated_at, status: row.status, fileName: row.file_name ?? undefined, storagePath: row.storage_path ?? undefined, fileType: row.file_type ?? undefined, fileSize: row.file_size ?? undefined });

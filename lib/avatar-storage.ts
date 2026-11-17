@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { requireUserId } from "@/lib/session-user";
 import { avatarPath, pathFromAvatarUrl, withVersion } from "@/lib/avatar";
 
 const BUCKET = "avatars";
@@ -8,7 +9,7 @@ const LOCAL_KEY = "wendapply-avatar-local";
 /** NEXT_PUBLIC_AVATAR_LOCAL=1 keeps the picture in this browser only (no Supabase Storage), for tests with dummy env vars. */
 export const avatarLocalMode = process.env.NEXT_PUBLIC_AVATAR_LOCAL === "1";
 
-async function currentUserId() { const { data, error } = await supabase.auth.getUser(); if (error || !data.user) throw new Error("You must be signed in."); return data.user.id; }
+const currentUserId = requireUserId;
 function announce(url: string | null) { if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(CHANGED, { detail: url })); }
 export function onAvatarChanged(listener: (url: string | null) => void) {
   const handler = (event: Event) => listener((event as CustomEvent<string | null>).detail);

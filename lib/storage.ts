@@ -1,13 +1,14 @@
 import { calculateMatchScore } from "@/lib/match-score";
 import { fromRow, toRow, type ApplicationRow } from "@/lib/application-rows";
 import { supabase } from "@/lib/supabase";
+import { requireUserId } from "@/lib/session-user";
 import { removeAvatar } from "@/lib/avatar-storage";
 import { safeFileName } from "@/lib/documents-core";
 import type { Application, CV, Profile } from "@/types";
 import type { MapPosition, MapShopState, ShopItemType } from "@/lib/map-shop";
 
 
-async function currentUserId() { const { data, error } = await supabase.auth.getUser(); if (error || !data.user) throw new Error("You must be signed in."); return data.user.id; }
+const currentUserId = requireUserId;
 function databaseError(error: { code?: string; message?: string; details?: string | null; hint?: string | null }) { const parts = [error.code, error.message, error.details, error.hint].filter(Boolean); return Object.assign(new Error(`Database error: ${parts.join(" | ")}`), { code: error.code }); }
 
 

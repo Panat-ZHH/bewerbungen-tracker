@@ -83,11 +83,21 @@ export function rolePickerHref(next?: string | null) { const safe = safeNextPath
 // ---- Supabase-backed helpers (client only) ----
 type Cached = { userId: string; role: UserRole; displayName: string };
 let cache: Cached | null = null;
-export function clearRoleCache() { cache = null; }
+let inflight: { userId: string; promise: Promise<{ role: UserRole; displayName: string }> } | null = null;
+export function clearRoleCache() { cache = null; inflight = null; }
+/** The cached role of this user (no request), or null. Lets the shell render the next page at once. */
+export function cachedRole(userId: string): Cached | null { return cache?.userId === userId ? cache : null; }
 
 /** Role + display name of the signed-in user (cached per user for the session). Falls back to "student" if the profile cannot be read. */
 export async function loadMyRole(user: Pick<User, "id" | "user_metadata">): Promise<{ role: UserRole; displayName: string }> {
   if (cache?.userId === user.id) return cache;
+  // One request for parallel callers (shell prefetch + role effect + dashboard greeting).
+  if (inflight?.userId === user.id) return inflight.promise;
+  const promise = readMyRole(user).finally(() => { if (inflight?.promise === promise) inflight = null; });
+  inflight = { userId: user.id, promise };
+  return promise;
+}
+async function readMyRole(user: Pick<User, "id" | "user_metadata">): Promise<{ role: UserRole; displayName: string }> {
   const { data, error } = await supabase.rpc("social_my_profile");
   const row = (data as { role?: string; display_name?: string }[] | null)?.[0];
   if (error || !row) {

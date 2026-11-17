@@ -4,13 +4,16 @@ import { useEffect, useState } from "react";
 import { getAvatarUrls, getMyAvatarUrl, onAvatarChanged } from "@/lib/avatar-storage";
 
 /** The signed-in user's own avatar URL (null = none). Updates live when it is changed on the profile page. */
+// Own avatar URL for this tab (perf: the shell asked profiles.avatar_url again on every page). Updated on change, reset on sign-out.
+let myAvatarCache: { url: string | null } | null = null;
+export function clearMyAvatarCache() { myAvatarCache = null; }
 export function useMyAvatar(enabled = true) {
-  const [url, setUrl] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null>(() => myAvatarCache?.url ?? null);
   useEffect(() => {
     if (!enabled) return;
     let active = true;
-    getMyAvatarUrl().then((value) => { if (active) setUrl(value); }).catch(() => undefined);
-    const off = onAvatarChanged((value) => { if (active) setUrl(value); });
+    if (!myAvatarCache) getMyAvatarUrl().then((value) => { myAvatarCache = { url: value }; if (active) setUrl(value); }).catch(() => undefined);
+    const off = onAvatarChanged((value) => { myAvatarCache = { url: value }; if (active) setUrl(value); });
     return () => { active = false; off(); };
   }, [enabled]);
   return url;
