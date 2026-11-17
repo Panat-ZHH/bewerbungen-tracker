@@ -45,12 +45,32 @@ export function encryptPayload(payload: Buffer, sub: PushSub, ephemeral = freshE
   return Buffer.concat([salt, rs, Buffer.from([asPub.length]), asPub, body]);
 }
 
+/**
+ * Push endpoints are written by the user (route AND directly through PostgREST, RLS "own rows"), and the digest POSTs
+ * to them from our server. Only the real browser push services are allowed (no SSRF to arbitrary hosts, no slow
+ * attacker hosts that stall the daily digest for everybody).
+ */
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /^([a-z0-9-]+\.)*push\.services\.mozilla\.com$/,
+  /^web\.push\.apple\.com$/, /^([a-z0-9-]+\.)*push\.apple\.com$/, /^([a-z0-9-]+\.)*notify\.windows\.com$/];
+export function isPushServiceEndpoint(endpoint: unknown): endpoint is string {
+  if (typeof endpoint !== "string" || endpoint.length > 2000) return false;
+  let url: URL;
+  try { url = new URL(endpoint); } catch { return false; }
+  if (url.protocol !== "https:" || url.username || url.password || (url.port && url.port !== "443")) return false;
+  return PUSH_HOSTS.some((re) => re.test(url.hostname.toLowerCase()));
+}
+/** At most this many subscriptions per user are used by the digest (newest first). */
+export const MAX_PUSH_SUBSCRIPTIONS_PER_USER = 10;
+export const PUSH_TIMEOUT_MS = 8000;
+
 export type PushResult = { ok: boolean; status: number; gone: boolean };
 export async function sendPush(sub: PushSub, payload: object, keys: VapidKeys, fetchImpl: typeof fetch = fetch): Promise<PushResult> {
+  if (!isPushServiceEndpoint(sub.endpoint)) return { ok: false, status: 0, gone: true }; // foreign host: never contacted, row removed
   const url = new URL(sub.endpoint);
-  if (url.protocol !== "https:") return { ok: false, status: 0, gone: true };
   const res = await fetchImpl(sub.endpoint, {
     method: "POST",
+    redirect: "manual",
+    signal: AbortSignal.timeout(PUSH_TIMEOUT_MS),
     headers: { Authorization: `vapid t=${vapidJwt(url.origin, keys)}, k=${keys.publicKey}`, "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream", TTL: "86400", Urgency: "normal" },
     body: new Uint8Array(encryptPayload(Buffer.from(JSON.stringify(payload)), sub)),
   });

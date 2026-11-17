@@ -82,6 +82,17 @@ test("session endpoint: owner only, never confirms foreign sessions, flag off 50
   assert.equal((await checkoutSession({ token: "tok-parent", query: q(SESSION) }, off.deps)).status, 503);
 });
 
+test("session endpoint: a forged / expired token is rejected BEFORE any Stripe API call; route is rate limited", async () => {
+  const { deps, calls } = makeDeps({ [SESSION]: { status: "complete", paymentStatus: "paid", metadata: { app: "wendapply", plan_id: "family", interval: "year", family_id: FAMILY } } });
+  const r = await checkoutSession({ token: "forged-token", query: new URLSearchParams({ id: SESSION }) }, deps);
+  assert.equal(r.status, 401);
+  assert.equal(calls.filter(([k]) => k === "retrieve").length, 0, "no Stripe call for an unverified token");
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/billing/session/route.ts", import.meta.url), "utf8");
+  assert.match(route, /limitIp\("billing-session"/);
+  assert.match(route, /withUserLimit\(deps\.auth, "billing-session"\)/);
+});
+
 test("client helpers: flag needs ON + publishable key, hosted fallback flag, links and params", () => {
   assert.equal(inAppPaymentEnabled({ enabled: true, publishableKey: "pk_test_abc" }), true);
   assert.equal(inAppPaymentEnabled({ enabled: false, publishableKey: "pk_test_abc" }), false);

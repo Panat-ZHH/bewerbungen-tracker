@@ -76,6 +76,16 @@ test("storage: walks nested folders, adds recorded paths, removes before the aut
   assert.ok(calls.indexOf("remove:avatars") < calls.indexOf("deleteUser"), "files must go before the auth user");
 });
 
+test("storage: recorded cvs.storage_path outside the user's own folder is never removed (user-writable column)", async () => {
+  const tree = { cvs: { U: [{ name: "own.pdf", id: "1" }] }, avatars: {} };
+  const { admin, removed } = fakeAdmin({ tree, cvPaths: ["V/doc-V-1/victim.pdf", "U/../V/x.pdf", "U/ok/b.pdf", "/V/a.pdf", "U", "U//x", "U\\..\\V", "UV/x.pdf"] });
+  await server.deleteAccount(admin, "U");
+  assert.deepEqual(removed.sort(), ["cvs/U/ok/b.pdf", "cvs/U/own.pdf"]);
+  assert.equal(server.isOwnObjectPath("U/doc-U-abc/Lebenslauf.pdf", "U"), true);
+  assert.equal(server.isOwnObjectPath("V/doc/Lebenslauf.pdf", "U"), false);
+  assert.equal(server.isOwnObjectPath(null, "U"), false);
+});
+
 test("storage: paginates folders with more than 100 entries", async () => {
   const many = Array.from({ length: 230 }, (_, i) => ({ name: `f${i}`, id: String(i) }));
   const { admin, removed } = fakeAdmin({ tree: { cvs: { U: many }, avatars: {} } });
@@ -145,7 +155,7 @@ async function seed(db) {
   await db.query("update public.user_roles set role='teacher' where user_id in ($1,$2)", [U.teacher, U.co]);
   await db.query("insert into public.applications(id,user_id,company,position,category,status,created_at,updated_at) values ('a1',$1,'Acme','Dev','IT','applied',now(),now()),('a2',$1,'Beta','Dev','IT','applied',now(),now()),('o1',$2,'Other','Dev','IT','applied',now(),now())", [U.student, U.other]);
   await db.query("insert into public.profiles(id,user_id,first_name,last_name,email) values ('p1',$1,'a','b','c')", [U.student]);
-  await db.query("insert into public.cvs(id,user_id,name,type,description,updated_at,status,storage_path) values ('c1',$1,'CV','Standard','d',now(),'Ready','x/y')", [U.student]);
+  await db.query("insert into public.cvs(id,user_id,name,type,description,updated_at,status,storage_path) values ('c1',$1,'CV','Standard','d',now(),'Ready',$2)", [U.student, `${U.student}/x/y`]);
   await db.query("insert into public.friendships(requester_id,addressee_id,status) values ($1,$2,'accepted'),($3,$1,'pending')", [U.student, U.friend, U.other]);
   await db.query("insert into public.classes(id,teacher_id,name,join_code) values ('10000000-0000-4000-8000-000000000001',$1,'8a','CODE1'),('10000000-0000-4000-8000-000000000002',$2,'9b','CODE2')", [U.teacher, U.co]);
   await db.query("insert into public.class_members(class_id,student_id) values ('10000000-0000-4000-8000-000000000001',$1),('10000000-0000-4000-8000-000000000001',$2),('10000000-0000-4000-8000-000000000002',$1)", [U.student, U.other]);

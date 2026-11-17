@@ -25,7 +25,7 @@ before(async () => {
   await ctx.admin(`insert into public.applications (id,user_id,company,position,location,category,status,created_at,updated_at,notes,salary_min,job_url)
     values ('ca1',$1,'Kinder AG','Informatiker','Zürich','software','applied',current_date,current_date,'GEHEIME NOTIZ',99999,'https://secret.example/job'),
            ('ca2',$1,'Zweite GmbH','Mediamatiker','Bern','software','offer',current_date,current_date,'GEHEIME NOTIZ',99999,'https://secret.example/job')`, [U.childA]);
-  await ctx.admin(`insert into public.cvs (id,user_id,name,type,description,updated_at,status,storage_path) values ('cvA',$1,'Lebenslauf','cv','x',current_date,'ready','secret/path.pdf')`, [U.childA]);
+  await ctx.admin(`insert into public.cvs (id,user_id,name,type,description,updated_at,status,storage_path) values ('cvA',$1,'Lebenslauf','cv','x',current_date,'ready',$2)`, [U.childA, `${U.childA}/secret/path.pdf`]);
 });
 
 test("schema: tables with RLS, profiles columns, family plan columns on school_licences", async () => {
