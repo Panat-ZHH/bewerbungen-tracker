@@ -73,7 +73,9 @@ test("API routes: no wildcard CORS, every state-changing route is authenticated 
     assert.ok(!/Access-Control-Allow-Origin/i.test(src), `${r} sets CORS`);
     if (!/export async function (POST|PUT|PATCH|DELETE)/.test(src)) continue;
     // Bearer token (never cookies: a cross-site form cannot set Authorization), the Stripe signature, or the cron secret.
-    assert.ok(/authorization|stripe-signature/i.test(src), `${r} has a state-changing handler without header auth`);
+    // Admin routes delegate to adminApi(), whose guard (lib/admin/guard.ts) reads only the Authorization header.
+    const viaAdminGuard = r.startsWith("app/api/admin/") && /adminApi\(\)/.test(src) && /headers\.get\("authorization"\)/.test(await read("lib/admin/guard.ts"));
+    assert.ok(/authorization|stripe-signature/i.test(src) || viaAdminGuard, `${r} has a state-changing handler without header auth`);
     assert.ok(!/cookies\(\)/.test(src), `${r} authenticates with cookies`);
   }
 });

@@ -30,7 +30,7 @@ function fakeDb(answer, rpcAnswer = () => ({ data: null, error: null })) {
     return b;
   };
   const users = [
-    { id: U, email: "kim@example.ch", created_at: "2026-11-10T00:00:00Z", last_sign_in_at: null, factors: [] },
+    { id: U, email: "kim@example.ch", created_at: "2026-11-10T00:00:00Z", last_sign_in_at: null, factors: [], user_metadata: { full_name: "Kim" } },
     { id: A, email: "panat@example.ch", created_at: "2026-01-01T00:00:00Z", last_sign_in_at: null, factors: [{ status: "verified" }] },
   ];
   return {
@@ -42,6 +42,7 @@ function fakeDb(answer, rpcAnswer = () => ({ data: null, error: null })) {
       admin: {
         listUsers: async () => ({ data: { users }, error: null }),
         getUserById: async (id) => ({ data: { user: users.find((u) => u.id === id) ?? null }, error: null }),
+        updateUserById: async (id, attrs) => { log.push({ updateUser: id, attrs }); return { data: { user: null }, error: null }; },
       },
     },
   };
@@ -103,12 +104,14 @@ test("school people: admins via platform_add_school_admin, teachers into school_
   const db = fakeDb(() => ({ data: null, error: null }), () => ({ data: U, error: null }));
   const store = supabaseAdminStore(db);
   assert.equal(await store.addSchoolAdmin(S, "kim@example.ch"), U);
-  assert.deepEqual(db.log[0], { rpc: "platform_add_school_admin", args: { p_school_id: S, p_email: "kim@example.ch" } });
+  assert.deepEqual(db.log[0], { rpc: "platform_add_school_admin", args: { p_school_id: S, p_email: "kim@example.ch", p_make_role: true } });
+  // G6: role_confirmed is merged into the existing metadata (never replaces it).
+  assert.deepEqual(db.log[1], { updateUser: U, attrs: { user_metadata: { full_name: "Kim", role_confirmed: true } } });
   await store.addSchoolTeacher(S, U, A);
-  assert.equal(db.log[1].table, "school_teachers");
-  assert.deepEqual(op(db.log[1], "insert")[1], { school_id: S, user_id: U, added_by: A });
+  assert.equal(db.log[2].table, "school_teachers");
+  assert.deepEqual(op(db.log[2], "insert")[1], { school_id: S, user_id: U, added_by: A });
   await store.removeSchoolTeacher(S, U);
-  assert.ok(op(db.log[2], "delete"));
+  assert.ok(op(db.log[3], "delete"));
   assert.equal(await store.findUserIdByEmail("kim@example.ch"), U);
   assert.equal(await store.findUserIdByEmail("nobody@example.ch"), null);
 });

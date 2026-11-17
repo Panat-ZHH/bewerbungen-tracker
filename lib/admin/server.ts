@@ -429,9 +429,17 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
     },
 
     async addSchoolAdmin(schoolId, email) {
-      const { data, error } = await db.rpc("platform_add_school_admin", { p_school_id: schoolId, p_email: email });
+      // p_make_role: pure admins (no classes, not teachers) get the role label 'school_admin' (FLOW-ANALYSIS G6).
+      const { data, error } = await db.rpc("platform_add_school_admin", { p_school_id: schoolId, p_email: email, p_make_role: true });
       if (error) dbFail("platform_add_school_admin", error);
-      return String(data);
+      const id = String(data);
+      // G6: the role was decided by WendApply, so the app must never send this person to the role picker.
+      const u = await authUser(id);
+      if (u && u.user_metadata?.role_confirmed !== true) {
+        const upd = await db.auth.admin.updateUserById(id, { user_metadata: { ...(u.user_metadata ?? {}), role_confirmed: true } });
+        if (upd.error) dbFail("auth.users", { code: upd.error.code ?? upd.error.name });
+      }
+      return id;
     },
     async removeSchoolAdmin(schoolId, userId) {
       const { error } = await db.from("school_admins").delete().eq("school_id", schoolId).eq("user_id", userId);
