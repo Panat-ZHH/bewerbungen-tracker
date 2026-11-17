@@ -11,7 +11,7 @@ import {
   page, query, readBody, text, uuid, type SchoolAction, type UserAction,
 } from "./validate.ts";
 
-export interface AdminApiDeps extends GuardDeps { now?: () => Date }
+export type AdminApiDeps = GuardDeps;
 
 const PAGE_SIZE = 50;
 

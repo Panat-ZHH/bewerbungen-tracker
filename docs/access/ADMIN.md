@@ -73,7 +73,7 @@ All requests: `Authorization: Bearer <Supabase access token>` – no cookies are
 | `GET /api/admin/audit` | `page, action, admin_id, target_user, target_school, since=YYYY-MM-DD` | `Paged<AuditEntry>` |
 
 Types: `lib/admin/types.ts`. Errors (generic on purpose, never DB messages): `401 unauthenticated`, `404 not_found`,
-`403 mfa_required`, `429 rate_limited` (+ `Retry-After`), `400 invalid_input` + `field`, `409 conflict` + `reason`
+`403 mfa_required`, `403 reauth_required`, `429 rate_limited` (+ `Retry-After`), `400 invalid_input` + `field`, `409 conflict` + `reason`
 (`self`, `not_blocked`, `platform_admin`, `user_not_found`, `already_member`, `licence_closed`, `already_cancelled`),
 `409 subscription_active`, `500 failed`, `503 not_configured`.
 
@@ -83,7 +83,10 @@ Order of checks (`lib/admin/guard.ts`): per-IP brake (120 / min, before any work
 (`auth.getUser`) → `sub` claim must equal the verified user → `platform_admins` row, else 404 → JWT claim `aal = aal2`,
 else 403 `mfa_required` (exception: admin WITHOUT a verified MFA factor, session started by Google OAuth – `amr` contains
 `oauth` – and a Google identity whose e-mail Google marked `email_verified` and equals the confirmed account e-mail → passes at
-`aal1`; password / magic-link / recovery sessions and unverified e-mails never do) → 60 requests / min per admin, plus 10 / min for mutations. Limits are tunable with
+`aal1`; password / magic-link / recovery sessions and unverified e-mails never do) → **fresh login**: the newest `amr`
+timestamp of the token (the time of the last real authentication – Google, password, TOTP; a token refresh keeps it) must be
+at most `ADMIN_SESSION_MAX_AGE_HOURS` old (default 12, 1 … 168), else 403 `reauth_required` and `/admin` signs this browser
+out and asks for a new login (a stolen refresh token stops working for `/admin` after that window) → 60 requests / min per admin, plus 10 / min for mutations. Limits are tunable with
 `RATE_LIMIT_ADMIN_IP`, `RATE_LIMIT_ADMIN_USER`, `RATE_LIMIT_ADMIN_MUTATION_USER` (`limit[/seconds]`); `RATE_LIMIT_DISABLED=1` switches them off.
 
 - The service role is used only in `lib/admin/server.ts`, only after the guard passed (allow-listed in `tests/security-audit.test.mjs`).
@@ -91,6 +94,21 @@ else 403 `mfa_required` (exception: admin WITHOUT a verified MFA factor, session
   characters). The audit row (`admin_id, action, target_user/target_school, details.before/after, ip`) is written **before**
   the change; if the audit insert fails, nothing changes; if the change fails, a second `<action>.failed` row is written.
 - The browser only holds what the logged-in admin fetched, in React state (no storage). No admin data in the client bundle.
+- `/admin` is a dynamic page (`Cache-Control: private, no-store`, `X-Robots-Tag: noindex`), so no copy sits in the Netlify CDN.
+
+### Rules for every NEW admin endpoint / action (security review #3)
+
+1. A route file under `app/api/admin/**` only calls `adminApi().<method>`; the method goes through `run()` → `guard()` (never
+   skip it, never read cookies, never trust a client-sent user id / role / admin flag). `mutation: true` for anything that writes.
+2. Validate everything with `lib/admin/validate.ts` (`onlyKeys`, `uuid`, `int`, `oneOf`, `text`, `instant`, `date`); body needs
+   `confirm: true`. Errors only via `fail()` codes – never a DB message, never a stack.
+3. Write the audit row through `audited()` BEFORE the change (actor, target, `details.before/after`); a failed change logs `<action>.failed`.
+4. Self-protection: an admin can never block / delete / revoke access of themself or of another platform admin; nothing may
+   insert into or delete from `platform_admins` through the API (service role script only).
+5. SQL: new admin RPCs are `security definer`, `set search_path = ''`, `revoke all … from public, anon, authenticated` and
+   `grant execute … to service_role` only; no grants on admin tables to `anon` / `authenticated`; `admin_audit_log` stays append-only.
+6. Search / filter input never goes into PostgREST `.or()` / `.filter()` strings or string-built SQL (filter in memory or use `.eq/.in`).
+7. Add the new route to the "admin routes go through adminApi" test and a 401 / 404 / 403 / reauth test for it.
 
 ## 5. Tests
 

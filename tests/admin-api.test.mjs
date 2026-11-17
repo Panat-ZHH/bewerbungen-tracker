@@ -11,7 +11,7 @@ import { join } from "node:path";
 register("./helpers/alias-hooks.mjs", import.meta.url);
 
 const { createAdminApi } = await import("../lib/admin/handler.ts");
-const { jwtClaims, bearer, adminLimits } = await import("../lib/admin/guard.ts");
+const { jwtClaims, bearer, adminLimits, adminSessionMaxAge, lastAuthAt } = await import("../lib/admin/guard.ts");
 const { memoryRateLimitRpc } = await import("../lib/rate-limit/core.ts");
 const { licenceState, currentLicence, stripeLinks } = await import("../lib/admin/server.ts");
 const v = await import("../lib/admin/validate.ts");
@@ -32,18 +32,22 @@ const TEACHER = "77777777-7777-4777-8777-777777777777";
 
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const jwt = (claims) => `${b64({ alg: "HS256", typ: "JWT" })}.${b64(claims)}.c2ln`;
+// Real Supabase tokens list every authentication with its unix time (amr); the guard needs one within 12 h (fresh login).
+const FRESH = Math.floor(NOW.getTime() / 1000) - 600;
+const AMR2 = [{ method: "totp", timestamp: FRESH }, { method: "password", timestamp: FRESH - 30 }];
+const AMR1 = [{ method: "password", timestamp: FRESH }];
 const TOKENS = {
-  admin2: jwt({ sub: ADMIN, aal: "aal2" }),
-  admin1: jwt({ sub: ADMIN, aal: "aal1" }),
-  user2: jwt({ sub: USER, aal: "aal2" }),
-  mismatch: jwt({ sub: USER, aal: "aal2", x: 1 }), // verified as ADMIN by the mock → sub mismatch
-  other2: jwt({ sub: OTHER_ADMIN, aal: "aal2" }),
-  adminGoogle: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }] }),
-  adminGoogleUnverified: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }], g: "unverified" }),
-  adminGoogleEnrolled: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }], g: "enrolled" }),
-  adminPassword: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "password", timestamp: 1 }], g: "pw" }),
-  adminMagic: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "otp", timestamp: 1 }], g: "otp" }),
-  userGoogle: jwt({ sub: USER, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }] }),
+  admin2: jwt({ sub: ADMIN, aal: "aal2", amr: AMR2 }),
+  admin1: jwt({ sub: ADMIN, aal: "aal1", amr: AMR1 }),
+  user2: jwt({ sub: USER, aal: "aal2", amr: AMR2 }),
+  mismatch: jwt({ sub: USER, aal: "aal2", x: 1, amr: AMR2 }), // verified as ADMIN by the mock → sub mismatch
+  other2: jwt({ sub: OTHER_ADMIN, aal: "aal2", amr: AMR2 }),
+  adminGoogle: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: FRESH }] }),
+  adminGoogleUnverified: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: FRESH }], g: "unverified" }),
+  adminGoogleEnrolled: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: FRESH }], g: "enrolled" }),
+  adminPassword: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "password", timestamp: FRESH }], g: "pw" }),
+  adminMagic: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "otp", timestamp: FRESH }], g: "otp" }),
+  userGoogle: jwt({ sub: USER, aal: "aal1", amr: [{ method: "oauth", timestamp: FRESH }] }),
 };
 
 function mockStore() {
@@ -72,6 +76,9 @@ function mockStore() {
       if (token === TOKENS.userGoogle) return { id: USER, email: users.get(USER), googleVerified: true, mfaEnrolled: false };
       if (token === TOKENS.user2) return { id: USER, email: users.get(USER) };
       if (token === TOKENS.other2) return { id: OTHER_ADMIN, email: users.get(OTHER_ADMIN) };
+      // Ad-hoc tokens of the freshness test: "verified" marks a token Supabase Auth accepted (Google-verified, no factor).
+      const c = jwtClaims(token);
+      if (c?.verified === true) return { id: c.sub, email: users.get(c.sub) ?? null, googleVerified: true, mfaEnrolled: false };
       return null;
     },
     async isPlatformAdmin(id) { rec("isPlatformAdmin", id); return id === ADMIN || id === OTHER_ADMIN; },
@@ -212,6 +219,38 @@ test("guard: Google exception is narrow (unverified e-mail, enrolled TOTP, passw
   await expectError(await api.me(req("/api/admin/me", { token: TOKENS.adminMagic })), 403, "mfa_required");
   await expectError(await api.me(req("/api/admin/me", { token: TOKENS.userGoogle })), 404, "not_found");
   await expectError(await api.users(req("/api/admin/users", { token: TOKENS.userGoogle })), 404, "not_found");
+});
+
+test("guard: admin access needs a fresh login (newest amr ≤ 12 h, ADMIN_SESSION_MAX_AGE_HOURS) → else 403 reauth_required", async () => {
+  const nowS = Math.floor(NOW.getTime() / 1000);
+  const tok = (sub, amr, aal = "aal2") => jwt({ sub, aal, amr, verified: true });
+  // Stale TOTP session (refresh keeps the old amr): every route refuses, including mutations, and nothing is audited.
+  const stale = tok(ADMIN, [{ method: "totp", timestamp: nowS - 13 * 3600 }, { method: "password", timestamp: nowS - 13 * 3600 }]);
+  await expectError(await api.me(req("/api/admin/me", { token: stale })), 403, "reauth_required");
+  await expectError(await api.users(req("/api/admin/users", { token: stale })), 403, "reauth_required");
+  await expectError(await userPost(USER, { action: "block", reason: "x", confirm: true }, { token: stale }), 403, "reauth_required");
+  assert.equal(m.audit.length, 0);
+  // Stale Google session (no factor) is refused the same way.
+  await expectError(await api.me(req("/api/admin/me", { token: tok(ADMIN, [{ method: "oauth", timestamp: nowS - 12 * 3600 - 1 }], "aal1") })), 403, "reauth_required");
+  // The NEWEST authentication counts: a fresh TOTP step on an old password session is enough.
+  assert.equal((await api.me(req("/api/admin/me", { token: tok(ADMIN, [{ method: "password", timestamp: nowS - 40 * 3600 }, { method: "totp", timestamp: nowS - 60 }]) }))).status, 200);
+  assert.equal((await api.me(req("/api/admin/me", { token: tok(ADMIN, [{ method: "totp", timestamp: nowS - 12 * 3600 + 5 }]) }))).status, 200);
+  // Fail closed: no amr, amr without numeric timestamps, plain-string amr, timestamps far in the future.
+  await expectError(await api.me(req("/api/admin/me", { token: jwt({ sub: ADMIN, aal: "aal2", verified: true }) })), 403, "reauth_required");
+  await expectError(await api.me(req("/api/admin/me", { token: tok(ADMIN, [{ method: "totp", timestamp: String(nowS) }]) })), 403, "reauth_required");
+  await expectError(await api.me(req("/api/admin/me", { token: tok(ADMIN, ["totp", "password"]) })), 403, "reauth_required");
+  await expectError(await api.me(req("/api/admin/me", { token: tok(ADMIN, [{ method: "totp", timestamp: nowS + 3600 }]) })), 403, "reauth_required");
+  // Non-admins still get 404 (no hint that the route exists), aal1 non-Google still gets mfa_required first.
+  await expectError(await api.me(req("/api/admin/me", { token: tok(USER, [{ method: "password", timestamp: nowS - 99 * 3600 }]) })), 404, "not_found");
+  await expectError(await api.me(req("/api/admin/me", { token: tok(ADMIN, [{ method: "password", timestamp: nowS - 99 * 3600 }], "aal1") })), 403, "mfa_required");
+  // Configurable window (1 … 168 h), nonsense → default 12 h.
+  const short = createAdminApi({ store: m.store, rpc, env: { ...ENV, ADMIN_SESSION_MAX_AGE_HOURS: "1" }, now: () => NOW });
+  await expectError(await short.me(req("/api/admin/me", { token: tok(ADMIN, [{ method: "totp", timestamp: nowS - 2 * 3600 }]) })), 403, "reauth_required");
+  assert.equal(adminSessionMaxAge({ ADMIN_SESSION_MAX_AGE_HOURS: "0" }), 12 * 3600);
+  assert.equal(adminSessionMaxAge({ ADMIN_SESSION_MAX_AGE_HOURS: "500" }), 12 * 3600);
+  assert.equal(adminSessionMaxAge({ ADMIN_SESSION_MAX_AGE_HOURS: "24" }), 24 * 3600);
+  assert.equal(lastAuthAt({ amr: [{ method: "a", timestamp: 5 }, { method: "b", timestamp: 9 }, { method: "c" }] }), 9);
+  assert.equal(lastAuthAt({}), null);
 });
 
 test("rate limit: 60 requests / min per admin, 10 / min for mutations, per-IP brake before auth", async () => {
@@ -555,4 +594,17 @@ test("/admin is hidden: robots disallow, noindex layout, not linked from the nor
   assert.deepEqual(linked, []);
   const sitemap = await read("app/sitemap.ts");
   assert.ok(!sitemap.includes("/admin"));
+});
+
+test("/admin is never stored by a shared cache; the client turns 403 reauth_required into a fresh login", async () => {
+  const page = await readFile(join(root, "app/admin/page.tsx"), "utf8");
+  assert.match(page, /export const dynamic = "force-dynamic"/, "dynamic page → Cache-Control private, no-store (no Netlify CDN copy)");
+  const config = await readFile(join(root, "next.config.ts"), "utf8");
+  assert.match(config, /\["\/admin", "\/admin\/:path\*"\]/);
+  assert.match(config, /X-Robots-Tag", value: "noindex, nofollow"/);
+  assert.match(config, /Cache-Control", value: "private, no-store"/);
+  const client = await readFile(join(root, "components/admin/api.ts"), "utf8");
+  assert.match(client, /err\.error === "reauth_required"\) authHandler\?\.\("reauth"\)/);
+  const app = await readFile(join(root, "components/admin/admin-app.tsx"), "utf8");
+  assert.match(app, /signOut\(\{ scope: "local" \}\)/, "a stale session is ended in this browser before asking for a new login");
 });

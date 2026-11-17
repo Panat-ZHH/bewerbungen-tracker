@@ -5,8 +5,10 @@ import { supabase } from "@/lib/supabase";
 export type AdminResult<T = unknown> = { ok: boolean; status: number; data: T };
 export type AdminErrorBody = { error?: string; reason?: string; field?: string; message?: string; retryAfter?: number };
 
-/** "mfa" = 403 mfa_required, "login" = 401 (session gone). Registered by the admin page to switch to the right step. */
-type AuthHandler = (kind: "mfa" | "login") => void;
+/** "mfa" = 403 mfa_required, "reauth" = 403 reauth_required (last login too old), "login" = 401 (session gone).
+ *  Registered by the admin page to switch to the right step. */
+export type AdminAuthKind = "mfa" | "reauth" | "login";
+type AuthHandler = (kind: AdminAuthKind) => void;
 let authHandler: AuthHandler | null = null;
 export function setAdminAuthHandler(fn: AuthHandler | null) { authHandler = fn; }
 
@@ -43,6 +45,7 @@ export async function adminFetch<T = unknown>(path: string, opts: { method?: "GE
   try { data = await res.json(); } catch { data = null; }
   const err = (data ?? {}) as AdminErrorBody;
   if (res.status === 403 && err.error === "mfa_required") authHandler?.("mfa");
+  else if (res.status === 403 && err.error === "reauth_required") authHandler?.("reauth");
   else if (res.status === 401) authHandler?.("login");
   return { ok: res.ok, status: res.status, data: data as T };
 }

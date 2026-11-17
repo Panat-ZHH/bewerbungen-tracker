@@ -8,17 +8,24 @@ import { DoodleLoopArrow } from "@/components/ui/doodles";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { AdminMe } from "@/lib/admin/types";
-import { accessToken, adminFetch, errorText, setAdminAuthHandler } from "./api";
+import { supabase } from "@/lib/supabase";
+import { accessToken, adminFetch, errorText, setAdminAuthHandler, type AdminAuthKind } from "./api";
 import { MfaStep } from "./mfa-step";
 import { AdminDashboard } from "./dashboard";
 
 type Phase =
   | { kind: "loading" }
-  | { kind: "login" }
+  | { kind: "login"; reauth?: boolean }
   | { kind: "not_found" }
   | { kind: "mfa" }
   | { kind: "error"; message: string }
   | { kind: "ready"; me: AdminMe };
+
+/** The last real login is older than the admin window (403 reauth_required): end this browser's session and ask for a new login. */
+async function reauth(setPhase: (p: Phase) => void) {
+  try { await supabase.auth.signOut({ scope: "local" }); } catch { /* the login prompt is shown anyway */ }
+  setPhase({ kind: "login", reauth: true });
+}
 
 /** Gate of /admin: session → /api/admin/me → login prompt / not found / MFA step / dashboard. */
 export function AdminApp() {
@@ -31,13 +38,17 @@ export function AdminApp() {
     if (res.ok) setPhase({ kind: "ready", me: res.data });
     else if (res.status === 404) setPhase({ kind: "not_found" });
     else if (res.status === 401) setPhase({ kind: "login" });
+    else if (res.status === 403 && (res.data as { error?: string } | null)?.error === "reauth_required") await reauth(setPhase);
     else if (res.status === 403) setPhase({ kind: "mfa" });
     else setPhase({ kind: "error", message: errorText(res) });
   }, []);
 
   useEffect(() => {
     // Any later call that reports 401 / mfa_required switches the page back to the matching step.
-    setAdminAuthHandler((kind) => setPhase(kind === "mfa" ? { kind: "mfa" } : { kind: "login" }));
+    setAdminAuthHandler((kind: AdminAuthKind) => {
+      if (kind === "reauth") void reauth(setPhase);
+      else setPhase(kind === "mfa" ? { kind: "mfa" } : { kind: "login" });
+    });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void check();
     return () => setAdminAuthHandler(null);
@@ -57,9 +68,11 @@ export function AdminApp() {
       return (
         <Card className="mx-auto mt-6 max-w-md" data-testid="admin-login-prompt">
           <CardContent className="space-y-4">
-            <h1 className="text-title">Bitte melde dich zuerst an</h1>
-            <p className="text-body text-muted">Danach kannst du hier weitermachen.</p>
-            <ButtonLink href="/login" icon={<LogIn size={18} strokeWidth={2.4} aria-hidden />}>Zum Login</ButtonLink>
+            <h1 className="text-title">{phase.reauth ? "Bitte melde dich erneut an" : "Bitte melde dich zuerst an"}</h1>
+            <p className="text-body text-muted">
+              {phase.reauth ? "Deine letzte Anmeldung ist zu lange her. Zum Schutz der Admin-Daten braucht es eine frische Anmeldung." : "Danach kannst du hier weitermachen."}
+            </p>
+            <ButtonLink href="/login?next=%2Fadmin" icon={<LogIn size={18} strokeWidth={2.4} aria-hidden />}>Zum Login</ButtonLink>
           </CardContent>
         </Card>
       );
