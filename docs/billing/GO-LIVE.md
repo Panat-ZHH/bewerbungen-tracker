@@ -47,7 +47,11 @@ netlify env:set SUPABASE_SERVICE_ROLE_KEY "<falls noch nicht gesetzt>" --context
 
 - `STRIPE_ACCOUNT_ID` **nicht** setzen (nur für lokale Tests mit dem CLI-Token).
 - `BILLING_DB` **nicht** setzen (`memory` wird in Production ohnehin verweigert).
-- Optional `APP_URL=https://wendapply.ch` (sonst wird die Netlify-`URL` verwendet).
+- Optional `APP_URL=https://wendapply.ch` (sonst wird die Netlify-`URL` verwendet). Rücksprung-URLs zu Stripe sind auf
+  wendapply.ch, die Netlify-Hosts dieser Site und localhost beschränkt; weitere Hosts nur über `BILLING_ALLOWED_HOSTS` (Komma-Liste).
+- **In-App-Zahlung (Familien):** `netlify env:set NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY "pk_live_…" --context production`
+  (öffentlicher Key, gehört zum gleichen Konto wie der Secret Key). Ohne diesen Key bzw. mit
+  `NEXT_PUBLIC_STRIPE_CHECKOUT_UI=hosted` nutzt die App automatisch die gehostete Stripe-Checkout-Seite.
 
 ## 4. Live-Webhook ⚠️
 
@@ -57,6 +61,10 @@ Dashboard → *Developers → Webhooks → Add endpoint*:
 - Signing secret kopieren → `netlify env:set STRIPE_WEBHOOK_SECRET "<whsec…>" --context production --secret`
 
 ## 5. Datenbank-Migration auf Live-Supabase ⚠️ (vorher Backup!)
+
+> **Neu (Payments-Audit 2026-11-17):** `supabase/migrations/20261117100000_billing_hardening.sql` ist noch **nicht** live.
+> Sie ersetzt nur `billing_apply_subscription` (gleiche Signatur): `past_due` gibt nicht mehr das ganze neue,
+> unbezahlte Jahr frei, sondern nur 14 Tage (Karte) bzw. 44 Tage (Rechnung) Kulanz. Vor dem Einschalten des Flags anwenden.
 
 > **Stand 2026-11-16 (geprüft):** Die Migration ist auf Live **bereits angewendet** (`migration list`: alle 27 lokal = remote, `db push --dry-run`: „Remote database is up to date“). Live hat 0 Lizenzen, 0 Billing-Kunden/-Abos und 18 verarbeitete `stripe_events` aus den Testmodus-E2E-Läufen (die Preview nutzte die Live-DB). Backup (Schema, Daten, Rollen, sha256) liegt in `~/JARVIS/workspace/backups/wendapply-2026-11-16/` inkl. `migration-impact.md`. Schritt 5 entfällt also; die Punkte unten gelten für künftige Migrationen.
 
@@ -85,6 +93,17 @@ netlify env:set NEXT_PUBLIC_STRIPE_ENABLED true --context production
 1. Als Schul-Admin einer eigenen Test-Schule `/schul-admin` → *Abo & Rechnung* → Starter → Karte → mit eigener Karte zahlen.
 2. Prüfen: Stripe-Dashboard zeigt Zahlung + Abo; Webhook-Endpoint zeigt 200er; in Supabase `billing_subscriptions` 1 Zeile, `school_licences` mit `source='stripe'`, `status='active'`, `student_limit=100`.
 3. *Abo verwalten* (Portal) öffnen → kündigen → danach im Dashboard erstatten (Refund).
+
+## Rückerstattungen und Chargebacks (Disputes)
+
+Bewusst **nicht automatisiert** (Entscheid Payments-Audit 2026-11-17): Ein Refund oder Dispute ändert in Stripe das Abo
+nicht, und eine Teil-Rückerstattung soll den Zugang nicht automatisch sperren. Vorgehen:
+- **Rückerstattung mit Zugangsende:** Im Dashboard das Abo *sofort kündigen* (nicht „am Periodenende“) und die Zahlung
+  erstatten. Der Webhook (`customer.subscription.deleted`) setzt den Zugang auf das Kündigungsdatum (`ended_at`) → sofort beendet.
+- **Kulanz-Rückerstattung, Zugang bleibt:** nur erstatten, Abo nicht anfassen (oder „am Periodenende kündigen“).
+- **Dispute (Chargeback):** Stripe schickt eine E-Mail. Abo im Dashboard sofort kündigen (Zugang endet per Webhook),
+  dann Beweise im Dashboard einreichen. Zahlungsausfälle: Stripe-Einstellung *Billing → Revenue recovery* „nach allen
+  Wiederholungen Abo kündigen“ empfohlen; während `past_due` gilt die Kulanzfrist (14/44 Tage).
 
 ## Rollback
 
