@@ -69,3 +69,29 @@ test("M2: the reset page (recovery session, exempt on the server) still sends on
   assert.match(reset, /updateUser\(\{ password \}\)/);
   assert.doesNotMatch(reset, /current_password/);
 });
+
+test("M3: DOCX text extraction is linear – a tiny DOCX inflating to megabytes of unclosed <w:t> / <w:instrText> can't pin the CPU", async () => {
+  const { zipSync, unzipSync, strToU8 } = await import("fflate");
+  const extract = await import("../supabase/functions/ai-review/extract.ts");
+  const deps = { unzip: (b, only) => unzipSync(b, only ? { filter: (f) => only(f.name, f.originalSize) } : undefined), pdfText: async () => "" };
+  for (const unit of ["<w:t>", "<w:instrText>", "<w:t xml:space=\"preserve\">"]) {
+    const xml = `<w:document><w:body>${unit.repeat(Math.floor(4_000_000 / unit.length))}</w:body></w:document>`;
+    const docx = zipSync({ "[Content_Types].xml": strToU8("<Types/>"), "word/document.xml": strToU8(xml) }, { level: 9 });
+    assert.ok(docx.length < 64 * 1024, "the attack file is tiny");
+    const t = Date.now();
+    await assert.rejects(extract.extractApplicationText(docx, deps), (e) => e.code === "no_text");
+    // The former lazy regex needed minutes for this input (quadratic); linear parsing takes well under a second.
+    assert.ok(Date.now() - t < 5000, `${unit}: ${Date.now() - t} ms`);
+  }
+});
+
+test("M3: the linear DOCX parser keeps the old output for real documents", async () => {
+  const { docxXmlToText } = await import("../supabase/functions/ai-review/extract.ts");
+  const xml = '<w:body><w:p><w:pPr><w:tabs><w:tab w:val="left" w:pos="720"/></w:tabs></w:pPr><w:r><w:t xml:space="preserve">Sehr geehrte </w:t></w:r>' +
+    '<w:hyperlink r:id="r1"><w:r><w:t>Frau M&#252;ller</w:t></w:r></w:hyperlink><w:r><w:instrText xml:space="preserve"> HYPERLINK "x" </w:instrText></w:r>' +
+    '<w:r><w:br w:type="page"/><w:t>Zeile</w:t><w:cr/><w:t/><w:tab/></w:r></w:p><w:p></w:p><w:tbl><w:tr><w:tc><w:p><w:r><w:t>Zelle &amp; mehr</w:t></w:r></w:p></w:tc></w:tr></w:tbl></w:body>';
+  assert.equal(docxXmlToText(xml), "\tSehr geehrte Frau Müller\nZeile\n\t\n\nZelle & mehr\n");
+  // unclosed / malformed bits are skipped without swallowing the rest
+  assert.equal(docxXmlToText("<w:t>a</w:t><w:t><w:instrText>x<w:p></w:p>"), "a\n");
+  assert.equal(docxXmlToText("<w:t>ok</w:t><w:t"), "ok");
+});
