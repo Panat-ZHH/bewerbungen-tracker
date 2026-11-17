@@ -92,7 +92,7 @@ export function TeacherDashboardView() {
               stages={[{ label: "Bewerbungen", value: t.applications, fill: "brand" }, { label: "Gespräche", value: t.interviews, fill: "coral" }, { label: "Zusage oder Lehrvertrag", value: t.placed, fill: "mint" }]}
               note={<>
                 {t.inactive ? <><Badge tone="warning">{t.inactive} inaktiv</Badge><span className="mr-2">seit 14+ Tagen ohne Aktivität</span></> : <Badge tone="success">Alle sind aktiv</Badge>}
-                {t.hiddenStudents > 0 && <span>Zahlen ohne die {t.hiddenStudents} Schüler:innen, die nichts teilen.</span>}
+                {t.hiddenStudents > 0 && <span>{t.hiddenStudents === 1 ? "Zahlen ohne 1 Schüler:in, die nichts teilt." : `Zahlen ohne ${t.hiddenStudents} Schüler:innen, die nichts teilen.`}</span>}
               </>}
             />
           )}

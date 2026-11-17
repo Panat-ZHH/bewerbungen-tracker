@@ -95,7 +95,7 @@ export function ClassGoalsPanel({ classId, archived = false }: { classId: string
         {!archived && <Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => open("new")}>Ziel erstellen</Button>}
       </div>
       {goals.length === 0 ? (
-        <EmptyState icon={<Target size={26} />} title="Noch keine Klassenziele" description="Zum Beispiel: «Alle schnuppern zweimal bis zu den Sportferien» oder «Alle haben ein Bewerbungsdossier». Wichtig sind sinnvolle Schritte, nicht möglichst viele Bewerbungen." action={!archived ? <Button variant="sun" onClick={() => open("new")}>Erstes Ziel erstellen</Button> : undefined} />
+        <EmptyState icon={<Target size={26} />} title="Noch keine Klassenziele" description="Zum Beispiel: «Alle schnuppern zweimal bis zu den Sportferien» oder «Alle haben ein Bewerbungsdossier». Wichtig sind sinnvolle Schritte, nicht möglichst viele Bewerbungen."  />
       ) : (
         <>
           <ClassVillage goals={goals} />

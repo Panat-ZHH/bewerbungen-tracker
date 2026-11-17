@@ -166,7 +166,7 @@ async function flow(tag, vp) {
   check(await tp.getByText("Swisscom").count() > 0, "student detail shows company names when allowed");
   // announcement
   await tp.goto(BASE + "/teacher/classes/" + Object.keys(S.classes)[0], { waitUntil: "domcontentloaded" }); await wait(tp, "Lena Müller");
-  await tp.getByRole("tab", { name: /^Mehr/ }).click(); await tp.getByRole("tab", { name: /Mitteilungen/ }).click(); await tp.getByLabel("Nachricht").fill("Bis Freitag drei Bewerbungen."); await tp.getByRole("button", { name: "Veröffentlichen" }).click(); await wait(tp, "Bis Freitag drei Bewerbungen."); await shot(tp, "19-announcement");
+  await tp.getByRole("tab", { name: /^Mehr/ }).click(); await tp.getByRole("tab", { name: /Mitteilungen/ }).click(); await tp.getByLabel("Nachricht").fill("Bis Freitag drei Bewerbungen."); await tp.getByRole("button", { name: "Mitteilung senden" }).click(); await wait(tp, "Bis Freitag drei Bewerbungen."); await shot(tp, "19-announcement");
 
   // 8. consent changes reach the teacher view
   await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Firmen zeigen");
