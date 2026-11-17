@@ -1,5 +1,6 @@
 // Pure helpers for the first-login onboarding tour of students (no browser/Supabase imports, unit tested in
-// tests/onboarding-tour.test.mjs). The tour: 0 Willkommen, 1 Profil & Ziele, 2 Erste Bewerbung, 3 KI-Check, 4 Fertig.
+// tests/onboarding-tour.test.mjs). The tour (3 steps + done screen, R-8.5b): 0 Wer bist du?, 1 Was möchtest du werden?,
+// 2 Erste Bewerbung (optional), 3 Fertig.
 import type { ApplicationStatus, UserRole } from "../types/index.ts";
 
 export const TOUR_PATH = "/onboarding";
@@ -7,11 +8,11 @@ export const SETTINGS_PATH = "/settings";
 /** Optional link on "Fertig": connect the parents (BILLING-FLOW-SPEC §3.2). Same path as FAMILY_PATH in lib/family-core. */
 export const TOUR_FAMILY_PATH = "/familie";
 export const TOUR_FAMILY_LINK = "Eltern verbinden (freiwillig)";
-export const TOUR_STEPS = ["Willkommen", "Profil & Ziele", "Erste Bewerbung", "KI-Check", "Fertig"] as const;
+export const TOUR_STEPS = ["Wer bist du?", "Was möchtest du werden?", "Erste Bewerbung", "Fertig"] as const;
 export const TOUR_STEP_COUNT = TOUR_STEPS.length;
 export const LAST_STEP = TOUR_STEP_COUNT - 1;
-/** The profile step has three short screens (same questions as the former onboarding). */
-export const PROFILE_PARTS = 3;
+/** Steps the counter shows ("Schritt x von 3"); the last screen ("Fertig") is the end, not a step. */
+export const VISIBLE_STEPS = TOUR_STEP_COUNT - 1;
 
 export const clampStep = (step: unknown): number => {
   const n = typeof step === "number" ? step : typeof step === "string" && step.trim() !== "" ? Number(step) : NaN;
@@ -20,10 +21,11 @@ export const clampStep = (step: unknown): number => {
 export const nextStep = (step: number) => clampStep(step + 1);
 export const prevStep = (step: number) => clampStep(step - 1);
 
-/** "Schritt 2 von 5" + bar width in percent (step 1 already shows a bit of progress). */
+/** "Schritt 2 von 3" + bar width in percent (step 1 already shows a bit of progress). The done screen reads "Fertig", 100 %. */
 export function tourProgress(step: number) {
   const s = clampStep(step);
-  return { current: s + 1, total: TOUR_STEP_COUNT, label: `Schritt ${s + 1} von ${TOUR_STEP_COUNT}`, percent: Math.round(((s + 1) / TOUR_STEP_COUNT) * 100) };
+  if (s >= VISIBLE_STEPS) return { current: VISIBLE_STEPS, total: VISIBLE_STEPS, label: "Fertig", percent: 100 };
+  return { current: s + 1, total: VISIBLE_STEPS, label: `Schritt ${s + 1} von ${VISIBLE_STEPS}`, percent: Math.round(((s + 1) / VISIBLE_STEPS) * 100) };
 }
 
 // ---- persistence state ----
@@ -91,10 +93,10 @@ export function tourExitPath(opts: { replay: boolean; next: string | null; landi
   return opts.replay ? SETTINGS_PATH : opts.landing(opts.next);
 }
 
-// ---- step 3: first application ----
+// ---- step 3 of 3: first application ----
 export const FIRST_APPLICATION_STATUSES: { value: ApplicationStatus; label: string; hint: string }[] = [
   { value: "saved", label: "Gemerkt", hint: "Interessiert mich" },
-  { value: "preparing", label: "Am Vorbereiten", hint: "Ich schreibe gerade" },
+  { value: "preparing", label: "In Vorbereitung", hint: "Ich schreibe gerade" },
   { value: "applied", label: "Abgeschickt", hint: "Ist schon weg" },
 ];
 export interface FirstApplicationInput { company: string; position: string; status: ApplicationStatus }
@@ -102,8 +104,8 @@ export interface FirstApplicationInput { company: string; position: string; stat
 export function checkFirstApplication(input: FirstApplicationInput): { ok: true; value: FirstApplicationInput } | { ok: false; field: "company" | "position"; error: string } {
   const company = input.company.replace(/\s+/g, " ").trim().slice(0, 120);
   const position = input.position.replace(/\s+/g, " ").trim().slice(0, 120);
-  if (!company) return { ok: false, field: "company", error: "Bei welcher Firma? Der Name reicht." };
-  if (!position) return { ok: false, field: "position", error: "Für welchen Beruf? Zum Beispiel «Koch / Köchin»." };
+  if (!company) return { ok: false, field: "company", error: "Gib einen Firmennamen ein." };
+  if (!position) return { ok: false, field: "position", error: "Gib einen Beruf ein, zum Beispiel «Koch / Köchin»." };
   const status = FIRST_APPLICATION_STATUSES.some((s) => s.value === input.status) ? input.status : "saved";
   return { ok: true, value: { company, position, status } };
 }
