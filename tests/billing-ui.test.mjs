@@ -41,7 +41,7 @@ test("plans and prices come from lib/billing/plans.ts", () => {
   assert.equal(priceText(PLANS.individual), "Preis auf Anfrage");
   assert.equal(priceText(PLANS.pilot), "Kostenlos");
   assert.equal(familyPlan(), PLANS.family);
-  assert.equal(seatsText(PLANS.family), "1 Schüleraccount + 1 Elternaccount");
+  assert.equal(seatsText(PLANS.family), "1 Kind + 1 Elternteil");
   // family: CHF 7.90 per month or CHF 79 per year, no VAT (decided 2026-11-16)
   assert.equal(priceText(PLANS.family), "CHF 7.90 pro Monat oder CHF 79 pro Jahr");
   assert.equal(intervalPriceText(PLANS.family, "month"), "CHF 7.90 pro Monat");

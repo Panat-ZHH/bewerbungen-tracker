@@ -32,6 +32,18 @@ export function SchoolLicenceView() {
       </section>
     );
   }
+  // Parents reach this page only by link: the school path is not for them (eltern-12). UI only, no access decision.
+  if (access?.account_type === "parent") {
+    return (
+      <section data-testid="licence-parent" className="mx-auto max-w-[640px] py-4 sm:py-8">
+        <div className="panel space-y-4 p-5 sm:p-8">
+          <h1 className="text-display text-[clamp(1.9rem,4.5vw,2.6rem)] leading-[1.05]">Zugang über die <span className="marker">Schule</span></h1>
+          <p className="text-body">Die Schullizenz gilt für Schüler:innen einer Klasse. Für Eltern gibt es das Familienpaket.</p>
+          <ButtonLink href="/familie" size="lg">Zur Familie</ButtonLink>
+        </div>
+      </section>
+    );
+  }
   return (
     <section data-testid="licence-student" className="mx-auto max-w-[640px] py-4 sm:py-8">
       <div className="panel space-y-4 p-5 sm:p-8">

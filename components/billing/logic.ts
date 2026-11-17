@@ -69,7 +69,7 @@ export function termText(interval: BillingInterval): string {
   return interval === "month" ? "Monatsabo, kündbar auf Ende des Monats" : "Jahresabo, kündbar auf Ende der Laufzeit";
 }
 export function seatsText(plan: Plan): string {
-  if (plan.kind === "family") return `${plan.seats?.children ?? 1} Schüleraccount + ${plan.seats?.parents ?? 1} Elternaccount`;
+  if (plan.kind === "family") return `${plan.seats?.children ?? 1} Kind + ${plan.seats?.parents ?? 1} Elternteil`;
   return plan.studentLimit ? `bis ${plan.studentLimit} Schülerinnen und Schüler` : "Anzahl nach Absprache";
 }
 

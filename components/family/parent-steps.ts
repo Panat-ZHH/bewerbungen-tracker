@@ -44,6 +44,15 @@ export function parentNextAction(family: MyFamily | null, phase: BillingPhase, c
   return { current: phase === "ended" ? "rebuy" : "buy", steps: withPlan("done", "done", "current") };
 }
 
+/** Set when the parent joined the child's family with a code (no "Familie … erstellt" line then, eltern-21). Browser only. */
+export const JOINED_KEY = "wa_family_joined";
+export function joinedOtherFamily(): boolean {
+  try { return typeof window !== "undefined" && window.localStorage.getItem(JOINED_KEY) === "1"; } catch { return false; }
+}
+export function rememberJoined(joined: boolean): void {
+  try { if (joined) window.localStorage.setItem(JOINED_KEY, "1"); else window.localStorage.removeItem(JOINED_KEY); } catch { /* private mode */ }
+}
+
 // TODO(copy): move to FAMILY_COPY (one muted line for steps that are still to do).
 export const STEP_TODO_TEXT: Record<StepId, string> = {
   family: "Dauert eine Minute.",

@@ -63,7 +63,7 @@ export function InvitePanel({ direction, disabled, disabledReason, initialInvite
       {error && <StatusMessage tone="danger">{error}</StatusMessage>}
       {disabled ? <StatusMessage tone="info">{disabledReason}</StatusMessage> : invite ? (
         <div className="space-y-3">
-          <p className="text-sm">{child ? "Code" : FAMILY_COPY.step2.codeLabel} <span className="sr-only">{invite.code.split("").join(" ")}</span><strong aria-hidden data-testid="invite-code" className="ml-1 font-display text-2xl tracking-[.12em]">{formatInviteCode(invite.code)}</strong></p>
+          <p className="text-sm">{child ? "Code" : FAMILY_COPY.step2.codeLabel} <span className="sr-only">{invite.code.split("").join(" ")}</span><strong aria-hidden data-testid="invite-code" className="block whitespace-nowrap font-display text-2xl tracking-[.12em]">{formatInviteCode(invite.code)}</strong></p>
           {invite.expiresAt && <p className="text-small text-muted">{t.validity(formatDateCh(invite.expiresAt))}</p>}
           <p className="break-all rounded-[var(--radius-md)] bg-[var(--surface-2)] px-3 py-2 text-small" data-testid="invite-link">{link}</p>
           <div className="flex flex-wrap gap-2">
@@ -121,8 +121,7 @@ export function JoinForm({ initialCode = "", onJoined, title = "Code eingeben", 
     <form onSubmit={submit} aria-labelledby={bare ? undefined : headingId} className={bare ? "space-y-3" : "panel-flat space-y-3 p-5"} noValidate data-testid="join-form">
       {!bare && <h2 id={headingId} className="text-heading"><KeyRound size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{title}</h2>}
       {intro && <p className="text-body text-muted">{intro}</p>}
-      {error && <StatusMessage tone="danger">{error}</StatusMessage>}
-      <Field label={label} htmlFor={inputId}>
+      <Field label={label} htmlFor={inputId} error={error || undefined}>
         <Input id={inputId} value={formatInviteCode(code)} onChange={(e) => setCode(normalizeInviteCode(e.target.value))} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder={FAMILY_COPY.join.placeholder} className="font-display text-lg tracking-[.12em]" />
       </Field>
       <Button type="submit" loading={busy} variant={primary === false ? "secondary" : "primary"} {...(primary ? { "data-primary-action": "" } : {})}>{submitLabel}</Button>

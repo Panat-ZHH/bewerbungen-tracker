@@ -19,6 +19,12 @@ export const FAMILY_COPY = {
   step1: {
     title: "Familie erstellen",
     done: "Familie «{name}» erstellt",
+    /** The parent joined the child's family instead of creating one (eltern-21). */
+    joined: "Mit der Familie von {child} verbunden",
+    /** Asked once when the account still has the e-mail prefix as name (eltern-04). */
+    firstNameLabel: "Dein Vorname",
+    firstNameHint: "So sieht dich dein Kind in WendApply.",
+    firstNameMissing: "Gib deinen Vornamen ein.",
     text: "Leg deine Familie an. Danach lädst du dein Kind mit einem Code ein. Das dauert eine Minute.",
     nameLabel: "Name der Familie (freiwillig)",
     nameHint: "Zum Beispiel «Familie Meier». Leer lassen geht auch.",
@@ -30,6 +36,8 @@ export const FAMILY_COPY = {
   },
   invite: {
     title: "Dein Kind hat dich eingeladen",
+    /** Stepper line before the code was checked (eltern-20). */
+    check: "Einladung prüfen",
     text: "Prüfe den Code und nimm die Einladung an. Danach seid ihr verbunden.",
     cta: "Einladung annehmen",
     createInstead: "Lieber eine eigene Familie erstellen",
@@ -44,22 +52,23 @@ export const FAMILY_COPY = {
     waiting: "Wir warten auf dein Kind. Sobald es den Code eingibt, geht es hier automatisch weiter.",
     noAccount: "Dein Kind hat noch kein Konto? Über den Link kann es sich gratis registrieren.",
     newCode: "Neuen Code erstellen",
-    payNow: "Paket schon jetzt buchen",
+    payNow: "Familienpaket jetzt buchen",
   },
   consent: {
     title: "{child} braucht deine Zustimmung",
     text: "{child} ist unter 16. Damit du etwas siehst, musst du als erziehungsberechtigte Person zustimmen.",
     cta: "Zustimmung geben",
+    dialog1: "Ich bin für {child} erziehungsberechtigt und einverstanden, dass {child} WendApply mit unserer Familie nutzt.",
+    dialog2: "{child} bestimmt selbst, was geteilt wird. Du kannst deine Zustimmung jederzeit zurückziehen.",
   },
   step3: {
     title: "Familienpaket wählen",
     done: "Familienpaket aktiv",
-    text: "Das Familienpaket gilt für dich und dein Kind ({seats}).",
+    text: "Das Familienpaket gilt für dich und {children} Kind ({accounts} Konten).",
     intervalLegend: "Abrechnung",
     yearBadge: "Spare {saving}",
     cta: "Familienpaket buchen · {price}",
     note: "{term}. Sichere Bezahlung mit Karte über Stripe.",
-    childFree: "Das Familienpaket gilt für dich und dein Kind.",
     redirecting: "Wir öffnen die sichere Bezahlseite …",
   },
   return: {
@@ -75,7 +84,9 @@ export const FAMILY_COPY = {
   },
   phase: {
     active: "Verlängert sich am {date}.",
-    trialing: "Testphase bis {date}.",
+    trialing: "Testwoche bis {date}.",
+    /** Plan assigned by WendApply (manual/pilot): no renewal (eltern-07). */
+    manualUntil: "Freigeschaltet bis {date}.",
     canceling: "Gekündigt. Das Familienpaket läuft noch bis {date} und endet dann.",
     pastDue: "Die letzte Zahlung hat nicht geklappt. Bitte aktualisiere deine Karte, damit das Familienpaket weiterläuft.",
     unpaid: "Mehrere Zahlungen haben nicht geklappt. Aktualisiere deine Karte, um das Familienpaket wieder zu aktivieren.",
@@ -104,14 +115,14 @@ export const FAMILY_COPY = {
     unpaidTitle: "Familienpaket unterbrochen",
   },
   status: {
-    error: "Wir konnten den Stand deines Familienpakets gerade nicht laden.",
+    error: "Wir konnten dein Familienpaket gerade nicht laden.",
     contact: "Kontakt",
   },
   /** Badge per billing phase; `none` has no badge (empty string). */
   badge: {
     none: "",
     incomplete: "Zahlung ausstehend",
-    trialing: "Testphase",
+    trialing: "Testwoche",
     active: "Aktiv",
     canceling: "Gekündigt",
     pastDue: "Zahlung offen",
@@ -153,6 +164,23 @@ export const FAMILY_COPY = {
   },
   parent: {
     signupHint: "Dein Kind hat dich eingeladen. Erstelle dein Elternkonto.",
+    /** Trial over, no package yet (eltern-01). */
+    expiredTitle: "Deine Testwoche ist vorbei",
+    expiredText: "Mit dem Familienpaket geht es für dich und dein Kind sofort weiter. Deine Daten sind noch da.",
+    expiredCta: "Familienpaket wählen",
+    help: "Fragen? Hilfe für Eltern",
+    /** Placeholder names (e-mail prefixes) are never shown (eltern-04). */
+    childFallback: "Dein Kind",
+    parentFallback: "Elternteil",
+    childrenEmpty: "Sobald dein Kind verbunden ist, siehst du hier, was es mit dir teilt.",
+    contactLink: "Zur Kontaktseite",
+    childUnder16Hidden: "{child} ist unter 16. Sobald du zustimmst, siehst du hier, was {child} teilt.",
+    inviteOpen: "Die Einladung ist noch nicht angenommen.",
+    sharingPaused: "Teilen ist pausiert.",
+    villageTitle: "Dorf (Spiel in WendApply)",
+    villageLine: "{islands} · {houses} · {points} Punkte – für jede Bewerbung wächst das Dorf.",
+    villageLineNoPoints: "{islands} · {houses} – für jede Bewerbung wächst das Dorf.",
+    seatMore: "Ein weiteres Kind?",
   },
   join: {
     invalidFormat: "Der Code hat 8 Zeichen, zum Beispiel ABCD 1234.",
@@ -171,7 +199,7 @@ export const FAMILY_COPY = {
     fullParent: "In dieser Familie ist schon ein Elternteil verbunden. Für ein zweites Elternteil schreib uns über die Kontaktseite.",
   },
   wrongType: {
-    parent: "Dieser Code ist für ein Elternkonto. Du bist als Schüler/in angemeldet.",
+    parent: "Dieser Code ist für ein Elternkonto. Du bist als Schüler:in angemeldet.",
     child: "Dieser Code ist für ein Schülerkonto. Du bist als Elternteil angemeldet.",
   },
 } as const;

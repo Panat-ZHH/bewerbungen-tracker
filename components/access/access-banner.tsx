@@ -15,10 +15,10 @@ export function showsFullTrialBanner(pathname: string | null | undefined, daysLe
   return daysLeft <= FULL_BANNER_DAYS || FULL_BANNER_PATHS.includes(pathname ?? "");
 }
 
-type TrialProps = { daysLeft: number; endsAt: string | null; parent?: boolean; schoolStudent?: boolean; familyChild?: boolean; compact?: boolean };
+type TrialProps = { daysLeft: number; endsAt: string | null; parent?: boolean; schoolStudent?: boolean; familyChild?: boolean; compact?: boolean; hideAction?: boolean };
 
 /** "Gratis-Testwoche: noch X Tage" + what happens afterwards + one action. `compact`: a single line linking to the same place. */
-export function TrialBanner({ daysLeft, endsAt, parent = false, schoolStudent = false, familyChild = false, compact = false }: TrialProps) {
+export function TrialBanner({ daysLeft, endsAt, parent = false, schoolStudent = false, familyChild = false, compact = false, hideAction = false }: TrialProps) {
   const end = endsAt ? formatDateCh(endsAt) : "";
   // A child in a family waits for the parents' Familienpaket (schueler-12): no "Abo wählen" for them.
   const href = parent ? "/familie#abo" : familyChild ? "/familie" : ABO_PATH;
@@ -45,7 +45,7 @@ export function TrialBanner({ daysLeft, endsAt, parent = false, schoolStudent = 
         {after}
         {schoolStudent && !familyChild && <> Hast du einen Klassencode? <Link href="/classes" className="font-semibold underline underline-offset-4">Dann zahlt deine Schule.</Link></>}
       </div>
-      <ButtonLink href={href} size="sm" variant="secondary" className="min-h-11 shrink-0">{familyChild ? "Zur Familie" : parent ? "Familienpaket wählen" : "Abo wählen"}</ButtonLink>
+      {!hideAction && <ButtonLink href={href} size="sm" variant="secondary" className="min-h-11 shrink-0">{familyChild ? "Zur Familie" : parent ? "Familienpaket wählen" : "Abo wählen"}</ButtonLink>}
     </div>
   );
 }
@@ -78,6 +78,8 @@ export function AccessBanner({ access, parent = false, pathname }: { access: Acc
         familyChild={!isParent && Boolean(access?.family_pending)}
         schoolStudent={!isParent && access?.account_type !== "independent_student"}
         compact={pathname !== undefined && !showsFullTrialBanner(pathname, banner.daysLeft)}
+        // On /familie the page itself leads to the Familienpaket (step card / plan card): no 2nd CTA above step 1 (eltern-02).
+        hideAction={isParent && pathname === "/familie"}
       />
     );
   }

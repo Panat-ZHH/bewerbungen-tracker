@@ -58,7 +58,7 @@ test("AC-U2 hasSubscription: false for ended (re-buy possible), true while a sub
 });
 
 test("badges and texts follow §4.3", () => {
-  const expected = { none: "", incomplete: "Zahlung ausstehend", trialing: "Testphase", active: "Aktiv", canceling: "Gekündigt", past_due: "Zahlung offen", unpaid: "Unbezahlt", paused: "Pausiert", ended: "Abgelaufen" };
+  const expected = { none: "", incomplete: "Zahlung ausstehend", trialing: "Testwoche", active: "Aktiv", canceling: "Gekündigt", past_due: "Zahlung offen", unpaid: "Unbezahlt", paused: "Pausiert", ended: "Abgelaufen" };
   for (const [phase, label] of Object.entries(expected)) assert.equal(phaseBadge(phase).label, label, phase);
   assert.equal(phaseBadge("unpaid").tone, "danger");
   assert.equal(phaseBadge("past_due").tone, "warning");

@@ -68,8 +68,8 @@ export function AboView() {
   const mode = aboMode(access);
   const enforced = isEnforced(access);
   const intro = !access || !enforced ? null
-    : access.state === "trial" ? `Gratis-Testwoche: ${daysLeftText(access.trial_days_left ?? 0)}. ${access.family_pending ? "Danach läuft WendApply über das Familienpaket deiner Eltern." : "Danach brauchst du ein Abo."}`
-    : !access.has_access ? "Deine Gratis-Testwoche ist vorbei. Mit einem Abo geht es sofort weiter. Deine Daten sind noch da." : null;
+    : access.state === "trial" ? `Gratis-Testwoche: ${daysLeftText(access.trial_days_left ?? 0)}. ${access.family_pending ? "Danach läuft WendApply über das Familienpaket deiner Eltern." : mode === "parent" ? "Danach brauchst du das Familienpaket." : "Danach brauchst du ein Abo."}`
+    : !access.has_access ? (mode === "parent" ? "Deine Gratis-Testwoche ist vorbei. Mit dem Familienpaket geht es für dich und dein Kind sofort weiter. Deine Daten sind noch da." : "Deine Gratis-Testwoche ist vorbei. Mit einem Abo geht es sofort weiter. Deine Daten sind noch da.") : null;
   // Covered (school, family, free): nothing to choose (schueler-40).
   const covered = mode === "licensed" ? "Dein Zugang läuft über deine Schule. Du musst nichts tun."
     : mode === "family_covered" ? (access?.account_type === "parent" ? "Dein Familienpaket ist aktiv." : "Dein Zugang läuft über deine Familie. Du musst nichts tun.")
@@ -80,7 +80,7 @@ export function AboView() {
 
   return (
     <div className="mx-auto max-w-[880px] space-y-6" data-testid="abo-page" data-abo-mode={mode}>
-      <PageHeader title={choosing ? <>Abo <span className="marker">wählen</span></> : <>Dein <span className="marker">Zugang</span></>} description={covered ?? intro ?? "Wähle, wie du WendApply nutzen möchtest."} />
+      <PageHeader title={mode === "parent" ? <>Familienpaket <span className="marker">wählen</span></> : choosing ? <>Abo <span className="marker">wählen</span></> : <>Dein <span className="marker">Zugang</span></>} description={covered ?? intro ?? "Wähle, wie du WendApply nutzen möchtest."} />
       {ret === "success" && <StatusMessage tone="success" icon={<CheckCircle2 />}>Danke! Die Zahlung ist eingegangen. Die Freischaltung kann ein paar Sekunden dauern. Die Quittung kommt per E-Mail.</StatusMessage>}
       {ret === "cancel" && <StatusMessage tone="info">Es wurde nichts belastet. Du kannst jederzeit nochmals ein Abo wählen.</StatusMessage>}
       {error && <StatusMessage tone="danger">{error}</StatusMessage>}

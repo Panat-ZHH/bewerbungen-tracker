@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ChevronDown, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
@@ -8,10 +8,11 @@ import { StatusMessage } from "@/components/ui/skeleton";
 import { onlinePaymentEnabled } from "@/components/billing/logic";
 import { createFamily } from "@/lib/family";
 import { familyError } from "@/lib/family-core";
+import { cleanNameInput, getMyNameStatus, setMyDisplayName } from "@/lib/profile-names";
 import { FAMILY_COPY } from "@/lib/family-copy";
 import { FamilyStepper, type StepperItem } from "./family-stepper";
 import { JoinForm } from "./invite-panel";
-import { parentNextAction, STEP_TODO_TEXT } from "./parent-steps";
+import { parentNextAction, rememberJoined, STEP_TODO_TEXT } from "./parent-steps";
 
 /**
  * Parent without a family = step 1 of the setup (BILLING-FLOW-SPEC §3.1, S1/S2). One primary action: "Familie erstellen".
@@ -25,7 +26,7 @@ export function ParentStart({ email, initialCode, onChanged }: { email: string; 
   const inviteContext = !!initialCode && !createInstead;
   const next = parentNextAction(null, "none", { initialCode: inviteContext ? initialCode : "", online });
   const titles = { family: FAMILY_COPY.step1.title, child: FAMILY_COPY.step2.title, plan: FAMILY_COPY.step3.title };
-  const items: StepperItem[] = next.steps.map((s) => ({ ...s, title: titles[s.id], line: s.state === "current" ? (inviteContext ? FAMILY_COPY.invite.title : STEP_TODO_TEXT.family) : STEP_TODO_TEXT[s.id] }));
+  const items: StepperItem[] = next.steps.map((s) => ({ ...s, title: titles[s.id], line: s.state === "current" ? (inviteContext ? FAMILY_COPY.invite.check : STEP_TODO_TEXT.family) : STEP_TODO_TEXT[s.id] }));
 
   return (
     <div className="space-y-6">
@@ -33,7 +34,7 @@ export function ParentStart({ email, initialCode, onChanged }: { email: string; 
       <div className="max-w-2xl">
         {inviteContext ? (
           <div className="space-y-3" data-invite-context>
-            <JoinForm initialCode={initialCode} onJoined={onChanged} title={FAMILY_COPY.invite.title} intro={FAMILY_COPY.invite.text} label={FAMILY_COPY.step1.joinLabel} submitLabel={FAMILY_COPY.invite.cta} primary />
+            <JoinForm initialCode={initialCode} onJoined={() => { rememberJoined(true); onChanged(); }} title={FAMILY_COPY.invite.title} intro={FAMILY_COPY.invite.text} label={FAMILY_COPY.step1.joinLabel} submitLabel={FAMILY_COPY.invite.cta} primary />
             <Button variant="ghost" onClick={() => setCreateInstead(true)}>{FAMILY_COPY.invite.createInstead}</Button>
           </div>
         ) : (
@@ -48,10 +49,26 @@ function CreateFamily({ onChanged }: { onChanged: () => void }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // Parents never entered a name, so the child saw the e-mail prefix (eltern-04): ask once for the first name.
+  const [needsName, setNeedsName] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [nameError, setNameError] = useState("");
+  useEffect(() => {
+    let alive = true;
+    getMyNameStatus().then((r) => { if (alive) setNeedsName(r.needsName); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
   async function create(event: FormEvent) {
     event.preventDefault();
-    setBusy(true); setError("");
-    try { await createFamily(name.trim() || "Meine Familie"); onChanged(); } catch (e) { setError(familyError(e)); setBusy(false); }
+    const clean = needsName ? cleanNameInput(firstName) : null;
+    if (needsName && !clean) { setNameError(FAMILY_COPY.step1.firstNameMissing); return; }
+    setBusy(true); setError(""); setNameError("");
+    try {
+      if (clean) await setMyDisplayName(clean);
+      await createFamily(name.trim() || "Meine Familie");
+      rememberJoined(false);
+      onChanged();
+    } catch (e) { setError(familyError(e)); setBusy(false); }
   }
   return (
     <div className="space-y-4">
@@ -61,6 +78,11 @@ function CreateFamily({ onChanged }: { onChanged: () => void }) {
           <p className="text-body text-muted">{FAMILY_COPY.step1.text}</p>
         </div>
         {error && <StatusMessage tone="danger">{error}</StatusMessage>}
+        {needsName && (
+          <Field label={FAMILY_COPY.step1.firstNameLabel} htmlFor="parent-first-name" hint={FAMILY_COPY.step1.firstNameHint} error={nameError || undefined}>
+            <Input id="parent-first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} autoComplete="given-name" required />
+          </Field>
+        )}
         <Field label={FAMILY_COPY.step1.nameLabel} htmlFor="family-name" hint={FAMILY_COPY.step1.nameHint}>
           <Input id="family-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="off" placeholder="Meine Familie" />
         </Field>
@@ -73,7 +95,7 @@ function CreateFamily({ onChanged }: { onChanged: () => void }) {
         </summary>
         <div className="space-y-3 pb-2 pt-1">
           <p className="text-body text-muted">{FAMILY_COPY.step1.joinText}</p>
-          <JoinForm onJoined={onChanged} title={FAMILY_COPY.step1.joinLabel} label={FAMILY_COPY.step1.joinLabel} submitLabel={FAMILY_COPY.step1.joinCta} primary={false} />
+          <JoinForm onJoined={() => { rememberJoined(true); onChanged(); }} title={FAMILY_COPY.step1.joinLabel} label={FAMILY_COPY.step1.joinLabel} submitLabel={FAMILY_COPY.step1.joinCta} primary={false} />
         </div>
       </details>
     </div>

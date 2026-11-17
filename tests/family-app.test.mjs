@@ -6,7 +6,7 @@ import {
   isMissingFamilyFeature, birthYearOptions, isValidBirthYear, mayNeedParentalConsent, choiceToAccount, signupMetadata, pendingAccountType,
   isParentMeta, parentGuardRedirect, normalizeInviteCode, isValidInviteCode, formatInviteCode, inviteLink, inviteShareText, readInvite,
   readShare, readMyFamily, childrenOf, parentsOf, seatUsage, sharingActive, nextShare, consentNotice, readChildOverview, groupStatusCounts,
-  planSummary, daysLeft, formatDateCh, familyError, waitlistProblem, DEFAULT_SHARE, SHARE_LABELS,
+  planSummary, daysLeft, formatDateCh, familyError, waitlistProblem, DEFAULT_SHARE, SHARE_LABELS, memberName, statusText, CONSENT_LABEL, readMember,
 } from "../lib/family-core.ts";
 import { loadLib } from "./helpers/load-lib.mjs";
 
@@ -144,6 +144,19 @@ test("groupStatusCounts groups statuses for parents", () => {
   assert.deepEqual(Object.fromEntries(g.map((x) => [x.key, x.count])), { open: 2, applied: 3, talks: 2, offer: 1, rejected: 2, other: 1 });
 });
 
+test("parent view labels follow lib/status.ts and never show e-mail prefixes (eltern-04/16/18)", () => {
+  const g = groupStatusCounts({ schnupper_planned: 1, aptitude_test: 1, contract_signed: 1, withdrawn: 1 });
+  assert.deepEqual(g.map((x) => x.label), ["Gemerkt / In Vorbereitung", "Abgeschickt", "Gespräch / Schnupperlehre", "Zusage", "Absage erhalten"]);
+  assert.ok(!g.some((x) => x.key === "other"), "new statuses are grouped, not 'Andere'");
+  assert.equal(statusText("applied"), "Abgeschickt"); assert.equal(statusText("rejected"), "Absage erhalten");
+  assert.equal(memberName("sandra.meier77", "parent"), "Elternteil");
+  assert.equal(memberName("probe-ux-eltern-paidkid-123", "child"), "Dein Kind");
+  assert.equal(memberName("", "child"), "Dein Kind");
+  assert.equal(memberName("Anna-Lena", "child"), "Anna-Lena");
+  assert.equal(readMember({ user_id: "u1", role: "child", display_name: "lina_2009" }).displayName, "Dein Kind");
+  assert.equal(CONSENT_LABEL.not_required, "Verbunden");
+});
+
 test("plan summary: trial days, seats, no plan = bald verfügbar", () => {
   assert.equal(daysLeft("2026-11-30T10:00:00Z", NOW), 14);
   assert.equal(daysLeft("2026-11-01", NOW), 0);
@@ -173,7 +186,7 @@ test("familyError maps server codes to German (Swiss spelling) messages", () => 
   assert.match(familyError({ message: "INVITE_USED" }), /schon verwendet/);
   assert.match(familyError({ message: "INVITE_INVALID" }), /kennen wir nicht/);
   assert.match(familyError({ message: "ALREADY_IN_FAMILY" }), /schon in einer Familie/);
-  assert.match(familyError({ message: "INVITE_WRONG_ACCOUNT_TYPE", details: "Dieser Code ist für ein Elternkonto." }), /für ein Elternkonto\. Du bist als Schüler\/in angemeldet/);
+  assert.match(familyError({ message: "INVITE_WRONG_ACCOUNT_TYPE", details: "Dieser Code ist für ein Elternkonto." }), /für ein Elternkonto\. Du bist als Schüler:in angemeldet/);
   assert.match(familyError({ message: "INVITE_WRONG_ACCOUNT_TYPE", details: "Dieser Code ist für ein Schülerkonto." }), /für ein Schülerkonto\. Du bist als Elternteil angemeldet/);
   assert.match(familyError({ message: "NOT_A_PARENT" }), /nicht ändern/);
   assert.equal(familyError({ message: "INVALID_NAME", details: "Der Familienname darf höchstens 80 Zeichen haben." }), "Der Familienname darf höchstens 80 Zeichen haben.");

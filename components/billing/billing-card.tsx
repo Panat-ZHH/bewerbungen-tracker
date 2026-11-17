@@ -13,7 +13,7 @@ import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
   FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyBuyTarget, familyManageMode, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
-  onlinePaymentEnabled, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
+  onlinePaymentEnabled, paymentOptions, priceText, schoolPlans, termText, type BillingInterval, type BillingOwner,
   type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
 import { IntervalChoice } from "./interval-choice";
@@ -311,6 +311,12 @@ const PHASE_BADGE: Record<BillingPhase, { label: string; tone: Tone } | null> = 
   ended: { label: FAMILY_COPY.badge.ended, tone: "neutral" },
 };
 export const familyPhaseBadge = (p: BillingPhase | null) => (p ? PHASE_BADGE[p] : null);
+/** "Das Familienpaket gilt für dich und 1 Kind (2 Konten)." from the plan's seats (eltern-05). */
+function familySeatsLine(plan: ReturnType<typeof familyPlan>): string {
+  const children = plan.seats?.children ?? 1;
+  return fill(FAMILY_COPY.step3.text, { children, accounts: children + (plan.seats?.parents ?? 1) });
+}
+
 /** Body text of one phase (dates as dd.mm.yyyy). */
 export function familyPhaseText(p: BillingPhase, validUntil: string | null): string {
   const date = formatDate(validUntil);
@@ -371,7 +377,7 @@ function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: stri
   }
   return (
     <div className="space-y-4" data-billing-state={busy ? "redirecting" : "choose"}>
-      <p className="text-body">{fill(FAMILY_COPY.step3.text, { seats: seatsText(plan) })}</p>
+      <p className="text-body">{familySeatsLine(plan)}</p>
       <IntervalChoice plan={plan} options={intervals} value={billing.interval} onChange={billing.setInterval} name={`interval-${familyId}`}
         legend={FAMILY_COPY.step3.intervalLegend} yearBadge={saving > 0 ? fill(FAMILY_COPY.step3.yearBadge, { saving: formatChf(saving) }) : undefined} />
       {error && <div ref={errorRef} tabIndex={-1} className="outline-none"><StatusMessage tone="danger">{error}</StatusMessage></div>}
@@ -381,7 +387,7 @@ function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: stri
         </Button>
         {busy && <p role="status" className="text-small font-semibold">{FAMILY_COPY.step3.redirecting}</p>}
       </div>
-      <p className="text-small text-muted">{fill(FAMILY_COPY.step3.note, { term: termText(billing.interval) })} {FAMILY_COPY.step3.childFree}</p>
+      <p className="text-small text-muted">{fill(FAMILY_COPY.step3.note, { term: termText(billing.interval) })}</p>
     </div>
   );
 }
@@ -419,9 +425,8 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
   if (p === "none") {
     return current || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
       <div className="space-y-2" data-billing-state="choose-later">
-        <p className="text-body">{fill(FAMILY_COPY.step3.text, { seats: seatsText(familyPlan()) })}</p>
+        <p className="text-body">{familySeatsLine(familyPlan())}</p>
         <p className="tabular text-sm font-bold" data-family-price>{priceText(familyPlan())}</p>
-        <p className="text-small text-muted">{FAMILY_COPY.step3.childFree}</p>
       </div>
     );
   }
@@ -442,9 +447,12 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
   const manage = familyManageMode(status ?? null);
   if (manage === "manual") {
     // Trial / pilot / manual plan from WendApply: no portal, no "other parent"; a trial can be upgraded right away.
+    // It never renews, so "Verlängert sich am …" would contradict "läuft ohne Abo" (eltern-07).
+    const until = formatDate(status?.validUntil ?? null);
+    const manualText = p === "active" ? (until ? fill(FAMILY_COPY.phase.manualUntil, { date: until }) : "") : text;
     return (
       <div className="space-y-3" data-billing-state={p} data-billing-manage="manual">
-        {text && <p className="text-body">{text}</p>}
+        {manualText && <p className="text-body">{manualText}</p>}
         <p className="text-small text-muted">{FAMILY_COPY.manage.manual}</p>
         {p === "trialing" && (rebuy || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
           <Button variant="secondary" onClick={() => setRebuy(true)} icon={<Sparkles size={16} aria-hidden />}>{FAMILY_COPY.manage.buyNow}</Button>
