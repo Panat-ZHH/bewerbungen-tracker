@@ -132,6 +132,7 @@ const scenarios = {
       await shot(page, `1-start-${key}`);
       if (key === "mobile") { await ctx.close(); continue; }
 
+      if (await page.getByLabel("Dein Vorname").isVisible().catch(() => false)) await page.getByLabel("Dein Vorname").fill("Sandra"); // eltern-04
       await page.getByRole("button", { name: "Familie erstellen" }).click();
       check(await waitSel(page, "[data-step=child][data-state=current]"), "AC-P2: child step current after create");
       check(db.calls.some(([n, b]) => n === "family_create" && b.p_name === "Meine Familie"), "AC-P2: empty name -> 'Meine Familie'");
