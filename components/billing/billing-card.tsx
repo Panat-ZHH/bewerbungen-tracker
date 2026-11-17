@@ -438,7 +438,9 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
   return (
     <div className="space-y-3" data-billing-state={p}>
       {text && <p className={fix ? "text-body font-semibold" : "text-body"}>{text}</p>}
-      <FamilyPortalButton familyId={familyId} phase={p} primary={fix && current} label={fix ? FAMILY_COPY.cta.updateCard : p === "canceling" ? FAMILY_COPY.cta.renew : FAMILY_COPY.cta.manage} />
+      {status?.hasCustomer === false
+        ? <p className="text-small text-muted" data-billing-manage="other-parent">{FAMILY_COPY.manage.otherParent}</p>
+        : <FamilyPortalButton familyId={familyId} phase={p} primary={fix && current} label={fix ? FAMILY_COPY.cta.updateCard : p === "canceling" ? FAMILY_COPY.cta.renew : FAMILY_COPY.cta.manage} />}
     </div>
   );
 }

@@ -65,6 +65,12 @@ Dashboard → *Developers → Webhooks → Add endpoint*:
 > **Neu (Payments-Audit 2026-11-17):** `supabase/migrations/20261117100000_billing_hardening.sql` ist noch **nicht** live.
 > Sie ersetzt nur `billing_apply_subscription` (gleiche Signatur): `past_due` gibt nicht mehr das ganze neue,
 > unbezahlte Jahr frei, sondern nur 14 Tage (Karte) bzw. 44 Tage (Rechnung) Kulanz. Vor dem Einschalten des Flags anwenden.
+>
+> **Neu (Re-Audit 2, 2026-11-17):** `20261117140000_billing_status_family_customer.sql` (nach `20261117130000`) ersetzt nur
+> `billing_status_for_family` (gleiche Signatur): `has_customer` ist für Eltern nur noch wahr, wenn sie das Stripe-Konto
+> der Familie auch öffnen dürfen. Ausserdem prüft der Checkout jetzt, ob der Stripe-Preis (Betrag, CHF, Intervall) genau
+> `lib/billing/plans.ts` entspricht; sonst antwortet er 503 `price_not_found` (Log: „does not match lib/billing/plans.ts“).
+> Live-Preise deshalb nur mit `scripts/stripe/setup-products.mjs` anlegen/ändern.
 
 > **Stand 2026-11-16 (geprüft):** Die Migration ist auf Live **bereits angewendet** (`migration list`: alle 27 lokal = remote, `db push --dry-run`: „Remote database is up to date“). Live hat 0 Lizenzen, 0 Billing-Kunden/-Abos und 18 verarbeitete `stripe_events` aus den Testmodus-E2E-Läufen (die Preview nutzte die Live-DB). Backup (Schema, Daten, Rollen, sha256) liegt in `~/JARVIS/workspace/backups/wendapply-2026-11-16/` inkl. `migration-impact.md`. Schritt 5 entfällt also; die Punkte unten gelten für künftige Migrationen.
 

@@ -185,12 +185,20 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   await deps.stripe.expireOpenCheckoutSessions?.(customer);
 
   if (payment === "invoice") {
-    const { hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({
-      customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata,
-      // Same owner + price within 10 minutes = the same request (Stripe replays the first answer; a parallel one with a
-      // different customer is rejected by Stripe). Owner-based, not customer-based: two admins racing get one subscription.
-      idempotencyKey: invoiceIdempotencyKey(owner, lookupKey),
-    });
+    let hostedInvoiceUrl: string | null;
+    try {
+      ({ hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({
+        customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata,
+        // Same owner + price within 10 minutes = the same request (Stripe replays the first answer; a parallel one with a
+        // different customer is rejected by Stripe). Owner-based, not customer-based: two admins racing get one subscription.
+        idempotencyKey: invoiceIdempotencyKey(owner, lookupKey),
+      }));
+    } catch (error) {
+      // The parallel twin of a request that is creating this subscription right now (or did so with another customer):
+      // that is "already subscribed", not a server error (re-audit 2; was a generic 500).
+      if (isIdempotencyConflict(error)) return err(409, "already_subscribed");
+      throw error;
+    }
     return { status: 200, body: { url: hostedInvoiceUrl, invoice: true } };
   }
   if (ui === "elements") {
@@ -209,6 +217,12 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   });
   if (!session.url) return err(502, "checkout_failed");
   return { status: 200, body: { url: session.url } };
+}
+
+/** Stripe answered that the idempotency key is in use by a concurrent request or was used with other parameters. */
+export function isIdempotencyConflict(error: unknown): boolean {
+  const e = (error ?? {}) as { type?: unknown; code?: unknown; rawType?: unknown };
+  return e.code === "idempotency_key_in_use" || e.type === "StripeIdempotencyError" || e.rawType === "idempotency_error";
 }
 
 /** Idempotency key of an invoice subscription: owner + price + 10-minute bucket. */

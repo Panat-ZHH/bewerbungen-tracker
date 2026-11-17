@@ -92,6 +92,8 @@ export const FAMILY_COPY = {
   },
   manage: {
     note: "Zahlungsmethode, Quittungen und Kündigung findest du im Kundenportal von Stripe.",
+    /** Status says the caller can't reach the Stripe customer (another parent bought the plan, re-audit 2). */
+    otherParent: "Das Familienpaket hat ein anderer Elternteil abgeschlossen. Nur diese Person kann es im Kundenportal verwalten.",
   },
   banner: {
     pastDueTitle: "Zahlung fürs Familienpaket offen",

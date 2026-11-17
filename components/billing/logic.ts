@@ -91,6 +91,8 @@ export interface BillingStatus {
   subscriptionStatus: string | null;
   collectionMethod: string | null;
   latestInvoiceStatus: string | null;
+  /** The caller can open the customer portal (false: the plan was bought by another parent who manages it). null = unknown. */
+  hasCustomer: boolean | null;
 }
 
 const str = (v: unknown): string | null => (typeof v === "string" && v ? v : null);
@@ -110,6 +112,7 @@ export function readBillingStatus(v: unknown): BillingStatus | null {
     subscriptionStatus: str(r.subscriptionStatus),
     collectionMethod: str(r.collectionMethod),
     latestInvoiceStatus: str(r.latestInvoiceStatus),
+    hasCustomer: typeof r.hasCustomer === "boolean" ? r.hasCustomer : null,
   };
 }
 
