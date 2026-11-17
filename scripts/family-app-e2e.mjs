@@ -88,14 +88,14 @@ for (const { key, vp } of VIEWPORTS) {
     check(await visible(page, "Familie erstellen", 60000), "no family yet: create form + code form");
     check(calls(state, "account_set_type").some((c) => c.body.p_type === "parent" && c.body.p_birth_year === null), "pending account type stored with account_set_type(parent, null)", JSON.stringify(calls(state, "account_set_type")));
     check(state.calls.some((c) => c.updateUser?.account_type_synced === true), "account type marked as synced");
-    check(await visible(page, "Bezahlung bald verfügbar"), "plan card shows the payment placeholder");
-    await page.getByLabel("Name der Familie").fill("Familie Meier");
+    await page.getByLabel(/Name der Familie/).fill("Familie Meier");
     await page.getByRole("button", { name: "Familie erstellen" }).click();
-    check(await visible(page, "Noch kein Kind in deiner Familie"), "family created: empty children list");
+    check(await visible(page, "Sobald dein Kind verbunden ist"), "family created: empty children list");
+    check(await visible(page, "Bezahlung bald verfügbar"), "plan card shows the payment placeholder");
     check(await visible(page, "Testphase"), "plan card shows the trial status");
     check(await visible(page, /noch 1[34] Tage Testphase/), "trial days left are shown");
     check(calls(state, "family_create")[0]?.body.p_name === "Familie Meier", "family_create sends the name");
-    await page.getByRole("button", { name: "Einladungscode erstellen" }).click();
+    await page.getByRole("button", { name: /Code für mein Kind erstellen|Einladungscode erstellen/ }).click();
     check(await visible(page, "KIND 2345"), "invite code is shown readable");
     check(await visible(page, "/familie/einladung/KIND2345"), "share link is shown");
     check(await page.getByRole("button", { name: "Code kopieren" }).isVisible() && await page.getByRole("button", { name: "Link kopieren" }).isVisible(), "copy buttons for code and link");
@@ -108,8 +108,8 @@ for (const { key, vp } of VIEWPORTS) {
     check(await visible(page, "Zustimmung offen"), "consent status pending is shown");
     check(await visible(page, "ist unter 16"), "overview stays hidden until consent");
     check(!calls(state, "family_child_overview").length, "no overview request without consent");
-    check(await visible(page, "Alle Plätze für Kinder sind belegt"), "seat limit: no further invites (1 child seat)");
-    await page.getByRole("button", { name: "Zustimmung geben" }).click();
+    check(await visible(page, "In eurer Familie ist schon ein Kind verbunden"), "seat limit: no further invites (1 child seat)");
+    await page.getByRole("button", { name: "Zustimmung geben" }).first().click();
     check(await page.getByRole("dialog").getByText("Ich bin erziehungsberechtigt").isVisible(), "consent asks for confirmation in plain language");
     await page.getByRole("dialog").getByRole("button", { name: "Ja, ich stimme zu" }).click();
     check(await visible(page, "Zustimmung erteilt"), "consent granted");
@@ -134,7 +134,7 @@ for (const { key, vp } of VIEWPORTS) {
 
     await page.getByRole("button", { name: "Entfernen" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Entfernen" }).click();
-    check(await visible(page, "Noch kein Kind in deiner Familie"), "child removed");
+    check(await visible(page, "Sobald dein Kind verbunden ist"), "child removed");
     const nav = await page.getByRole("navigation", { name: /Hauptmenü/ }).first().innerText().catch(() => "");
     check(!/Bewerbungen|Suchen/.test(nav), "parent menu has no job-search items", nav);
     await ctx.close();

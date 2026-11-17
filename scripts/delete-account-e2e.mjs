@@ -60,9 +60,9 @@ async function seedStudent(u, friend) {
   const day = new Date().toISOString().slice(0, 10);
   const ins = await c.from("applications").insert({ id: `${u.id}-app-1`, user_id: u.id, company: "E2E AG", position: "Test", category: "IT", status: "applied", created_at: day, updated_at: day });
   if (ins.error) throw ins.error;
-  const up = await c.storage.from("cvs").upload(`${u.id}/cv1/e2e.txt`, new Blob(["e2e"]), { contentType: "text/plain" });
+  const up = await c.storage.from("cvs").upload(`${u.id}/cv1/e2e.pdf`, new Blob(["%PDF-1.4 e2e"], { type: "application/pdf" }), { contentType: "application/pdf" });
   if (up.error) throw up.error;
-  await c.from("cvs").update({ storage_path: `${u.id}/cv1/e2e.txt`, file_name: "e2e.txt" }).eq("user_id", u.id).limit(1);
+  await c.from("cvs").update({ storage_path: `${u.id}/cv1/e2e.pdf`, file_name: "e2e.pdf" }).eq("user_id", u.id).limit(1);
   const av = await c.storage.from("avatars").upload(`${u.id}/avatar.png`, new Blob(["x"], { type: "image/png" }), { contentType: "image/png" });
   if (av.error) check(false, "seed avatar", av.error.message);
   const { error } = await admin.from("friendships").insert({ requester_id: u.id, addressee_id: friend.id, status: "accepted" });

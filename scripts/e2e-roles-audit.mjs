@@ -53,7 +53,7 @@ const SHARED = ["/profile", "/settings", "/familie", "/schul-admin"];
 const L = (path) => new RegExp(`/login\\?next=${encodeURIComponent(path).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(%3F.*)?$`);
 /** Expected final path (string = exact pathname, RegExp = matched against pathname+search) per persona and route. */
 function expected(persona, path) {
-  if (persona === "anon") return L(path);
+  if (persona === "anon") return path === "/dashboard" ? /^\/login$/ : L(path); // /dashboard is the default landing, no ?next
   if (persona === "norole") return /^\/auth\/role/;
   const studentOnly = STUDENT_PAGES.includes(path);
   if (persona === "student") return TEACHER_PAGES.includes(path) ? "/dashboard" : path;

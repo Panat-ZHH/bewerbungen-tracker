@@ -295,7 +295,7 @@ flow("profile-avatar", student({ profile: { first_name: "Lena", last_name: "Mül
   const saved = await t.text(/Dein Profilbild wurde gespeichert/, 15000);
   t.check("avatar is saved (local mode)", saved, saved ? "" : "enable with NEXT_PUBLIC_AVATAR_LOCAL=1 on the dev server");
   if (saved) {
-    t.check("avatar image shows up in the header", await page.locator("header img").first().waitFor({ timeout: 15000 }).then(() => true, () => false));
+    t.check("avatar image shows up in the header", await page.locator("header img:not([src*='logo'])").locator("visible=true").first().waitFor({ timeout: 15000 }).then(() => true, () => false));
     await t.shot("avatar-saved");
   }
 });

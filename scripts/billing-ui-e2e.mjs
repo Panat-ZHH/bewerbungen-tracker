@@ -244,7 +244,8 @@ async function runState(flag, base) {
       scope = `schul-admin on api-${code}`;
       const { ctx, page } = await actor(base, { role: "teacher", rpc: schoolRpc, vp: { w: 1280, h: 900 }, billing: { status: { school: code } } });
       await page.goto(`${base}/schul-admin`, { waitUntil: "domcontentloaded" });
-      check(await visible(page, "Die Online-Bezahlung ist noch nicht freigeschaltet", 90000), `${code}: friendly 'noch nicht freigeschaltet' message`);
+      // Flag on (BILLING-FLOW-SPEC S7): the payment is "not reachable right now", never "noch nicht freigeschaltet".
+      check(await visible(page, "Die Bezahlung ist gerade nicht erreichbar", 90000), `${code}: friendly 'gerade nicht erreichbar' message`);
       check(await page.locator("#abo").getByRole("link", { name: "Kontakt aufnehmen" }).isVisible(), `${code}: contact link offered`);
       if (code === 503) await elementShot(page, "#abo", "schul-admin-billing-on-api-503");
       await ctx.close();

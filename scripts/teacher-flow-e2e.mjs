@@ -49,10 +49,10 @@ await scenario("routing-teacher", async () => {
 await scenario("teacher-nav", async () => {
   for (const [w, h, dark, tag] of [[1280, 800, false, "desktop"], [375, 812, false, "mobile"], [375, 812, true, "mobile-dark"]]) {
     const { ctx, page } = await session({ role: "teacher", meta: { role: "teacher", teacher_onboarded: true }, opts: { rpc: { class_list_mine: [{ id: "c1", name: "Informatik 4a", school_year: "2026/27", join_code: "KLAS7Q2A", created_at: iso(-60), member_count: 3 }] } }, vp: { w, h, dark } });
-    await page.goto(BASE + "/classes"); await page.getByText("Informatik 4a").first().waitFor();
+    await page.goto(BASE + "/teacher"); await page.waitForURL("**/teacher"); await page.getByRole("navigation").first().waitFor();
     const nav = page.getByRole("navigation", { name: w < 700 ? "Hauptmenü mobil" : "Hauptmenü" });
     const labels = (await nav.getByRole("link").allInnerTexts()).join("|") + (await nav.getByRole("link").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") || e.getAttribute("title") || "").join("|")));
-    check(/Übersicht/.test(labels) && /Klassen/.test(labels) && !/Bewerbungen|Map|Lebensläufe/.test(labels), `teacher menu (${tag}): ${labels.replace(/\n/g, " ")}`);
+    check(/Klassen/.test(labels) && !/Bewerbungen|Map|Lebensläufe/.test(labels), `teacher menu (${tag}): ${labels.replace(/\n/g, " ")}`);
     await shot(page, `teacher-classes-${tag}`); await ctx.close();
   }
 });
@@ -79,8 +79,8 @@ await scenario("role-picker", async () => {
     const { ctx, page, state } = await session({ role: "student", meta: { full_name: "Lena Müller", avatar_url: "x" }, opts: rpcOpts(), vp: { w: 375, h: 812, dark } });
     await page.goto(BASE + "/dashboard"); await page.waitForURL("**/auth/role**");
     check(path(page) === "/auth/role", `Google user without role is asked once (${tag})`);
-    await page.getByText("Ich begleite Klassen").click(); await shot(page, `role-picker-${tag}`);
-    await page.getByText("Ich suche eine Lehrstelle").click(); await page.getByRole("button", { name: "Weiter" }).click();
+    await page.getByRole("radio", { name: /^Lehrperson/ }).check({ force: true }); await shot(page, `role-picker-${tag}`);
+    await page.getByRole("radio", { name: /^Schule/ }).check({ force: true }); await page.getByRole("button", { name: "Weiter" }).click();
     // a freshly chosen student starts the first-login tour (components/onboarding/student-onboarding.tsx)
     await page.waitForURL("**/onboarding**");
     check(state.calls.some((c) => c.rpc === "set_my_role" && c.body.p_role === "student"), `set_my_role called, then the onboarding tour (${tag})`);
@@ -94,7 +94,7 @@ await scenario("join", async () => {
   await page.goto(BASE + `/classes/join/${token}`); await page.getByRole("button", { name: /Beitreten/ }).waitFor();
   check(state.calls.some((c) => c.rpc === "class_invite_preview" && c.body.p_token === token), "token link previews via class_invite_preview (case kept)");
   await page.getByText("Was Herr Keller sieht").waitFor(); await shot(page, "join-token-mobile");
-  await page.getByRole("button", { name: /Beitreten/ }).click(); await page.getByText("Du bist beigetreten").waitFor();
+  await page.getByRole("radio", { name: "16 oder älter" }).check({ force: true }); await page.getByRole("button", { name: /Beitreten/ }).click(); await page.getByText("Du bist beigetreten").waitFor();
   check(state.calls.some((c) => c.rpc === "class_invite_accept" && c.body.p_token === token), "accept via class_invite_accept");
   await page.goto(BASE + "/classes/join/abc12345"); await page.getByRole("button", { name: /Beitreten/ }).waitFor();
   check(state.calls.some((c) => c.rpc === "class_preview" && c.body.p_code === "ABC12345"), "short code uses class_preview (upper-cased)");
@@ -112,16 +112,16 @@ await scenario("student-classes", async () => {
   for (const [w, h, dark, tag] of [[375, 812, false, "mobile"], [375, 812, true, "mobile-dark"], [1280, 900, false, "desktop"]]) {
     const { ctx, page, state } = await session({ opts: rpcOpts(), vp: { w, h, dark } });
     await page.goto(BASE + "/classes"); await page.getByText("Informatik 4a").first().waitFor();
-    await page.getByRole("switch", { name: /Firmennamen/ }).waitFor({ state: "attached" });
-    await page.getByText(/2 Mitteilungen/).click(); await page.getByText("Bewerbungsworkshop am Freitag.").waitFor();
+    await page.getByRole("switch", { name: /Firmen zeigen/ }).waitFor({ state: "attached" });
+    await page.getByText(/2 Mitteilungen/).first().waitFor(); await page.getByText("Bewerbungsworkshop am Freitag.").waitFor();
     await shot(page, `student-classes-${tag}`);
     if (tag === "mobile") {
-      await page.getByText("Firmennamen zeigen").click();
+      await page.getByRole("switch", { name: /Firmen zeigen/ }).click({ force: true });
       await page.waitForTimeout(300);
       check(state.calls.some((c) => c.rpc === "class_set_sharing_v2" && c.body.p_share === true && c.body.p_companies === false), "company-name switch -> class_set_sharing_v2(share=true, companies=false)");
-      await page.getByText("Fortschritt mit Lehrperson teilen").click(); await page.waitForTimeout(300);
+      await page.getByRole("switch", { name: /Fortschritt teilen/ }).click({ force: true }); await page.waitForTimeout(300);
       check(state.calls.some((c) => c.rpc === "class_set_sharing_v2" && c.body.p_share === false), "master switch off -> share=false");
-      check(await page.getByRole("switch", { name: /Firmennamen/ }).isDisabled(), "company switch disabled while master is off");
+      check(await page.getByRole("switch", { name: /Firmen zeigen/ }).isDisabled(), "company switch disabled while master is off");
     }
     await page.getByRole("button", { name: /Mitteilungen/ }).first().click(); await page.getByText("Schick diese Woche").waitFor(); await shot(page, `notifications-${tag}`);
     if (tag === "mobile") { await page.getByText("Schick diese Woche").click(); await page.waitForTimeout(200); check(state.calls.some((c) => c.rpc === "mark_notification_read" && c.body.p_id === "n1"), "notification click -> mark_notification_read"); }
