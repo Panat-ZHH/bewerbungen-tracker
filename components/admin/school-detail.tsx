@@ -12,10 +12,14 @@ import type { AdminSchoolDetail, AdminSchoolPerson, SchoolLicence } from "@/lib/
 import { adminFetch, errorText, fieldOf, type AdminResult } from "./api";
 import { AuditList, ConfirmModal, Facts, Section, fmtDate, isoDay, type OpenDetail } from "./shared";
 import { LicenceBadge, licenceEnd } from "./schools-tab";
+import { freeAccessActive, freeAccessBody, freeAccessLabel, type FreeAccessForm } from "@/lib/admin/free-access";
+import { FreeAccessBadge, FreeAccessFields, emptyFreeAccessForm } from "./free-access";
 
-type Action = "assign_licence" | "update_licence" | "revoke_licence" | "add_admin" | "remove_admin" | "add_teacher" | "remove_teacher";
+type Action = "grant_access" | "revoke_access" | "assign_licence" | "update_licence" | "revoke_licence" | "add_admin" | "remove_admin" | "add_teacher" | "remove_teacher";
 
 const TITLE: Record<Action, string> = {
+  grant_access: "Gratis-Zugang für die Schule",
+  revoke_access: "Gratis-Zugang entziehen",
   assign_licence: "Lizenz vergeben",
   update_licence: "Lizenz anpassen",
   revoke_licence: "Lizenz widerrufen",
@@ -25,6 +29,8 @@ const TITLE: Record<Action, string> = {
   remove_teacher: "Lehrperson entfernen",
 };
 const DONE: Record<Action, string> = {
+  grant_access: "Gratis-Zugang für die Schule gegeben.",
+  revoke_access: "Gratis-Zugang der Schule entzogen.",
   assign_licence: "Lizenz vergeben.",
   update_licence: "Lizenz angepasst.",
   revoke_licence: "Lizenz widerrufen.",
@@ -35,7 +41,7 @@ const DONE: Record<Action, string> = {
 };
 const LABELS: Record<string, string> = {
   package: "Paket", status: "Status", student_limit: "Max. Lernende", start: "Start", end: "Ende", billing_interval: "Abrechnung",
-  notes: "Notizen", valid_until: "Gültig bis", pilot_end: "Pilot bis", email: "E-Mail", licence_id: "Lizenz", user_id: "Person",
+  notes: "Notizen", until: "Gratis bis", note: "Notiz", forever: "Unbefristet", valid_until: "Gültig bis", pilot_end: "Pilot bis", email: "E-Mail", licence_id: "Lizenz", user_id: "Person",
 };
 
 type Form = {
@@ -52,6 +58,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
   const [res, setRes] = useState<AdminResult<AdminSchoolDetail> | null>(null);
   const [target, setTarget] = useState<Target | null>(null);
   const [form, setForm] = useState<Form>(emptyForm);
+  const [free, setFree] = useState<FreeAccessForm>(emptyFreeAccessForm);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [badField, setBadField] = useState<string | null>(null);
@@ -72,7 +79,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
       f.student_limit = String(t.licence.student_limit ?? "");
       f.notes = t.licence.notes ?? "";
     }
-    setForm(f); setError(null); setBadField(null); setTarget(t);
+    setForm(f); setFree(emptyFreeAccessForm()); setError(null); setBadField(null); setTarget(t);
   }
   const set = (k: keyof Form) => (e: { target: { value: string } }) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const invalid = (k: string) => (badField === k ? true : undefined);
@@ -82,6 +89,8 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
     const { action, licence, person } = target;
     const body: Record<string, unknown> = { action, confirm: true };
     switch (action) {
+      case "grant_access": Object.assign(body, freeAccessBody(free)); break;
+      case "revoke_access": break;
       case "assign_licence":
         body.package = form.package;
         body.billing_interval = form.billing_interval;
@@ -131,6 +140,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
   }
   const s = res.data;
   const action = target?.action;
+  const freeText = freeAccessLabel(s.free_access, fmtDate);
 
   const people = (list: AdminSchoolPerson[], remove: "remove_admin" | "remove_teacher", empty: string) => (
     list.length === 0 ? <p className="text-small text-muted">{empty}</p> : (
@@ -153,11 +163,29 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
       <header className="space-y-2">
         <h1 className="text-title break-words">{s.name}</h1>
         <div className="flex flex-wrap items-center gap-2">
+          <FreeAccessBadge grant={s.free_access} />
           <LicenceBadge licence={s.licence} />
           <span className="text-small text-muted">{[s.canton_or_state, s.country].filter(Boolean).join(" · ")} · erstellt {fmtDate(s.created_at)}</span>
         </div>
         <p className="text-small tabular">{s.students} Lernende · {s.teachers} Lehrpersonen · {s.admins} Admins</p>
       </header>
+
+      <Card>
+        <CardContent className="space-y-3" data-testid="admin-school-free">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-heading">Gratis-Zugang</h2>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" data-testid="admin-action-grant_access" onClick={() => openAction({ action: "grant_access" })}>{freeText ? "Ändern" : "Gratis-Zugang geben"}</Button>
+              {s.free_access && <Button size="sm" variant="danger" data-testid="admin-action-revoke_access" onClick={() => openAction({ action: "revoke_access" })}>Entziehen</Button>}
+            </div>
+          </div>
+          <p className="text-small text-muted">
+            {freeText
+              ? <>{freeText}{s.free_access?.note ? ` · ${s.free_access.note}` : ""}{s.free_access?.granted_at ? ` · seit ${fmtDate(s.free_access.granted_at)}` : ""}. Alle Lernenden, Lehrpersonen und Schuladmins dieser Schule haben Zugang, ohne Platzbeschränkung.</>
+              : s.free_access && !freeAccessActive(s.free_access) ? `Abgelaufen am ${fmtDate(s.free_access.until)}.` : "Kein Gratis-Zugang. Zugang nur über eine gültige Lizenz."}
+          </p>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="space-y-4">
@@ -225,13 +253,20 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
         open={target !== null}
         title={action ? TITLE[action] : ""}
         description={s.name}
-        danger={action === "revoke_licence" || action === "remove_admin" || action === "remove_teacher"}
-        submitLabel={action === "revoke_licence" ? "Widerrufen" : action?.startsWith("remove") ? "Entfernen" : "Bestätigen"}
+        danger={action === "revoke_access" || action === "revoke_licence" || action === "remove_admin" || action === "remove_teacher"}
+        submitLabel={action === "revoke_access" ? "Entziehen" : action === "revoke_licence" ? "Widerrufen" : action?.startsWith("remove") ? "Entfernen" : "Bestätigen"}
         busy={busy}
         error={error}
         onClose={() => setTarget(null)}
         onSubmit={submit}
       >
+        {action === "grant_access" && (
+          <>
+            {freeText && <p className="text-small">Jetzt: <strong>{freeText}</strong>. Wird ersetzt.</p>}
+            <FreeAccessFields scope="school" form={free} onChange={setFree} invalid={invalid} />
+          </>
+        )}
+        {action === "revoke_access" && <p className="text-body">Der Gratis-Zugang ({freeText ?? "abgelaufen"}) wird sofort entzogen. Danach braucht die Schule wieder eine gültige Lizenz.</p>}
         {action === "assign_licence" && (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Paket" htmlFor="f-package">

@@ -95,7 +95,7 @@ export function onlyKeys(body: Record<string, unknown>, allowed: readonly string
 export const USER_ACTIONS = ["set_trial", "extend_trial", "grant_access", "revoke_access", "block", "unblock", "soft_delete", "delete_account"] as const;
 export type UserAction = (typeof USER_ACTIONS)[number];
 
-export const SCHOOL_ACTIONS = ["assign_licence", "update_licence", "revoke_licence", "add_admin", "remove_admin", "add_teacher", "remove_teacher"] as const;
+export const SCHOOL_ACTIONS = ["grant_access", "revoke_access", "assign_licence", "update_licence", "revoke_licence", "add_admin", "remove_admin", "add_teacher", "remove_teacher"] as const;
 export type SchoolAction = (typeof SCHOOL_ACTIONS)[number];
 
 export const PACKAGES = ["pilot", "starter", "professional", "enterprise", "custom"] as const;

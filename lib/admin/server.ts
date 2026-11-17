@@ -9,7 +9,7 @@ import { createAdminApi, type AdminApi } from "./handler.ts";
 import type { AdminStore, AuditFilter, LicenceInput, UserListFilter, VerifiedUser } from "./store.ts";
 import type {
   AccountAccessRow, AdminRole, AdminSchoolDetail, AdminSchoolPerson, AdminSchoolRef, AdminSchoolRow, AdminSubscription, AdminUserDetail,
-  AdminUserRow, AuditEntry, Paged, SchoolLicence,
+  AdminUserRow, AuditEntry, Paged, SchoolFreeAccess, SchoolLicence,
 } from "./types.ts";
 
 const MISSING = ["42P01", "PGRST205", "PGRST202", "42883"]; // table / function not there yet (DB before the access migration)
@@ -84,6 +84,14 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
     while (next < items.length) { const i = next++; out[i] = await fn(items[i]); }
   }));
   return out;
+}
+
+function toGrant(r: Row | null | undefined): SchoolFreeAccess | null {
+  if (!r) return null;
+  return {
+    forever: r.forever === true, until: (r.until as string) ?? null, note: (r.note as string) ?? null,
+    granted_by: (r.granted_by as string) ?? null, granted_at: (r.granted_at as string) ?? null,
+  };
 }
 
 export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminStore {
@@ -228,6 +236,7 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
       account_type: (f.profiles.get(u.id)?.account_type as string) ?? null,
       schools: rel.schools.get(u.id) ?? [], created_at: u.created_at ?? null, last_sign_in_at: u.last_sign_in_at ?? null,
       trial_ends_at: (a?.trial_ends_at as string) ?? null, free_access_until: (a?.free_access_until as string) ?? null,
+      free_access_forever: a?.free_access_forever === true,
       blocked: Boolean(a?.blocked_at), access_state: access?.state ?? null, access_reason: access?.reason ?? null,
       subscription: bestSub(rel.subs.get(u.id) ?? []),
       mfa: (u.factors ?? []).some((x) => x.status === "verified"),
@@ -289,7 +298,8 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
         const t = (k: string) => (a?.[k] ? Date.parse(String(a[k])) : NaN);
         switch (filter.state) {
           case "blocked": return Boolean(a?.blocked_at);
-          case "grant": return t("free_access_until") > now;
+          case "grant": return a?.free_access_forever === true || t("free_access_until") > now;
+          case "grant_forever": return a?.free_access_forever === true;
           case "trial": return !a?.blocked_at && t("trial_ends_at") > now;
           case "trial_over": return t("trial_ends_at") <= now;
           default: return true;
@@ -370,10 +380,12 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
       const schools = (await all("schools", "id, name, canton_or_state, country, created_at", "name"))
         .filter((s) => !q || String(s.name).toLowerCase().includes(q) || String(s.id) === q);
       const ids = schools.map((s) => String(s.id));
-      const [lics, classes, admins, teachers] = await Promise.all([
+      const [lics, classes, admins, teachers, grants] = await Promise.all([
         inIds("school_licences", "*", "school_id", ids), inIds("classes", "id, school_id, archived", "school_id", ids),
         inIds("school_admins", "school_id, user_id", "school_id", ids), inIds("school_teachers", "school_id, user_id", "school_id", ids),
+        inIds("school_access_grants", "*", "school_id", ids),
       ]);
+      const grantOf = new Map(grants.map((g) => [String(g.school_id), toGrant(g)]));
       const live = classes.filter((c) => !c.archived);
       const members = await inIds("class_members", "class_id, student_id", "class_id", live.map((c) => String(c.id)));
       const schoolOfClass = new Map(live.map((c) => [String(c.id), String(c.school_id)]));
@@ -388,6 +400,7 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
         return {
           id, name: String(s.name), canton_or_state: String(s.canton_or_state ?? ""), country: String(s.country ?? "CH"), created_at: String(s.created_at),
           licence: currentLicence(lics.filter((l) => String(l.school_id) === id).map(toLicence)),
+          free_access: grantOf.get(id) ?? null,
           students: students.get(id)?.size ?? 0, admins: count(admins, id), teachers: count(teachers, id),
         };
       });
@@ -397,9 +410,9 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
       const { data: s, error } = await db.from("schools").select("id, name, canton_or_state, country, created_at").eq("id", schoolId).maybeSingle();
       if (error) dbFail("schools", error);
       if (!s) return null;
-      const [lics, classes, adminIds, teacherIds] = await Promise.all([
+      const [lics, classes, adminIds, teacherIds, freeAccess] = await Promise.all([
         inIds("school_licences", "*", "school_id", [schoolId]), inIds("classes", "id, name, teacher_id, archived", "school_id", [schoolId]),
-        store.schoolAdmins(schoolId), store.schoolTeachers(schoolId),
+        store.schoolAdmins(schoolId), store.schoolTeachers(schoolId), store.getSchoolGrant(schoolId),
       ]);
       const members = await inIds("class_members", "class_id, student_id", "class_id", classes.map((c) => String(c.id)));
       const licences = lics.map(toLicence).sort((a, b) => b.created_at.localeCompare(a.created_at));
@@ -408,7 +421,7 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
       const live = new Set(classes.filter((c) => !c.archived).map((c) => String(c.id)));
       return {
         id: String(s.id), name: String(s.name), canton_or_state: String(s.canton_or_state ?? ""), country: String(s.country ?? "CH"), created_at: String(s.created_at),
-        licence: currentLicence(licences), licences,
+        licence: currentLicence(licences), licences, free_access: freeAccess,
         students: new Set(members.filter((m) => live.has(String(m.class_id))).map((m) => String(m.student_id))).size,
         admins: adminIds.length, teachers: teacherIds.length, admin_users: adminUsers, teacher_users: teacherUsers,
         classes: classes.map((c) => ({ id: String(c.id), name: String(c.name), teacher_id: String(c.teacher_id), archived: Boolean(c.archived), students: members.filter((m) => String(m.class_id) === String(c.id)).length })),
@@ -441,6 +454,24 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
       const { data, error } = await db.from("school_licences").update(patch).eq("id", licenceId).select("*").single();
       if (error) dbFail("school_licences", error);
       return toLicence(data as Row);
+    },
+
+    async getSchoolGrant(schoolId) {
+      const { data, error } = await db.from("school_access_grants").select("*").eq("school_id", schoolId).maybeSingle();
+      if (error) { if (MISSING.includes(error.code ?? "")) return null; dbFail("school_access_grants", error); }
+      return toGrant(data as Row | null);
+    },
+
+    async setSchoolGrant(schoolId, grant, adminId) {
+      const values = { school_id: schoolId, forever: grant.forever, until: grant.forever ? null : grant.until, note: grant.note, granted_by: adminId, granted_at: new Date().toISOString() };
+      const { data, error } = await db.from("school_access_grants").upsert(values, { onConflict: "school_id" }).select("*").single();
+      if (error) dbFail("school_access_grants", error);
+      return toGrant(data as Row) as SchoolFreeAccess;
+    },
+
+    async clearSchoolGrant(schoolId) {
+      const { error } = await db.from("school_access_grants").delete().eq("school_id", schoolId);
+      if (error) dbFail("school_access_grants", error);
     },
 
     async findUserIdByEmail(email) {

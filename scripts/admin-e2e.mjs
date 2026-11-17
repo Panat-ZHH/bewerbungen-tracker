@@ -140,8 +140,11 @@ function createMock() {
       const a = body.action;
       if (a === "extend_trial") u.trial_ends_at = iso(Number(body.days));
       else if (a === "set_trial") u.trial_ends_at = `${body.trial_ends_at}T23:59:59.000Z`;
-      else if (a === "grant_access") { u.free_access_until = `${body.until}T23:59:59.000Z`; u.access_state = "active"; u.access_reason = "grant"; }
-      else if (a === "revoke_access") u.free_access_until = null;
+      else if (a === "grant_access") {
+        u.free_access_forever = body.forever === true;
+        u.free_access_until = body.forever === true ? null : `${body.until}T23:59:59.000Z`;
+        u.access_state = "active"; u.access_reason = "grant";
+      } else if (a === "revoke_access") { u.free_access_until = null; u.free_access_forever = false; }
       else if (a === "block" || a === "soft_delete") {
         if (a === "soft_delete" && String(body.confirm_email).toLowerCase() !== u.email) return reply(400, { error: "invalid_input", field: "confirm_email" });
         if (a === "block" && !body.reason) return reply(400, { error: "invalid_input", field: "reason" });
@@ -182,6 +185,8 @@ function createMock() {
       if (body.action === "assign_licence") {
         s.licence = { id: "66666666-6666-4666-8666-666666666699", package: body.package, status: body.status ?? "active", state: "active", student_limit: body.student_limit ?? 100, pilot_start: null, pilot_end: null, valid_from: body.start ?? iso(0).slice(0, 10), valid_until: body.end ?? iso(364).slice(0, 10), billing_interval: body.billing_interval ?? "yearly", notes: body.notes ?? null, created_at: iso(0) };
       }
+      if (body.action === "grant_access") s.free_access = { forever: body.forever === true, until: body.forever ? null : `${body.until}T23:59:59.000Z`, note: body.note ?? null, granted_by: ADMIN_ID, granted_at: iso(0) };
+      if (body.action === "revoke_access") s.free_access = null;
       if (body.action === "add_teacher" && body.email === "niemand@beispiel.ch") return reply(409, { error: "conflict", reason: "user_not_found" });
       log(`school.${body.action}`, null, s.id, { after: body });
       return reply(200, { ok: true });
@@ -310,6 +315,16 @@ async function main() {
       const last = mock.state.audit[0];
       assert(last?.action === "user.extend_trial", `audit: ${last?.action}`);
 
+      // Free access without end date ("Gratis (unbefristet)") with confirmation (free-forever, 20261118400000).
+      await tid(page, "admin-action-grant_access").click();
+      await tid(page, "admin-confirm-modal").waitFor();
+      await tid(page, "admin-free-forever").waitFor();
+      if (profile === "desktop") await shot(page, `grant-forever-${tag}`);
+      await tid(page, "admin-confirm-submit").click();
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+      assert(mock.state.audit[0].action === "user.grant_access" && mock.state.audit[0].details.after.forever === true, `audit: ${mock.state.audit[0].action}`);
+      await page.waitForFunction(() => (document.querySelector('[data-testid="admin-user-detail"]')?.textContent ?? "").includes("Gratis (unbefristet)"), null, { timeout: 5000 });
+
       // Block needs a reason.
       await tid(page, "admin-action-block").click();
       await tid(page, "admin-confirm-modal").waitFor();
@@ -333,6 +348,16 @@ async function main() {
       await tid(page, "admin-school-detail").waitFor();
       await page.waitForFunction(() => (document.querySelector('[data-testid="admin-school-detail"]')?.textContent ?? "").includes("schulleitung@beispiel.ch"), null, { timeout: 10000 });
       await shot(page, `school-detail-${tag}`);
+      // Whole school free, no end date.
+      await tid(page, "admin-action-grant_access").click();
+      await tid(page, "admin-confirm-modal").waitFor();
+      await tid(page, "admin-free-forever").waitFor();
+      await tid(page, "admin-confirm-submit").click();
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+      assert(mock.state.audit[0].action === "school.grant_access", `audit: ${mock.state.audit[0].action}`);
+      await page.waitForFunction(() => (document.querySelector('[data-testid="admin-school-free"]')?.textContent ?? "").includes("Gratis (unbefristet)"), null, { timeout: 5000 });
+      if (profile === "desktop") await shot(page, `school-free-${tag}`);
+      await tid(page, "admin-action-revoke_access").waitFor();
 
       await tid(page, "admin-tab-audit").click();
       await tid(page, "admin-audit-row").first().waitFor();

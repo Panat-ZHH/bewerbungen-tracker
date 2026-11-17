@@ -9,6 +9,8 @@ import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { toast } from "@/lib/toast";
 import type { AdminUserDetail } from "@/lib/admin/types";
 import { adminFetch, errorText, fieldOf, type AdminResult } from "./api";
+import { freeAccessActive, freeAccessBody, freeAccessLabel, type FreeAccessForm } from "@/lib/admin/free-access";
+import { FreeAccessBadge, FreeAccessFields, emptyFreeAccessForm } from "./free-access";
 import { AccessBadge, AuditList, ConfirmModal, Facts, RoleBadge, Section, StripeLink, fmtDate, fmtDateTime, isoDay, type OpenDetail } from "./shared";
 
 type Action = "set_trial" | "extend_trial" | "grant_access" | "revoke_access" | "block" | "unblock" | "soft_delete" | "delete_account";
@@ -46,6 +48,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
   const [res, setRes] = useState<AdminResult<AdminUserDetail> | null>(null);
   const [action, setAction] = useState<Action | null>(null);
   const [form, setForm] = useState<Form>(emptyForm);
+  const [free, setFree] = useState<FreeAccessForm>(emptyFreeAccessForm);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [badField, setBadField] = useState<string | null>(null);
@@ -62,6 +65,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
 
   function openAction(a: Action) {
     setForm(emptyForm());
+    setFree(emptyFreeAccessForm());
     setError(null);
     setBadField(null);
     setAction(a);
@@ -75,7 +79,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
     switch (action) {
       case "set_trial": body.trial_ends_at = form.trial_ends_at; break;
       case "extend_trial": body.days = Number(form.days); break;
-      case "grant_access": body.until = form.until; if (form.note.trim()) body.note = form.note.trim(); break;
+      case "grant_access": Object.assign(body, freeAccessBody(free)); break;
       case "block": body.reason = form.reason.trim(); break;
       case "soft_delete": body.confirm_email = form.confirm_email.trim(); if (form.reason.trim()) body.reason = form.reason.trim(); break;
       case "delete_account": body.confirm_text = form.confirm_text.trim(); break;
@@ -112,6 +116,9 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
 
   const u = res.data;
   const aa = u.account_access;
+  const grant = { forever: aa?.free_access_forever ?? u.free_access_forever, until: aa?.free_access_until ?? u.free_access_until };
+  const granted = freeAccessActive(grant);
+  const grantText = freeAccessLabel(grant, fmtDate);
   const isSelf = u.id === selfId;
   const actionButton = (a: Action, variant: "secondary" | "danger" = "secondary") => (
     <Button key={a} size="sm" variant={variant} data-testid={`admin-action-${a}`} onClick={() => openAction(a)}>{ACTION_TITLE[a]}</Button>
@@ -125,6 +132,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
           {u.name && <span className="mr-1">{u.name}</span>}
           <RoleBadge role={u.role} accountType={u.account_type} />
           <AccessBadge state={u.access_state} />
+          <FreeAccessBadge grant={grant} />
           {u.blocked && u.access_state !== "blocked" && <Badge tone="danger">Gesperrt</Badge>}
           {u.platform_admin && <Badge tone="brand">Plattform-Admin</Badge>}
           {u.mfa && <Badge tone="paper">2FA aktiv</Badge>}
@@ -139,7 +147,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
             {actionButton("extend_trial")}
             {actionButton("set_trial")}
             {actionButton("grant_access")}
-            {aa?.free_access_until && actionButton("revoke_access")}
+            {(granted || aa?.free_access_until) && actionButton("revoke_access")}
             {u.blocked ? actionButton("unblock") : !isSelf && !u.platform_admin && actionButton("block")}
           </div>
           {!isSelf && !u.platform_admin && (
@@ -172,11 +180,11 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
             ["Status", <AccessBadge key="s" state={u.access_state} />],
             ["Grund", u.access?.reason ?? u.access_reason ?? "–"],
             ["Testphase", `${fmtDate(aa?.trial_started_at)} bis ${fmtDate(aa?.trial_ends_at ?? u.trial_ends_at)}`],
-            ["Gratis bis", aa?.free_access_until ? `${fmtDate(aa.free_access_until)}${aa.free_access_note ? ` · ${aa.free_access_note}` : ""}` : "–"],
+            ["Gratis-Zugang", grantText ? `${grantText}${aa?.free_access_note ? ` · ${aa.free_access_note}` : ""}${aa?.free_access_granted_at ? ` · seit ${fmtDate(aa.free_access_granted_at)}` : ""}` : aa?.free_access_until ? `abgelaufen am ${fmtDate(aa.free_access_until)}` : "–"],
             ["Gesperrt", aa?.blocked_at ? `${fmtDateTime(aa.blocked_at)}${aa.blocked_reason ? ` · ${aa.blocked_reason}` : ""}` : "nein"],
             ["Regeln aktiv", u.access ? (u.access.enforced ? "ja" : "nein (noch nicht scharf)") : "–"],
             ...(u.access?.grace_until ? [["Zahlung offen bis", fmtDate(u.access.grace_until)] as [string, string]] : []),
-            ...(u.access?.school ? [["Schullizenz", `${u.access.school.name} · bis ${fmtDate(u.access.school.valid_until)}`] as [string, string]] : []),
+            ...(u.access?.school ? [[u.access.school.free ? "Schule (gratis)" : "Schullizenz", `${u.access.school.name} · ${u.access.grant?.scope === "school" && u.access.grant.forever ? "unbefristet" : `bis ${fmtDate(u.access.school.valid_until)}`}`] as [string, string]] : []),
           ]} />
         </Section>
       </div>
@@ -251,15 +259,11 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
         )}
         {action === "grant_access" && (
           <>
-            <Field label="Gratis bis" htmlFor="f-until">
-              <Input id="f-until" type="date" min={isoDay(0)} value={form.until} onChange={set("until")} aria-invalid={invalid("until")} data-autofocus />
-            </Field>
-            <Field label="Notiz (optional)" htmlFor="f-note" hint="Max. 500 Zeichen">
-              <Textarea id="f-note" maxLength={500} value={form.note} onChange={set("note")} aria-invalid={invalid("note")} />
-            </Field>
+            {grantText && <p className="text-small">Jetzt: <strong>{grantText}</strong>. Wird ersetzt.</p>}
+            <FreeAccessFields scope="user" form={free} onChange={setFree} invalid={invalid} />
           </>
         )}
-        {action === "revoke_access" && <p className="text-body">Der Gratis-Zugang (bis {fmtDate(aa?.free_access_until)}) wird sofort entfernt.</p>}
+        {action === "revoke_access" && <p className="text-body">Der Gratis-Zugang ({grantText ?? `bis ${fmtDate(aa?.free_access_until)}`}) wird sofort entfernt. Danach gelten wieder Testphase, Abo oder Schullizenz.</p>}
         {action === "block" && (
           <>
             <p className="text-body">Die Person kann sich noch anmelden, sieht aber nur «Konto gesperrt».</p>

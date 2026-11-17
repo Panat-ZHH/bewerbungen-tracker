@@ -1,7 +1,7 @@
 // Pure UI decisions for the access model (docs/access/SPEC.md §1, §6, §7). No imports with side effects: unit tested in
 // tests/access-ui.test.mjs and safe in client components.
-import type { AccessInfo } from "./types";
-import { ACCESS_GATE_RLS_RE } from "./core.ts";
+import type { AccessGrant, AccessInfo } from "./types";
+import { ACCESS_GATE_RLS_RE, parseGrant } from "./core.ts";
 
 /** What the shell renders instead of (or around) a page. */
 export type AccessView = "page" | "paywall" | "licence" | "blocked";
@@ -140,6 +140,7 @@ export function readAccessInfo(data: unknown): AccessInfo | null {
     trial_days_left: typeof row.trial_days_left === "number" ? row.trial_days_left : null,
     grace_until: row.grace_until ?? null,
     grant_until: row.grant_until ?? null,
+    grant: parseGrant(row.grant),
     subscription: row.subscription ?? null,
     school: row.school ?? null,
     blocked: row.blocked === true,
@@ -152,6 +153,19 @@ export function readAccessInfo(data: unknown): AccessInfo | null {
 /** Feature switched off / not deployed: full access, no UI. */
 export const OPEN_ACCESS: AccessInfo = {
   has_access: true, state: "active", reason: "none", role: "student", account_type: null, trial_ends_at: null, trial_days_left: null,
-  grace_until: null, grant_until: null, subscription: null, school: null, blocked: false, enforced: false,
+  grace_until: null, grant_until: null, grant: null, subscription: null, school: null, blocked: false, enforced: false,
   expired_reason: null, family_pending: false,
 };
+
+/** Free access granted by WendApply that applies now (person or school), else null. */
+export function freeGrant(access: AccessInfo | null | undefined): AccessGrant | null {
+  if (!access?.has_access || !access.grant) return null;
+  return access.grant;
+}
+
+/** "Gratis (unbefristet)" / "Gratis bis 31.12.2027" (date formatted by the caller's formatter). */
+export function freeGrantLabel(grant: Pick<AccessGrant, "forever" | "until"> | null | undefined, formatDate: (iso: string) => string): string | null {
+  if (!grant) return null;
+  if (grant.forever) return "Gratis (unbefristet)";
+  return grant.until ? `Gratis bis ${formatDate(grant.until)}` : null;
+}

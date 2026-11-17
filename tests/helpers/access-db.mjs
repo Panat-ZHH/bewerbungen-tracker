@@ -6,7 +6,9 @@ import { PGlite } from "@electric-sql/pglite";
 const dir = new URL("../../supabase/migrations/", import.meta.url);
 export const uid = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
-export async function setupAccessDb() {
+/** opts.supabaseDefaults: like Supabase, every table / function created in public is granted to anon + authenticated by
+ *  default privileges (so the migrations' own revokes are what protects them). */
+export async function setupAccessDb(opts = {}) {
   const database = new PGlite();
   await database.exec(`
     create role authenticated; create role anon; create role service_role bypassrls;
@@ -19,6 +21,11 @@ export async function setupAccessDb() {
     grant usage on schema auth to authenticated, service_role;
     grant usage on schema public to authenticated, anon, service_role;
   `);
+  if (opts.supabaseDefaults) {
+    await database.exec(`alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+      alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+      alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;`);
+  }
   const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
   for (const f of files) { await database.exec("reset role"); await database.exec(await readFile(new URL(f, dir), "utf8")); }
   const reset = async () => { await database.exec("reset role"); await database.query("select set_config('request.jwt.claim.sub', '', false)"); };
