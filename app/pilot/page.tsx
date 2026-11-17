@@ -13,7 +13,7 @@ const steps = [
   { title: "Pilot vereinbaren", text: `Wir legen Klassen (${PILOT.classes}), Start- und Enddatum, Ansprechpersonen und den Termin für das Abschlussgespräch gemeinsam fest.` },
   { title: "Start in der Klasse", text: "Die Lehrperson erstellt die Klasse und lädt per Link, Code oder QR-Code ein. Die Jugendlichen entscheiden beim Beitritt, was sie teilen." },
   { title: `${PILOT.days} Tage nutzen`, text: "Die Klasse arbeitet mit WendApply im Berufswahlunterricht. Wir sind bei Fragen erreichbar und holen zwischendurch kurz Rückmeldungen ein." },
-  { title: "Feedback und Entscheidung", text: "Im vereinbarten Gespräch schauen wir Nutzung, Rückmeldungen und Mehrwert gemeinsam an. Danach entscheiden Sie über die Jahreslizenz." },
+  { title: "Feedback und Entscheidung", text: "Im vereinbarten Gespräch schauen wir Nutzung, Rückmeldungen und Mehrwert gemeinsam an. Danach entscheiden Sie über die Schullizenz." },
 ];
 
 const gets = [

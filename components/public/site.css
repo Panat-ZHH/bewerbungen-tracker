@@ -113,6 +113,11 @@
   .s-hero-visual .s-phone-back { display: block; margin-right: -64px; margin-bottom: 56px; opacity: .97; }
 }
 
+/* Hero screenshots only from 960 px: on phones the headline is the LCP and the screenshot follows further down (s-mobile-only). */
+.s-desk-only { display: none !important; }
+@media (min-width: 960px) { .s-desk-only { display: flex !important; } .s-desk-only.s-desk-block { display: block !important; } .s-mobile-only { display: none !important; } }
+.s-mobile-only { display: flex; justify-content: center; margin-top: 48px; }
+
 /* ---------------------------------------------------------------- device frames */
 .s-phone { position: relative; flex: none; width: min(300px, 78vw); aspect-ratio: 390 / 844; padding: 9px; border-radius: 46px; background: #141310; box-shadow: var(--s-soft-shadow), inset 0 0 0 1.5px #3a382f; margin: 0; }
 .s-phone-sm { width: min(250px, 66vw); border-radius: 40px; padding: 8px; }

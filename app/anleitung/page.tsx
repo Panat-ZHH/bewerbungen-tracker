@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { PublicShell, Section } from "@/components/public/public-shell";
 import { Faq } from "@/components/public/faq";
-import { ButtonLink, FinalCta } from "@/components/public/site-ui";
+import { BrowserShot, ButtonLink, FinalCta } from "@/components/public/site-ui";
 import { SIGNUP_HREF } from "@/components/public/marketing";
 import { Toc } from "@/components/guide/toc";
 import { InstallSection } from "@/components/guide/install-section";
@@ -32,8 +32,8 @@ export default function AnleitungPage() {
           </div>
           <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig.</p>
         </div>
-        <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-          <GuideShot src="/landing/04-dashboard-light.webp" darkSrc="/landing/04-dashboard-dark.webp" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority />
+        <div className="s-desk-only s-desk-block">
+          <BrowserShot name="04-dashboard" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" />
         </div>
       </section>
 

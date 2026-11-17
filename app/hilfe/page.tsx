@@ -35,7 +35,7 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
     { q: "Sehen Mitschülerinnen und Mitschüler meine Bewerbungen?", a: "Nein. Klassenziele und Klassendorf zeigen keine vertraulichen Bewerbungsdetails. Lehrpersonen sehen nur, was du für die Klasse freigibst." },
   ] },
   { id: "familien", title: "Familien und Eltern", items: [
-    { q: "Gibt es WendApply auch für Familien?", a: <>{online ? "Ja." : "Ja, bald."} Das {FAMILY.name} mit 1 Schüleraccount und 1 Elternaccount kostet {FAMILY.priceMonthText} pro Monat oder {FAMILY.priceYearText} pro Jahr. Weitere Kinder sollen später möglich sein. Mehr unter <Link className={link} href="/familien">Für Eltern</Link>.</> },
+    { q: "Gibt es WendApply auch für Familien?", a: <>{online ? "Ja." : "Ja, bald."} Das {FAMILY.name} mit 1 Schülerkonto und 1 Elternkonto kostet {FAMILY.priceMonthText} pro Monat oder {FAMILY.priceYearText} pro Jahr. Weitere Kinder sollen später möglich sein. Mehr unter <Link className={link} href="/familien">Für Eltern</Link>.</> },
     { q: "Was sehen Eltern?", a: "Nur das, was das Kind freigibt: standardmässig Fortschritt und Dorf, die Bewerbungsliste nur auf Wunsch. Notizen und Dokumente bleiben privat. Das Kind kann das Teilen jederzeit beenden." },
     { q: "Braucht es eine Einwilligung der Eltern?", a: "Für Kinder unter 16 ja, bevor etwas mit dem Elternkonto geteilt wird. Die App selbst kann das Kind auch ohne Einwilligung nutzen." },
   ] },

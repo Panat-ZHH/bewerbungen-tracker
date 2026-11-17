@@ -47,7 +47,8 @@ export default function FamilienPage() {
       <PageHero id="familien-h" kicker="Für Eltern" title="Begleiten statt kontrollieren"
         lead="Die Lehrstellensuche ist für die ganze Familie eine intensive Zeit. Mit WendApply siehst du, wo dein Kind steht. Was du siehst, entscheidet dein Kind."
         note="7 Tage gratis für Schülerinnen, Schüler und Eltern, ohne Zahlungsangaben."
-        visual={<Shot center caption="So sieht es ein Elternkonto: nur, was das Kind freigibt."><PhoneShot name="m-familie" priority alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen, nur mit den Angaben, die das Kind teilt" /></Shot>}>
+        visualDesktopOnly
+        visual={<Shot center caption="So sieht es ein Elternkonto: nur, was das Kind freigibt."><PhoneShot name="m-familie" alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen, nur mit den Angaben, die das Kind teilt" /></Shot>}>
         {online ? <ButtonLink href={FAMILY_BUY_HREF} size="lg">Familienpaket buchen</ButtonLink> : <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>}
         <ButtonLink href="/preise#familie" size="lg" variant="secondary">Preise ansehen</ButtonLink>
       </PageHero>
@@ -56,6 +57,11 @@ export default function FamilienPage() {
         <ul className="s-cols s-cols-3">
           {benefits.map((b) => <li key={b.title}><h3 className="s-h3">{b.title}</h3><p className="s-text">{b.text}</p></li>)}
         </ul>
+        <div className="s-mobile-only">
+          <Shot center caption="So sieht es ein Elternkonto: nur, was das Kind freigibt.">
+            <PhoneShot name="m-familie" alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen" />
+          </Shot>
+        </div>
       </SiteSection>
 
       <SiteSection id="so-gehts" kicker="In vier Schritten" title="So funktioniert es" tint>

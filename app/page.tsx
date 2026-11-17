@@ -53,15 +53,20 @@ export default function LandingPage() {
             <p className="s-small s-hero-note">{TRIAL_DAYS} Tage gratis, ohne Zahlungsangaben. Hat deine Schule eine Schullizenz, ist WendApply für dich gratis.</p>
             <p className="s-small" style={{ marginTop: 8 }}>Lehrperson oder Schule? <Link className="s-link" href="/schulen">Für Schulen</Link></p>
           </div>
-          <div className="s-hero-visual">
+          <div className="s-hero-visual s-desk-only">
             <PhoneShot name="m-search" small alt="" className="s-phone-back" />
-            <PhoneShot name="m-dashboard" priority alt="Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen und den nächsten Fristen" />
+            <PhoneShot name="m-dashboard" alt="Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen und den nächsten Fristen" />
           </div>
         </div>
       </section>
 
       <SiteSection id="so-gehts" kicker="In drei Schritten" title="So funktioniert es">
         <Steps items={steps} />
+        <div className="s-mobile-only">
+          <Shot center caption="Dein Weg zur Lehrstelle auf einen Blick.">
+            <PhoneShot name="m-dashboard" alt="Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen" />
+          </Shot>
+        </div>
         <div className="s-actions" style={{ marginTop: 40 }}>
           <MoreLink href="/funktionen">Alle Funktionen ansehen</MoreLink>
           <MoreLink href="/anleitung">Zur Anleitung</MoreLink>

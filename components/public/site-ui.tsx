@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image, { getImageProps } from "next/image";
-import { preload } from "react-dom";
 import type { ReactNode } from "react";
 import { ArrowRight, Check, X } from "lucide-react";
 
@@ -78,21 +77,35 @@ export function Checks({ items, plain, no }: { items: ReactNode[]; plain?: boole
   );
 }
 
+/** LCP image with a light/dark pair as ONE <picture>: the browser downloads only the variant of the system colour scheme
+ * (no second high-priority request). A visitor who overrides the system theme sees the system variant in this one hero image. */
+function HeroPicture({ name, dir, alt, width, height, sizes, className }: { name: string; dir: string; alt: string; width: number; height: number; sizes: string; className?: string }) {
+  const common = { alt, width, height, sizes };
+  const { props: { srcSet: dark } } = getImageProps({ ...common, src: `/${dir}/${name}-dark.webp` });
+  const { props: light } = getImageProps({ ...common, src: `/${dir}/${name}-light.webp`, loading: "eager", fetchPriority: "high" });
+  return (
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcSet={dark} sizes={sizes} />
+      <img {...light} alt={alt} className={className} />
+    </picture>
+  );
+}
+
 const PHONE_SIZES = "(min-width: 960px) 300px, 78vw";
 
 /** Real app screenshot (mobile 390 px, stored at 780 px) in a neutral CSS phone frame. Light/dark pair swaps with the theme (no JS).
- * priority = LCP image: light eager + high priority, dark preloaded for dark-system visitors only. Everything else lazy. */
+ * priority = LCP image: one <picture> (see HeroPicture). Everything else lazy. */
 export function PhoneShot({ name, alt, priority, small, className = "" }: { name: string; alt: string; priority?: boolean; small?: boolean; className?: string }) {
   const w = 780, h = 1688;
-  if (priority) {
-    const { props } = getImageProps({ src: `/marketing/${name}-dark.webp`, alt: "", width: w, height: h, sizes: PHONE_SIZES });
-    if (props.srcSet) preload(props.src, { as: "image", imageSrcSet: props.srcSet, imageSizes: PHONE_SIZES, fetchPriority: "high", media: "(prefers-color-scheme: dark)" });
-  }
   return (
     <div className={`s-phone ${small ? "s-phone-sm" : ""} ${className}`}>
       <div className="s-phone-screen">
-        <Image src={`/marketing/${name}-light.webp`} alt={alt} width={w} height={h} sizes={PHONE_SIZES} loading={priority ? "eager" : "lazy"} {...(priority ? { fetchPriority: "high" as const } : {})} className="s-img-light" />
-        <Image src={`/marketing/${name}-dark.webp`} alt="" aria-hidden width={w} height={h} sizes={PHONE_SIZES} loading="lazy" className="s-img-dark" />
+        {priority
+          ? <HeroPicture dir="marketing" name={name} alt={alt} width={w} height={h} sizes={PHONE_SIZES} />
+          : <>
+              <Image src={`/marketing/${name}-light.webp`} alt={alt} width={w} height={h} sizes={PHONE_SIZES} loading="lazy" className="s-img-light" />
+              <Image src={`/marketing/${name}-dark.webp`} alt="" aria-hidden width={w} height={h} sizes={PHONE_SIZES} loading="lazy" className="s-img-dark" />
+            </>}
       </div>
     </div>
   );
@@ -102,15 +115,15 @@ const BROWSER_SIZES = "(min-width: 1120px) 620px, (min-width: 960px) 52vw, 100vw
 
 /** Desktop app screenshot (public/landing, 1600 px) in a quiet browser frame. Lazy unless `priority` (hero/LCP). */
 export function BrowserShot({ name, alt, priority }: { name: string; alt: string; priority?: boolean }) {
-  if (priority) {
-    const { props } = getImageProps({ src: `/landing/${name}-dark.webp`, alt: "", width: 1600, height: 1280, sizes: BROWSER_SIZES });
-    if (props.srcSet) preload(props.src, { as: "image", imageSrcSet: props.srcSet, imageSizes: BROWSER_SIZES, fetchPriority: "high", media: "(prefers-color-scheme: dark)" });
-  }
   return (
     <div className="s-browser">
       <div className="s-browser-bar" aria-hidden><i /><i /><i /></div>
-      <Image src={`/landing/${name}-light.webp`} alt={alt} width={1600} height={1280} sizes={BROWSER_SIZES} loading={priority ? "eager" : "lazy"} {...(priority ? { fetchPriority: "high" as const } : {})} className="s-img-light" />
-      <Image src={`/landing/${name}-dark.webp`} alt="" aria-hidden width={1600} height={1280} sizes={BROWSER_SIZES} loading="lazy" className="s-img-dark" />
+      {priority
+        ? <HeroPicture dir="landing" name={name} alt={alt} width={1600} height={1280} sizes={BROWSER_SIZES} />
+        : <>
+            <Image src={`/landing/${name}-light.webp`} alt={alt} width={1600} height={1280} sizes={BROWSER_SIZES} loading="lazy" className="s-img-light" />
+            <Image src={`/landing/${name}-dark.webp`} alt="" aria-hidden width={1600} height={1280} sizes={BROWSER_SIZES} loading="lazy" className="s-img-dark" />
+          </>}
     </div>
   );
 }
@@ -141,8 +154,10 @@ export function FinalCta({ id = "cta", title, text, children }: { id?: string; t
 }
 
 /** Page hero for subpages: kicker, one h1, lead and actions; optional visual on the right. */
-export function PageHero({ id, kicker, title, lead, children, note, visual }: {
+export function PageHero({ id, kicker, title, lead, children, note, visual, visualDesktopOnly }: {
   id: string; kicker?: string; title: ReactNode; lead?: ReactNode; children?: ReactNode; note?: ReactNode; visual?: ReactNode;
+  /** Hide the visual below 960 px (tall phone screenshots would become the mobile LCP); render it again further down with s-mobile-only. */
+  visualDesktopOnly?: boolean;
 }) {
   return (
     <section aria-labelledby={id} className="s-hero">
@@ -154,7 +169,7 @@ export function PageHero({ id, kicker, title, lead, children, note, visual }: {
           {children && <div className="s-actions">{children}</div>}
           {note && <p className="s-small s-hero-note">{note}</p>}
         </div>
-        {visual && <div className="s-hero-visual">{visual}</div>}
+        {visual && <div className={`s-hero-visual ${visualDesktopOnly ? "s-desk-only" : ""}`}>{visual}</div>}
       </div>
     </section>
   );
