@@ -73,7 +73,9 @@ test("API routes: no wildcard CORS, every state-changing route is authenticated 
     assert.ok(!/Access-Control-Allow-Origin/i.test(src), `${r} sets CORS`);
     if (!/export async function (POST|PUT|PATCH|DELETE)/.test(src)) continue;
     // Bearer token (never cookies: a cross-site form cannot set Authorization), the Stripe signature, or the cron secret.
-    assert.ok(/authorization|stripe-signature/i.test(src), `${r} has a state-changing handler without header auth`);
+    // Admin routes delegate to adminApi(), whose guard (lib/admin/guard.ts) reads only the Authorization header.
+    const viaAdminGuard = r.startsWith("app/api/admin/") && /adminApi\(\)/.test(src) && /headers\.get\("authorization"\)/.test(await read("lib/admin/guard.ts"));
+    assert.ok(/authorization|stripe-signature/i.test(src) || viaAdminGuard, `${r} has a state-changing handler without header auth`);
     assert.ok(!/cookies\(\)/.test(src), `${r} authenticates with cookies`);
   }
 });
@@ -83,7 +85,7 @@ test("service role key is only used server-side", async () => {
   for (const f of files) {
     const src = await read(f);
     assert.ok(!/^["']use client["']/m.test(src), `${f} is a client component`);
-    assert.ok(f.startsWith("app/api/") || f.startsWith("lib/billing/server") || f === "lib/reminders-server.ts" || f === "lib/account-delete-server.ts" || f === "lib/rate-limit/index.ts", `${f} is not a server-only module`);
+    assert.ok(f.startsWith("app/api/") || f.startsWith("lib/billing/server") || f === "lib/reminders-server.ts" || f === "lib/account-delete-server.ts" || f === "lib/admin/server.ts" || f === "lib/rate-limit/index.ts", `${f} is not a server-only module`);
   }
   // The service-role rate limiter must only be reachable from route handlers, never from client code.
   const importers = execFileSync("git", ["grep", "-lE", "from [\"']@/lib/(rate-limit|api-rate-limit)[\"'/]", "--", "app", "components", "lib"], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
