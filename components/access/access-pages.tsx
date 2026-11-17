@@ -112,7 +112,7 @@ export function LicenceGate({ access = null, email }: { access?: AccessInfo | nu
       <p className="text-body">
         {ended ? "Die Lizenz deiner Schule ist abgelaufen. Sobald die Schule verlängert, kannst du WendApply wieder nutzen." : "Lehrpersonen und Schulen nutzen WendApply mit einer Schullizenz. Für dein Konto ist noch keine gültige Lizenz hinterlegt."}
       </p>
-      {email && <p className="text-body">Hat deine Schule schon eine Lizenz? Gib deiner Schuladministration diese Adresse:<strong className="mt-1 block [overflow-wrap:anywhere]">{email}</strong></p>}
+      {email && !ended && <p className="text-body">Arbeitet deine Schule schon mit WendApply? Schick diese E-Mail-Adresse deiner Schuladmin. Sie meldet dich bei uns, und wir schalten dich frei:<strong className="mt-1 block [overflow-wrap:anywhere]">{email}</strong></p>}
       <p className="text-body">
         Möchte deine Schule WendApply nutzen, oder hat sie schon eine Lizenz? Schreib uns an <a href={`mailto:${SUPPORT_EMAIL}`} className={linkClass}>{SUPPORT_EMAIL}</a>. Wir schalten dich frei.
       </p>
