@@ -30,3 +30,22 @@ do $$ begin
     grant execute on function public.account_billing_blockers(uuid) to service_role;
   end if;
 end $$;
+
+-- Same gap via "Familie verlassen": the last active parent could leave a family whose subscription still renews (children
+-- stay without anyone who can cancel; an emptied family cascades its billing rows away while Stripe keeps charging).
+-- family_leave() is unchanged otherwise (grants are kept by create or replace; not one of the rate-limited RPCs).
+create or replace function public.family_leave()
+returns void language plpgsql security definer set search_path = '' as $$
+declare me public.family_members := public._family_me();
+begin
+  if me.role = 'parent' and me.status = 'active'
+    and exists (select 1 from jsonb_array_elements(public.account_billing_blockers(me.user_id)) b where b ->> 'kind' = 'family') then
+    raise exception 'SUBSCRIPTION_ACTIVE' using detail = 'Das Familien-Abo läuft noch und du bist der letzte Elternteil, der es verwalten kann. Kündige es zuerst unter «Abo verwalten» oder lade einen zweiten Elternteil ein.';
+  end if;
+  update public.family_members x set status = 'removed',
+    share_settings = '{"progress":false,"applications":false,"village":false,"documents":false}'::jsonb
+  where x.family_id = me.family_id and x.user_id = me.user_id;
+  delete from public.family_invites i where i.family_id = me.family_id and i.created_by = me.user_id and i.used_by is null;
+  perform public._family_cleanup(me.family_id);
+end;
+$$;

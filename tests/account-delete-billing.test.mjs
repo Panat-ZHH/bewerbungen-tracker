@@ -98,3 +98,19 @@ test("SQL: only the service role may call it", async () => {
     assert.equal(r.ok, false, role);
   }
 });
+
+test("SQL: the last parent cannot leave a family with a renewing subscription; with the plan cancelling they can", async () => {
+  const { admin, as, rpc, code } = ctx;
+  await admin("update public.billing_subscriptions set status = 'active', cancel_at_period_end = false where stripe_subscription_id = 'sub_fam1'");
+  await admin("update public.family_members set status = 'removed' where user_id = $1", [P2]);
+  await as(P1);
+  const err = await code(rpc("select public.family_leave()"));
+  assert.match(err ?? "", /SUBSCRIPTION_ACTIVE/);
+  assert.equal((await admin("select status from public.family_members where user_id = $1", [P1]))[0].status, "active");
+  await admin("update public.billing_subscriptions set cancel_at_period_end = true where stripe_subscription_id = 'sub_fam1'");
+  await as(P1);
+  assert.equal(await code(rpc("select public.family_leave()")), null);
+  assert.equal((await admin("select count(*)::int n from public.families where id = $1", [FAM]))[0].n, 0, "empty family is cleaned up as before");
+  const [g] = await admin("select has_function_privilege('authenticated', 'public.family_leave()', 'execute') ok");
+  assert.equal(g.ok, true, "grant kept");
+});
