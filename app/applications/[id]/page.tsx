@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { statusHints } from "@/components/ui/status-badge";
 import { isSentStatus, schnupperResultLabels, showsDeadline, testResultLabels } from "@/lib/status";
+import { safeHttpUrl } from "@/lib/safe-url";
 import type { Application, ApplicationStatus } from "@/types";
 
 export default function ApplicationDetailPage() {
@@ -125,7 +126,7 @@ export default function ApplicationDetailPage() {
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-muted">
                 {application.location && <span><MapPin size={15} className="mr-1 inline" />{application.location}</span>}
                 {application.appliedAt && <span><CalendarDays size={15} className="mr-1 inline" />Abgeschickt am {new Date(application.appliedAt).toLocaleDateString("de-CH")}</span>}
-                {application.jobUrl && <a href={application.jobUrl} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] hover:underline"><ExternalLink size={14} className="mr-1 inline" />Stellenanzeige öffnen</a>}
+                {safeHttpUrl(application.jobUrl) && <a href={safeHttpUrl(application.jobUrl)!} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] hover:underline"><ExternalLink size={14} className="mr-1 inline" />Stellenanzeige öffnen</a>}
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
