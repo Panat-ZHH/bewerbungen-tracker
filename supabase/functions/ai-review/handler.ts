@@ -68,6 +68,38 @@ export function isMockMode(env: (name: string) => string | undefined): boolean {
   return !env("ANTHROPIC_API_KEY")?.trim() || env("AI_REVIEW_MOCK")?.trim() === "1";
 }
 
+/** Max request body: the 5 MB file + multipart overhead + the optional text fields. */
+export const MAX_BODY_BYTES = MAX_FILE_BYTES + 256 * 1024;
+
+/**
+ * Reads a multipart body with a hard byte cap (file_too_large as soon as it is exceeded, the rest is not read).
+ * req.formData() alone would buffer a body of any size when the client sends no Content-Length (chunked upload).
+ */
+export async function readBoundedFormData(req: Request, max = MAX_BODY_BYTES): Promise<FormData> {
+  const reader = req.body?.getReader();
+  if (!reader) throw new ReviewFailure("bad_request", undefined, "form");
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel().catch(() => {});
+      throw new ReviewFailure("file_too_large", undefined, "body over cap");
+    }
+    chunks.push(value);
+  }
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) { body.set(c, offset); offset += c.byteLength; }
+  try {
+    return await new Response(body, { headers: { "content-type": req.headers.get("content-type") ?? "" } }).formData();
+  } catch {
+    throw new ReviewFailure("bad_request", undefined, "form");
+  }
+}
+
 interface FileLike { size: number; name?: string; arrayBuffer: () => Promise<ArrayBuffer> }
 const isFileLike = (v: unknown): v is FileLike =>
   typeof v === "object" && v !== null && typeof (v as FileLike).arrayBuffer === "function" && typeof (v as FileLike).size === "number";
@@ -93,14 +125,10 @@ export function createHandler(deps: HandlerDeps): (req: Request) => Promise<Resp
       }
       // Cheap guard before buffering the body (multipart overhead + 8000 chars of job ad on top of 5 MB).
       const declared = Number(req.headers.get("content-length"));
-      if (Number.isFinite(declared) && declared > MAX_FILE_BYTES + 256 * 1024) throw new ReviewFailure("file_too_large");
+      if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) throw new ReviewFailure("file_too_large");
 
-      let form: FormData;
-      try {
-        form = await req.formData();
-      } catch {
-        throw new ReviewFailure("bad_request", undefined, "form");
-      }
+      // Content-Length is optional (chunked uploads): the body itself is read with a hard cap, never unbounded.
+      const form = await readBoundedFormData(req, MAX_BODY_BYTES);
       if (form.get("consent") !== "true") throw new ReviewFailure("consent_required");
 
       const file = form.get("file");
