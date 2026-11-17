@@ -25,7 +25,6 @@ import { createMemoryBillingDb } from "../lib/billing/memory-db.ts";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = (process.env.OUT || join(ROOT, "docs/billing/screenshots/pay-e2e")).replace(/\/?$/, "/");
 mkdirSync(OUT, { recursive: true });
-const SUPA = "http://localhost:54321"; // inlined into the client; the browser's calls are intercepted, the server's hit FAKE_SUPA
 const PK = readFileSync(process.env.STRIPE_PK_FILE, "utf8").trim();
 const SK = readFileSync(process.env.STRIPE_KEY_FILE, "utf8").trim();
 if (!/^pk_test_/.test(PK)) throw new Error("test publishable key required");
