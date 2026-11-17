@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { confirmationMatches, isFreshSignIn } from "@/lib/account-deletion";
-import { deleteAccount } from "@/lib/account-delete-server";
+import { BillingActiveError, deleteAccount } from "@/lib/account-delete-server";
 import { limitIp, limitUser } from "@/lib/api-rate-limit";
 
 export const runtime = "nodejs";
@@ -15,7 +15,8 @@ const reply = (status: number, code: string, message: string) => Response.json({
  * 1. the token must belong to a real session (verified by Supabase Auth),
  * 2. the sign-in must be fresh (< 5 min): the client re-authenticates with the password or Google right before,
  * 3. the typed confirmation must match,
- * 4. then files, rows (cascade) and the auth user are deleted with the service role key (server-side env only).
+ * 4. the user must not be the last manager of a family / school subscription that still renews (409 SUBSCRIPTION_ACTIVE),
+ * 5. then files, rows (cascade) and the auth user are deleted with the service role key (server-side env only).
  */
 export async function POST(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -45,6 +46,10 @@ export async function POST(request: Request) {
     if (Object.keys(result.remaining).length) console.error("account deletion: leftovers", user.id, Object.keys(result.remaining));
     return Response.json({ ok: true, files: result.files, classesTransferred: result.classesTransferred, classesDeleted: result.classesDeleted }, { headers });
   } catch (reason) {
+    if (reason instanceof BillingActiveError) {
+      const what = reason.blockers.some((b) => b.kind === "school") ? "das Schul-Abo" : "das Familien-Abo";
+      return reply(409, "SUBSCRIPTION_ACTIVE", `Du bist die letzte Person, die ${what} verwalten kann, und es läuft noch. Kündige es zuerst unter „Abo verwalten“ (oder gib die Verwaltung an eine andere Person weiter), dann kannst du dein Konto löschen.`);
+    }
     console.error("account deletion failed", user.id, reason instanceof Error ? reason.message.split(":")[0] : "unknown");
     return reply(500, "DELETE_FAILED", "Das Konto konnte nicht vollständig gelöscht werden. Bitte versuche es nochmal.");
   }

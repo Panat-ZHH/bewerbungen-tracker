@@ -47,8 +47,30 @@ export async function deleteUserFiles(admin: SupabaseClient, userId: string): Pr
 
 export type DeletionResult = { files: number; classesTransferred: number; classesDeleted: number; remaining: Record<string, number> };
 
-/** Order matters: classes are handed over, files go (a failure here aborts before any data is lost), then the auth user (cascade). */
+export type BillingBlocker = { kind: "family" | "school"; plan_id: string; status: string };
+
+/** Thrown when the user is the last parent / school admin of a subscription that still renews (would keep charging). */
+export class BillingActiveError extends Error {
+  blockers: BillingBlocker[];
+  constructor(blockers: BillingBlocker[]) { super("SUBSCRIPTION_ACTIVE"); this.name = "BillingActiveError"; this.blockers = blockers; }
+}
+
+const MISSING_FUNCTION = ["PGRST202", "42883"];
+
+/** Running subscriptions that only this user can still manage. A DB without the function (old migration state) has none. */
+export async function billingBlockers(admin: SupabaseClient, userId: string): Promise<BillingBlocker[]> {
+  const { data, error } = await admin.rpc("account_billing_blockers", { p_user_id: userId });
+  if (error) {
+    if (MISSING_FUNCTION.includes(String((error as { code?: string }).code ?? ""))) return [];
+    throw new Error(`BILLING_CHECK_FAILED:${error.message}`);
+  }
+  return Array.isArray(data) ? (data as BillingBlocker[]) : [];
+}
+
+/** Order matters: running subscriptions block, classes are handed over, files go (a failure here aborts before any data is lost), then the auth user (cascade). */
 export async function deleteAccount(admin: SupabaseClient, userId: string): Promise<DeletionResult> {
+  const blockers = await billingBlockers(admin, userId);
+  if (blockers.length) throw new BillingActiveError(blockers);
   const prepared = await admin.rpc("account_delete_prepare", { p_user_id: userId });
   if (prepared.error) throw new Error(`PREPARE_FAILED:${prepared.error.message}`);
   const files = await deleteUserFiles(admin, userId);

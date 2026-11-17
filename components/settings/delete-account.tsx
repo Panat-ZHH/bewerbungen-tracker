@@ -82,7 +82,7 @@ export function DeleteAccountCard() {
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string };
       if (!response.ok || !result.ok) {
         if (result.code === "REAUTH_REQUIRED") setFresh(false);
-        setError(result.code === "REAUTH_REQUIRED" || result.code === "CONFIRMATION_MISMATCH" ? (result.message ?? "") : withSupport(result.message ?? "Das Konto konnte nicht gelöscht werden."));
+        setError(result.code === "REAUTH_REQUIRED" || result.code === "CONFIRMATION_MISMATCH" || result.code === "SUBSCRIPTION_ACTIVE" ? (result.message ?? "") : withSupport(result.message ?? "Das Konto konnte nicht gelöscht werden."));
         setBusy(false);
         return;
       }
