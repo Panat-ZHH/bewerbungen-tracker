@@ -140,10 +140,10 @@ function SchoolCheckout({ owner, onInvoice, currentPackage = null }: { owner: Bi
 }
 
 /** Shown while the flag is off (or if a section needs the honest default). */
-export function BillingOffNotice({ children }: { children?: React.ReactNode }) {
+export function BillingOffNotice({ children, text = FREE_NOTICE }: { children?: React.ReactNode; text?: string }) {
   return (
     <div className="space-y-3" data-billing-state="off">
-      <p className="flex items-start gap-2 text-body"><ReceiptText size={18} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{FREE_NOTICE}</p>
+      <p className="flex items-start gap-2 text-body"><ReceiptText size={18} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{text}</p>
       {children}
     </div>
   );
@@ -166,8 +166,7 @@ export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentE
       <h3 id={headingId} className="text-heading flex items-center gap-2"><ReceiptText size={18} aria-hidden /> Lizenz &amp; Rechnung</h3>
       {anchor && <BillingReturnNotice onSuccess={reload} />}
       {!enabled ? (
-        <BillingOffNotice>
-          <p className="text-small text-muted">Eine Offerte, eine Rechnung oder ein anderes Paket bekommst du über die Kontaktseite.</p>
+        <BillingOffNotice text="Die Online-Bezahlung ist gerade nicht verfügbar. Eine Offerte, eine Rechnung oder ein anderes Paket bekommst du über die Kontaktseite.">
           <ButtonLink href="/kontakt" variant="secondary" size="sm" icon={<Mail size={14} aria-hidden />}>Kontakt aufnehmen</ButtonLink>
         </BillingOffNotice>
       ) : invoice ? (

@@ -141,7 +141,7 @@ test("/schul-admin: 'Lizenz & Rechnung' per school; contact flow when off", () =
   assert.match(a, /<BillingCard schoolId=\{school\.id\} anchor=\{first\} currentPackage=/);
   const c = read("components/billing/billing-card.tsx");
   assert.match(c, /Lizenz &amp; Rechnung/);
-  assert.match(c, /!enabled \? \(\s*<BillingOffNotice>[\s\S]*?href="\/kontakt"/, "off: honest note + contact, no buy button");
+  assert.match(c, /!enabled \? \(\s*<BillingOffNotice[\s\S]*?href="\/kontakt"/, "off: honest note + contact, no buy button");
   assert.match(c, /id=\{anchor \? "abo" : undefined\}/);
   assert.match(c, /<BillingReturnNotice onSuccess=\{reload\} \/>/);
   assert.match(c, /Abo verwalten/);
