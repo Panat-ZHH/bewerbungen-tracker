@@ -116,12 +116,25 @@ export function clientIp(headers: HeaderBag): string {
   return "unknown";
 }
 
-/** IPv6 addresses are bucketed to their /64 (one household / device usually owns a whole /64). */
+/**
+ * IPv6 addresses are bucketed to their /64 (one household / device usually owns a whole /64). "::" is expanded first, so
+ * 2001:db8:1::5 and 2001:db8:1::6 share the bucket 2001:db8:1:0::/64. Groups are normalised (lower case, no leading
+ * zeros); an IPv4-mapped address (::ffff:1.2.3.4) counts as its IPv4 address.
+ */
 export function ipBucket(ip: string): string {
   if (!ip.includes(":")) return ip;
-  const [head] = ip.split("::");
-  const groups = head.split(":").filter(Boolean);
-  return groups.length >= 4 ? `${groups.slice(0, 4).join(":")}::/64` : ip.toLowerCase();
+  const lower = ip.toLowerCase();
+  const mapped = /^(?:0{0,4}:){0,5}:?(?:0{0,4}:)?ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(lower);
+  if (mapped) return mapped[1];
+  const halves = lower.split("::");
+  if (halves.length > 2) return lower;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const missing = 8 - head.length - tail.length;
+  if (halves.length === 1 ? head.length !== 8 : missing < 1) return lower;
+  const groups = [...head, ...Array(halves.length === 2 ? missing : 0).fill("0"), ...tail];
+  if (groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return lower;
+  return `${groups.slice(0, 4).map((g) => g.replace(/^0+(?=.)/, "")).join(":")}::/64`;
 }
 
 /** SHA-256 (hex, first 32 chars) so no raw IP addresses are stored in the database. */

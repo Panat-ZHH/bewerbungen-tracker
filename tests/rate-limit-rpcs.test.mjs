@@ -21,7 +21,7 @@ test("setup: all migrations incl. the rate-limit wrappers apply", async () => {
   ctx = await setupTeacherDb();
   const { admin } = ctx;
   const impl = await admin("select proname from pg_proc where proname like '\\_rl\\_impl\\_%' order by 1");
-  assert.equal(impl.length, 14, impl.map((r) => r.proname).join(","));
+  assert.equal(impl.length, 15, impl.map((r) => r.proname).join(","));
 });
 
 test("grants: wrappers keep the old grants, originals and helpers are not callable by anon/authenticated", async () => {

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { Modal } from "@/components/ui/modal";
 import { friendlyMessage } from "@/lib/ux";
+import { unlessRateLimited } from "@/lib/rate-limit-text";
 import { toast } from "@/lib/toast";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { DeleteAccountCard } from "@/components/settings/delete-account";
@@ -40,7 +41,7 @@ export default function SettingsPage() {
       // applications/profile/cvs keep the import format ("Sicherung einlesen"); `account` is the full server export (export_my_data)
       // with classes, friends, village and settings, once that RPC is deployed. Secrets (tokens) are stripped.
       // `family` (family_export_my_data): family, members, consent and share settings, once the family feature is deployed.
-      const [applications, profile, cvs, account, family] = await Promise.all([getApplications(), getProfile(), getCVs(), exportMyDataFromServer().catch(() => undefined), exportMyFamilyData().catch(() => undefined)]);
+      const [applications, profile, cvs, account, family] = await Promise.all([getApplications(), getProfile(), getCVs(), exportMyDataFromServer().catch(unlessRateLimited(undefined)), exportMyFamilyData().catch(() => undefined)]);
       const payload = scrubExport({ format: "wendapply-export", version: 2, exportedAt: new Date().toISOString(), applications, profile, cvs, ...(account !== undefined && account !== null ? { account } : {}), ...(family !== undefined && family !== null ? { family } : {}) });
       const fileName = exportFileName();
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });

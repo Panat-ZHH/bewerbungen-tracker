@@ -1,4 +1,5 @@
 // Pure UX helpers (no browser/Supabase imports so they can be unit-tested with node --test).
+import { rateLimitText } from "./rate-limit-text.ts";
 
 /**
  * Turns anything thrown by Supabase/fetch into a short, friendly German sentence.
@@ -15,6 +16,10 @@ export function generalCause(reason: unknown): string | null {
   const code = (reason as { code?: string } | null)?.code ?? "";
   const status = (reason as { status?: number } | null)?.status;
   const lower = text.toLowerCase();
+  // New limiter (RPC wrappers / API routes): its own German text with the wait time. Before the generic checks so a
+  // "Database error: rate_limited | RATE_LIMITED | …" is never shown raw or as a vague fallback.
+  const limited = rateLimitText(reason);
+  if (limited) return limited;
   if (/failed to fetch|networkerror|network request failed|load failed|fetch failed|err_internet|offline/.test(lower) || (typeof navigator !== "undefined" && navigator.onLine === false)) return "Keine Verbindung zum Internet. Prüfe dein Netz und versuch es noch einmal.";
   if (status === 401 || /jwt|not signed in|must be signed in|auth session missing|refresh token/.test(lower)) return "Deine Anmeldung ist abgelaufen. Bitte melde dich neu an.";
   if (code === "42501" || /row-level security|permission denied/.test(lower)) return "Dafür fehlt dir die Berechtigung. Melde dich neu an und versuch es noch einmal.";
