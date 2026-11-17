@@ -13,7 +13,7 @@ import { StatusMessage } from "@/components/ui/skeleton";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { DoodleBurst, DoodlePlane } from "@/components/ui/doodles";
 import { Field, Input } from "@/components/ui/input";
-import { setMyDisplayName } from "@/lib/profile-names";
+import { isPlaceholderName, setMyDisplayName } from "@/lib/profile-names";
 import { clearRoleCache } from "@/lib/role";
 import { toast } from "@/lib/toast";
 import { isClosedStatus, isSentStatus, showsDeadline } from "@/lib/status";
@@ -51,7 +51,9 @@ export default function DashboardPage() {
       if (!user) return;
       const profile = await loadMyRole(user).catch(() => null);
       const meta = user.user_metadata ?? {};
-      const found = firstName(profile?.displayName) || firstName(meta.first_name as string) || firstName(meta.full_name as string) || firstName(meta.name as string);
+      // The default display name is the e-mail prefix (lib/social.ts): never greet with it (schueler-03).
+      const real = (value?: string | null) => (isPlaceholderName(value, user.email) ? "" : firstName(value));
+      const found = real(profile?.displayName) || real(meta.first_name as string) || real(meta.full_name as string) || real(meta.name as string);
       if (active) { setName(found); setNameKnown(Boolean(found)); }
     }).catch(() => undefined);
     return () => { active = false; };
