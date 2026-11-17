@@ -145,7 +145,8 @@ export function InAppCheckout() {
     const text = onlinePaymentEnabled()
       ? "Die Bezahlung in der App ist gerade ausgeschaltet. Du kannst das Familienpaket auf der Seite «Familie» buchen."
       : "Die Online-Bezahlung ist noch nicht freigeschaltet. Auf der Seite «Familie» kannst du Zugang anfragen.";
-    return (<>{header}<StatusMessage tone="info">{text}</StatusMessage></>);
+    // Never a dead end (FLOW G22): the working family checkout is on /familie.
+    return (<>{header}<div className="space-y-3" data-pay-state="in-app-off"><StatusMessage tone="info">{text}</StatusMessage><ButtonLink href="/familie#abo" variant="primary">Zum Familienpaket</ButtonLink></div></>);
   }
   if (!familyId) {
     return (<>{header}<div className="space-y-3"><StatusMessage tone="warning">Dieser Link ist unvollständig. Starte die Bezahlung bitte auf deiner Familienseite.</StatusMessage><ButtonLink href="/familie#abo" variant="secondary">Zur Familie</ButtonLink></div></>);

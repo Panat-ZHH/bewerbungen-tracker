@@ -39,7 +39,7 @@ export const PAGE_SEO = {
   },
   "/preise": {
     title: `Preise für Schulen: Jahreslizenz ab CHF ${minPrice}`,
-    description: `WendApply für Sekundarschulen: Jahreslizenz ab CHF ${minPrice} nach Anzahl Schülerinnen und Schüler, Lehrpersonen inbegriffen. Für Schüler kostenlos.`,
+    description: `WendApply für Sekundarschulen: Jahreslizenz ab CHF ${minPrice} nach Anzahl Schülerinnen und Schüler, Lehrpersonen und Schülerinnen und Schüler inbegriffen.`,
     crumb: "Preise",
   },
   "/pilot": {

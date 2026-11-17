@@ -13,7 +13,7 @@ import { oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
 import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { newPasswordProblem } from "@/lib/password-policy";
 import { pendingInvitePath } from "@/components/friends/shared";
-import { resolveLanding } from "@/lib/role";
+import { clearPendingSignup, isInvitePath, resolveLanding, storePendingSignup } from "@/lib/role";
 import { InviteBanner } from "@/components/onboarding/invite-banner";
 import { LoginValueProp } from "@/components/onboarding/login-value-prop";
 import { AuthBrand } from "@/components/onboarding/auth-frame";
@@ -44,8 +44,10 @@ export default function LoginPage() {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     // Family invite links: preselect the matching signup role (parent, or private student with ?fuer=kind) + a short hint.
     const preset = signupPreset(safeNextPath(params.get("next")));
+    // Invite links are mostly opened by people without an account yet: open the signup tab (G18).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
+    if (isInvitePath(safeNextPath(params.get("next")))) setMode("signup");
     if (preset) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
       setRole(preset.choice);
       setInviteHint(preset.hint);
     }
@@ -126,9 +128,16 @@ export default function LoginPage() {
 
   async function signInWithProvider(provider: "google") {
     setError(""); setSuccess("");
+    const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+    // The role picked on the signup tab (or preset by a family invite) travels through the Google round trip, so a new
+    // account is never asked "Wie nutzt du WendApply?" a second time (applied once in /auth/callback via resolveLanding).
+    if (mode === "signup") {
+      if (role === "independent" && !isValidBirthYear(birthYear)) { setError("Bitte wähle deinen Jahrgang."); document.getElementById("signup-birth-year")?.focus(); return; }
+      storePendingSignup(role, birthYear);
+    } else if (signupPreset(next)) storePendingSignup(role, null);
+    else clearPendingSignup();
     setLoading(true);
     try {
-      const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
       const redirectTo = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
       const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
       if (oauthError) { setError(authMessage(oauthError)); setLoading(false); }
@@ -162,7 +171,7 @@ export default function LoginPage() {
             <DoodleBurst className="ml-2 inline-block h-[.5em] w-[.5em] -translate-y-[.15em] text-[var(--coral)]" />
           </h1>
           <LoginValueProp />
-          <span className="sticker sticker-coral tilt-l3 absolute right-1 top-5 lg:static lg:mt-10">Gratis für Schüler:innen</span>
+          <span className="sticker sticker-coral tilt-l3 absolute right-1 top-5 lg:static lg:mt-10">7 Tage gratis testen</span>
           <div className="pointer-events-none absolute -bottom-2 right-4 hidden items-end gap-1 text-[var(--brand)] lg:flex" aria-hidden>
             <DoodleTrail className="h-12 w-36" />
             <DoodlePlane className="mb-6 h-12 w-16" />

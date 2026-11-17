@@ -24,7 +24,7 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
     { q: "Was sehe ich von meinen Schülerinnen und Schülern?", a: "Nur das, was sie ausdrücklich freigeben, zum Beispiel Anzahl und Status der Bewerbungen. Alles andere bleibt privat." },
   ] },
   { id: "schulen", title: "Schulen, Preise und Pilot", items: [
-    { q: "Müssen Schülerinnen und Schüler bezahlen?", a: "Nein. Für Schülerinnen und Schüler ist WendApply kostenlos. Die Lizenz bezahlt die Schule, die Gemeinde oder der Schulträger." },
+    { q: "Müssen Schülerinnen und Schüler bezahlen?", a: "Hat die Schule eine Lizenz, nicht: Dann bezahlt die Schule, die Gemeinde oder der Schulträger. Ohne Schullizenz kannst du WendApply 7 Tage gratis testen. Danach brauchst du das Einzelabo (CHF 4.90 pro Monat oder CHF 49 pro Jahr) oder deine Eltern buchen das Familienpaket (CHF 7.90 pro Monat oder CHF 79 pro Jahr)." },
     { q: "Was kostet WendApply für Schulen?", a: <>Eine Jahreslizenz nach Anzahl Schülerinnen und Schüler: {PACKAGES.map((p) => `${p.name} bis ${p.maxStudents} für CHF ${chf(p.pricePerYear)}`).join(", ")} pro Jahr. Für mehrere Standorte gibt es ein individuelles Angebot. Details unter <Link className={link} href="/preise">Preise</Link>.</> },
     { q: "Kann die Schule monatlich bezahlen?", a: "Wir empfehlen den Jahresvertrag. Monatliche Zahlung ist gegen Aufpreis möglich. Bezahlt wird auf Rechnung nach Offerte, nicht in der App." },
     { q: "Wie funktioniert der Pilot?", a: <>{PILOT.days} Tage mit {PILOT.classes}, zeitlich begrenzt und mit einem vereinbarten Feedback- und Entscheidungsgespräch am Ende. Ablauf unter <Link className={link} href="/pilot">Pilot</Link>.</> },

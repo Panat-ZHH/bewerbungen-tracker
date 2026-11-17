@@ -151,8 +151,9 @@ test("plan summary: trial days, seats, no plan = bald verfügbar", () => {
   assert.equal(formatDateCh("2026-11-23T10:00:00Z"), "23.11.2026");
   assert.deepEqual(planSummary(null, NOW).status, "Bald verfügbar");
   const trial = planSummary({ planType: "family", status: "trial", seatsParents: 1, seatsChildren: 1, trialEndsAt: "2026-11-30T10:00:00Z" }, NOW);
-  assert.equal(trial.status, "Testphase");
-  assert.equal(trial.detail, "1 Elternteil, 1 Kind · noch 14 Tage Testphase");
+  // No 30-day family trial any more: the old trial row just means "not booked yet" (per-user 7-day trial instead).
+  assert.equal(trial.status, "Noch nicht gebucht");
+  assert.equal(trial.detail, "1 Elternteil, 1 Kind · CHF 7.90 pro Monat oder CHF 79 pro Jahr");
   assert.equal(planSummary({ planType: "family", status: "active", seatsParents: 2, seatsChildren: 3, trialEndsAt: null }, NOW).detail, "2 Elternteile, 3 Kinder");
 });
 

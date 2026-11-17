@@ -13,8 +13,8 @@ import { FAMILY_COPY } from "@/lib/family-copy";
 import { FREE_NOTICE, onlinePaymentEnabled } from "@/components/billing/logic";
 import { familyError, PLAN_STATUS_TONE, planSummary, waitlistProblem, type FamilyPlan, type WaitlistKind } from "@/lib/family-core";
 
-/** Plan states that give the family the package (child view: "Familienpaket aktiv"). */
-const ACCESS_STATES = ["trial", "pilot", "active"];
+/** Plan states that give the family the package (child view: "Familienpaket aktiv"). The old 30-day "trial" row does not (SPEC §3). */
+const ACCESS_STATES = ["pilot", "active"];
 
 /**
  * Family plan card (#abo).

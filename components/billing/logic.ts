@@ -18,7 +18,7 @@ export function onlinePaymentEnabled(): boolean {
 }
 
 /** Honest copy while the flag is off. */
-export const FREE_NOTICE = "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.";
+export const FREE_NOTICE = "Neue Konten testen WendApply 7 Tage gratis. Die Online-Bezahlung ist gerade nicht verfügbar, schreib uns über die Kontaktseite.";
 
 /** School plans that can be bought online, in catalogue order (starter, professional, enterprise). */
 export function schoolPlans(): Plan[] {

@@ -5,6 +5,7 @@ import { AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
+import Link from "next/link";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { DELETE_CONFIRM_WORD, REAUTH_FLAG, confirmationMatches, deletionItems, isFreshSignIn, teacherWarning, withSupport, type AccountSummary } from "@/lib/account-deletion";
@@ -29,6 +30,7 @@ export function DeleteAccountCard() {
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [subscriptionBlock, setSubscriptionBlock] = useState<string | null>(null);
   const openedByReturn = useRef(false);
   useEffect(() => { if (error) document.getElementById("delete-error")?.scrollIntoView({ block: "center", behavior: "smooth" }); }, [error]);
 
@@ -69,7 +71,7 @@ export function DeleteAccountCard() {
   }
 
   async function deleteNow() {
-    setBusy(true); setError("");
+    setBusy(true); setError(""); setSubscriptionBlock(null);
     try {
       if (identity?.hasPassword) {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email: identity.email ?? "", password });
@@ -82,6 +84,8 @@ export function DeleteAccountCard() {
       const result = (await response.json().catch(() => ({}))) as { ok?: boolean; code?: string; message?: string };
       if (!response.ok || !result.ok) {
         if (result.code === "REAUTH_REQUIRED") setFresh(false);
+        // A running subscription blocks the deletion (G4): link straight to where it is cancelled.
+        if (result.code === "SUBSCRIPTION_ACTIVE") setSubscriptionBlock(/Einzelabo/.test(result.message ?? "") ? "/abo" : /Schul/.test(result.message ?? "") ? "/schul-admin#abo" : "/familie#abo");
         setError(result.code === "REAUTH_REQUIRED" || result.code === "CONFIRMATION_MISMATCH" || result.code === "SUBSCRIPTION_ACTIVE" ? (result.message ?? "") : withSupport(result.message ?? "Das Konto konnte nicht gelöscht werden."));
         setBusy(false);
         return;
@@ -141,7 +145,7 @@ export function DeleteAccountCard() {
             </div>
           ) : null}
 
-          <div id="delete-error">{error && <StatusMessage tone="danger">{error}</StatusMessage>}</div>
+          <div id="delete-error">{error && <StatusMessage tone="danger">{error}</StatusMessage>}{subscriptionBlock && <p className="mt-2"><Link href={subscriptionBlock} className="font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4" data-testid="delete-manage-abo">Abo verwalten</Link></p>}</div>
         </div>
       </Modal>
     </>

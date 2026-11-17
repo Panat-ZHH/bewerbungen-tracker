@@ -80,13 +80,13 @@ test("robots.txt blocks the app but keeps every public page crawlable", () => {
   assert.equal(r.sitemap, "https://wendapply.ch/sitemap.xml");
 });
 
-test("offer comes from lib/seo/offer.ts: launch wording, no permanent-free claim", () => {
-  assert.equal(OFFER.price, 0);
+test("offer comes from lib/seo/offer.ts: 7-day trial + Einzelabo price (access model), no permanent-free claim", () => {
+  assert.equal(OFFER.price, 4.9);
   assert.equal(OFFER.priceCurrency, "CHF");
-  assert.match(OFFER.label, /während der Lancierung/);
+  assert.match(OFFER.label, /7 Tage kostenlos testen/);
   assert.doesNotMatch(OFFER.label + OFFER.description, PERMANENT_FREE);
   const app = homeJsonLd()["@graph"].find((n) => n["@type"] === "SoftwareApplication");
-  assert.equal(app.offers.price, "0.00");
+  assert.equal(app.offers.price, "4.90");
   assert.equal(app.offers.priceCurrency, OFFER.priceCurrency);
   assert.equal(app.offers.description, OFFER.description);
   assert.doesNotMatch(read("lib/seo/site.ts"), /price: 0|"0\.00"|kostenlos/, "no second source for the offer");

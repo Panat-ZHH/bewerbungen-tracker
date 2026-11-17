@@ -115,10 +115,18 @@ function stubbed({ meta = { role: "student" }, myRole = "student", row = null, r
 beforeEach(() => { role.clearRoleCache(); });
 
 test("gate: new student (no profile row) goes to the tour, ?next survives", async () => {
+  // Access model (FLOW G8): a "Schule" signup is asked for the class code once first; after that (class_code_asked) the tour.
   stubbed();
+  assert.equal(await role.resolveLanding(null), "/onboarding/klasse");
+  role.clearRoleCache();
+  stubbed({ meta: { role: "student", class_code_asked: true } });
   assert.equal(await role.resolveLanding(null), "/onboarding");
   role.clearRoleCache();
-  assert.equal(await role.resolveLanding("/classes/join/tok123"), "/onboarding?next=%2Fclasses%2Fjoin%2Ftok123");
+  stubbed({ meta: { role: "student", class_code_asked: true } });
+  assert.equal(await role.resolveLanding("/search?q=Koch"), "/onboarding?next=%2Fsearch%3Fq%3DKoch");
+  role.clearRoleCache();
+  // Invite links come before the tour (FLOW G17).
+  assert.equal(await role.resolveLanding("/classes/join/tok123"), "/classes/join/tok123");
 });
 
 test("gate: finished tour (DB) or flags go straight to the target", async () => {
@@ -134,7 +142,7 @@ test("gate: finished tour (DB) or flags go straight to the target", async () => 
 });
 
 test("gate: old DB without the column falls back to the flags (tour once, then never again)", async () => {
-  stubbed({ rowError: { code: "42703", message: "column profiles.onboarding_tour_completed_at does not exist" } });
+  stubbed({ meta: { role: "student", class_code_asked: true }, rowError: { code: "42703", message: "column profiles.onboarding_tour_completed_at does not exist" } });
   assert.equal(await role.resolveLanding(null), "/onboarding");
   role.clearRoleCache();
   stubbed({ meta: { role: "student", onboarding_tour_done: true }, rowError: { code: "42703", message: "x" } });

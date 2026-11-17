@@ -140,8 +140,8 @@ export const guideSteps: GuideStep[] = [
 
 /** Plain-text answers: they are reused verbatim in the FAQPage JSON-LD. */
 export const faq: { q: string; a: string }[] = [
-  { q: "Kostet WendApply etwas?", a: "Für Schülerinnen und Schüler ist WendApply kostenlos. Schulen bezahlen eine Jahreslizenz und können WendApply vorher 30 Tage mit 1 bis 2 Klassen testen. Preise stehen auf wendapply.ch/preise." },
-  { q: "Müssen Schülerinnen und Schüler bezahlen?", a: "Nein. Du bezahlst nichts und musst nichts kaufen. Punkte für dein Dorf gibt es nur für deine Schritte bei der Lehrstellensuche, nie für Geld." },
+  { q: "Kostet WendApply etwas?", a: "Jedes neue Konto kann WendApply 7 Tage gratis testen. Danach gibt es das Einzelabo (CHF 4.90 pro Monat oder CHF 49 pro Jahr) oder das Familienpaket (CHF 7.90 pro Monat oder CHF 79 pro Jahr). Hat deine Schule eine Lizenz, bezahlt die Schule. Schulen können WendApply vorher 30 Tage mit 1 bis 2 Klassen testen. Preise stehen auf wendapply.ch/preise." },
+  { q: "Müssen Schülerinnen und Schüler bezahlen?", a: "Mit Schullizenz nicht: Dann bezahlt die Schule. Ohne Schullizenz kannst du WendApply 7 Tage gratis testen, danach brauchst du ein Abo (Einzelabo oder Familienpaket deiner Eltern). Punkte für dein Dorf gibt es nur für deine Schritte bei der Lehrstellensuche, nie für Geld." },
   { q: "Muss ich WendApply aus dem App Store laden?", a: "Nein. WendApply läuft im Browser. Du kannst es aber direkt aus dem Browser als App auf deinem Handy, Tablet oder Computer installieren, ganz ohne App Store." },
   { q: "Ist die installierte App anders als die Webseite?", a: "Nein, es ist dieselbe WendApply mit deinem Konto und deinen Daten. Die App öffnet sich nur im eigenen Fenster ohne Adresszeile und startet mit einem Tipp vom Home-Bildschirm." },
   { q: "Wie entferne ich die App wieder?", a: "iPhone und Android: Symbol gedrückt halten und entfernen bzw. deinstallieren. Mac und Windows: in der App das Menü öffnen und deinstallieren. Dein Konto und deine Daten bleiben dabei erhalten." },

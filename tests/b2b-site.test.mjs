@@ -71,10 +71,12 @@ test("Swiss spelling: no sharp s in public site files", () => {
   for (const f of SITE_FILES) assert.ok(!read(f).includes("ß"), `${f} contains the sharp s`);
 });
 
-test("FAQ answers 'Müssen Schüler bezahlen? Nein.' in Hilfe and the guide", () => {
-  assert.match(read("app/hilfe/page.tsx"), /Müssen Schülerinnen und Schüler bezahlen\?", a: "Nein\./);
-  assert.match(read("components/guide/content.tsx"), /Müssen Schülerinnen und Schüler bezahlen\?", a: "Nein\./);
-  assert.match(read("app/preise/page.tsx"), /Müssen Schülerinnen und Schüler etwas bezahlen\?", a: "Nein\./);
+test("FAQ 'Müssen Schüler bezahlen?' in Hilfe, guide and /preise: with school licence no, otherwise 7-day trial + abo (access model)", () => {
+  for (const f of ["app/hilfe/page.tsx", "components/guide/content.tsx", "app/preise/page.tsx"]) {
+    const s = read(f);
+    assert.match(s, /Müssen Schülerinnen und Schüler (etwas )?bezahlen\?", a: "(Hat die Schule eine Lizenz, nicht|Mit Schullizenz nicht)/, f);
+    assert.match(s, /7 Tage gratis/, f);
+  }
 });
 
 test("privacy overview links all legal documents and covers the roles", () => {

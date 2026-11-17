@@ -4,7 +4,7 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, Heart, LayoutDashboard, LogOut, Map, MoreHorizontal, Search, Settings, UserRound, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, Heart, LayoutDashboard, LogOut, Map, MoreHorizontal, School, Search, Settings, UserRound, Users } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
@@ -17,12 +17,19 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { signOutEverywhere } from "@/lib/sign-out";
-import { clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref } from "@/lib/role";
+import { clearPendingSignup, clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
-import { FAMILY_PATH, familyInviteCodeFromPath, isParentMeta, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
+import { FAMILY_PATH, familyInviteCodeFromPath, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
 import { storePendingInvite } from "@/components/friends/shared";
 import { NotificationsBell } from "./notifications-bell";
+import { AccessProvider, useAccess } from "@/components/access/access-provider";
+import { AccessBanner } from "@/components/access/access-banner";
+import { AccessGatePage } from "@/components/access/access-pages";
+import { clearAccessCache } from "@/lib/access/client";
+import { accessView, isParentAccount, isSchoolAdmin } from "@/lib/access/gate";
+import { toast } from "@/lib/toast";
+import { clearPendingInvite } from "@/components/friends/shared";
 
 type NavItem = { label: string; href: string; icon: typeof Search; keys: string[]; prefixes?: string[] };
 
@@ -44,6 +51,9 @@ const teacherNavigation: NavItem[] = [
 const teacherPrimaryHrefs = ["/teacher", "/profile", "/settings"];
 /** Family area: in "Mehr" for every student (school students connect their parents too). */
 const familyItem: NavItem = { label: "Familie", href: FAMILY_PATH, icon: Heart, keys: ["Familie", "Family"], prefixes: [FAMILY_PATH] };
+/** School admins (my_access().role school_admin): their school area. */
+const SCHOOL_ADMIN_PATH = "/schul-admin";
+const schoolAdminItem: NavItem = { label: "Schule", href: SCHOOL_ADMIN_PATH, icon: School, keys: ["Schuladministration", "Schule"], prefixes: [SCHOOL_ADMIN_PATH] };
 /** Parent accounts (account_type parent) only manage their family: Familie, Profil, Einstellungen. */
 const parentNavigation: NavItem[] = [familyItem];
 /** Items shown directly in the mobile tab bar; everything else goes into the "Mehr" sheet. */
@@ -57,11 +67,12 @@ const accountLinks = [
 
 /** `fullscreen`: the page owns the whole viewport (map). No page scroll, header hidden on phones (bottom tab bar stays), children fill the remaining space. */
 export function WorkspaceShell(props: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
-  return <FriendRequestsProvider enabled><ShellInner {...props} /></FriendRequestsProvider>;
+  return <FriendRequestsProvider enabled><AccessProvider><ShellInner {...props} /></AccessProvider></FriendRequestsProvider>;
 }
 
-function ShellInner({ children, active, fullscreen = false }: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
+function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
   const { count: requestCount } = useFriendRequests();
+  const { access, loading: accessLoading } = useAccess();
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
@@ -71,6 +82,12 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const [role, setRole] = useState<UserRole | null>(null);
   const [inClass, setInClass] = useState<boolean | null>(null);
   const [profileName, setProfileName] = useState("");
+  // Parent / school admin by server truth once my_access() answered (G20), metadata only as a fallback.
+  const parentAccount = isParentAccount(user?.user_metadata, access);
+  const schoolAdmin = isSchoolAdmin(access);
+  // Paywall / licence gate / blocked (SPEC §6): replaces the page except on allow-listed paths. Only when enforced.
+  const gate = accessView(access, pathname, { parent: parentAccount });
+  const fullscreen = fullscreenPage && gate === "page";
 
   useEffect(() => {
     let mounted = true;
@@ -98,25 +115,34 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
   // Resolve the role once per user, ask once if there is none yet, and keep each role on its own pages.
   useEffect(() => {
-    if (!user) return;
-    if (needsRoleChoice(user)) { router.replace(rolePickerHref(pathname)); return; }
+    if (!user || accessLoading) return;
+    // Settings (export / delete) stay reachable before a role was chosen (G10).
+    if (needsRoleChoice(user) && !(pathname ?? "").startsWith("/settings")) { router.replace(rolePickerHref(pathname)); return; }
     let alive = true;
     loadMyRole(user).then(({ role: resolved, displayName: name }) => {
       if (!alive) return;
       setProfileName(name);
-      const target = guardRedirect(resolved, pathname ?? "/") ?? (resolved === "student" && isParentMeta(user.user_metadata) ? parentGuardRedirect(pathname ?? "/") : null);
-      if (target) router.replace(target); else setRole(resolved);
+      const path = pathname ?? "/";
+      // School admins (not teachers) have no student pages: their home is /schul-admin (G6).
+      const adminTarget = schoolAdmin && resolved === "student" && guardRedirect("teacher", path) ? "/schul-admin" : null;
+      const target = adminTarget ?? guardRedirect(resolved, path) ?? (resolved === "student" && parentAccount ? parentGuardRedirect(path) : null);
+      if (target) {
+        // A class link opened by a parent / a family link opened by a teacher: say why instead of a silent redirect (G16).
+        const notice = wrongRoleNotice(resolved === "teacher" ? "teacher" : parentAccount ? "parent" : "student", path);
+        if (notice) toast({ message: notice, tone: "info", duration: 8000 });
+        router.replace(target);
+      } else setRole(resolved);
     });
     return () => { alive = false; };
-  }, [user, pathname, router]);
+  }, [user, pathname, router, accessLoading, schoolAdmin, parentAccount]);
 
   // Students in at least one class get "Klassen" in the mobile tab bar.
   useEffect(() => {
-    if (!user || role !== "student" || isParentMeta(user.user_metadata)) return;
+    if (!user || role !== "student" || parentAccount) return;
     let alive = true;
     getMyClassMemberships().then((list) => { if (alive) setInClass(list.length > 0); }).catch(() => {});
     return () => { alive = false; };
-  }, [user, role]);
+  }, [user, role, parentAccount]);
 
   // Fullscreen pages (map): the document itself must never scroll or rubber-band.
   useEffect(() => {
@@ -138,10 +164,14 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
     setMoreOpen(false);
     await signOutEverywhere(supabase.auth);
     clearRoleCache();
+    clearAccessCache();
+    // Another person may sign in on this device next: forget invites / signup choices (G26).
+    clearPendingInvite();
+    clearPendingSignup();
     router.replace("/login");
   }
 
-  if (checkingSession || !user || !role) {
+  if (checkingSession || !user || !role || accessLoading) {
     return (
       <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
         <BrandMark size={56} className="animate-wiggle" priority />
@@ -156,21 +186,22 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
 
   const displayName = (isPlaceholderName(profileName, user.email) ? undefined : profileName) ?? (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
   const isTeacher = role === "teacher";
-  const isParent = !isTeacher && isParentMeta(user.user_metadata);
+  const isParent = !isTeacher && parentAccount;
+  const isAdminOnly = !isTeacher && !isParent && schoolAdmin;
   // Parents get the compact menu (like teachers); every student finds "Familie" under "Mehr" (desktop: in the sidebar).
   const studentNav = [...navigation, familyItem];
-  const compact = isTeacher || isParent;
-  const compactNav = isTeacher ? teacherNavigation : parentNavigation;
+  const compact = isTeacher || isParent || isAdminOnly;
+  const compactNav = isTeacher ? (schoolAdmin ? [...teacherNavigation, schoolAdminItem] : teacherNavigation) : isAdminOnly ? [schoolAdminItem] : parentNavigation;
   const items = compact ? compactNav : studentNav;
   const accountItems: NavItem[] = compact ? [{ ...accountLinks[0], keys: [...accountLinks[0].keys] }, { ...accountLinks[1], keys: [...accountLinks[1].keys] }] : accountLinks;
   const isSelected = (item: NavItem) => item.keys.includes(active) || ((compact || item.href === FAMILY_PATH) && (item.prefixes ?? [item.href]).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)));
   const mobileAll = compact ? [...compactNav, ...accountItems] : studentNav;
   const studentPrimary = inClass ? primaryHrefsInClass : primaryHrefs;
-  const primary = compact ? mobileAll.filter((item) => [...teacherPrimaryHrefs, FAMILY_PATH].includes(item.href)) : studentNav.filter((item) => studentPrimary.includes(item.href));
+  const primary = compact ? mobileAll.filter((item) => [...teacherPrimaryHrefs, FAMILY_PATH, SCHOOL_ADMIN_PATH].includes(item.href)) : studentNav.filter((item) => studentPrimary.includes(item.href));
   const more = compact ? [] : studentNav.filter((item) => !studentPrimary.includes(item.href));
   const moreList = compact ? [] : [...more, ...accountLinks];
   const moreActive = moreList.some(isSelected);
-  const home = isParent ? FAMILY_PATH : homeFor(role);
+  const home = isParent ? FAMILY_PATH : isAdminOnly ? SCHOOL_ADMIN_PATH : homeFor(role);
 
   return (
     <div className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
@@ -221,10 +252,12 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
         </div>
       </header>
 
-      {fullscreen ? (
+      {gate !== "page" ? (
+        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10"><AccessGatePage view={gate} access={access} email={user.email} /></main>
+      ) : fullscreen ? (
         <main id="main" className="relative min-h-0 flex-1 max-md:mb-[calc(var(--tabbar-h)+var(--safe-bottom))]">{children}</main>
       ) : (
-        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{children}</main>
+        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{!/^\/(abo|familie\/bezahlen)(\/|$)/.test(pathname ?? "") && <AccessBanner access={access} parent={parentAccount} />}{children}</main>
       )}
 
       <nav aria-label="Hauptmenü mobil" className="app-bar app-bar-bottom fixed inset-x-0 bottom-0 z-30 md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
