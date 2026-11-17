@@ -366,6 +366,12 @@ test("audit: delete_account (blocked user, e-mail typed) → audit first, then t
   assert.ok(!JSON.stringify(m.audit[0]).includes("blocked@example.ch"), "no full e-mail in the log");
 });
 
+test("security review A1: platform admins cannot be blocked or soft-deleted by another admin (no audit row)", async () => {
+  assert.equal((await expectError(await userPost(OTHER_ADMIN, { action: "block", reason: "x", confirm: true }), 409, "conflict")).reason, "platform_admin");
+  assert.equal((await expectError(await userPost(OTHER_ADMIN, { action: "soft_delete", confirm_email: "admin2@example.ch", confirm: true }), 409, "conflict")).reason, "platform_admin");
+  assert.equal(m.audit.length, 0);
+});
+
 test("delete_account: platform admins cannot be deleted; running subscription → 409 + failed audit row", async () => {
   m.access.set(OTHER_ADMIN, { user_id: OTHER_ADMIN, blocked_at: "2026-11-15T00:00:00Z" });
   assert.equal((await expectError(await userPost(OTHER_ADMIN, { action: "delete_account", confirm_text: "admin2@example.ch", confirm: true }), 409, "conflict")).reason, "platform_admin");

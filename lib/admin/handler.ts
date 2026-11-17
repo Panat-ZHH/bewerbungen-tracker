@@ -107,6 +107,8 @@ async function userAction(store: AdminStore, ctx: AdminContext, userId: string, 
     case "block": {
       onlyKeys(body, ["reason"]);
       if (self) throw new Conflict("self");
+      // Security review A1: one admin can never lock another admin out (remove the platform_admins row first, service role).
+      if (await store.isPlatformAdmin(userId)) throw new Conflict("platform_admin");
       patch = { blocked_at: before?.blocked_at ?? nowIso, blocked_reason: text(body.reason, "reason", { max: 500 }) };
       break;
     }
@@ -119,6 +121,7 @@ async function userAction(store: AdminStore, ctx: AdminContext, userId: string, 
       // Step 1 of deleting: block now (the person can still log in and read "Konto gesperrt"), deletion is a separate step.
       onlyKeys(body, ["confirm_email", "reason"]);
       if (self) throw new Conflict("self");
+      if (await store.isPlatformAdmin(userId)) throw new Conflict("platform_admin");
       if (!basics.email || email(body.confirm_email, "confirm_email") !== basics.email.toLowerCase()) throw new InvalidInput("confirm_email");
       const reason = text(body.reason, "reason", { max: 400, optional: true });
       patch = { blocked_at: before?.blocked_at ?? nowIso, blocked_reason: `Zur Löschung vorgemerkt${reason ? `: ${reason}` : ""}` };

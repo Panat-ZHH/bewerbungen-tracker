@@ -299,8 +299,11 @@ test("trial is not reset by deleting data or by re-signup with the same e-mail (
   const again = await user(next(), { email: "  max.muster@example.TEST" });
   const a = await access(again);
   assert.deepEqual([a.state, a.has_access], ["expired", false]);
-  // a different address gets a fresh trial
-  const other = await user(next(), { email: "max.muster+2@example.test" });
+  // a "+tag" alias of the same mailbox does not (security review S4, 20261118300000) …
+  const alias = await user(next(), { email: "max.muster+2@example.test" });
+  assert.equal((await access(alias)).state, "expired");
+  // … a different address does
+  const other = await user(next(), { email: "max.muster2@example.test" });
   assert.equal((await access(other)).state, "trial");
 });
 
