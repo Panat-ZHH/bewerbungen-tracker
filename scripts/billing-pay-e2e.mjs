@@ -32,7 +32,9 @@ if (!/^pk_test_/.test(PK)) throw new Error("test publishable key required");
 if (/^(sk|rk)_live_/.test(SK)) throw new Error("live secret key refused");
 const ACCOUNT = process.env.STRIPE_ACCOUNT || "";
 const USER = { id: "00000000-0000-4000-8000-00000000e2e1", email: "e2e-pay@example.com" };
-const FAM = { pay: "00000000-0000-4000-8000-00000000fa01", tds: "00000000-0000-4000-8000-00000000fa02", decl: "00000000-0000-4000-8000-00000000fa03", dbl: "00000000-0000-4000-8000-00000000fa04" };
+// Fresh ids per run (Stripe idempotency keys include the family id).
+const rid = () => `00000000-0000-4000-8000-${Math.floor(Math.random() * 2 ** 48).toString(16).padStart(12, "0")}`;
+const FAM = { pay: rid(), tds: rid(), decl: rid(), dbl: rid() };
 const FOREIGN_FAMILY = "00000000-0000-4000-8000-00000000fa99";
 const day = (d) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
 

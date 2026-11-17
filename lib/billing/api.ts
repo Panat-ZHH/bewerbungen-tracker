@@ -160,7 +160,9 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   if (!customer) {
     customer = await deps.stripe.createCustomer({
       email: auth.user.email, name: await deps.db.ownerName(owner), metadata: { app: "wendapply", ...ownerMeta(owner), user_id: auth.user.id },
-      idempotencyKey: `wendapply-customer-${owner.kind}-${owner.id}-${auth.user.id}`,
+      // 10-minute window: enough for the double-click / two-tab race; short enough that a customer deleted in Stripe
+      // (Stripe keeps idempotent responses 24 h and would hand back the deleted id) is recreated soon after.
+      idempotencyKey: `wendapply-customer-${owner.kind}-${owner.id}-${auth.user.id}-${Math.floor(Date.now() / 600_000)}`,
     });
     await deps.db.saveCustomer?.(owner, customer, auth.user.id).catch((e) => deps.log?.("billing checkout: could not save customer", { error: String(e) }));
   } else if (await deps.stripe.hasOpenStripeSubscription?.(customer)) {

@@ -106,7 +106,7 @@ test("card checkout: creates the customer once, Checkout session with owner meta
   assert.deepEqual(r, { status: 200, body: { url: "https://checkout.stripe.test/c/pay/cs_1" } });
   assert.deepEqual(calls.find((c) => c[0] === "price"), ["price", "wendapply_professional_yearly_chf"]);
   const customer = calls.find((c) => c[0] === "customer")[1];
-  assert.deepEqual(customer, { email: ADMIN.email, name: "Schule Test", metadata: { app: "wendapply", school_id: SCHOOL, user_id: ADMIN.id }, idempotencyKey: `wendapply-customer-school-${SCHOOL}-${ADMIN.id}` });
+  assert.deepEqual(customer, { email: ADMIN.email, name: "Schule Test", metadata: { app: "wendapply", school_id: SCHOOL, user_id: ADMIN.id }, idempotencyKey: `wendapply-customer-school-${SCHOOL}-${ADMIN.id}-${Math.floor(Date.now() / 600_000)}` });
   const session = calls.find((c) => c[0] === "checkout")[1];
   assert.equal(session.customer, "cus_new");
   assert.equal(session.price, "price_for_wendapply_professional_yearly_chf");
@@ -262,7 +262,7 @@ test("double checkout: open Stripe subscription (webhook lag) -> 409, older open
   const fresh = makeDeps();
   await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY } }, fresh.deps);
   const [, cust] = fresh.calls.find(([k]) => k === "customer");
-  assert.equal(cust.idempotencyKey, `wendapply-customer-family-${FAMILY}-${PARENT.id}`);
+  assert.equal(cust.idempotencyKey, `wendapply-customer-family-${FAMILY}-${PARENT.id}-${Math.floor(Date.now() / 600_000)}`);
 });
 
 test("return URLs: only allowlisted origins, spoofed hosts fall back to wendapply.ch", async () => {

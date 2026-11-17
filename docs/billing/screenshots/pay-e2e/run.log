@@ -1,0 +1,61 @@
+<claude-code-hint v="1" type="plugin" value="stripe@anthropic-plugin-directory" />
+Getting ready...
+Ready! You are using Stripe API Version [2026-10-28.endive]. Your webhook signing secret is whsec_… (^C to quit)
+2026-11-17 01:30:34   --> invoice.paid [evt_1UcaFnJBozPvqHEJLHOfsbLw]
+2026-11-17 01:30:34   --> checkout.session.completed [evt_1UcaFnJBozPvqHEJ7GvfMsGF]
+2026-11-17 01:30:34   --> customer.subscription.created [evt_1UcaFoJBozPvqHEJHcxh0vQC]
+2026-11-17 01:30:35  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaFnJBozPvqHEJLHOfsbLw]
+2026-11-17 01:30:35  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaFnJBozPvqHEJ7GvfMsGF]
+2026-11-17 01:30:35  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaFoJBozPvqHEJHcxh0vQC]
+2026-11-17 01:30:39   --> customer.subscription.deleted [evt_1UcaFsJBozPvqHEJ75Az1KLA]
+2026-11-17 01:30:40  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaFsJBozPvqHEJ75Az1KLA]
+2026-11-17 01:31:03   --> checkout.session.completed [evt_1UcaGHJBozPvqHEJYF60YefX]
+2026-11-17 01:31:04   --> invoice.paid [evt_1UcaGIJBozPvqHEJ8wNvaCgH]
+2026-11-17 01:31:04  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaGHJBozPvqHEJYF60YefX]
+2026-11-17 01:31:05   --> customer.subscription.created [evt_1UcaGIJBozPvqHEJP7ZflegH]
+2026-11-17 01:31:05  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaGIJBozPvqHEJ8wNvaCgH]
+2026-11-17 01:31:06  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaGIJBozPvqHEJP7ZflegH]
+2026-11-17 01:31:29   --> invoice.paid [evt_1UcaGgJBozPvqHEJI8FaK7ws]
+2026-11-17 01:31:29   --> customer.subscription.created [evt_1UcaGgJBozPvqHEJ20eKQokV]
+2026-11-17 01:31:30  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaGgJBozPvqHEJ20eKQokV]
+2026-11-17 01:31:30  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaGgJBozPvqHEJI8FaK7ws]
+2026-11-17 01:31:35   --> customer.subscription.deleted [evt_1UcaGnJBozPvqHEJiKlKTgPb]
+2026-11-17 01:31:36  <--  [200] POST http://localhost:54074/api/stripe/webhook [evt_1UcaGnJBozPvqHEJiKlKTgPb]
+
+----- next
+ POST /api/billing/checkout 401 in 17ms (next.js: 13ms, application-code: 4ms)
+ POST /api/billing/checkout 403 in 32ms (next.js: 1.3ms, application-code: 30ms)
+ POST /api/billing/checkout 200 in 5.8s (next.js: 1.3ms, application-code: 5.8s)
+ POST /api/billing/checkout 200 in 6.6s (next.js: 18ms, application-code: 6.6s)
+ POST /api/billing/checkout 200 in 6.5s (next.js: 6ms, application-code: 6.5s)
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-25a9a80bbddf 200 in 45ms (next.js: 25ms, application-code: 20ms)
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-25a9a80bbddf 200 in 46ms (next.js: 30ms, application-code: 16ms)
+ POST /api/billing/checkout 200 in 5.2s (next.js: 2ms, application-code: 5.2s)
+ GET /api/billing/session?id=cs_test_a0IPRE3ItIg7UpWUawlYLKKL72dWu0opJIAKtXGLT9c7SIbrJT5cPgzprw 200 in 960ms (next.js: 107ms, application-code: 853ms)
+stripe webhook {"event":"evt_1UcaFnJBozPvqHEJLHOfsbLw","type":"invoice.paid","kind":"applied","subscription":"sub_1UcaFmJBozPvqHEJ1UIbtgD2","licenceStatus":"active"}
+ GET /api/billing/session?id=cs_test_a0IPRE3ItIg7UpWUawlYLKKL72dWu0opJIAKtXGLT9c7SIbrJT5cPgzprw 200 in 1116ms (next.js: 98ms, application-code: 1018ms)
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-25a9a80bbddf 200 in 18ms (next.js: 3ms, application-code: 15ms)
+stripe webhook {"event":"evt_1UcaFnJBozPvqHEJ7GvfMsGF","type":"checkout.session.completed","kind":"applied","subscription":"sub_1UcaFmJBozPvqHEJ1UIbtgD2","licenceStatus":"active"}
+stripe webhook {"event":"evt_1UcaFoJBozPvqHEJHcxh0vQC","type":"customer.subscription.created","kind":"applied","subscription":"sub_1UcaFmJBozPvqHEJ1UIbtgD2","licenceStatus":"active"}
+ POST /api/billing/checkout 409 in 55ms (next.js: 17ms, application-code: 38ms)
+ POST /api/billing/portal 200 in 992ms (next.js: 118ms, application-code: 873ms)
+ POST /api/billing/portal 403 in 32ms (next.js: 12ms, application-code: 20ms)
+stripe webhook {"event":"evt_1UcaFsJBozPvqHEJ75Az1KLA","type":"customer.subscription.deleted","kind":"applied","subscription":"sub_1UcaFmJBozPvqHEJ1UIbtgD2","licenceStatus":"active"}
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-25a9a80bbddf 200 in 41ms (next.js: 14ms, application-code: 27ms)
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-d9f5a6176275 200 in 42ms (next.js: 7ms, application-code: 35ms)
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-d9f5a6176275 200 in 31ms (next.js: 7ms, application-code: 23ms)
+ POST /api/billing/checkout 200 in 5.5s (next.js: 18ms, application-code: 5.5s)
+stripe webhook {"event":"evt_1UcaGHJBozPvqHEJYF60YefX","type":"checkout.session.completed","kind":"applied","subscription":"sub_1UcaGEJBozPvqHEJbTrrWcRK","licenceStatus":"active"}
+ GET /api/billing/session?id=cs_test_a0pCV3faXqWkTJcgOryAUJR2wnwME1PyDq10LoHT5IVCVBDGk47WssKoti 200 in 713ms (next.js: 4ms, application-code: 709ms)
+ GET /api/billing/session?id=cs_test_a0pCV3faXqWkTJcgOryAUJR2wnwME1PyDq10LoHT5IVCVBDGk47WssKoti 200 in 716ms (next.js: 3ms, application-code: 714ms)
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-d9f5a6176275 200 in 19ms (next.js: 4ms, application-code: 15ms)
+stripe webhook {"event":"evt_1UcaGIJBozPvqHEJ8wNvaCgH","type":"invoice.paid","kind":"skipped","reason":"stale_event","subscription":"sub_1UcaGEJBozPvqHEJbTrrWcRK"}
+stripe webhook {"event":"evt_1UcaGIJBozPvqHEJP7ZflegH","type":"customer.subscription.created","kind":"applied","subscription":"sub_1UcaGEJBozPvqHEJbTrrWcRK","licenceStatus":"active"}
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-d12d45363466 200 in 36ms (next.js: 4ms, application-code: 31ms)
+ GET /api/billing/status?familyId=00000000-0000-4000-8000-d12d45363466 200 in 37ms (next.js: 11ms, application-code: 26ms)
+ POST /api/billing/checkout 200 in 5.4s (next.js: 4ms, application-code: 5.4s)
+stripe webhook: skipped {"event":"evt_1UcaGgJBozPvqHEJ20eKQokV","type":"customer.subscription.created","reason":"unknown_plan","subscription":"sub_1UcaGeJBozPvqHEJWgqSc3FW"}
+stripe webhook: skipped {"event":"evt_1UcaGgJBozPvqHEJI8FaK7ws","type":"invoice.paid","reason":"unknown_plan","subscription":"sub_1UcaGeJBozPvqHEJWgqSc3FW"}
+stripe webhook {"event":"evt_1UcaGgJBozPvqHEJ20eKQokV","type":"customer.subscription.created","kind":"ignored","reason":"unknown_plan"}
+stripe webhook {"event":"evt_1UcaGgJBozPvqHEJI8FaK7ws","type":"invoice.paid","kind":"ignored","reason":"unknown_plan"}
+stripe webhook {"event":"evt_1UcaGnJBozPvqHEJiKlKTgPb","type":"customer.subscription.deleted","kind":"applied","subscription":"sub_1UcaGEJBozPvqHEJbTrrWcRK","licenceStatus":"active"}
