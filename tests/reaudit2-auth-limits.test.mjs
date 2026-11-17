@@ -88,3 +88,18 @@ test("AI review: a normal multipart upload still parses through the bounded read
   assert.equal(form.get("consent"), "true");
   assert.ok(form.get("file").size > 100);
 });
+
+test("AI review kill switch: AI_REVIEW_DISABLED accepts 1 / true / yes / on (an emergency switch must not silently stay off)", async () => {
+  const { limitConfig } = await import(`${fn}limits.ts`);
+  for (const v of ["1", "true", "TRUE", " yes ", "on"]) assert.equal(limitConfig((k) => (k === "AI_REVIEW_DISABLED" ? v : undefined)).disabled, true, v);
+  for (const v of [undefined, "", "0", "false", "off", "no"]) assert.equal(limitConfig((k) => (k === "AI_REVIEW_DISABLED" ? v : undefined)).disabled, false, String(v));
+});
+
+test("Passwort ändern: the new password may not be the account's e-mail address (same rule as signup)", async () => {
+  const { passwordChangeProblem } = await import("../lib/account-deletion.ts");
+  assert.match(passwordChangeProblem("old-pass-1", "lea.muster@example.ch", "lea.muster@example.ch", "Lea.Muster@example.ch"), /E-Mail/);
+  assert.match(passwordChangeProblem("old-pass-1", "lea.muster", "lea.muster", "lea.muster@example.ch"), /E-Mail/);
+  assert.equal(passwordChangeProblem("old-pass-1", "Fluss-Velo-47", "Fluss-Velo-47", "lea.muster@example.ch"), null);
+  const src = readFileSync(new URL("../components/settings/password-change.tsx", import.meta.url), "utf8");
+  assert.match(src, /passwordChangeProblem\(current, next, repeat, email\)/);
+});

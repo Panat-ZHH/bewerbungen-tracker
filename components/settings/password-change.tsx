@@ -33,7 +33,7 @@ export function PasswordChangeCard() {
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setNotice(null);
-    const problem = passwordChangeProblem(current, next, repeat);
+    const problem = passwordChangeProblem(current, next, repeat, email);
     if (problem) { setNotice({ tone: "danger", text: problem }); return; }
     setBusy(true);
     try {
