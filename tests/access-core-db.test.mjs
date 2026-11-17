@@ -458,4 +458,38 @@ test("trial starts at the e-mail confirmation (G13), not before; ledger moves al
   assert.equal((await access(ext)).trial_days_left, 30);
 });
 
+test("parity: lib/access/core.ts decideAccess() gives the same answer as public.app_access()", async () => {
+  const { decideAccess } = await import("../lib/access/core.ts");
+  await mode("on");
+  const iso = (x) => (x ? new Date(x).toISOString() : null);
+  const scenarios = [];
+  const mk = async (label, setup, input) => { const u = await setup(); scenarios.push({ label, u, input }); };
+  await mk("trial", () => user(next()), {});
+  await mk("expired", async () => { const u = await user(next()); await expire(u); return u; }, { expired: true });
+  await mk("grant", async () => { const u = await user(next()); await expire(u); await admin("update public.account_access set free_access_until = now() + interval '3 days' where user_id = $1", [u]); return u; }, { expired: true, grant: true });
+  await mk("blocked", async () => { const u = await user(next()); await admin("update public.account_access set blocked_at = now() where user_id = $1", [u]); return u; }, { blocked: true });
+  await mk("teacher", () => user(next(), { meta: { role: "teacher" } }), { role: "teacher" });
+  await mk("solo canceled", async () => { const u = await user(next()); await expire(u); await solo(u, { status: "canceled" }); return u; }, { expired: true, solo: "canceled" });
+  await mk("solo grace", async () => { const u = await user(next()); await expire(u); await solo(u, { status: "past_due", periodStart: new Date(Date.now() - 86400000) }); return u; }, { expired: true, solo: "past_due" });
+  for (const sc of scenarios) {
+    const [row] = await admin("select * from public.account_access where user_id = $1", [sc.u]);
+    const subs = await admin("select * from public.billing_subscriptions where user_id = $1 order by updated_at desc limit 1", [sc.u]);
+    const s = subs[0];
+    const now = new Date();
+    const expected = decideAccess({
+      now, mode: "on", enforceTest: false, blockedAt: iso(row.blocked_at), grantUntil: iso(row.free_access_until), trialEndsAt: iso(row.trial_ends_at),
+      role: sc.input.role ?? "student", accountType: sc.input.role ? null : "independent_student", licensedSchool: null, licenceEnded: false,
+      solo: s ? { plan: "solo", status: s.status, current_period_start: iso(s.current_period_start), current_period_end: iso(s.current_period_end), cancel_at_period_end: s.cancel_at_period_end, updated_at: iso(s.updated_at) } : null,
+      family: null,
+    });
+    const got = await access(sc.u);
+    for (const k of ["has_access", "state", "reason", "role", "account_type", "trial_days_left", "blocked", "enforced", "expired_reason", "family_pending"]) {
+      assert.deepEqual(got[k], expected[k], `${sc.label}: ${k}`);
+    }
+    for (const k of ["trial_ends_at", "grace_until", "grant_until"]) assert.equal(iso(got[k]), iso(expected[k]), `${sc.label}: ${k}`);
+    assert.deepEqual(got.subscription && { ...got.subscription, current_period_end: iso(got.subscription.current_period_end) },
+      expected.subscription && { ...expected.subscription, current_period_end: iso(expected.subscription.current_period_end) }, `${sc.label}: subscription`);
+  }
+});
+
 test("uid helper sanity", () => assert.equal(uid(1).length, 36));

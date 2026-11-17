@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { limitIp, limitUser } from "@/lib/api-rate-limit";
 import { isPushServiceEndpoint } from "@/lib/reminders-push";
+import { hasAppAccessVia, paywallResponse } from "@/lib/access/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -36,6 +37,8 @@ export async function POST(request: Request) {
   const g = await guarded(request);
   if ("response" in g) return g.response;
   const ctx = g.client;
+  // New push subscriptions only with access (paywall); DELETE (unsubscribe) always works.
+  if (!(await hasAppAccessVia(ctx.client))) return paywallResponse(headers);
   const body = await request.json().catch(() => null) as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } } | null;
   const { endpoint, keys } = body ?? {};
   if (!isPushServiceEndpoint(endpoint) || typeof keys?.p256dh !== "string" || keys.p256dh.length > 200 || typeof keys?.auth !== "string" || keys.auth.length > 100) return Response.json({ code: "INVALID_REQUEST" }, { status: 400, headers });

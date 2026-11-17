@@ -13,6 +13,7 @@ export const ERROR_STATUS: Record<AiReviewErrorCode, number> = {
   rate_limited: 429,
   ai_failed: 502,
   unavailable: 503,
+  paywall: 402,
 };
 
 export const ERROR_MESSAGES: Record<AiReviewErrorCode, string> = {
@@ -29,6 +30,7 @@ export const ERROR_MESSAGES: Record<AiReviewErrorCode, string> = {
   rate_limited: "Für heute hast du alle Checks gebraucht. Morgen kannst du deine Bewerbung wieder prüfen lassen.",
   ai_failed: "Die KI antwortet gerade nicht. Bitte versuche es in ein paar Minuten nochmals.",
   unavailable: "Der Bewerbungs-Check macht gerade eine Pause. Bitte versuche es später nochmals.",
+  paywall: "Deine Gratis-Testwoche ist vorbei. Mit einem Abo kannst du den Bewerbungs-Check wieder nutzen.",
 };
 
 export class ReviewFailure extends Error {

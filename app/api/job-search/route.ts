@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { PlaceNotFoundError, normalizeRadius, searchMultipleSourcesCached, type JobSource, type MultiSourceSearchInput, type ServerJobFilters } from "@/lib/job-search";
 import { originalSourceName, type JobSearchResult } from "@/lib/job-results";
 import { limitIp, limitUser } from "@/lib/api-rate-limit";
+import { hasAppAccess, paywallResponse } from "@/lib/access/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -142,6 +143,8 @@ export async function POST(request: Request) {
 
   const limitedUser = await limitUser("job-search", data.user.id);
   if (limitedUser) return limitedUser;
+  // Access model (docs/access/SPEC.md §3): after the trial the search is behind the paywall.
+  if (!(await hasAppAccess(token))) return paywallResponse(headers);
 
   try {
     const batch = await searchMultipleSourcesCached(input, !input.cursor && POPULAR.test(input.query) ? POPULAR_TTL : 60000);

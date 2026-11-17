@@ -32,12 +32,13 @@ export const AI_REVIEW_ERROR_MESSAGES: Record<AiReviewClientErrorCode, string> =
   rate_limited: "Für heute hast du genug Checks gemacht. Morgen geht es weiter. Bis dahin kannst du die Tipps schon umsetzen.",
   ai_failed: "Der Check hat gerade nicht geklappt. Das liegt nicht an dir. Warte kurz und versuche es nochmals.",
   unavailable: "Der Bewerbungs-Check macht gerade eine Pause. Das liegt nicht an dir. Versuche es später nochmals.",
+  paywall: "Deine Gratis-Testwoche ist vorbei. Mit einem Abo kannst du den Bewerbungs-Check wieder nutzen.",
   network: "Wir erreichen den Check gerade nicht. Prüfe dein Internet und versuche es nochmals.",
   timeout: "Das hat zu lange gedauert. Versuche es gleich nochmals.",
   unknown: "Etwas ist schiefgelaufen. Versuche es nochmals. Wenn es wieder nicht klappt, melde dich bei uns.",
 };
 
-const SERVER_CODES = new Set<string>(["unauthorized", "consent_required", "bad_request", "unsupported_file", "file_too_large", "no_text", "too_long", "rate_limited", "ai_failed", "unavailable"]);
+const SERVER_CODES = new Set<string>(["unauthorized", "consent_required", "bad_request", "unsupported_file", "file_too_large", "no_text", "too_long", "rate_limited", "ai_failed", "unavailable", "paywall"]);
 
 export function isAiReviewErrorCode(value: unknown): value is AiReviewErrorCode {
   return typeof value === "string" && SERVER_CODES.has(value);
@@ -50,6 +51,7 @@ export function errorCodeForStatus(status: number): AiReviewClientErrorCode {
   if (status === 415) return "unsupported_file";
   if (status === 422) return "no_text";
   if (status === 429) return "rate_limited";
+  if (status === 402) return "paywall";
   if (status === 400) return "bad_request";
   if (status === 408 || status === 504) return "timeout";
   if (status === 503) return "unavailable";

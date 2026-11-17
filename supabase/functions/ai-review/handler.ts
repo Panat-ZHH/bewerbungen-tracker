@@ -45,6 +45,8 @@ export interface HandlerDeps {
   rateLimit: RateLimitRpc;
   /** Inserts the result row (service role) and returns id + created_at. */
   insertReview: (row: ReviewRow) => Promise<{ id: string; created_at: string }>;
+  /** Access model: public.has_app_access(user) (service role). false → 402 paywall. Optional (older wiring = no check). */
+  hasAccess?: (userId: string) => Promise<boolean>;
   extract: ExtractDeps;
   fetch?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
@@ -119,6 +121,12 @@ export function createHandler(deps: HandlerDeps): (req: Request) => Promise<Resp
       const token = bearerToken(req);
       const user = token ? await deps.verifyUser(token).catch(() => null) : null;
       if (!user) throw new ReviewFailure("unauthorized");
+      // Paywall before reading the upload (no consent stored, no limits used). Lookup failure → 503, never a free check.
+      if (deps.hasAccess) {
+        const allowed = await deps.hasAccess(user.id).catch(() => null);
+        if (allowed === null) throw new ReviewFailure("unavailable", undefined, "access check failed");
+        if (!allowed) throw new ReviewFailure("paywall");
+      }
 
       if (!(req.headers.get("content-type") ?? "").toLowerCase().includes("multipart/form-data")) {
         throw new ReviewFailure("bad_request", undefined, "content-type");
