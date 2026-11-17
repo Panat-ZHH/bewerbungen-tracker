@@ -40,9 +40,9 @@ test("solo checkout uses the backend contract: plan solo, interval, owner me, ca
   assert.match(s, /\/api\/billing\/portal[\s\S]*owner: "me"/);
   assert.match(s, /solo_parent_use_family/);
   assert.match(s, /soloPlan\(\)/, "prices from lib/billing/plans.ts (PLANS.solo) with the fallback");
-  const { SOLO_PLAN_FALLBACK } = await import("../lib/access/solo-plan.ts");
-  assert.equal(SOLO_PLAN_FALLBACK.priceChfPerMonth, 4.9);
-  assert.equal(SOLO_PLAN_FALLBACK.priceChfPerYear, 49);
+  const { PLANS } = await import("../lib/billing/plans.ts");
+  assert.equal(PLANS.solo.priceChfPerMonth, 4.9);
+  assert.equal(PLANS.solo.priceChfPerYear, 49);
   const v = read("components/billing/abo-view.tsx");
   for (const id of ["abo-page", "abo-plan-solo", "abo-plan-family", "abo-licensed", "abo-staff"]) assert.match(v, new RegExp(`data-testid="${id}"`), id);
   assert.match(v, /billing/); // ?billing=success|cancel|portal return handling

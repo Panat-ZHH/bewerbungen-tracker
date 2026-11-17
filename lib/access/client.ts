@@ -1,8 +1,8 @@
 // Client side of the access model (docs/access/SPEC.md §6): my_access() with a per-session cache, refresh on focus and after
-// a billing return, and a watcher that turns any PAYWALL answer (Postgres 'PAYWALL' or HTTP 402) into the paywall.
+// a billing return, and a watcher that turns any PAYWALL answer (Postgres 'PAYWALL', "access gate" RLS errors or HTTP 402) into the paywall.
 import { supabase } from "@/lib/supabase";
 import { isMissingFamilyFeature } from "@/lib/family-core";
-import { isPaywallError, OPEN_ACCESS, readAccessInfo } from "@/lib/access/gate";
+import { isPaywallError, OPEN_ACCESS, paywallBody, readAccessInfo } from "@/lib/access/gate";
 import type { AccessInfo } from "@/lib/access/types";
 
 export const ACCESS_CHANGED_EVENT = "wa:access-changed";
@@ -85,7 +85,7 @@ export function installPaywallWatcher() {
       else if (response.status >= 400 && response.status < 500 && response.status !== 404) {
         const url = typeof args[0] === "string" ? args[0] : args[0] instanceof URL ? args[0].href : (args[0] as Request).url;
         if (/\/(rest|storage)\/v1\//.test(url)) {
-          response.clone().text().then((text) => { if (/\bPAYWALL\b/.test(text)) reportPaywall(); }).catch(() => {});
+          response.clone().text().then((text) => { if (paywallBody(text, url)) reportPaywall(); }).catch(() => {});
         }
       }
     } catch { /* never break the request */ }

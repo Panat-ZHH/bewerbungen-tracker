@@ -2,16 +2,15 @@
 
 /**
  * Einzelabo ("solo", SPEC §2/§4): monthly or yearly, card only, 1 student. Owner = the caller (`owner: "me"`).
- * Prices always come from lib/billing/plans.ts (PLANS.solo, added by the backend); SOLO_PLAN_FALLBACK until it is merged.
+ * Prices always come from lib/billing/plans.ts (PLANS.solo).
  */
 import { supabase } from "@/lib/supabase";
 import { PLANS, type Plan } from "@/lib/billing/plans";
-import { SOLO_PLAN_FALLBACK } from "@/lib/access/solo-plan";
 import { billingErrorMessage, intervalPriceText } from "./logic";
 
 export type SoloInterval = "month" | "year";
 /** The Einzelabo plan (prices, lookup keys). */
-export function soloPlan(): Plan { return (PLANS as Partial<Record<string, Plan>>).solo ?? SOLO_PLAN_FALLBACK; }
+export function soloPlan(): Plan { return PLANS.solo; }
 /** "<monthly> pro Monat oder <yearly> pro Jahr" for any plan with both intervals. */
 export function bothPricesText(plan: Plan): string { return `${intervalPriceText(plan, "month")} oder ${intervalPriceText(plan, "year")}`; }
 

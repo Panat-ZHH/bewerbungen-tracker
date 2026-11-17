@@ -87,6 +87,18 @@ test("PAYWALL detection: Postgres message, HTTP 402, API body", () => {
   assert.equal(gate.isPaywallError("PAYWALL"), true);
   assert.equal(gate.isPaywallError({ code: "42501", message: "permission denied" }), false);
   assert.equal(gate.isPaywallError(null), false);
+  // restrictive RLS policies of the backend (20261118020000_access_guards.sql) name themselves "access gate …"
+  assert.equal(gate.isPaywallError({ code: "42501", message: 'new row violates row-level security policy "access gate insert" for table "applications"' }), true);
+  assert.equal(gate.isPaywallError({ code: "42501", message: 'new row violates row-level security policy for table "applications"' }), false);
+  assert.equal(gate.isPaywallError({ code: "P0001", message: "FORBIDDEN" }), false);
+});
+
+test("fetch watcher body detection: PAYWALL, access-gate RLS (escaped JSON), storage RLS without policy name", async () => {
+  const { paywallBody } = gate;
+  assert.equal(paywallBody('{"code":"P0001","message":"PAYWALL"}'), true);
+  assert.equal(paywallBody('{"code":"42501","message":"new row violates row-level security policy \\"access gate update\\" for table \\"cvs\\""}'), true);
+  assert.equal(paywallBody('{"statusCode":"403","message":"new row violates row-level security policy"}', "https://x.supabase.co/storage/v1/object/cvs/a.pdf"), true);
+  assert.equal(paywallBody('{"code":"42501","message":"new row violates row-level security policy for table \\"applications\\""}', "https://x.supabase.co/rest/v1/applications"), false);
 });
 
 test("readAccessInfo: defensive parsing, unknown shape = null", () => {

@@ -1,6 +1,7 @@
 // Pure UI decisions for the access model (docs/access/SPEC.md §1, §6, §7). No imports with side effects: unit tested in
 // tests/access-ui.test.mjs and safe in client components.
 import type { AccessInfo } from "./types";
+import { ACCESS_GATE_RLS_RE } from "./core.ts";
 
 /** What the shell renders instead of (or around) a page. */
 export type AccessView = "page" | "paywall" | "licence" | "blocked";
@@ -112,15 +113,17 @@ export function aboPlansFor(access: Pick<AccessInfo, "account_type" | "role"> | 
   return ["solo", "family"];
 }
 
-/** Postgres "PAYWALL" (RLS / _assert_app_access) or HTTP 402 from our API → the UI shows the paywall. */
-export function isPaywallError(error: unknown): boolean {
-  if (!error) return false;
-  if (typeof error === "string") return /\bPAYWALL\b/.test(error);
-  if (typeof error !== "object") return false;
-  const e = error as { message?: unknown; status?: unknown; code?: unknown; error?: unknown; details?: unknown };
-  if (Number(e.status) === 402) return true;
-  if (String(e.error ?? "").toLowerCase() === "paywall") return true;
-  return /\bPAYWALL\b/.test(`${String(e.message ?? "")} ${String(e.details ?? "")}`);
+/** One detector for UI and backend: PAYWALL (P0001), "access gate" RLS errors and HTTP 402 (see lib/access/core.ts). */
+export { isPaywallError, ACCESS_GATE_RLS_RE } from "./core.ts";
+
+/**
+ * Does a 4xx body from Supabase REST/storage mean "paywall"? 'PAYWALL' (RPCs, profiles/cvs triggers), the "access gate"
+ * RLS policies, and – because the storage API drops the policy name – any row-level security refusal from storage.
+ * Reporting only re-reads my_access(), so a false positive costs one request and never shows the paywall by itself.
+ */
+export function paywallBody(text: string, url = ""): boolean {
+  if (/\bPAYWALL\b/.test(text) || ACCESS_GATE_RLS_RE.test(text)) return true;
+  return /\/storage\/v1\//.test(url) && /row-level security/i.test(text);
 }
 
 /** Interprets a my_access() result (defensive: unknown shapes count as "not enforced"). */

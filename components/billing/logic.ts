@@ -76,6 +76,8 @@ export function seatsText(plan: Plan): string {
 /** Where the "online abschliessen" buttons on /preise lead (sign-in is handled there). */
 export function buyHref(id: PlanId, interval?: BillingInterval): string {
   const i = interval && planIntervals(PLANS[id]).includes(interval) ? `&interval=${interval}` : "";
+  // The Einzelabo (solo) is bought by the student on /abo (SPEC §6), never by a school admin.
+  if (id === "solo") return `/abo${i ? `?${i.slice(1)}` : ""}`;
   return PLANS[id].kind === "family" ? `/familie?plan=${id}${i}#abo` : `/schul-admin?plan=${id}${i}#abo`;
 }
 

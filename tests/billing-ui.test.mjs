@@ -78,6 +78,9 @@ test("purchasable plans and /preise links", () => {
   assert.equal(buyHref("family", "month"), "/familie?plan=family&interval=month#abo");
   assert.equal(buyHref("family", "year"), "/familie?plan=family&interval=year#abo");
   assert.equal(buyHref("starter", "month"), "/schul-admin?plan=starter#abo", "schools: no monthly price");
+  // integration acc-backend × acc-ui: the Einzelabo is bought by the student on /abo, never on /schul-admin
+  assert.equal(buyHref("solo"), "/abo");
+  assert.equal(buyHref("solo", "month"), "/abo?interval=month");
 });
 
 test("status payload: tolerant normaliser, labels, hints", () => {

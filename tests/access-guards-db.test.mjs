@@ -5,6 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { setupAccessDb, uid } from "./helpers/access-db.mjs";
+import { isPaywallError } from "../lib/access/core.ts";
 
 const ctx = await setupAccessDb();
 const { admin, as, q, code, user, mode, expire } = ctx;
@@ -117,6 +118,8 @@ test("tables: paywalled user cannot insert/update, can still select and delete; 
   for (const [label, run] of denied) {
     const err = await code(run());
     assert.ok(err && /PAYWALL|row-level security/.test(err), `${label}: ${err}`);
+    // the UI must recognise every one of these real Postgres errors as the paywall (integration: lib/access/core isPaywallError)
+    assert.equal(isPaywallError({ message: String(err) }), true, `${label} not seen as paywall by the UI: ${err}`);
   }
   // an UPDATE that "denies" silently would affect 0 rows: make sure the row is unchanged
   await as(u);
@@ -162,7 +165,9 @@ test("'Meine Daten löschen' works behind the paywall (G2): clearing updates on 
   // storage: remove allowed, upload denied
   await admin("insert into storage.objects (bucket_id, name) values ('cvs', $1), ('avatars', $2)", [`${u}/cv.pdf`, `${u}/a.png`]);
   await as(u);
-  assert.match(String(await code(q("insert into storage.objects (bucket_id, name) values ('cvs', $1)", [`${u}/neu.pdf`]))), /row-level security/);
+  const storageErr = String(await code(q("insert into storage.objects (bucket_id, name) values ('cvs', $1)", [`${u}/neu.pdf`])));
+  assert.match(storageErr, /row-level security/);
+  assert.equal(isPaywallError({ message: storageErr }), true, storageErr);
   assert.match(String(await code(q("insert into storage.objects (bucket_id, name) values ('avatars', $1)", [`${u}/b.png`]))), /row-level security/);
   assert.match(String(await code(q("update storage.objects set name = $1 where bucket_id = 'avatars' and name = $2", [`${u}/c.png`, `${u}/a.png`]))), /row-level security/);
   assert.equal(await code(q("delete from storage.objects where bucket_id = 'cvs' and name = $1", [`${u}/cv.pdf`])), null);

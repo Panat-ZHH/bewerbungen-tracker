@@ -188,12 +188,28 @@ export const FULL_ACCESS: AccessInfo = Object.freeze({
   enforced: false, expired_reason: null, family_pending: false,
 }) as AccessInfo;
 
-/** True for the error raised by public._assert_app_access() (PostgREST: code P0001, message 'PAYWALL'). */
+/**
+ * Matches the RLS error of the restrictive "access gate insert/update" policies (20261118020000_access_guards.sql):
+ * `new row violates row-level security policy "access gate insert" for table "applications"` (also inside a JSON body,
+ * where the quote is escaped).
+ */
+export const ACCESS_GATE_RLS_RE = /row-level security policy \\?"access gate\b/i;
+
+/**
+ * True for every way the server says "paywall": the error raised by public._assert_app_access() and the profiles/cvs
+ * triggers (PostgREST: code P0001, message 'PAYWALL'), the RLS error of the "access gate" policies, and HTTP 402
+ * `{"error":"paywall"}` from our API routes / the ai-review edge function.
+ */
 export function isPaywallError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const e = error as { message?: unknown; code?: unknown; error?: unknown };
-  return e.message === "PAYWALL" || e.error === "paywall"
-    || (typeof e.message === "string" && /\bPAYWALL\b/.test(e.message) && (e.code === undefined || e.code === "P0001"));
+  if (!error) return false;
+  if (typeof error === "string") return /\bPAYWALL\b/.test(error) || ACCESS_GATE_RLS_RE.test(error);
+  if (typeof error !== "object") return false;
+  const e = error as { message?: unknown; code?: unknown; error?: unknown; status?: unknown; details?: unknown };
+  if (Number(e.status) === 402) return true;
+  if (String(e.error ?? "").toLowerCase() === "paywall") return true;
+  const text = `${typeof e.message === "string" ? e.message : ""} ${typeof e.details === "string" ? e.details : ""}`;
+  if (ACCESS_GATE_RLS_RE.test(text)) return true;
+  return /\bPAYWALL\b/.test(text) && (e.code === undefined || e.code === null || e.code === "P0001");
 }
 
 /** True when the RPC does not exist (old database before the migration): PostgREST PGRST202 / Postgres 42883. */
