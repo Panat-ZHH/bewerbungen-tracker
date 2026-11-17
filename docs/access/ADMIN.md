@@ -112,7 +112,7 @@ out and asks for a new login (a stolen refresh token stops working for `/admin` 
 2. Validate everything with `lib/admin/validate.ts` (`onlyKeys`, `uuid`, `int`, `oneOf`, `text`, `instant`, `date`); body needs
    `confirm: true`. Errors only via `fail()` codes – never a DB message, never a stack.
 3. Write the audit row through `audited()` BEFORE the change (actor, target, `details.before/after`); a failed change logs `<action>.failed`.
-4. Self-protection: an admin can never block / delete / revoke access of themself or of another platform admin; nothing may
+4. Self-protection: an admin can never block / delete / revoke access of themself or of another platform admin (revoke_access: enforced since re-audit #4); nothing may
    insert into or delete from `platform_admins` through the API (service role script only).
 5. SQL: new admin RPCs are `security definer`, `set search_path = ''`, `revoke all … from public, anon, authenticated` and
    `grant execute … to service_role` only; no grants on admin tables to `anon` / `authenticated`; `admin_audit_log` stays append-only.

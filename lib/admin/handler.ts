@@ -105,6 +105,9 @@ async function userAction(store: AdminStore, ctx: AdminContext, userId: string, 
     }
     case "revoke_access": {
       onlyKeys(body, []);
+      // ADMIN.md §4 rule 4 (re-audit #4): never revoke the access of yourself or of another platform admin.
+      if (self) throw new Conflict("self");
+      if (await store.isPlatformAdmin(userId)) throw new Conflict("platform_admin");
       patch = { free_access_forever: false, free_access_until: null, free_access_note: null, free_access_granted_at: null, free_access_granted_by: null };
       break;
     }
