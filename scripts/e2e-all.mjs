@@ -12,6 +12,9 @@
 // The dev server needs NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy and
 // NEXT_PUBLIC_AVATAR_LOCAL=1 (the avatar flow is reported as SKIP if the latter is missing).
 import { spawn } from "node:child_process";
+// The spawned server is the billing-OFF server (e2e-roles-audit expects 503 billing_disabled). Process env beats .env.local in Next,
+// so a worktree .env.local with STRIPE_ENABLED=true (copied per the launch brief) can no longer switch the flag on here. Flag-on checks use BASE_ON.
+const BILLING_OFF_ENV = { STRIPE_ENABLED: "false", NEXT_PUBLIC_STRIPE_ENABLED: "false" };
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
@@ -52,7 +55,7 @@ async function resolveBase() {
   if (process.env.BASE && process.env.E2E_SPAWN !== "1") throw new Error(`BASE ${wanted} is not reachable`);
   const port = await freePort();
   console.log(`Starting a dev server on port ${port} (dummy Supabase env) ...`);
-  devServer = spawn("npx", ["next", "dev", "--webpack", "-p", String(port)], { cwd: ROOT, env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: "http://localhost:54321", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "dummy", NEXT_PUBLIC_AVATAR_LOCAL: "1" }, stdio: "ignore", detached: false });
+  devServer = spawn("npx", ["next", "dev", "--webpack", "-p", String(port)], { cwd: ROOT, env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: "http://localhost:54321", NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "dummy", NEXT_PUBLIC_AVATAR_LOCAL: "1", ...BILLING_OFF_ENV }, stdio: "ignore", detached: false });
   const base = `http://localhost:${port}`;
   for (let i = 0; i < 120; i++) { if (await reachable(base)) return base; await new Promise((r) => setTimeout(r, 1000)); }
   throw new Error("dev server did not start in time");

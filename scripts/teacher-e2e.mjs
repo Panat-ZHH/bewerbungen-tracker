@@ -43,6 +43,8 @@ function backend() {
     teacher_class_students: (b) => (isTeacher(me, b.p_class_id) ? memberOf(b.p_class_id).map((m) => studentRow(m)) : err("FORBIDDEN")),
     class_student_timeline: (b) => { if (!isTeacher(me, b.p_class_id)) return err("FORBIDDEN"); const m = memberOf(b.p_class_id).find((x) => x.student_id === b.p_student_id); if (!m) return err("NOT_FOUND"); if (!m.share) return [{ hidden: true, application_id: null, company: null, position: null, status: null, event_date: null, kind: null }];
       if (m.student_id !== "u1") return []; return S.apps.flatMap((a) => [["created", a.created_at, "saved"], ["applied", a.applied_at, "applied"], ["deadline", a.deadline, a.status]].filter((e) => e[1]).map(([k, d, st]) => ({ hidden: false, application_id: a.id, company: m.companies ? a.company : null, position: m.companies ? a.position : null, status: m.status ? st : null, event_date: String(d).slice(0, 10), kind: k }))); },
+    // Student detail page (lib/teacher-more.ts getStudentApplications); masks like the SQL function in 20261116130000_b2b_rls_audit.sql.
+    class_student_applications: (b) => { if (!isTeacher(me, b.p_class_id)) return err("FORBIDDEN"); const m = memberOf(b.p_class_id).find((x) => x.student_id === b.p_student_id); if (!m) return err("NOT_FOUND"); if (!m.share) return [{ hidden: true, id: null, company: null, position: null, status: null, category: null, location: null, deadline: null, applied_at: null, created_at: null, updated_at: null }]; if (m.student_id !== "u1") return []; return S.apps.map((a) => ({ hidden: false, id: a.id, company: m.companies ? a.company : null, position: m.companies ? a.position : null, status: m.status ? a.status : null, category: m.companies ? a.category : null, location: m.companies ? a.location : null, deadline: a.deadline?.slice(0, 10) ?? null, applied_at: a.applied_at?.slice(0, 10) ?? null, created_at: a.created_at.slice(0, 10), updated_at: a.updated_at.slice(0, 10) })); },
     class_invite_create: (b) => { if (!isTeacher(me, b.p_class_id)) return err("FORBIDDEN"); const r = { id: "i" + ++S.seq, class_id: b.p_class_id, token: `tok${String(S.seq).padStart(3, "0")}_abcdefghijklmnopqrs`, email: b.p_email ?? null, max_uses: b.p_max_uses ?? null, uses: 0, expires_at: day(14), revoked: false, created_at: day(0) }; S.invites.unshift(r); return [{ id: r.id, token: r.token, expires_at: r.expires_at }]; },
     class_invite_create_many: (b) => { if (!isTeacher(me, b.p_class_id)) return err("FORBIDDEN"); return b.p_emails.map((e) => { const r = { id: "i" + ++S.seq, class_id: b.p_class_id, token: `mail${String(S.seq).padStart(3, "0")}_abcdefghijklmnop`, email: e, max_uses: 1, uses: 0, expires_at: day(14), revoked: false, created_at: day(0) }; S.invites.unshift(r); return { email: e, token: r.token }; }); },
     // The app calls the v2 RPC (lib/teacher-more.ts createInvitesDetailed): one row per address with an outcome.
@@ -134,10 +136,11 @@ async function flow(tag, vp) {
   // 6. student joins via the personal link, sets consent
   const St = await actor(be, { me: "u1", role: "student", vp }); const sp = St.page;
   await sp.goto(BASE + `/classes/join/${mailInvite.token}`, { waitUntil: "domcontentloaded" }); await wait(sp, "Informatik 4a"); await shot(sp, "11-student-join");
-  await sp.getByRole("radio", { name: "16 oder älter" }).check({ force: true }); await sp.getByRole("switch", { name: /Fortschritt teilen/ }).check({ force: true }); await sp.getByRole("button", { name: "Beitreten", exact: true }).click(); // join page redesign (age choice + consent switches) await wait(sp, "Du bist beigetreten"); await shot(sp, "12-student-joined");
+  await sp.getByRole("radio", { name: "16 oder älter" }).check({ force: true }); await sp.getByRole("switch", { name: /Fortschritt teilen/ }).check({ force: true }); await sp.getByRole("button", { name: "Beitreten", exact: true }).click(); await wait(sp, "Du bist beigetreten"); await shot(sp, "12-student-joined"); // join page redesign: age choice + consent switches
   check(S.members.some((m) => m.student_id === "u1" && m.share), "student joined with the personal invite link");
   check(S.invites.find((i) => i.id === mailInvite.id).uses === 1, "invite use counted");
-  await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Fortschritt mit Lehrperson teilen"); await shot(sp, "13-student-classes");
+  await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Informatik 4a"); await shot(sp, "13-student-classes");
+  check(await sp.getByRole("switch", { name: /Fortschritt teilen/ }).first().isChecked(), "my classes shows the class with the 'Fortschritt teilen' switch on"); // consent switches replaced the old checkbox label
 
   // 7. teacher: overview, KPIs, filters, detail, CSV, nudge
   await tp.goto(BASE + "/teacher/classes/" + Object.keys(S.classes)[0], { waitUntil: "domcontentloaded" }); await wait(tp, "Lena Müller"); await tp.waitForTimeout(500); await shot(tp, "14-class-with-student");
@@ -147,11 +150,11 @@ async function flow(tag, vp) {
   await tp.goto(BASE + "/teacher/classes/" + Object.keys(S.classes)[0], { waitUntil: "domcontentloaded" }); await wait(tp, "Lena Müller");
   const inactiveTab = tp.getByRole("tab", { name: /^Inaktiv/ });
   if (await inactiveTab.count()) { await inactiveTab.click(); await tp.waitForTimeout(300); check(await tp.getByText("Ben Huber").count() > 0 && await tp.getByText("Lena Müller").count() === 0, "filter 'Inaktiv' lists only inactive students"); await shot(tp, "16-filter-inactive"); await tp.getByRole("tab", { name: /^Alle/ }).click(); }
-  await tp.getByLabel("Schüler suchen").fill("lena"); await tp.waitForTimeout(300); check(await tp.getByText("Ben Huber").count() === 0 && await tp.getByText("Lena Müller").count() > 0, "search narrows the list"); await tp.getByLabel("Schüler suchen").fill("");
-  const [dl] = await Promise.all([tp.waitForEvent("download"), tp.getByRole("button", { name: "CSV" }).click()]);
+  await tp.getByLabel(/Schüler.*suchen/).fill("lena"); await tp.waitForTimeout(300); check(await tp.getByText("Ben Huber").count() === 0 && await tp.getByText("Lena Müller").count() > 0, "search narrows the list"); await tp.getByLabel(/Schüler.*suchen/).fill("");
+  const [dl] = await Promise.all([tp.waitForEvent("download"), tp.getByRole("button", { name: "CSV Übersicht" }).click()]);
   const csv = fs.readFileSync(await dl.path(), "utf8"); check(csv.includes("Lena Müller") && csv.includes("Ben Huber") && !csv.includes("Notiz") && !csv.includes("Rückruf"), "CSV export has the students and no private fields");
   // nudge Ben (inactive)
-  const ben = tp.locator("tbody tr, ul[aria-label=\"Schüler als Karten\"] > li", { hasText: "Ben Huber" }).filter({ visible: true }).first();
+  const ben = tp.locator("tbody tr, ul[aria-label=\"Schüler:innen als Karten\"] > li", { hasText: "Ben Huber" }).filter({ visible: true }).first();
   await ben.getByRole("button", { name: /Erinnern/ }).first().click(); await tp.waitForTimeout(300); await shot(tp, "17-nudge-dialog", false);
   await tp.getByRole("button", { name: "Erinnerung senden" }).last().click(); await tp.waitForTimeout(700);
   check(S.nudges.some((n) => n.student_id === "s2"), "nudge sent (class_nudge)");
@@ -166,18 +169,18 @@ async function flow(tag, vp) {
   await tp.getByRole("tab", { name: /Mitteilungen/ }).click(); await tp.getByLabel("Nachricht").fill("Bis Freitag drei Bewerbungen."); await tp.getByRole("button", { name: "Veröffentlichen" }).click(); await wait(tp, "Bis Freitag drei Bewerbungen."); await shot(tp, "19-announcement");
 
   // 8. consent changes reach the teacher view
-  await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Firmennamen zeigen");
-  await sp.getByRole("switch", { name: /Firmennamen zeigen/ }).evaluate((el) => el.click()); await sp.waitForTimeout(600);
+  await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Firmen zeigen");
+  await sp.getByRole("switch", { name: /Firmen zeigen/ }).first().evaluate((el) => el.click()); await sp.waitForTimeout(600);
   check(S.members.find((m) => m.student_id === "u1").companies === false, "student turns off company names (class_set_sharing_v2)");
   await shot(sp, "20-student-consent-companies-off");
   await tp.goto(BASE + `/teacher/classes/${Object.keys(S.classes)[0]}/students/u1`, { waitUntil: "domcontentloaded" }); await wait(tp, "Firma nicht freigegeben"); await shot(tp, "21-student-detail-no-companies");
   check(await tp.getByText("Swisscom").count() === 0, "company names are hidden from the teacher after opting out");
-  await sp.getByRole("switch", { name: /Fortschritt mit Lehrperson teilen/ }).evaluate((el) => el.click()); await sp.waitForTimeout(600);
+  await sp.getByRole("switch", { name: /Fortschritt teilen/ }).first().evaluate((el) => el.click()); await sp.waitForTimeout(600);
   await tp.reload({ waitUntil: "domcontentloaded" }); await wait(tp, "teilt keine Bewerbungsdaten"); await shot(tp, "22-student-detail-hidden");
   check(S.members.find((m) => m.student_id === "u1").share === false, "student pauses sharing; teacher sees only the hidden notice");
   check(await tp.getByText("Swisscom").count() === 0 && await tp.getByText("UBS").count() === 0, "no application data visible while sharing is off");
-  await sp.getByRole("switch", { name: /Fortschritt mit Lehrperson teilen/ }).evaluate((el) => el.click()); await sp.waitForTimeout(400);
-  await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Fortschritt mit Lehrperson teilen"); await shot(sp, "23-student-notification");
+  await sp.getByRole("switch", { name: /Fortschritt teilen/ }).first().evaluate((el) => el.click()); await sp.waitForTimeout(400);
+  await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Fortschritt teilen"); await shot(sp, "23-student-notification");
   await St.ctx.close();
 
   // 9. other teacher is blocked; student cannot call teacher views
