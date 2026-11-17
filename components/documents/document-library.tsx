@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Eye, FileText, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import Link from "next/link";
+import { Eye, FileText, Image as ImageIcon, Sparkles, Trash2, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -63,10 +64,10 @@ export function DocumentLibrary() {
     try {
       await removeDocument(toDelete);
       setDocs((current) => current.filter((item) => item.id !== toDelete.id));
-      toast({ message: `„${toDelete.name}“ gelöscht` });
+      toast({ message: `Dokument gelöscht: ${toDelete.name}.` });
       setToDelete(undefined);
     } catch (reason) {
-      setNotice(friendlyMessage(reason, "Die Datei konnte nicht gelöscht werden."));
+      setNotice(friendlyMessage(reason, "Das Dokument konnte nicht gelöscht werden. Versuch es noch einmal."));
       setToDelete(undefined);
     } finally {
       setDeleting(false);
@@ -86,7 +87,7 @@ export function DocumentLibrary() {
       {notice && <StatusMessage tone="danger" className="mb-5">{notice}</StatusMessage>}
       <p className="mb-4 flex items-center gap-2.5 text-sm text-muted">
         <span className={`sticker ${kindsDone === DOCUMENT_KINDS.length ? "sticker-mint" : ""}`}>{kindsDone} von {DOCUMENT_KINDS.length}</span>
-        {kindsDone === DOCUMENT_KINDS.length ? "Dein Dossier ist komplett." : "Arten von Unterlagen sind schon da."}
+        {kindsDone === DOCUMENT_KINDS.length ? "Dein Dossier ist komplett." : `Dossier: ${kindsDone} von ${DOCUMENT_KINDS.length} Dokumenten dabei.`}
       </p>
       <div className="pb-safe"><div className="rows border-y-[length:var(--border-w)] border-[var(--outline)] [&>*]:min-w-0">
         {DOCUMENT_KINDS.map((info) => {
@@ -129,6 +130,13 @@ export function DocumentLibrary() {
                   </Button>
                   <span className="text-small text-muted">{info.photoOnly ? "JPG oder PNG" : "PDF, JPG oder PNG"}, max. {MAX_DOCUMENT_BYTES / 1024 / 1024} MB</span>
                 </div>
+                {info.kind === "motivationsschreiben" && (
+                  <p className="mt-2 flex items-center gap-1.5 text-small text-muted">
+                    <Sparkles size={15} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />
+                    Bewerbungs-Check:
+                    <Link href="/bewerbung-check" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline underline-offset-4" data-testid="ai-review-link">Brief prüfen</Link>
+                  </p>
+                )}
               </div>
             </section>
           );

@@ -58,14 +58,14 @@ export default function ApplicationDetailPage() {
       // joy moment for Gespräch / Zusage / Absage (the save succeeded and the status really changed, see the guard above)
       celebrateStatus(status, previous, { position: application.position, location: application.location });
       toast({
-        message: `Stand geändert: ${statusLabels[status]}`,
+        message: `Status geändert: ${statusLabels[status]}.`,
         action: { label: "Rückgängig", onClick: async () => {
-          try { const back = await updateApplication(application.id, { status: previous }); if (back) setApplication(back); toast({ message: `Wieder auf „${statusLabels[previous]}“ gesetzt` }); }
+          try { const back = await updateApplication(application.id, { status: previous }); if (back) setApplication(back); toast({ message: `Status zurückgesetzt: ${statusLabels[previous]}.` }); }
           catch (reason) { toast({ tone: "danger", message: friendlyMessage(reason, "Das konnte nicht rückgängig gemacht werden.") }); }
         } },
       });
     } catch (reason) {
-      setError(friendlyMessage(reason, "Der neue Stand konnte nicht gespeichert werden."));
+      setError(friendlyMessage(reason, "Der neue Status konnte nicht gespeichert werden. Versuch es noch einmal."));
     }
   }
 
@@ -76,9 +76,9 @@ export default function ApplicationDetailPage() {
     try {
       await deleteApplication(backup.id);
       toast({
-        message: `„${backup.position}“ bei ${backup.company} gelöscht`,
+        message: `Bewerbung gelöscht: ${backup.position} bei ${backup.company}.`,
         action: { label: "Rückgängig", onClick: async () => {
-          try { await importApplications([backup]); toast({ message: "Bewerbung wiederhergestellt" }); router.push(`/applications/${backup.id}`); }
+          try { await importApplications([backup]); toast({ message: "Bewerbung wiederhergestellt." }); router.push(`/applications/${backup.id}`); }
           catch (reason) { toast({ tone: "danger", message: friendlyMessage(reason, "Die Bewerbung konnte nicht wiederhergestellt werden.") }); }
         } },
       });
@@ -131,12 +131,11 @@ export default function ApplicationDetailPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
               <Button variant="secondary" onClick={() => setEditing(true)} icon={<Pencil size={15} />} className="min-h-11 sm:min-h-11">Bearbeiten</Button>
-              <Button variant="danger" onClick={() => setConfirmDelete(true)} icon={<Trash2 size={15} />} className="min-h-11 sm:min-h-11">Löschen</Button>
             </div>
           </div>
 
           <section aria-labelledby="status-heading" className="mt-7 max-w-3xl">
-            <h2 id="status-heading" className="text-heading mb-3">Stand</h2>
+            <h2 id="status-heading" className="text-heading mb-3">Status</h2>
             <StatusPills value={application.status} onChange={changeStatus} describedBy="status-hint" />
           </section>
 
@@ -145,7 +144,7 @@ export default function ApplicationDetailPage() {
           {application.status === "rejected" && (
             <div className="inset animate-rise mt-5 flex max-w-3xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5" data-testid="rejected-note">
               <div className="min-w-0">
-                <p className="font-display text-lg font-bold leading-snug tracking-[-.01em]">Gehört dazu. Weiter geht’s 💪</p>
+                <p className="font-display text-lg font-bold leading-snug tracking-[-.01em]">Gehört dazu. Weiter geht’s.</p>
                 <p className="mt-1 text-sm text-muted">Fast alle bekommen Absagen, bevor es klappt. Die nächste Stelle wartet schon.</p>
               </div>
               <ButtonLink href={similarJobsHref(application.position, application.location)} variant="secondary" className="w-fit shrink-0" icon={<ArrowRight size={16} strokeWidth={2.4} />}>Ähnliche Stellen suchen</ButtonLink>
@@ -171,12 +170,12 @@ export default function ApplicationDetailPage() {
               </Card>
 
               <section>
-                <h2 className="text-heading mb-3">Unterlagen</h2>
+                <h2 className="text-heading mb-3">Dokumente</h2>
                 <ApplicationDocuments applicationId={application.id} />
                 <p className="mt-4 flex flex-wrap items-center gap-x-2 text-sm text-muted">
                   <Sparkles size={16} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />
                   Ist dein Brief bereit?
-                  <Link href={`/bewerbung-check?application=${encodeURIComponent(application.id)}`} className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline underline-offset-4" data-testid="ai-review-link">Bewerbung checken lassen</Link>
+                  <Link href={`/bewerbung-check?application=${encodeURIComponent(application.id)}`} className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline underline-offset-4" data-testid="ai-review-link">Brief prüfen</Link>
                 </p>
               </section>
             </div>
@@ -199,6 +198,13 @@ export default function ApplicationDetailPage() {
                 {application.category !== "other" && <p className="mt-3 text-small text-muted">Berufsfeld: {categoryLabel(application.category)}</p>}
               </section>
             </div>
+          </div>
+
+          {/* Destructive action far away from the main actions (Fitts): quiet link at the end of the page. */}
+          <div className="mt-12 border-t border-dashed border-[var(--line)] pt-4">
+            <button type="button" onClick={() => setConfirmDelete(true)} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-[var(--danger-fg)] underline-offset-4 hover:underline">
+              <Trash2 size={15} aria-hidden /> Bewerbung löschen
+            </button>
           </div>
         </>
       )}

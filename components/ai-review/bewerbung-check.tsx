@@ -128,7 +128,7 @@ export function BewerbungCheck() {
       await deleteAiReview(item.id);
       setHistory((current) => current.filter((entry) => entry.id !== item.id));
       if (shown?.id === item.id) newCheck();
-      toast({ message: "Check gelöscht" });
+      toast({ message: "Check gelöscht." });
     } catch (reason) {
       toast({ tone: "danger", message: friendlyMessage(reason, "Der Check konnte nicht gelöscht werden.") });
     }
@@ -145,7 +145,7 @@ export function BewerbungCheck() {
       )}
       <PageHeader
         title={<>Bewerbungs-<span className="marker">Check</span></>}
-        description="Lade deine Bewerbung hoch. Eine KI liest sie und sagt dir, was schon gut ist und was du noch verbessern kannst. Mit Beispielsätzen, die du kopieren kannst."
+        description="Lade dein Motivationsschreiben hoch. Eine KI liest es und sagt dir, was schon gut ist und was du noch verbessern kannst. Mit Beispielsätzen, die du kopieren kannst."
         actions={badge}
       />
 
@@ -160,7 +160,7 @@ export function BewerbungCheck() {
             </div>
             <ReviewResult result={shown.result} meta={shown.mock ? "Vorschau: Das ist ein Beispiel-Ergebnis, dein Brief wurde nicht an die KI geschickt." : undefined} />
             <div className="mt-8 flex flex-wrap gap-3">
-              <Button variant="sun" onClick={newCheck} icon={<RotateCcw size={15} />}>Überarbeiteten Brief checken</Button>
+              <Button variant="sun" onClick={newCheck} icon={<RotateCcw size={15} />}>Neu prüfen</Button>
               {fromApplication && <Link href={`/applications/${fromApplication.id}`} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold text-[var(--brand)] underline underline-offset-4">Zurück zur Bewerbung</Link>}
             </div>
           </>

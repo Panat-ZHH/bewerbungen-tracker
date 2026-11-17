@@ -21,7 +21,7 @@ export function ApplicationDocuments({ applicationId }: { applicationId: string 
     let active = true;
     Promise.all([listDocuments(), listAttachedDocumentIds(applicationId)])
       .then(([all, ids]) => { if (active) { setDocs(all); setAttached(new Set(ids)); } })
-      .catch((reason) => { if (active) setError(friendlyMessage(reason, "Deine Unterlagen konnten nicht geladen werden.")); })
+      .catch((reason) => { if (active) setError(friendlyMessage(reason, "Deine Dokumente konnten nicht geladen werden. Lade die Seite neu.")); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [applicationId]);
@@ -35,18 +35,18 @@ export function ApplicationDocuments({ applicationId }: { applicationId: string 
       if (attached.has(doc.id)) await detachDocument(applicationId, doc.id); else await attachDocument(applicationId, doc.id);
       setAttached((current) => { const next = new Set(current); if (next.has(doc.id)) next.delete(doc.id); else next.add(doc.id); return next; });
     } catch (reason) {
-      setError(friendlyMessage(reason, "Das konnte nicht gespeichert werden."));
+      setError(friendlyMessage(reason, "Das Dokument konnte nicht angehängt werden. Versuch es noch einmal."));
     } finally {
       setPending("");
     }
   }
 
-  if (loading) return <div className="skeleton h-24" role="status" aria-label="Unterlagen werden geladen" />;
+  if (loading) return <div className="skeleton h-24" role="status" aria-label="Dokumente werden geladen" />;
 
   return (
     <div>
       {error && <StatusMessage tone="danger" className="mb-4">{error}</StatusMessage>}
-      <p className="text-sm font-semibold" aria-live="polite">Dossier: {checklist.done} von {checklist.total} Unterlagen dabei</p>
+      <p className="text-sm font-semibold" aria-live="polite">Dossier: {checklist.done} von {checklist.total} Dokumenten dabei</p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2">
         {checklist.items.map((item) => (
           <li key={item.kind} className={`flex items-center gap-2 text-sm ${item.done ? "font-semibold text-[var(--success-fg)]" : "text-muted"}`}>
@@ -57,9 +57,9 @@ export function ApplicationDocuments({ applicationId }: { applicationId: string 
         ))}
       </ul>
 
-      <h3 className="font-body mt-6 text-sm font-bold tracking-normal">Anhängen</h3>
+      <h3 className="font-body mt-6 text-sm font-bold tracking-normal">Dokument anhängen</h3>
       {docs.length === 0 ? (
-        <p className="mt-2 text-sm text-muted">Du hast noch keine Dokumente hochgeladen. <Link href="/cvs" className="font-semibold text-[var(--brand)] hover:underline">Dokument hochladen</Link></p>
+        <p className="mt-2 text-sm text-muted">Noch nichts angehängt. Lade zuerst Lebenslauf und Motivationsschreiben hoch, dann hängst du sie hier an. <Link href="/cvs" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] hover:underline">Dokument hochladen</Link></p>
       ) : (
         <ul className="rows mt-1 border-y-[length:var(--border-w)] border-[var(--outline)]">
           {docs.map((doc) => {

@@ -88,7 +88,7 @@ export function ReviewResult({ result, meta }: { result: AiReviewResult; meta?: 
       {result.company.length > 0 && (
         <section aria-labelledby="ai-review-company">
           <h2 id="ai-review-company" className="text-heading mb-1">Tipps für diese Firma</h2>
-          <p className="mb-4 text-sm text-muted">Damit merkt der Betrieb, dass du dich wirklich für ihn interessierst.</p>
+          <p className="mb-4 text-sm text-muted">Damit merkt die Firma, dass du dich wirklich für sie interessierst.</p>
           <ul className="rows border-y-[length:var(--border-w)] border-[var(--outline)]">
             {result.company.map((tip, index) => <TipItem key={index} tip={tip} icon={<Building2 size={20} strokeWidth={2.2} aria-hidden />} />)}
           </ul>

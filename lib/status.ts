@@ -110,7 +110,7 @@ export const parseTestResult = (value: unknown): TestResult | undefined => (valu
 export const statusHints: Record<ApplicationStatus, string> = {
   saved: "Die Stelle ist dir aufgefallen, du hast noch nichts unternommen.",
   preparing: "Du arbeitest an Lebenslauf und Anschreiben.",
-  applied: "Deine Unterlagen sind unterwegs.",
+  applied: "Deine Bewerbung ist unterwegs.",
   schnupper_planned: "Du hast einen Schnuppertermin vereinbart. Trag unten das Datum ein.",
   schnupper_done: "Du warst schnuppern. Halte fest, wie es war.",
   aptitude_test: "Du schreibst einen Eignungstest oder Multicheck.",
