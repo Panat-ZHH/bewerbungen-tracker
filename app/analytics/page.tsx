@@ -12,20 +12,13 @@ import { ButtonLink } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { getApplications } from "@/lib/storage";
 import { statusLabels } from "@/lib/utils";
-import { isConversationStatus, isPlacedStatus, isRepliedStatus, isSchnupperStatus, STATUS_ORDER } from "@/lib/status";
+import { isConversationStatus, isPlacedStatus, isRepliedStatus, isSchnupperStatus, STATUS_ORDER, statusFamily, statusFill } from "@/lib/status";
 import type { Application, ApplicationStatus } from "@/types";
 
-// Flat token fills, same colour family as the status stickers: Gemerkt = paper, Vorbereitung = yellow, unterwegs = blue,
-// Gespräch = coral, Zusage = green, Absage / Zurückgezogen = calm sand (never red).
-const barColors: Record<ApplicationStatus, string> = {
-  saved: "var(--surface-2)", preparing: "var(--sun)",
-  applied: "var(--brand)", schnupper_planned: "var(--brand)", schnupper_done: "var(--brand)", aptitude_test: "var(--brand)",
-  interview: "var(--coral)", final_interview: "var(--coral)",
-  offer: "var(--mint)", contract_signed: "var(--mint)",
-  rejected: "var(--sand)", withdrawn: "var(--sand)",
-};
-// Calm fills need the theme contour to stay visible; bright fills get the always-dark contour.
-const calmBars: ApplicationStatus[] = ["saved", "rejected", "withdrawn"];
+// One colour per status family (lib/status.ts statusFill), same as badges and the dashboard path.
+const barColors = Object.fromEntries(STATUS_ORDER.map((status) => [status, statusFill(status)])) as Record<ApplicationStatus, string>;
+// Calm sand fills need the theme contour to stay visible; bright fills get the always-dark contour.
+const calmBars = STATUS_ORDER.filter((status) => statusFamily[status] === "closed" || statusFamily[status] === "saved");
 
 /** Shorter wording for the chart axis. */
 const axisLabels: Partial<Record<ApplicationStatus, string>> = { schnupper_planned: "Schnupper geplant", schnupper_done: "Schnupper gemacht", aptitude_test: "Eignungstest", contract_signed: "Vertrag", final_interview: "Weiteres Gespräch", preparing: "Vorbereitung" };
@@ -82,7 +75,7 @@ export default function AnalyticsPage() {
                     <YAxis type="category" dataKey="label" width={118} tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "var(--muted)" }} interval={0} />
                     <Tooltip cursor={{ fill: "var(--hover)" }} formatter={(value) => [value, "Bewerbungen"]} contentStyle={{ fontSize: 13 }} itemStyle={{ color: "var(--ink)" }} />
                     <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={18} background={{ fill: "var(--surface-2)", radius: 4 }} isAnimationActive>
-                      {data.map((item) => <Cell key={item.status} fill={barColors[item.status]} stroke={calmBars.includes(item.status) ? "var(--outline)" : "var(--outline-fill)"} strokeWidth={1.5} />)}
+                      {data.map((item) => <Cell key={item.status} fill={barColors[item.status]} stroke={calmBars.includes(item.status) ? "var(--outline)" : "var(--outline-fill)"} strokeWidth={1} />)}
                       <LabelList dataKey="count" position="right" formatter={(value) => (value ? String(value) : "")} style={{ fill: "var(--ink)", fontSize: 12, fontWeight: 700 }} />
                     </Bar>
                   </BarChart>

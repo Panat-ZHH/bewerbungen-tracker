@@ -62,7 +62,7 @@ export function MapFullscreen({ label, busy, map, children }: { label: string; b
   return (
     <div
       ref={stage}
-      className={styles.stage}
+      className={`${styles.stage} ui-raised`}
       data-map-fullscreen=""
       // A focused input must never end up behind the keyboard: scroll it inside its own panel (never the stage itself).
       onFocusCapture={(event) => {

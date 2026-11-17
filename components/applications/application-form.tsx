@@ -337,7 +337,7 @@ function Field({ label, value, onChange, onBlur, error, placeholder, type = "tex
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{label}{required && <span aria-hidden="true" className="text-muted"> *</span>}</label>
-      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[var(--danger-fg)] focus:border-[var(--danger-fg)] focus:shadow-[3px_3px_0_var(--danger-fg)]")} />
+      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[var(--danger-fg)] focus:border-[var(--danger-fg)] focus:shadow-[0_0_0_1px_var(--danger-fg)]")} />
       {error && <p id={`${id}-error`} className="mt-1.5 text-xs font-medium text-[var(--danger-fg)]">{error}</p>}
     </div>
   );

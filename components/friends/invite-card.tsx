@@ -39,8 +39,8 @@ export function InviteCard({ profile }: { profile: SocialProfile }) {
   const mailto = `mailto:?subject=${encodeURIComponent("Bewirb dich mit mir bei WendApply")}&body=${encodeURIComponent(`Hallo!\n\nKomm zu WendApply, dann bleiben wir beim Bewerben gemeinsam dran. Hier ist mein Einladungslink:\n${link}\n\n(Oder gib in der App meinen Code ein: ${profile.inviteCode})`)}`;
 
   return (
-    // THE sticker of the page: flat yellow face, ink contour, hard shadow, a tilted label on the edge.
-    <div className="animate-rise relative space-y-4 rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--sun-soft)] p-4 pt-8 shadow-[var(--shadow-md)] sm:p-5 sm:pt-9 lg:rotate-[.6deg]">
+    // The hero of the page: soft yellow face (calm contour inside the app), one tilted label on the edge.
+    <div className="animate-rise relative space-y-4 rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--sun-soft)] p-4 pt-8 shadow-[var(--shadow-md)] sm:p-5 sm:pt-9">
       <p className="sticker tilt-l3 absolute -top-3.5 left-3 text-sm">Dein Einladungscode</p>
       <DoodleStar className="absolute right-4 top-3 h-8 w-8 rotate-12 text-[var(--coral)]" />
       <div>

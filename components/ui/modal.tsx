@@ -58,7 +58,7 @@ export function Modal({ open, onClose, title, description, children, footer, cla
         tabIndex={-1}
         className={cn("animate-sheet sm:animate-pop relative flex max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-3rem)] w-full flex-col rounded-t-[var(--radius-xl)] border-[length:var(--border-w)] border-b-0 border-[var(--outline)] bg-[var(--surface)] outline-none sm:max-w-lg sm:rounded-[var(--radius-xl)] sm:border-b-[length:var(--border-w)] sm:shadow-[var(--shadow-lg)]", className)}
       >
-        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-[var(--ink)] sm:hidden" aria-hidden />
+        <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-[var(--edge)] sm:hidden" aria-hidden />
         <div className="flex items-start justify-between gap-3 px-5 pt-4 sm:pt-5">
           <div className="min-w-0">
             <h2 id={titleId} className="text-heading">{title}</h2>
@@ -67,7 +67,7 @@ export function Modal({ open, onClose, title, description, children, footer, cla
           <button type="button" onClick={onClose} aria-label="Schliessen" className="-mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[var(--ink)] transition hover:bg-[var(--hover)]"><X size={20} strokeWidth={2.4} /></button>
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
-        {footer && <div className="flex flex-col-reverse gap-2 border-t-[length:var(--border-w)] border-dashed border-[var(--line)] px-5 py-4 pb-[calc(1rem+var(--safe-bottom))] sm:flex-row sm:justify-end">{footer}</div>}
+        {footer && <div className="flex flex-col-reverse gap-2 border-t-[length:var(--border-w)] border-[var(--line)] px-5 py-4 pb-[calc(1rem+var(--safe-bottom))] sm:flex-row sm:justify-end">{footer}</div>}
         {!footer && <div className="pb-[var(--safe-bottom)]" />}
       </div>
     </div>,

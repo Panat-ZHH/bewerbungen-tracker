@@ -1,26 +1,16 @@
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { statusLabels } from "@/lib/utils";
+import { statusFamily, statusFamilyStyle } from "@/lib/status";
 import type { ApplicationStatus } from "@/types";
 
 /**
- * One flat colour per stage, from design tokens (works in light and dark):
- * Offen = paper/yellow, Abgeschickt = blue, Gespräch = coral, Zusage = green.
- * Absage is deliberately calm (sand), never red: a rejection should not look like an error.
+ * One flat colour per status FAMILY (lib/status.ts `statusFamily`), the same everywhere (badges, bars, dashboard path):
+ * Gemerkt = paper, In Vorbereitung = yellow, Abgeschickt / Schnupperlehre / Test = blue, Gespräch = coral, Zusage / Vertrag = green,
+ * Absage / Zurückgezogen = calm sand (never red: a rejection should not look like an error).
  */
-export const statusTone: Record<ApplicationStatus, BadgeTone> = {
-  saved: "paper",
-  preparing: "warning",
-  applied: "info",
-  schnupper_planned: "info",
-  schnupper_done: "info",
-  aptitude_test: "info",
-  interview: "coral",
-  final_interview: "coral",
-  offer: "success",
-  contract_signed: "success",
-  rejected: "neutral",
-  withdrawn: "neutral",
-};
+export const statusTone = Object.fromEntries(
+  Object.entries(statusFamily).map(([status, family]) => [status, statusFamilyStyle[family].tone]),
+) as Record<ApplicationStatus, BadgeTone>;
 
 export function StatusBadge({ status, className }: { status: ApplicationStatus; className?: string }) {
   return <Badge tone={statusTone[status]} className={className}>{statusLabels[status]}</Badge>;
