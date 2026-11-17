@@ -38,6 +38,12 @@ const TOKENS = {
   user2: jwt({ sub: USER, aal: "aal2" }),
   mismatch: jwt({ sub: USER, aal: "aal2", x: 1 }), // verified as ADMIN by the mock → sub mismatch
   other2: jwt({ sub: OTHER_ADMIN, aal: "aal2" }),
+  adminGoogle: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }] }),
+  adminGoogleUnverified: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }], g: "unverified" }),
+  adminGoogleEnrolled: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }], g: "enrolled" }),
+  adminPassword: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "password", timestamp: 1 }], g: "pw" }),
+  adminMagic: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "otp", timestamp: 1 }], g: "otp" }),
+  userGoogle: jwt({ sub: USER, aal: "aal1", amr: [{ method: "oauth", timestamp: 1 }] }),
 };
 
 function mockStore() {
@@ -60,6 +66,10 @@ function mockStore() {
   const store = {
     async verifyToken(token) {
       if (token === TOKENS.admin2 || token === TOKENS.admin1 || token === TOKENS.mismatch) return { id: ADMIN, email: users.get(ADMIN) };
+      if (token === TOKENS.adminGoogle || token === TOKENS.adminPassword || token === TOKENS.adminMagic) return { id: ADMIN, email: users.get(ADMIN), googleVerified: true, mfaEnrolled: false };
+      if (token === TOKENS.adminGoogleUnverified) return { id: ADMIN, email: users.get(ADMIN), googleVerified: false, mfaEnrolled: false };
+      if (token === TOKENS.adminGoogleEnrolled) return { id: ADMIN, email: users.get(ADMIN), googleVerified: true, mfaEnrolled: true };
+      if (token === TOKENS.userGoogle) return { id: USER, email: users.get(USER), googleVerified: true, mfaEnrolled: false };
       if (token === TOKENS.user2) return { id: USER, email: users.get(USER) };
       if (token === TOKENS.other2) return { id: OTHER_ADMIN, email: users.get(OTHER_ADMIN) };
       return null;
@@ -184,8 +194,24 @@ test("guard: platform admin without MFA (aal1) → 403 mfa_required; admin check
 test("guard: admin with aal2 → 200 /me", async () => {
   const res = await api.me(req("/api/admin/me"));
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { user_id: ADMIN, email: "panat@example.ch", aal: "aal2" });
+  assert.deepEqual(await res.json(), { user_id: ADMIN, email: "panat@example.ch", aal: "aal2", auth: "totp", mfa_enrolled: false });
   assert.equal(res.headers.get("cache-control"), "no-store");
+});
+
+test("guard: admin via Google OAuth (verified Google e-mail, no TOTP factor) passes with aal1", async () => {
+  const res = await api.me(req("/api/admin/me", { token: TOKENS.adminGoogle }));
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { user_id: ADMIN, email: "panat@example.ch", aal: "aal1", auth: "google", mfa_enrolled: false });
+  assert.equal((await api.users(req("/api/admin/users", { token: TOKENS.adminGoogle }))).status, 200);
+});
+
+test("guard: Google exception is narrow (unverified e-mail, enrolled TOTP, password / magic link, non-admin)", async () => {
+  await expectError(await api.me(req("/api/admin/me", { token: TOKENS.adminGoogleUnverified })), 403, "mfa_required");
+  await expectError(await api.me(req("/api/admin/me", { token: TOKENS.adminGoogleEnrolled })), 403, "mfa_required");
+  await expectError(await api.me(req("/api/admin/me", { token: TOKENS.adminPassword })), 403, "mfa_required");
+  await expectError(await api.me(req("/api/admin/me", { token: TOKENS.adminMagic })), 403, "mfa_required");
+  await expectError(await api.me(req("/api/admin/me", { token: TOKENS.userGoogle })), 404, "not_found");
+  await expectError(await api.users(req("/api/admin/users", { token: TOKENS.userGoogle })), 404, "not_found");
 });
 
 test("rate limit: 60 requests / min per admin, 10 / min for mutations, per-IP brake before auth", async () => {
@@ -309,7 +335,13 @@ test("school / list / audit inputs are validated strictly", async () => {
 
 test("list / audit filters reach the store normalised", async () => {
   await api.users(req("/api/admin/users?q=%20Kim@Example.CH%20&page=2&state=trial&role=parent"));
-  assert.deepEqual(m.calls.find((c) => c.name === "listUsers").args[0], { q: "kim@example.ch", page: 2, pageSize: 50, state: "trial", role: "parent" });
+  assert.deepEqual(m.calls.find((c) => c.name === "listUsers").args[0], { q: "kim@example.ch", page: 2, pageSize: 50, state: "trial", role: "parent", sub: "all", school: "all" });
+  await api.users(req(`/api/admin/users?sub=active&school=${SCHOOL.toUpperCase()}`));
+  const lf = m.calls.filter((c) => c.name === "listUsers").at(-1).args[0];
+  assert.equal(lf.sub, "active");
+  assert.equal(lf.school, SCHOOL);
+  await expectError(await api.users(req("/api/admin/users?school=nope")), 400, "invalid_input", "school");
+  await expectError(await api.users(req("/api/admin/users?sub=maybe")), 400, "invalid_input", "sub");
   await api.audit(req(`/api/admin/audit?action=user.block&target_user=${USER.toUpperCase()}&since=2026-11-01`));
   const f = m.calls.find((c) => c.name === "listAudit").args[0];
   assert.equal(f.target_user, USER);

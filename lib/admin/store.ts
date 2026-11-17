@@ -4,7 +4,14 @@ import type {
   AccountAccessRow, AdminSchoolDetail, AdminSchoolRow, AdminUserDetail, AdminUserRow, AuditEntry, Paged, SchoolLicence,
 } from "./types.ts";
 
-export interface VerifiedUser { id: string; email: string | null }
+export interface VerifiedUser {
+  id: string;
+  email: string | null;
+  /** The account has a Google identity whose e-mail Google marked as verified and equals the (confirmed) account e-mail. */
+  googleVerified?: boolean;
+  /** The account has at least one VERIFIED MFA factor (then aal2 is always required). */
+  mfaEnrolled?: boolean;
+}
 
 export interface AuditInput {
   admin_id: string;
@@ -21,6 +28,10 @@ export interface UserListFilter {
   pageSize: number;
   state: "all" | "blocked" | "grant" | "trial" | "trial_over";
   role: "all" | "student" | "teacher" | "school_admin" | "parent";
+  /** "active" = has an open subscription (own or family), "none" = no open subscription. Optional: default "all". */
+  sub?: "all" | "active" | "none";
+  /** School id (class, admin or teacher link), "none" = no school. Optional: default "all". */
+  school?: string;
 }
 
 export interface AuditFilter {

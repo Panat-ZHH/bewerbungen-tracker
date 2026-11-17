@@ -7,38 +7,50 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Field, Input, Select } from "@/components/ui/input";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
-import type { AdminUserRow, Paged } from "@/lib/admin/types";
+import type { AdminSchoolRow, AdminUserRow, Paged } from "@/lib/admin/types";
 import { adminFetch, errorText, qs } from "./api";
 import { AccessBadge, Pager, RoleBadge, StripeLink, fmtDate, fmtDateTime, useDebounced, type OpenDetail } from "./shared";
 
 type StateFilter = "all" | "blocked" | "grant" | "trial" | "trial_over";
 type RoleFilter = "all" | "student" | "teacher" | "school_admin" | "parent";
+type SubFilter = "all" | "active" | "none";
 
 /** List of people (search + filters + pages). */
 export function UsersTab({ onOpen, version }: { onOpen: OpenDetail; version: number }) {
   const [q, setQ] = useState("");
   const [state, setState] = useState<StateFilter>("all");
   const [role, setRole] = useState<RoleFilter>("all");
+  const [sub, setSub] = useState<SubFilter>("all");
+  const [school, setSchool] = useState("all");
+  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
   const [page, setPage] = useState(1);
   const debounced = useDebounced(q.trim());
   const [result, setResult] = useState<{ key: string; data?: Paged<AdminUserRow>; error?: string } | null>(null);
   const [retry, setRetry] = useState(0);
 
-  const key = `${debounced}|${state}|${role}|${page}|${version}|${retry}`;
   useEffect(() => {
     let alive = true;
-    adminFetch<Paged<AdminUserRow>>(`/api/admin/users${qs({ q: debounced, page, state, role })}`).then((res) => {
+    adminFetch<{ items: AdminSchoolRow[] }>("/api/admin/schools").then((res) => {
+      if (alive && res.ok) setSchools(res.data.items.map((x) => ({ id: x.id, name: x.name })));
+    });
+    return () => { alive = false; };
+  }, [version]);
+
+  const key = `${debounced}|${state}|${role}|${sub}|${school}|${page}|${version}|${retry}`;
+  useEffect(() => {
+    let alive = true;
+    adminFetch<Paged<AdminUserRow>>(`/api/admin/users${qs({ q: debounced, page, state, role, sub, school })}`).then((res) => {
       if (!alive) return;
       setResult(res.ok ? { key, data: res.data } : { key, error: errorText(res, { q: "Suche" }) });
     });
     return () => { alive = false; };
-  }, [debounced, page, state, role, key]);
+  }, [debounced, page, state, role, sub, school, key]);
 
   const loading = !result || result.key !== key;
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr_1fr]">
         <Field label="Suche" htmlFor="admin-search">
           <div className="relative">
             <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
@@ -62,6 +74,20 @@ export function UsersTab({ onOpen, version }: { onOpen: OpenDetail; version: num
             <option value="teacher">Lehrpersonen</option>
             <option value="school_admin">Schuladmins</option>
             <option value="parent">Eltern</option>
+          </Select>
+        </Field>
+        <Field label="Abo" htmlFor="admin-filter-sub">
+          <Select id="admin-filter-sub" data-testid="admin-filter-sub" value={sub} onChange={(e) => { setSub(e.target.value as SubFilter); setPage(1); }}>
+            <option value="all">Alle</option>
+            <option value="active">Mit Abo</option>
+            <option value="none">Ohne Abo</option>
+          </Select>
+        </Field>
+        <Field label="Schule" htmlFor="admin-filter-school">
+          <Select id="admin-filter-school" data-testid="admin-filter-school" value={school} onChange={(e) => { setSchool(e.target.value); setPage(1); }}>
+            <option value="all">Alle</option>
+            <option value="none">Ohne Schule</option>
+            {schools.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
           </Select>
         </Field>
       </div>

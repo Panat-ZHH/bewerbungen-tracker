@@ -109,7 +109,16 @@ export interface AdminSchoolDetail extends AdminSchoolRow {
 
 export interface Paged<T> { items: T[]; total: number; page: number; page_size: number }
 
-export interface AdminMe { user_id: string; email: string | null; aal: "aal2" }
+export interface AdminMe {
+  user_id: string;
+  email: string | null;
+  /** "aal2" = TOTP verified in this session; "aal1" = Google login of an admin without an enrolled TOTP factor. */
+  aal: "aal1" | "aal2";
+  /** How this session passed the admin gate. */
+  auth: "totp" | "google";
+  /** A verified TOTP factor exists (recommend enrolment when false). */
+  mfa_enrolled: boolean;
+}
 
 export interface SignupStats { days: 7 | 30; total: number; by_day: { day: string; count: number }[]; users: AdminUserRow[] }
 

@@ -6,7 +6,7 @@ import { test } from "node:test";
 import { register } from "node:module";
 
 register("./helpers/alias-hooks.mjs", import.meta.url);
-const { supabaseAdminStore } = await import("../lib/admin/server.ts");
+const { supabaseAdminStore, googleVerified } = await import("../lib/admin/server.ts");
 
 const U = "22222222-2222-4222-8222-222222222222";
 const A = "11111111-1111-4111-8111-111111111111";
@@ -65,7 +65,7 @@ test("writeAudit inserts into admin_audit_log with the contract columns; a DB er
 test("verifyToken / isPlatformAdmin; missing platform_admins table → not an admin", async () => {
   const db = fakeDb((t) => (t === "platform_admins" ? { data: { user_id: A }, error: null } : { data: null, error: null }));
   const store = supabaseAdminStore(db);
-  assert.deepEqual(await store.verifyToken("good"), { id: A, email: "panat@example.ch" });
+  assert.deepEqual(await store.verifyToken("good"), { id: A, email: "panat@example.ch", googleVerified: false, mfaEnrolled: true });
   assert.equal(await store.verifyToken("bad"), null);
   assert.equal(await store.isPlatformAdmin(A), true);
   assert.deepEqual(op(db.log[0], "eq"), ["eq", "user_id", A]);
@@ -128,4 +128,21 @@ test("listUsers: search, state filter and paging work on a DB without the access
   const found = await store.listUsers({ q: "panat", page: 1, pageSize: 50, state: "all", role: "all" });
   assert.deepEqual(found.items.map((u) => u.id), [A]);
   assert.equal((await store.listUsers({ q: "", page: 1, pageSize: 50, state: "blocked", role: "all" })).total, 0);
+  // Without subscriptions / schools in the DB: "with subscription" and a school id match nobody, "none" matches everyone.
+  assert.equal((await store.listUsers({ q: "", page: 1, pageSize: 50, state: "all", role: "all", sub: "active" })).total, 0);
+  assert.equal((await store.listUsers({ q: "", page: 1, pageSize: 50, state: "all", role: "all", sub: "none" })).total, 2);
+  assert.equal((await store.listUsers({ q: "", page: 1, pageSize: 50, state: "all", role: "all", school: "none" })).total, 2);
+  assert.equal((await store.listUsers({ q: "", page: 1, pageSize: 50, state: "all", role: "all", school: "55555555-5555-4555-8555-555555555555" })).total, 0);
+});
+
+test("googleVerified: only a Google identity with Google-verified e-mail equal to the confirmed account e-mail", () => {
+  const g = (email, ev, extra = {}) => ({ provider: "google", identity_data: { email, email_verified: ev }, ...extra });
+  const base = { email: "Panat@Example.ch", email_confirmed_at: "2026-11-17T00:00:00Z" };
+  assert.equal(googleVerified({ ...base, identities: [g("panat@example.ch", true)] }), true);
+  assert.equal(googleVerified({ ...base, identities: [g("panat@example.ch", false)] }), false);
+  assert.equal(googleVerified({ ...base, identities: [g("panat@example.ch", undefined)] }), false);
+  assert.equal(googleVerified({ ...base, identities: [g("other@example.ch", true)] }), false);
+  assert.equal(googleVerified({ ...base, identities: [{ provider: "email", identity_data: { email: "panat@example.ch", email_verified: true } }] }), false);
+  assert.equal(googleVerified({ ...base, email_confirmed_at: null, identities: [g("panat@example.ch", true)] }), false);
+  assert.equal(googleVerified({ ...base, identities: [] }), false);
 });

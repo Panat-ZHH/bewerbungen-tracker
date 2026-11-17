@@ -50,6 +50,17 @@ export function currentLicence(list: SchoolLicence[]): SchoolLicence | null {
   return sorted[0] ?? null;
 }
 
+/** Google identity with Google's own email_verified = true, same e-mail as the confirmed account. Never trusts an unverified e-mail. */
+export function googleVerified(u: Pick<User, "email" | "email_confirmed_at" | "identities">): boolean {
+  const email = (u.email ?? "").trim().toLowerCase();
+  if (!email || !u.email_confirmed_at) return false;
+  return (u.identities ?? []).some((i) => {
+    const d = (i.identity_data ?? {}) as Record<string, unknown>;
+    const idEmail = String(d.email ?? (i as { email?: string }).email ?? "").trim().toLowerCase();
+    return i.provider === "google" && (d.email_verified === true || d.email_verified === "true") && idEmail === email;
+  });
+}
+
 export function stripeLinks(sub: { stripe_subscription_id: string; stripe_customer_id: string }, live = /^(sk|rk)_live_/.test(process.env.STRIPE_SECRET_KEY ?? "")) {
   const base = `https://dashboard.stripe.com/${live ? "" : "test/"}`;
   return { stripe_url: `${base}subscriptions/${encodeURIComponent(sub.stripe_subscription_id)}`, customer_url: `${base}customers/${encodeURIComponent(sub.stripe_customer_id)}` };
@@ -257,7 +268,8 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
     async verifyToken(token): Promise<VerifiedUser | null> {
       const { data, error } = await db.auth.getUser(token);
       if (error || !data.user) return null;
-      return { id: data.user.id, email: data.user.email ?? null };
+      const u = data.user;
+      return { id: u.id, email: u.email ?? null, googleVerified: googleVerified(u), mfaEnrolled: (u.factors ?? []).some((f) => f.status === "verified") };
     },
 
     async isPlatformAdmin(userId) {
@@ -283,6 +295,21 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
           default: return true;
         }
       }).sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+      const sub = filter.sub ?? "all";
+      const school = filter.school ?? "all";
+      if (sub !== "all" || school !== "all") {
+        const rel = await related(matches.map((u) => u.id));
+        const kept = matches.filter((u) => {
+          const open = (rel.subs.get(u.id) ?? []).some((x) => OPEN.includes(x.status));
+          if (sub === "active" && !open) return false;
+          if (sub === "none" && open) return false;
+          const schools = rel.schools.get(u.id) ?? [];
+          if (school === "none" && schools.length) return false;
+          if (school !== "all" && school !== "none" && !schools.some((x) => x.id === school)) return false;
+          return true;
+        });
+        matches.splice(0, matches.length, ...kept);
+      }
       const slice = matches.slice((filter.page - 1) * filter.pageSize, filter.page * filter.pageSize);
       return { items: await rows(slice, f), total: matches.length, page: filter.page, page_size: filter.pageSize };
     },

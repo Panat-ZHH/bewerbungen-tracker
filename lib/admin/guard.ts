@@ -3,6 +3,11 @@
 //   1. Bearer JWT → Supabase Auth getUser       → 401 unauthenticated
 //   2. user in public.platform_admins           → else 404 not_found (the route does not "exist" for anyone else)
 //   3. JWT claim aal = "aal2" (TOTP MFA)        → else 403 mfa_required
+//      Exception: an admin WITHOUT a verified MFA factor whose session was started by Google OAuth (amr "oauth") and whose
+//      Google identity has a Google-verified e-mail equal to the account e-mail passes with aal1 (Google enforces its own 2FA).
+//      As soon as the admin enrols a TOTP factor, aal2 is required again.
+//      NOTE: amr "oauth" does not name the provider. Google is the only OAuth provider enabled in this project; if another one
+//      is ever enabled, tighten this check (e.g. require the provider in app_metadata) before relying on it.
 //   4. 60 requests / min per admin, 10 / min for mutations → 429
 // No cookies are read anywhere: the token comes only from the Authorization header, so cross-site requests cannot ride
 // on a session (CSRF-safe by construction).
@@ -76,7 +81,14 @@ export interface GuardDeps {
   env?: Record<string, string | undefined>;
 }
 
-export interface AdminContext { admin: VerifiedUser; ip: string | null }
+export interface AdminContext { admin: VerifiedUser; ip: string | null; auth: "totp" | "google" }
+
+/** True when the (already verified) token's amr claim lists the given auth method. Accepts objects {method} and plain strings. */
+export function amrHas(claims: Record<string, unknown>, method: string): boolean {
+  const amr = claims.amr;
+  if (!Array.isArray(amr)) return false;
+  return amr.some((e) => e === method || (e && typeof e === "object" && (e as { method?: unknown }).method === method));
+}
 
 export type GuardResult = { ok: true; ctx: AdminContext } | { ok: false; response: Response };
 
@@ -105,7 +117,9 @@ export async function guard(request: Request, deps: GuardDeps, opts: { mutation:
   try { isAdmin = await deps.store.isPlatformAdmin(user.id); } catch { isAdmin = false; }
   if (!isAdmin) return { ok: false, response: fail(404, "not_found") };
 
-  if (claims.aal !== "aal2") return { ok: false, response: fail(403, "mfa_required") };
+  const aal2 = claims.aal === "aal2";
+  const viaGoogle = !aal2 && user.mfaEnrolled !== true && user.googleVerified === true && amrHas(claims, "oauth");
+  if (!aal2 && !viaGoogle) return { ok: false, response: fail(403, "mfa_required") };
 
   if (!disabled) {
     const rules = [{ key: `admin:user:${user.id}`, ...limits.user }];
@@ -113,5 +127,5 @@ export async function guard(request: Request, deps: GuardDeps, opts: { mutation:
     const r = await hitAll(rules, { rpc: deps.rpc });
     if (!r.allowed) return { ok: false, response: tooManyRequests(r, RATE_MESSAGE, ADMIN_HEADERS) };
   }
-  return { ok: true, ctx: { admin: user, ip: ip === "unknown" ? null : ip } };
+  return { ok: true, ctx: { admin: user, ip: ip === "unknown" ? null : ip, auth: aal2 ? "totp" : "google" } };
 }

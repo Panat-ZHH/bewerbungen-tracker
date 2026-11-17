@@ -16,9 +16,13 @@ Hidden on purpose: not linked anywhere in the app, `robots.txt` disallows `/admi
 
    (`scripts/admin/add-admin.mjs` is built by the backend part. There is NO seed in any migration and the admin e-mail is
    not stored in the code.) To remove an admin, delete the row from `public.platform_admins` (SQL editor, service role) or use the script if it offers a remove option.
-3. Open `https://wendapply.ch/admin` (bookmark it). The page asks you to set up **two-factor authentication (TOTP)**:
-   scan the QR code with an authenticator app (1Password, Google Authenticator, Authy …), enter the 6-digit code.
-   From then on every visit to `/admin` asks for a fresh code when your session is not yet at level `aal2`.
+3. Open `https://wendapply.ch/admin` (bookmark it).
+   - **Logged in with Google** ("Mit Google anmelden"): the dashboard opens directly. Google's own 2-step verification
+     protects the login. The dashboard shows a hint "Zwei-Faktor einrichten" to additionally enrol an authenticator app
+     (recommended, optional). Once a TOTP factor is enrolled, every visit asks for the code (aal2) – also after Google.
+   - **Logged in any other way** (password, magic link): the page asks for **two-factor authentication (TOTP)**:
+     scan the QR code with an authenticator app (1Password, Google Authenticator, Authy …), enter the 6-digit code.
+     From then on every visit to `/admin` asks for a fresh code when your session is not yet at level `aal2`.
    TOTP MFA must be enabled in Supabase → Authentication → Multi-Factor (it is on by default for TOTP).
 
 Lost the authenticator? Delete your factor in Supabase → Authentication → Users → (you) → MFA factors, then enrol again.
@@ -27,7 +31,7 @@ Lost the authenticator? Delete your factor in Supabase → Authentication → Us
 
 | Tab | Features |
 |---|---|
-| **Personen** | Search (e-mail, name, id), filter by access state (blocked / free access / trial running / trial over) and role. Row: e-mail, role, account type, school(s), access state from `app_access()`, trial end, subscription status + Stripe link, created, last sign-in, MFA, blocked. |
+| **Personen** | Search (e-mail, name, id), filter by access state (blocked / free access / trial running / trial over), role, subscription (with / without open subscription) and school (a school / no school). Row: e-mail, role, account type, school(s), access state from `app_access()`, trial end, subscription status + Stripe link, created, last sign-in, MFA, blocked. |
 | Person detail | Full `AccessInfo`, `account_access` row, subscriptions (Stripe dashboard links for subscription and customer), families, classes, the last 20 audit entries for this person. Actions below. |
 | **Neu** | Sign-ups of the last 7 / 30 days (per day + list). |
 | **Schulen** | List with current licence (package, state, valid until, seats), student / admin / teacher counts. Create a school. Detail: all licences, admins, teachers, classes, audit. |
@@ -57,8 +61,8 @@ All requests: `Authorization: Bearer <Supabase access token>` – no cookies are
 
 | Method + path | Body / query | Answer |
 |---|---|---|
-| `GET /api/admin/me` | | `{ user_id, email, aal: "aal2" }` |
-| `GET /api/admin/users` | `q, page, state=all\|blocked\|grant\|trial\|trial_over, role=all\|student\|teacher\|school_admin\|parent` | `Paged<AdminUserRow>` (50 per page) |
+| `GET /api/admin/me` | | `{ user_id, email, aal: "aal1"\|"aal2", auth: "totp"\|"google", mfa_enrolled }` |
+| `GET /api/admin/users` | `q, page, state=all\|blocked\|grant\|trial\|trial_over, role=all\|student\|teacher\|school_admin\|parent, sub=all\|active\|none, school=all\|none\|<uuid>` | `Paged<AdminUserRow>` (50 per page) |
 | `GET /api/admin/users/:id` | | `AdminUserDetail` |
 | `POST /api/admin/users/:id` | `{ action, confirm: true, … }` (see above) | `{ ok, account_access }` / `{ ok, deleted }` |
 | `GET /api/admin/signups` | `days=7\|30` | `{ days, total, by_day[], users[] }` |
@@ -77,7 +81,9 @@ Types: `lib/admin/types.ts`. Errors (generic on purpose, never DB messages): `40
 
 Order of checks (`lib/admin/guard.ts`): per-IP brake (120 / min, before any work) → bearer token verified by Supabase Auth
 (`auth.getUser`) → `sub` claim must equal the verified user → `platform_admins` row, else 404 → JWT claim `aal = aal2`,
-else 403 `mfa_required` → 60 requests / min per admin, plus 10 / min for mutations. Limits are tunable with
+else 403 `mfa_required` (exception: admin WITHOUT a verified MFA factor, session started by Google OAuth – `amr` contains
+`oauth` – and a Google identity whose e-mail Google marked `email_verified` and equals the confirmed account e-mail → passes at
+`aal1`; password / magic-link / recovery sessions and unverified e-mails never do) → 60 requests / min per admin, plus 10 / min for mutations. Limits are tunable with
 `RATE_LIMIT_ADMIN_IP`, `RATE_LIMIT_ADMIN_USER`, `RATE_LIMIT_ADMIN_MUTATION_USER` (`limit[/seconds]`); `RATE_LIMIT_DISABLED=1` switches them off.
 
 - The service role is used only in `lib/admin/server.ts`, only after the guard passed (allow-listed in `tests/security-audit.test.mjs`).

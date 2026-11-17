@@ -244,15 +244,17 @@ export function createAdminApi(deps: AdminApiDeps) {
 
   return {
     /** GET /api/admin/me – used by the /admin page to decide: not found / MFA needed / dashboard. */
-    me: (request: Request) => run(request, deps, false, "me", async (ctx) => json(200, { user_id: ctx.admin.id, email: ctx.admin.email, aal: "aal2" })),
+    me: (request: Request) => run(request, deps, false, "me", async (ctx) => json(200, { user_id: ctx.admin.id, email: ctx.admin.email, aal: ctx.auth === "totp" ? "aal2" : "aal1", auth: ctx.auth, mfa_enrolled: ctx.admin.mfaEnrolled === true })),
 
-    /** GET /api/admin/users?q=&page=&state=&role= */
+    /** GET /api/admin/users?q=&page=&state=&role=&sub=all|active|none&school=all|none|<uuid> */
     users: (request: Request) => run(request, deps, false, "users", async () => {
       const p = params(request);
       const filter: UserListFilter = {
         q: query(p.get("q")), page: page(p.get("page")), pageSize: PAGE_SIZE,
         state: oneOf(p.get("state") ?? "all", ["all", "blocked", "grant", "trial", "trial_over"] as const, "state"),
         role: oneOf(p.get("role") ?? "all", ["all", "student", "teacher", "school_admin", "parent"] as const, "role"),
+        sub: oneOf(p.get("sub") ?? "all", ["all", "active", "none"] as const, "sub"),
+        school: ["all", "none"].includes(p.get("school") ?? "all") ? (p.get("school") ?? "all") : uuid(p.get("school"), "school"),
       };
       return json(200, await store.listUsers(filter));
     }),
