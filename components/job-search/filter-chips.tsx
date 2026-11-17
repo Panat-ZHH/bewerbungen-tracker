@@ -9,6 +9,7 @@ export function filterChips(f: JobFilters): FilterChip[] {
   const chips: FilterChip[] = [];
   // a radius only exists together with a place (default 10 km, 0 = "Nur dieser Ort")
   if (f.location) chips.push({ key: "loc", label: `Ort: ${f.location} · ${effectiveRadiusKm(f) === 0 ? radiusLabel(0) : `+${effectiveRadiusKm(f)} km`}`, patch: { location: "", radiusKm: undefined } });
+  if (f.country === "all") chips.push({ key: "land", label: "Auch ausserhalb der Schweiz", patch: { country: undefined } });
   f.cantons.forEach((c) => chips.push({ key: `c-${c}`, label: `Kanton ${c}`, patch: { cantons: f.cantons.filter((v) => v !== c) } }));
   f.jobTypes.forEach((t) => chips.push({ key: `t-${t}`, label: JOB_TYPE_LABELS[t], patch: { jobTypes: f.jobTypes.filter((v) => v !== t) } }));
   if (f.workloadMin !== undefined || f.workloadMax !== undefined) chips.push({ key: "wl", label: `Pensum ab ${f.workloadMin ?? 10}%`, patch: { workloadMin: undefined, workloadMax: undefined } });

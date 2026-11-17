@@ -2,6 +2,7 @@
 import type { EnrichedJob, JobFilters } from "./types.ts";
 import { fold } from "./query.ts";
 import { detectJobTypes, effectiveRadiusKm, enrichJob, startYearOf } from "./taxonomy.ts";
+import { isSwiss, listingCountry } from "../geo/country.ts";
 
 export type StrictMap = Partial<Record<keyof JobFilters, boolean>>;
 export interface FilterOptions {
@@ -41,9 +42,14 @@ export function passes(job: EnrichedJob, filters: JobFilters, key: keyof JobFilt
       const radius = effectiveRadiusKm(filters);
       return radius > 0 && j.distanceKm <= radius;
     }
+    case "country":
+      // "Schweiz" (default) keeps only listings located in Switzerland; abroad, remote and unknown places need "Alle"
+      return filters.country === "all" || isSwiss(j);
     case "cantons":
       if (!filters.cantons.length) return true;
-      return j.canton ? filters.cantons.map((c) => c.toUpperCase()).includes(j.canton.toUpperCase()) : missing();
+      if (j.canton) return filters.cantons.map((c) => c.toUpperCase()).includes(j.canton.toUpperCase());
+      // a listing known to be abroad is never in a canton; an unknown place follows the usual missing-data rule
+      return listingCountry(j) ? false : missing();
     case "jobTypes": {
       if (!filters.jobTypes.length) return true;
       const types = detectJobTypes(j);
@@ -104,7 +110,7 @@ export function passes(job: EnrichedJob, filters: JobFilters, key: keyof JobFilt
   }
 }
 
-export const FILTER_KEYS: (keyof JobFilters)[] = ["radiusKm", "cantons", "jobTypes", "workloadMin", "fields", "startYear", "education", "languages", "companies", "sources", "postedWithin", "remote", "salaryMin", "onlyNew", "hideSaved"];
+export const FILTER_KEYS: (keyof JobFilters)[] = ["radiusKm", "country", "cantons", "jobTypes", "workloadMin", "fields", "startYear", "education", "languages", "companies", "sources", "postedWithin", "remote", "salaryMin", "onlyNew", "hideSaved"];
 
 export function applyJobFilters(jobs: EnrichedJob[], filters: JobFilters, options: FilterOptions = {}): EnrichedJob[] {
   return jobs.filter((job) => FILTER_KEYS.every((key) => passes(job, filters, key, options)));
@@ -113,7 +119,7 @@ export function applyJobFilters(jobs: EnrichedJob[], filters: JobFilters, option
 /** Number of active (non-default) filters, location/kind excluded unless a radius is set. */
 export function activeFilterCount(filters: JobFilters): number {
   return [
-    filters.radiusKm !== undefined && filters.location.trim(), filters.cantons.length, filters.jobTypes.length,
+    filters.radiusKm !== undefined && filters.location.trim(), filters.country === "all", filters.cantons.length, filters.jobTypes.length,
     filters.workloadMin !== undefined || filters.workloadMax !== undefined, filters.fields.length, filters.startYear !== undefined,
     filters.education.length, filters.languages.length, filters.companies.length, filters.sources.length, filters.postedWithin,
     filters.remote, filters.salaryMin !== undefined, filters.onlyNew, filters.hideSaved,

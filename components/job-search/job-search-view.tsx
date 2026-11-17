@@ -216,6 +216,8 @@ export function JobSearchView() {
   const ranked = useMemo(() => sortJobs(rankJobs(filtered, state.query), state.sort), [filtered, state.query, state.sort]);
   const facets = useMemo(() => computeFacets(results, state.filters, saved), [results, state.filters, saved]);
   const companies = useMemo(() => companyOptions(results), [results]);
+  // "Schweiz" (default) hides listings abroad or without a recognisable place: say how many, with a one-click way to see them
+  const hiddenAbroad = state.filters.country === "all" ? 0 : facets.country.all - facets.country.ch;
   const shown = ranked.slice(0, visible);
   const hasMoreLocal = ranked.length > visible;
 
@@ -303,7 +305,8 @@ export function JobSearchView() {
 
           {searched && !loading && (
             <div className="mt-4">
-              <p className="text-body text-muted" aria-live="polite"><strong className="marker font-display text-xl font-extrabold text-[var(--ink)] tabular">{ranked.length}</strong> {ranked.length === 1 ? "Treffer" : "Treffer"}{filtered.length !== results.length ? ` (von ${results.length} geladenen)` : ""} für „{searched.query}“{place ? ` in ${place.label} (${effectiveRadiusKm(state.filters) === 0 ? "nur dieser Ort" : `bis ${effectiveRadiusKm(state.filters)} km`})` : " · ganze Schweiz"}{place && hiddenNoPlace > 0 ? ` · ${hiddenNoPlace} ${hiddenNoPlace === 1 ? "Anzeige" : "Anzeigen"} ohne erkennbaren Ort ausgeblendet` : ""}</p>
+              <p className="text-body text-muted" aria-live="polite"><strong className="marker font-display text-xl font-extrabold text-[var(--ink)] tabular">{ranked.length}</strong> {ranked.length === 1 ? "Treffer" : "Treffer"}{filtered.length !== results.length ? ` (von ${results.length} geladenen)` : ""} für „{searched.query}“{place ? ` in ${place.label} (${effectiveRadiusKm(state.filters) === 0 ? "nur dieser Ort" : `bis ${effectiveRadiusKm(state.filters)} km`})` : state.filters.country === "all" ? " · Schweiz und Ausland" : " · ganze Schweiz"}{place && hiddenNoPlace > 0 ? ` · ${hiddenNoPlace} ${hiddenNoPlace === 1 ? "Anzeige" : "Anzeigen"} ohne erkennbaren Ort ausgeblendet` : ""}</p>
+              {hiddenAbroad > 0 && <p className="mt-1 text-small text-muted">{hiddenAbroad} {hiddenAbroad === 1 ? "Anzeige liegt" : "Anzeigen liegen"} ausserhalb der Schweiz oder {hiddenAbroad === 1 ? "hat" : "haben"} keinen erkennbaren Ort. <button type="button" className="inline-flex min-h-9 items-center font-semibold text-[var(--ink)] underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:decoration-[var(--ink)] pointer-coarse:min-h-11" onClick={() => patchFilters({ country: "all" })}>Alle zeigen</button></p>}
               {sourceStatuses.length > 0 && <ul aria-label="Durchsuchte Quellen" className="mt-2 flex flex-wrap gap-2">{sourceStatuses.map((s) => <li key={s.name}><Badge tone="neutral">{s.name}{s.status === "unavailable" ? " · antwortet gerade nicht" : ` · ${facets.sources[s.name] ?? 0}${s.status === "partial" ? " · noch nicht alle geladen" : ""}`}</Badge></li>)}</ul>}
 
               {ranked.length === 0 ? (
@@ -313,6 +316,7 @@ export function JobSearchView() {
                   <p className="mt-1.5 max-w-md text-body text-muted">{results.length > 0 ? "Deine Filter sind für diese Treffer zu streng." : "Versuche einen verwandten Beruf oder einen anderen Ort."}</p>
                   <div className="mt-4 flex flex-wrap justify-center gap-2">
                     {filterCount > 0 && <Button type="button" variant="secondary" icon={<Lightbulb size={15} />} onClick={clearFilters}>Suche erweitern: Filter löschen</Button>}
+                    {hiddenAbroad > 0 && <Button type="button" variant="secondary" onClick={() => patchFilters({ country: "all" })}>Auch ausserhalb der Schweiz zeigen</Button>}
                     {state.filters.location && <Button type="button" variant="secondary" onClick={() => { const next = { ...state, filters: { ...state.filters, location: "", radiusKm: undefined } }; setState(next); void runSearch(next); }}>In der ganzen Schweiz suchen</Button>}
                   </div>
                 </Card>

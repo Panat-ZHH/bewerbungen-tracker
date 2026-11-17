@@ -27,6 +27,7 @@ export function stateToParams(state: JobSearchState): URLSearchParams {
   if (f.location.trim()) p.set("l", f.location.trim().slice(0, MAX_LEN));
   if (f.radiusKm !== undefined) p.set("r", String(f.radiusKm));
   if (f.cantons.length) p.set("c", f.cantons.join(","));
+  if (f.country === "all") p.set("land", "alle");
   if (f.jobTypes.length) p.set("t", f.jobTypes.join(","));
   if (f.workloadMin !== undefined) p.set("wn", String(f.workloadMin));
   if (f.workloadMax !== undefined) p.set("wx", String(f.workloadMax));
@@ -61,6 +62,8 @@ export function paramsToState(input: URLSearchParams | string | Record<string, s
   if (radius !== undefined && (RADIUS_OPTIONS as readonly number[]).includes(radius)) f.radiusKm = radius;
   else if (radius === 100) f.radiusKm = 50;
   f.cantons = pick(p.get("c")?.toUpperCase() ?? null, CANTON_CODES);
+  // "Schweiz / Alle": no param (all links from before the filter existed) = Schweiz, the default
+  if (p.get("land")?.toLowerCase() === "alle") f.country = "all";
   f.jobTypes = pick<JobType>(p.get("t"), JOB_TYPES);
   f.workloadMin = int(p.get("wn"), 10, 100);
   f.workloadMax = int(p.get("wx"), 10, 100);

@@ -33,6 +33,10 @@ export function FilterPanel({ filters, onChange, facets, companies, idPrefix = "
         <label className="block pt-1 text-small font-semibold text-muted" htmlFor={`${idPrefix}-radius`}>Umkreis</label>
         <RadiusSelect id={`${idPrefix}-radius`} value={filters.radiusKm} disabled={!filters.location.trim()} onChange={(radiusKm) => onChange({ radiusKm })} />
       </Group>
+      <Group title="Land">
+        <Segmented<"ch" | "all"> label="Land" full value={filters.country === "all" ? "all" : "ch"} onChange={(v) => onChange({ country: v === "all" ? "all" : undefined })} options={[{ value: "ch", label: "Schweiz", count: facets.country.all ? facets.country.ch : undefined }, { value: "all", label: "Alle", count: facets.country.all || undefined }]} />
+        <p className="text-small text-muted">{filters.country === "all" ? "Auch Stellen im Ausland, im Homeoffice oder ohne erkennbaren Ort." : "Nur Stellen in der Schweiz."}</p>
+      </Group>
       <Group title="Kantone">
         <div className="flex flex-wrap gap-1.5">{CANTONS.map((c) => <ToggleChip key={c} active={filters.cantons.includes(c)} count={facets.cantons[c]} onClick={() => onChange({ cantons: toggle(filters.cantons, c) })}>{c}</ToggleChip>)}</div>
       </Group>

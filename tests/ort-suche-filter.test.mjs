@@ -10,7 +10,8 @@ import { emptyFilters } from "../lib/job-filters/types.ts";
 import { normalizeRadius } from "../lib/job-search.ts";
 import * as engine from "../components/job-search/engine.ts";
 
-const job = (company, extra = {}) => ({ title: "Informatiker/in EFZ", company, url: `https://example.invalid/${encodeURIComponent(company)}`, source: "Yousty", ...extra });
+// the search API marks every geocoded Swiss listing with country "CH" (the "Schweiz / Alle" filter, default Schweiz)
+const job = (company, extra = {}) => ({ title: "Informatiker/in EFZ", company, url: `https://example.invalid/${encodeURIComponent(company)}`, source: "Yousty", country: "CH", ...extra });
 // listings as the search API delivers them for a search around Winterthur
 const listings = [
   job("Zürich AG", { location: "Zürich", distanceKm: 19.9 }), job("Seuzach AG", { location: "Seuzach", distanceKm: 3.9 }),

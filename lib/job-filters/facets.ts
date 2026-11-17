@@ -3,8 +3,11 @@ import type { JobFilters, EnrichedJob, JobType, EducationLevel } from "./types.t
 import { passes, FILTER_KEYS, companyKey } from "./filter.ts";
 import type { FilterOptions } from "./filter.ts";
 import { detectJobTypes, enrichJob, startYearOf } from "./taxonomy.ts";
+import { isSwiss } from "../geo/country.ts";
 
 export interface Facets {
+  /** "Schweiz / Alle": listings in Switzerland (`ch`) and all listings (`all`), ignoring that toggle itself. */
+  country: { ch: number; all: number };
   cantons: Record<string, number>;
   jobTypes: Partial<Record<JobType, number>>;
   fields: Record<string, number>;
@@ -21,8 +24,8 @@ export interface Facets {
 }
 
 const bump = (map: Record<string, number>, key: string | undefined) => { if (key) map[key] = (map[key] ?? 0) + 1; };
-type Dim = "cantons" | "jobTypes" | "fields" | "education" | "languages" | "sources" | "startYear" | "remote" | "postedWithin" | "workload" | "companies";
-const KEY_OF: Record<Dim, keyof JobFilters> = { cantons: "cantons", jobTypes: "jobTypes", fields: "fields", education: "education", languages: "languages", sources: "sources", startYear: "startYear", remote: "remote", postedWithin: "postedWithin", workload: "workloadMin", companies: "companies" };
+type Dim = "country" | "cantons" | "jobTypes" | "fields" | "education" | "languages" | "sources" | "startYear" | "remote" | "postedWithin" | "workload" | "companies";
+const KEY_OF: Record<Dim, keyof JobFilters> = { country: "country", cantons: "cantons", jobTypes: "jobTypes", fields: "fields", education: "education", languages: "languages", sources: "sources", startYear: "startYear", remote: "remote", postedWithin: "postedWithin", workload: "workloadMin", companies: "companies" };
 
 /** Pool of listings that pass every filter except the one for `dim`. */
 function pool(jobs: EnrichedJob[], filters: JobFilters, dim: Dim, options: FilterOptions): EnrichedJob[] {
@@ -32,8 +35,9 @@ function pool(jobs: EnrichedJob[], filters: JobFilters, dim: Dim, options: Filte
 
 export function computeFacets(jobs: EnrichedJob[], filters: JobFilters, options: FilterOptions = {}): Facets {
   const now = options.now ?? Date.now();
-  const facets: Facets = { cantons: {}, jobTypes: {}, fields: {}, education: {}, languages: {}, sources: {}, startYears: {}, remote: {}, postedWithin: {}, workload: {}, companies: {}, total: 0 };
+  const facets: Facets = { country: { ch: 0, all: 0 }, cantons: {}, jobTypes: {}, fields: {}, education: {}, languages: {}, sources: {}, startYears: {}, remote: {}, postedWithin: {}, workload: {}, companies: {}, total: 0 };
   facets.total = jobs.filter((job) => FILTER_KEYS.every((key) => passes(job, filters, key, { ...options, now }))).length;
+  for (const raw of pool(jobs, filters, "country", options)) { facets.country.all++; if (isSwiss(enrichJob(raw))) facets.country.ch++; }
   for (const raw of pool(jobs, filters, "cantons", options)) bump(facets.cantons, enrichJob(raw).canton);
   for (const raw of pool(jobs, filters, "jobTypes", options)) for (const t of detectJobTypes(enrichJob(raw))) bump(facets.jobTypes as Record<string, number>, t);
   for (const raw of pool(jobs, filters, "fields", options)) bump(facets.fields, enrichJob(raw).field);

@@ -11,6 +11,7 @@ export interface JobFilters {
   location: string;                         // free text place, resolved by the search API (lib/geo/places.ts)
   radiusKm?: number;                        // 0 ("Nur dieser Ort")|5|10|20|30|50, only with a place; undefined = default 10 km
   cantons: string[];                        // two-letter codes ZH, BE ... (client)
+  country?: "all";                         // undefined = "Schweiz" (only listings in Switzerland, default); "all" = also abroad / remote / unknown place (client)
   jobTypes: JobType[];
   workloadMin?: number;                     // pensum % lower bound 10..100
   workloadMax?: number;
@@ -44,6 +45,7 @@ export interface JobMeta {
   postedAt?: string;        // ISO date
   startDate?: string;       // ISO date or year string
   canton?: string;
+  country?: string;         // ISO code, "CH" = Switzerland; missing = unknown
   education?: EducationLevel;
   language?: string;
   remote?: "remote" | "hybrid" | "onsite";

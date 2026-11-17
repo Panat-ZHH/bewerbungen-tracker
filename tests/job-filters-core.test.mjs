@@ -93,8 +93,10 @@ test("filters: canton, type, workload overlap, year, education, source, posted, 
     job("Praktikum Marketing", { company: "C AG", location: "Basel", source: "jobup.ch", postedAt: "2026-09-01", remote: "hybrid" }),
     job("Mystery Job", { company: "D AG" }),
   ].map((listing) => locateListing(listing).job); // as delivered by the search API: place normalised, canton from the localities directory
-  const f = (filters, options) => applyJobFilters(jobs, { ...emptyFilters(), ...filters }, { now: NOW, ...options }).map((j) => j.company);
+  // "Alle": D AG has no place at all; the default "Schweiz" hides it (tests/country-filter.test.mjs), here the other filters are under test
+  const f = (filters, options) => applyJobFilters(jobs, { ...emptyFilters(), country: "all", ...filters }, { now: NOW, ...options }).map((j) => j.company);
   assert.deepEqual(f({}), ["A AG", "B AG", "C AG", "D AG"]);
+  assert.deepEqual(applyJobFilters(jobs, emptyFilters(), { now: NOW }).map((j) => j.company), ["A AG", "B AG", "C AG"]);
   assert.deepEqual(f({ cantons: ["ZH"] }), ["A AG", "D AG"]);
   assert.deepEqual(f({ cantons: ["ZH"] }, { strict: true }), ["A AG"]);
   assert.deepEqual(f({ jobTypes: ["lehrstelle"] }), ["A AG", "D AG"]);
@@ -111,7 +113,7 @@ test("filters: canton, type, workload overlap, year, education, source, posted, 
   assert.deepEqual(f({ hideSaved: true }, { savedUrls: [jobs[0].url] }), ["B AG", "C AG", "D AG"]);
   // the radius filter only applies the distances the search API put on the listings (details: tests/ort-suche-filter.test.mjs)
   const placed = [{ ...jobs[0], distanceKm: 0, inPlace: true }, { ...jobs[1], distanceKm: 95.5 }, { ...jobs[2], distanceKm: 74.3 }, jobs[3]];
-  const r = (filters, options) => applyJobFilters(placed, { ...emptyFilters(), ...filters }, { now: NOW, ...options }).map((j) => j.company);
+  const r = (filters, options) => applyJobFilters(placed, { ...emptyFilters(), country: "all", ...filters }, { now: NOW, ...options }).map((j) => j.company);
   assert.deepEqual(r({ location: "Zürich", radiusKm: 20 }, { strict: true }), ["A AG"]);
   assert.deepEqual(r({ location: "Zürich", radiusKm: 0 }, { strict: true }), ["A AG"]);
   assert.deepEqual(r({ location: "", radiusKm: 20 }, { strict: true }), ["A AG", "B AG", "C AG", "D AG"]);

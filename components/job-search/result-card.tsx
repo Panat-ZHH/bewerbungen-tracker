@@ -1,10 +1,11 @@
 "use client";
 
-import { Bus, Check, ExternalLink, MapPin, Plus } from "lucide-react";
+import { Bus, Check, ExternalLink, Globe, MapPin, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { listingSources } from "@/lib/job-results";
+import { countryLabel, listingCountry, SWITZERLAND } from "@/lib/geo/country";
 import { cardFacts, formatIsoDate } from "@/lib/job-card-info";
 import { DistanceBadge } from "./distance-badge";
 import { JOB_TYPE_LABELS, type RankedJob } from "./engine";
@@ -36,6 +37,7 @@ export function ResultCard({ item, saved, saving, onSave, compact = false, place
   const match = (field: string) => item.matches.find((m) => m.field === field)?.ranges;
   const posted = ago(job.postedAt);
   const facts = cardFacts(job);
+  const country = listingCountry(job);
   const workload = job.workloadMin !== undefined ? (job.workloadMax && job.workloadMax !== job.workloadMin ? `${job.workloadMin}–${job.workloadMax}%` : `${job.workloadMin}%`) : undefined;
   return (
     <Card interactive className="animate-rise">
@@ -46,6 +48,7 @@ export function ResultCard({ item, saved, saving, onSave, compact = false, place
           {job.snippet && !compact && <p className="mt-1.5 line-clamp-2 break-words text-sm text-muted"><Highlight text={job.snippet} ranges={match("snippet")} /></p>}
           <p className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-muted">
             {job.location && <Badge><MapPin size={12} aria-hidden /><Highlight text={job.location} ranges={match("location")} /></Badge>}
+            {country !== SWITZERLAND && <Badge><Globe size={12} aria-hidden />{countryLabel(country)}</Badge>}
             <DistanceBadge km={job.distanceKm} from={placeLabel} />
             {job.jobType && <Badge tone="brand">{JOB_TYPE_LABELS[job.jobType]}</Badge>}
             {workload && <Badge>{workload}</Badge>}

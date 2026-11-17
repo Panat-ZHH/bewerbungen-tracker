@@ -14,6 +14,8 @@ export interface JobSearchResult {
   postedAt?: string;
   startDate?: string;
   canton?: string;
+  /** ISO country code of the listing's place ("CH", "LI", "DE" …), set by the search API; missing = unknown (e.g. Homeoffice). */
+  country?: string;
   education?: "efz" | "eba" | "bm" | "hf" | "fh" | "uni" | "none";
   language?: string;
   remote?: "remote" | "hybrid" | "onsite";
@@ -71,7 +73,7 @@ export function listingSources(result: JobSearchResult) {
   return [...links.values()];
 }
 
-const enrichmentKeys = ["contract", "jobType", "workloadMin", "workloadMax", "postedAt", "startDate", "canton", "education", "language", "remote", "salaryMin", "salaryMax", "field", "snippet", "deadline", "schnupperlehre", "transit", "distanceKm", "inPlace"];
+const enrichmentKeys = ["contract", "jobType", "workloadMin", "workloadMax", "postedAt", "startDate", "canton", "country", "education", "language", "remote", "salaryMin", "salaryMax", "field", "snippet", "deadline", "schnupperlehre", "transit", "distanceKm", "inPlace"];
 
 export function mergeJobResults(existing: JobSearchResult[], incoming: JobSearchResult[]): JobSearchResult[] {
   const merged = existing.map((result) => ({ ...result, sources: listingSources(result), years: listingYears(result) }));

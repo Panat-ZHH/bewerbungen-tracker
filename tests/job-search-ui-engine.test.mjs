@@ -12,7 +12,8 @@ test("filters keep listings with missing data and drop mismatches", () => {
   const f = { ...emptyFilters("job"), cantons: ["ZH"] };
   // core resolves "Bern" -> BE and "Basel BS" -> BS, so only the Zürich listing stays
   assert.deepEqual(applyFilters(jobs, f, new Set()).map((j) => j.url), ["https://a"]);
-  assert.deepEqual(applyFilters([{ title: "X", url: "https://x", source: "jobs.ch" }], f, new Set()).length, 1); // missing data is kept
+  assert.deepEqual(applyFilters([{ title: "X", url: "https://x", source: "jobs.ch" }], { ...f, country: "all" }, new Set()).length, 1); // missing data is kept (with "Alle")
+  assert.deepEqual(applyFilters([{ title: "X", url: "https://x", source: "jobs.ch" }], f, new Set()).length, 0); // default "Schweiz": no place, not shown
   const pensum = { ...emptyFilters("job"), workloadMin: 90 };
   assert.equal(applyFilters(jobs, pensum, new Set()).some((j) => j.url === "https://c"), false);
   assert.equal(applyFilters(jobs, { ...emptyFilters(), hideSaved: true }, new Set(["https://a"])).length, 2);

@@ -3,6 +3,7 @@ import { load } from "cheerio";
 import robotsParser from "robots-parser";
 import { listingSources, mergeJobResults, type JobSearchResult } from "./job-results.ts";
 import { CANTON_CODES, cantonFromName } from "./geo/cantons.ts";
+import { detectListingCountry } from "./geo/country.ts";
 import { cantonsWithin, distanceKm, geocode, locateListing, placeNamesWithin, samePlace, withinRadius, type PlaceMatch } from "./geo/places.ts";
 import { DEFAULT_RADIUS_KM, RADIUS_OPTIONS } from "./job-filters/taxonomy.ts";
 import { splitPlace } from "./job-query-parse.ts";
@@ -223,8 +224,8 @@ function titleMeta(title: string, now: Date): Pick<JobSearchResult, "education" 
 }
 
 /** jobs.ch / jobup.ch embed their search state as JSON; every listing has structured locations (canton, city, postcode). Best effort, never throws. */
-export function jobsStateLocations(html: string): Map<string, { canton?: string; city?: string; plz?: string }> {
-  const found = new Map<string, { canton?: string; city?: string; plz?: string }>();
+export function jobsStateLocations(html: string): Map<string, { canton?: string; city?: string; plz?: string; country?: string }> {
+  const found = new Map<string, { canton?: string; city?: string; plz?: string; country?: string }>();
   const text = (value: string | undefined) => {
     if (value === undefined) return undefined;
     try { return JSON.parse(`"${value}"`) as string; } catch { return undefined; }
@@ -233,7 +234,7 @@ export function jobsStateLocations(html: string): Map<string, { canton?: string;
     if (found.has(match[1]) || !match[2]) continue;
     const field = (name: string) => text(match[2].match(new RegExp(`"${name}":"((?:[^"\\\\]|\\\\.)*)"`))?.[1]);
     const canton = field("cantonCode");
-    found.set(match[1], { canton: canton && cantonCodes.has(canton) ? canton : undefined, city: field("city") || undefined, plz: field("postalCode") || undefined });
+    found.set(match[1], { canton: canton && cantonCodes.has(canton) ? canton : undefined, city: field("city") || undefined, plz: field("postalCode") || undefined, country: /^[A-Z]{2}$/.test(field("countryCode") ?? "") ? field("countryCode") : undefined });
   }
   return found;
 }
@@ -269,7 +270,7 @@ export function parseJobsHtml(html: string, source: "jobs" | "jobup" = "jobs", o
     results.set(url.href, compact({
       title, company: company || undefined, location: place || undefined, url: url.href, source: sourceNames[source],
       contract: contract || undefined, jobType: apprenticeship && !/^(Lehrstelle|Lehre|Apprentissage)$/i.test(contract) ? "lehrstelle" as const : jobTypeFromContract(contract, workload), ...workload, ...salary, postedAt,
-      canton: structured?.canton ?? cantonFromText(place), ...titleMeta(title, now),
+      canton: structured?.canton ?? cantonFromText(place), country: structured?.country, ...titleMeta(title, now),
     }));
   });
   return [...results.values()];
@@ -401,7 +402,11 @@ async function sourceSegments(search: ResolvedSearch, source: JobSource, signal?
 /** Normalises the listing's place, computes the distance to the searched place (the one spot where this happens) and decides whether it is inside the radius. */
 function placeEntry(entry: JobSearchResult, search: ResolvedSearch, source: JobSource, segment: Segment): { job: JobSearchResult; keep: boolean; unresolved: boolean } {
   const hint = entry.canton ?? segment.canton;
-  const { job, match } = locateListing(entry, source === "yousty" ? { preferCanton: hint } : { canton: hint });
+  const found = locateListing(entry, source === "yousty" ? { preferCanton: hint } : { canton: hint });
+  const { match } = found;
+  // the country decides the "Schweiz / Alle" filter in the browser; unknown (e.g. "Homeoffice", a German town) stays unset
+  const country = detectListingCountry(found.job, { structured: entry.country, matchedCanton: match?.canton, swissSource: source === "yousty" });
+  const job: JobSearchResult = country ? { ...found.job, country } : found.job;
   if (!search.origin) return { job, keep: true, unresolved: false };
   if (!match) return { job, keep: false, unresolved: true };
   const inPlace = samePlace(search.origin.locality, match.locality);

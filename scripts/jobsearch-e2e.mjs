@@ -3,7 +3,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { installJobsearchStub, TOTAL } from "./lib/jobsearch-stub.mjs";
+import { installJobsearchStub, makeJobs, TOTAL } from "./lib/jobsearch-stub.mjs";
 
 /** Registers the "jobsearch" flows on the e2e-all harness. */
 export function registerJobsearchFlows(flow, student) {
@@ -141,6 +141,76 @@ export function registerJobsearchFlows(flow, student) {
     await t.shot("error");
     await search("Kaufmann");
     t.check("search recovers after an error", await cards().first().waitFor().then(() => true, () => false));
+  });
+
+  // ---- "Schweiz / Alle": default Schweiz hides listings abroad / without a place (and says so), Alle shows them; URL, chip, reset
+  flow("land", student({ apps: [] }), async (t) => {
+    const { page } = t;
+    const abroad = [
+      { title: "Informatiker/in EFZ Vaduz", company: "Rhein IT Anstalt", location: "Vaduz", country: "LI", jobType: "praktikum" },
+      { title: "Informatiker/in EFZ Konstanz", company: "Bodensee GmbH", location: "Konstanz", country: "DE", jobType: "praktikum" },
+      { title: "Informatiker/in EFZ Remote", company: "Überall AG", location: "Homeoffice", jobType: "praktikum" },
+      { title: "Informatiker/in EFZ Lörrach", company: "Grenz GmbH", location: "D-79539 Lörrach", country: "DE", jobType: "praktikum" },
+    ].map((job, i) => ({ ...job, url: `https://www.jobs.ch/de/stellenangebote/detail/land-${i}/`, source: "jobs.ch", snippet: "Offene Stelle." }));
+    const swiss = makeJobs(20).map((job) => ({ ...job, country: "CH" }));
+    await installJobsearchStub(page, { jobs: [...swiss, ...abroad] });
+    const cards = () => page.locator('section[aria-label="Suchergebnisse"] ol > li');
+    const count = async () => Number(((await page.locator("p[aria-live=polite] strong").first().innerText().catch(() => "")) || "NaN").trim());
+    const hitLine = () => page.locator('section[aria-label="Suchergebnisse"] p[aria-live=polite]').first().innerText().catch(() => "");
+    const openFilters = async () => {
+      if (!t.mobile) return page.getByRole("complementary", { name: "Filter" });
+      await page.getByRole("button", { name: /^Filter( \(\d+\))?$/ }).click();
+      const dialog = page.getByRole("dialog", { name: "Filter" });
+      await dialog.waitFor();
+      return dialog;
+    };
+    const closeFilters = async (scope) => { if (t.mobile) { await scope.getByRole("button", { name: /Fertig/ }).click(); await scope.waitFor({ state: "hidden" }); } };
+    const chipCount = async (scope, name) => Number((await scope.getByRole("button", { name: new RegExp(`^${name}\\b`) }).first().innerText()).replace(/\D+/g, "") || "0");
+
+    await t.visit("/search?q=Informatiker&k=a", { waitFor: () => cards().first().waitFor() });
+    t.check("old link without land= means Schweiz: only the 20 Swiss listings", (await count()) === 20, String(await count()));
+    t.check("hidden listings are mentioned with a way to show them", await t.text(/4 Anzeigen liegen ausserhalb der Schweiz oder haben keinen erkennbaren Ort/) && await page.getByRole("button", { name: "Alle zeigen" }).isVisible());
+    let scope = await openFilters();
+    const schweiz = scope.getByRole("tab", { name: /^Schweiz/ });
+    const alle = scope.getByRole("tab", { name: /^Alle/ });
+    t.check("Land toggle: Schweiz selected by default, counts 20 / 24", (await schweiz.getAttribute("aria-selected")) === "true" && /20/.test(await schweiz.innerText()) && /24/.test(await alle.innerText()), `${await schweiz.innerText()} | ${await alle.innerText()}`);
+    const praktikumCh = await chipCount(scope, "Praktikum");
+    const zhCh = await chipCount(scope, "ZH");
+    await t.shot("land-schweiz");
+    // keyboard: arrow key moves to "Alle" and selects it
+    await schweiz.focus();
+    await page.keyboard.press("ArrowRight");
+    await page.waitForTimeout(300);
+    t.check("arrow key selects Alle and keeps the focus on it", (await alle.getAttribute("aria-selected")) === "true" && await alle.evaluate((el) => el === document.activeElement));
+    t.check("counts react to the toggle: Praktikum grows by the 4 listings abroad, ZH stays", (await chipCount(scope, "Praktikum")) === praktikumCh + 4 && (await chipCount(scope, "ZH")) === zhCh, `${praktikumCh} -> ${await chipCount(scope, "Praktikum")}, ZH ${zhCh} -> ${await chipCount(scope, "ZH")}`);
+    await t.shot("land-alle");
+    await closeFilters(scope);
+    t.check("Alle shows all 24 listings, hit line says Schweiz und Ausland", (await count()) === 24 && /Schweiz und Ausland/.test(await hitLine()), `${await count()} ${await hitLine()}`);
+    t.check("cards abroad name the country", await page.locator('section[aria-label="Suchergebnisse"]').getByText("Liechtenstein").first().isVisible());
+    t.check("no hint once everything is shown", !(await page.getByRole("button", { name: "Alle zeigen" }).count()));
+    await page.waitForURL(/[?&]land=alle/, { timeout: 4000 }).catch(() => undefined);
+    t.check("URL has land=alle", /[?&]land=alle/.test(page.url()), page.url());
+    t.check("chip 'Auch ausserhalb der Schweiz'", await page.getByRole("button", { name: "Filter entfernen: Auch ausserhalb der Schweiz" }).isVisible());
+
+    // shared link restores Alle
+    const shared = new URL(page.url());
+    await t.visit(shared.pathname + shared.search, { waitFor: () => cards().first().waitFor() });
+    t.check("shared link restores Alle", (await count()) === 24, String(await count()));
+
+    // Zurücksetzen goes back to Schweiz and drops the URL param
+    scope = await openFilters();
+    await scope.getByRole("button", { name: "Zurücksetzen" }).click();
+    await closeFilters(scope);
+    await page.waitForURL((u) => !/[?&]land=/.test(u.search), { timeout: 4000 }).catch(() => undefined);
+    t.check("Zurücksetzen: back to Schweiz (20) without land=", (await count()) === 20 && !/[?&]land=/.test(page.url()), `${await count()} ${page.url()}`);
+
+    // the hint button switches to Alle in one click
+    await page.getByRole("button", { name: "Alle zeigen" }).click();
+    await page.waitForTimeout(300);
+    t.check("'Alle zeigen' shows all listings", (await count()) === 24, String(await count()));
+    await page.getByRole("button", { name: "Filter entfernen: Auch ausserhalb der Schweiz" }).click();
+    await page.waitForTimeout(300);
+    t.check("removing the chip goes back to Schweiz", (await count()) === 20, String(await count()));
   });
 
   // ---- place: autocomplete (real /api/places of the server under test), radius, distance badge, sort, URL

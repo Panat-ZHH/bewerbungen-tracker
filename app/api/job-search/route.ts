@@ -55,9 +55,11 @@ function readEnrichment(result: JobSearchResult): Partial<JobSearchResult> {
   if (deadline !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) throw new Error("Invalid enrichment");
   const canton = text(result.canton, 2);
   if (canton !== undefined && !cantons.includes(canton)) throw new Error("Invalid enrichment");
+  const country = text(result.country, 2);
+  if (country !== undefined && !/^[A-Z]{2}$/.test(country)) throw new Error("Invalid enrichment");
   const entries = {
     contract: text(result.contract, 100), jobType: oneOf<NonNullable<JobSearchResult["jobType"]>>(result.jobType, jobTypes),
-    workloadMin: number(result.workloadMin, 0, 100), workloadMax: number(result.workloadMax, 0, 100), postedAt: date, startDate: start, canton,
+    workloadMin: number(result.workloadMin, 0, 100), workloadMax: number(result.workloadMax, 0, 100), postedAt: date, startDate: start, canton, country,
     education: oneOf<NonNullable<JobSearchResult["education"]>>(result.education, educations), language: text(result.language, 5),
     remote: oneOf<NonNullable<JobSearchResult["remote"]>>(result.remote, remotes), salaryMin: number(result.salaryMin, 0, 10000000),
     salaryMax: number(result.salaryMax, 0, 10000000), field: text(result.field, 60), snippet: text(result.snippet, 600),
