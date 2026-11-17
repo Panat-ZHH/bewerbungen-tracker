@@ -1,4 +1,5 @@
 // Pure helpers for "Konto löschen" – shared by the settings UI, the route handler and the tests.
+import { MIN_PASSWORD_LENGTH, newPasswordProblem } from "./password-policy.ts";
 
 export const DELETE_CONFIRM_WORD = "LÖSCHEN";
 /** The sign-in used to authorise the deletion must not be older than this. */
@@ -79,7 +80,7 @@ export function withSupport(message: string): string {
   return `${message.trim()} Wenn es weiterhin nicht klappt, schreib uns an ${SUPPORT_EMAIL}.`;
 }
 
-export const MIN_PASSWORD_LENGTH = 8;
+export { MIN_PASSWORD_LENGTH };
 
 /** German validation message for the "Passwort ändern" form, or null when the input is fine. */
 export function passwordChangeProblem(current: string, next: string, repeat: string): string | null {
@@ -87,5 +88,5 @@ export function passwordChangeProblem(current: string, next: string, repeat: str
   if (next.length < MIN_PASSWORD_LENGTH) return `Das neue Passwort braucht mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`;
   if (next === current) return "Das neue Passwort muss sich vom aktuellen unterscheiden.";
   if (next !== repeat) return "Die beiden neuen Passwörter stimmen nicht überein.";
-  return null;
+  return newPasswordProblem(next);
 }

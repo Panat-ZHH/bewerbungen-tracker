@@ -8,6 +8,7 @@ import { licenceError } from "@/lib/b2b/licence";
 import { statusLabels } from "@/lib/utils";
 import { STATUS_ORDER } from "@/lib/status";
 import { generalCause } from "@/lib/ux";
+import { rateLimitText } from "@/lib/rate-limit-text";
 import type { ApplicationStatus, StatusCounts } from "@/types";
 
 export { STATUS_ORDER } from "@/lib/status";
@@ -23,6 +24,8 @@ export const TABLE_ROW = "border-b-[1.5px] border-dashed border-[var(--line)] la
 export const CODE_CHIP = "tabular break-all rounded-[var(--radius-md)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--sun-soft)] px-3 py-1.5 text-[15px] font-bold tracking-[.18em] text-[var(--ink)]";
 
 export function errorMessage(reason: unknown): string {
+  const limited = rateLimitText(reason);
+  if (limited) return limited;
   // School licence full / expired / missing (B2B seat limit, codes WA001-WA003): checked first, "LICENCE_EXPIRED" contains "EXPIRED".
   if (reason instanceof Error) {
     const e = reason as Error & { code?: string; details?: string | null };

@@ -6,8 +6,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { generalCause } from "@/lib/ux";
 import { teacherErrorCode } from "./api";
+import { rateLimitText } from "@/lib/rate-limit-text";
 
 export function teacherError(reason: unknown): string {
+  const limited = rateLimitText(reason); // new limiter (lower-case code); the nudge RATE_LIMITED below is a different one
+  if (limited) return limited;
   switch (teacherErrorCode(reason)) {
     case "AUTH_REQUIRED": return "Bitte melde dich erneut an.";
     case "FORBIDDEN": return "Dafür hast du keine Berechtigung.";

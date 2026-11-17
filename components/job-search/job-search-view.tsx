@@ -139,7 +139,7 @@ export function JobSearchView() {
       if (!data.session) throw new Error("Bitte melde dich erneut an.");
       const response = await fetch("/api/job-search", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` }, body: JSON.stringify(input), signal: controller.signal });
       const payload = await response.json();
-      if (!response.ok) throw Object.assign(new Error(payload.error || "Die Suche hat nicht geklappt."), { code: payload.code });
+      if (!response.ok) throw Object.assign(new Error((payload.error === "rate_limited" && payload.message) || payload.error || "Die Suche hat nicht geklappt."), { code: payload.code ?? (response.status === 429 ? "rate_limited" : undefined) });
       if (controller.signal.aborted) return;
       const found: MultiSourceSearchBatch["place"] = payload.place ?? null;
       const textCantons: string[] = payload.cantons ?? [];
@@ -199,7 +199,7 @@ export function JobSearchView() {
       if (!data.session) throw new Error("Bitte melde dich erneut an.");
       const response = await fetch("/api/job-search", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session.access_token}` }, body: JSON.stringify({ ...searched, cursor: nextCursor, knownResults: results }), signal: controller.signal });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Weitere Stellen konnten nicht geladen werden.");
+      if (!response.ok) throw new Error((payload.error === "rate_limited" && payload.message) || payload.error || "Weitere Stellen konnten nicht geladen werden.");
       if (controller.signal.aborted) return;
       setResults((current) => mergeJobResults(current, [...(payload.updates ?? []), ...payload.results]));
       setNextCursor(payload.nextCursor); setSourceStatuses(payload.sources ?? []); setHiddenNoPlace((count) => count + (payload.hiddenWithoutPlace ?? 0));

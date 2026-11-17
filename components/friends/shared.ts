@@ -1,9 +1,12 @@
 import { socialErrorCode } from "@/lib/social";
 import { generalCause } from "@/lib/ux";
+import { rateLimitText } from "@/lib/rate-limit-text";
 
 export const PENDING_INVITE_KEY = "pendingInviteCode";
 
 export function friendlyError(reason: unknown, fallback = "Das hat leider nicht geklappt. Bitte versuche es gleich noch einmal.") {
+  const limited = rateLimitText(reason);
+  if (limited) return limited;
   switch (socialErrorCode(reason)) {
     case "AUTH_REQUIRED": return "Bitte melde dich an, um fortzufahren.";
     case "USER_NOT_FOUND": return "Dazu haben wir niemanden gefunden. Prüfe den Code oder die E-Mail-Adresse.";

@@ -5,16 +5,19 @@
 import { ReviewFailure, isReviewFailure } from "./errors.ts";
 import {
   MAX_BERUF, MAX_COMPANY, MAX_FILE_BYTES, MAX_JOB_AD, type ExtractDeps,
-  extractApplicationText, isOverDailyLimit, readOptionalField, resolveDailyLimit, safeFileName, since24h,
+  extractApplicationText, readOptionalField, safeFileName,
 } from "./extract.ts";
 import { MOCK_MODEL, mockReview } from "./mock.ts";
-import { DEFAULT_MODEL, reviewWithAnthropic } from "./anthropic.ts";
+import { budgetUnits, DEFAULT_MODEL, estimateBudgetUnits, reviewWithAnthropic } from "./anthropic.ts";
+import { AiLimiter, limitConfig } from "./limits.ts";
+import type { RateLimitRpc } from "../_shared/rate-limit-core.ts";
 import { normalizeReview, PROMPT_VERSION } from "./prompt.ts";
 import type { AiReviewResponse, AiReviewResult } from "./types.ts";
 
 export const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Expose-Headers": "retry-after",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
@@ -38,8 +41,8 @@ export interface HandlerDeps {
   saveConsent: (userId: string, atIso: string) => Promise<void>;
   /** ai_review_user_settings.daily_limit of the user, or null. */
   getDailyLimit: (userId: string) => Promise<number | null>;
-  /** Number of ai_reviews rows of the user created at or after `sinceIso`. */
-  countReviewsSince: (userId: string, sinceIso: string) => Promise<number>;
+  /** public.rate_limit_hit via the service role (persistent counters for IP / burst / daily / token budgets). */
+  rateLimit: RateLimitRpc;
   /** Inserts the result row (service role) and returns id + created_at. */
   insertReview: (row: ReviewRow) => Promise<{ id: string; created_at: string }>;
   extract: ExtractDeps;
@@ -49,8 +52,11 @@ export interface HandlerDeps {
   log?: (event: string, meta?: Record<string, string | number | boolean>) => void;
 }
 
-const json = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), { status, headers: { ...CORS_HEADERS, "Content-Type": "application/json; charset=utf-8" } });
+const json = (status: number, body: unknown, extra: Record<string, string> = {}) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, ...extra, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
+  });
 
 export function bearerToken(req: Request): string | null {
   const h = req.headers.get("authorization") ?? "";
@@ -74,6 +80,9 @@ export function createHandler(deps: HandlerDeps): (req: Request) => Promise<Resp
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS_HEADERS });
     try {
       if (req.method !== "POST") throw new ReviewFailure("bad_request", undefined, "method");
+
+      const limiter = new AiLimiter(deps.rateLimit, limitConfig(deps.env));
+      await limiter.checkRequest(req.headers);
 
       const token = bearerToken(req);
       const user = token ? await deps.verifyUser(token).catch(() => null) : null;
@@ -103,39 +112,40 @@ export function createHandler(deps: HandlerDeps): (req: Request) => Promise<Resp
 
       const at = now();
       await deps.saveConsent(user.id, at.toISOString());
+      await limiter.checkBurst(user.id);
 
-      const limit = resolveDailyLimit(await deps.getDailyLimit(user.id), deps.env("AI_REVIEW_DEFAULT_DAILY_LIMIT"));
-      if (limit !== null) {
-        const used = await deps.countReviewsSince(user.id, since24h(at));
-        if (isOverDailyLimit(used, limit)) {
-          throw new ReviewFailure(
-            "rate_limited",
-            limit === 0
-              ? "Der Bewerbungs-Check ist für dein Konto im Moment nicht freigeschaltet. Frag deine Lehrperson."
-              : `Du hast in den letzten 24 Stunden schon ${limit} ${limit === 1 ? "Check" : "Checks"} gemacht. Morgen kannst du deine Bewerbung wieder prüfen lassen.`,
-          );
-        }
-      }
-
+      // Parsing first (CPU only, no cost): a broken file must not use up one of the daily checks.
       const bytes = new Uint8Array(await file.arrayBuffer());
       const { kind, text } = await extractApplicationText(bytes, deps.extract);
       const input = { text, company, beruf, jobAd };
+      const inputChars = text.length + (company?.length ?? 0) + (beruf?.length ?? 0) + (jobAd?.length ?? 0);
 
       const mock = isMockMode(deps.env);
+      const refund = await limiter.reserve(user.id, await deps.getDailyLimit(user.id), mock ? 0 : estimateBudgetUnits(inputChars));
       let result: AiReviewResult;
       let model: string;
       if (mock) {
         result = normalizeReview(mockReview(input), { hasJobAd: Boolean(jobAd?.trim()) });
         model = MOCK_MODEL;
       } else {
-        const out = await reviewWithAnthropic(input, {
-          apiKey: deps.env("ANTHROPIC_API_KEY")!.trim(),
-          model: deps.env("AI_REVIEW_MODEL")?.trim() || DEFAULT_MODEL,
-          fetch: deps.fetch,
-          sleep: deps.sleep,
-        });
-        result = out.result;
-        model = out.model;
+        let units = 0;
+        try {
+          const out = await reviewWithAnthropic(input, {
+            apiKey: deps.env("ANTHROPIC_API_KEY")!.trim(),
+            model: deps.env("AI_REVIEW_MODEL")?.trim() || DEFAULT_MODEL,
+            fetch: deps.fetch,
+            sleep: deps.sleep,
+            onUsage: (u) => { units += budgetUnits(u); },
+          });
+          result = out.result;
+          model = out.model;
+        } catch (e) {
+          await refund(); // no result → the check does not count (the tokens still do)
+          throw e;
+        } finally {
+          await limiter.record(user.id, units);
+        }
+        log("ai_review_usage", { units });
       }
 
       const row = await deps.insertReview({
@@ -154,7 +164,7 @@ export function createHandler(deps: HandlerDeps): (req: Request) => Promise<Resp
     } catch (e) {
       if (isReviewFailure(e)) {
         log("ai_review_failed", { code: e.code, detail: e.message });
-        return json(e.status, e.toBody());
+        return json(e.status, e.toBody(), e.retryAfter ? { "Retry-After": String(e.retryAfter) } : {});
       }
       // Unknown errors (e.g. database): report as ai_failed without leaking details.
       log("ai_review_error", { name: (e as Error)?.name ?? "unknown" });

@@ -29,7 +29,7 @@ test("ics is valid-looking, escaped, folded, CRLF", () => {
   assert.match(ics, /^BEGIN:VCALENDAR\r\n/); assert.match(ics, /END:VCALENDAR\r\n$/);
   assert.match(ics, /DTSTART;VALUE=DATE:20261231\r\n/); assert.match(ics, /DTEND;VALUE=DATE:20270101\r\n/);
   assert.match(ics, /DTSTAMP:20261106T100000Z/);
-  assert.ok(ics.includes("Müller\; Söhne\\, AG"));
+  assert.ok(ics.includes("Müller\\; Söhne\\, AG")); // RFC 5545 TEXT: ";" and "," escaped with a backslash
   for (const line of ics.split("\r\n")) assert.ok(new TextEncoder().encode(line).length <= 75, line);
   assert.equal(buildIcs([{ id: "z", company: "A", position: "B", deadline: "kaputt" }]).includes("VEVENT"), false);
 });
@@ -97,6 +97,7 @@ test("SQL: reminder tables are RLS-isolated per user; reminder_log is invisible 
   await db.exec("delete from public.calendar_feeds");
   await as(A);
   assert.equal((await db.query("select * from public.calendar_feeds")).rows.length, 1, "B could not revoke A's feed");
-  assert.equal((await db.query("select * from public.reminder_log")).rows.length, 0);
+  // invisible: RLS without policies, and since 20261117041700 no table grant either (permission denied)
+  assert.equal(await db.query("select * from public.reminder_log").then((r) => r.rows.length, () => 0), 0);
   await assert.rejects(db.exec(`insert into public.reminder_log (user_id, application_id, kind, due_on, channel) values ('${A}','x','stale','2026-11-01','email')`), "users cannot write the send log");
 });

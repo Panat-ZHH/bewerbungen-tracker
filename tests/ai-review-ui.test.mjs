@@ -28,7 +28,7 @@ import {
 const ROOT = join(import.meta.dirname, "..");
 const pdf = { name: "brief.pdf", size: 20_000, type: "application/pdf" };
 const docx = { name: "Brief.DOCX", size: 20_000, type: "" };
-const SERVER_CODES = ["unauthorized", "consent_required", "bad_request", "unsupported_file", "file_too_large", "no_text", "too_long", "rate_limited", "ai_failed"];
+const SERVER_CODES = ["unauthorized", "consent_required", "bad_request", "unsupported_file", "file_too_large", "no_text", "too_long", "rate_limited", "ai_failed", "unavailable"];
 
 test("score label: friendly at every level, never shaming", () => {
   assert.equal(scoreLabel(100).label, "Richtig stark!");

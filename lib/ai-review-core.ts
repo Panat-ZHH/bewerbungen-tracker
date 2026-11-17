@@ -31,12 +31,13 @@ export const AI_REVIEW_ERROR_MESSAGES: Record<AiReviewClientErrorCode, string> =
   too_long: "Der Text ist sehr lang. Lade nur dein Motivationsschreiben hoch, ohne Lebenslauf und Zeugnisse.",
   rate_limited: "Für heute hast du genug Checks gemacht. Morgen geht es weiter. Bis dahin kannst du die Tipps schon umsetzen.",
   ai_failed: "Der Check hat gerade nicht geklappt. Das liegt nicht an dir. Warte kurz und versuche es nochmals.",
+  unavailable: "Der Bewerbungs-Check macht gerade eine Pause. Das liegt nicht an dir. Versuche es später nochmals.",
   network: "Wir erreichen den Check gerade nicht. Prüfe dein Internet und versuche es nochmals.",
   timeout: "Das hat zu lange gedauert. Versuche es gleich nochmals.",
   unknown: "Etwas ist schiefgelaufen. Versuche es nochmals. Wenn es wieder nicht klappt, melde dich bei uns.",
 };
 
-const SERVER_CODES = new Set<string>(["unauthorized", "consent_required", "bad_request", "unsupported_file", "file_too_large", "no_text", "too_long", "rate_limited", "ai_failed"]);
+const SERVER_CODES = new Set<string>(["unauthorized", "consent_required", "bad_request", "unsupported_file", "file_too_large", "no_text", "too_long", "rate_limited", "ai_failed", "unavailable"]);
 
 export function isAiReviewErrorCode(value: unknown): value is AiReviewErrorCode {
   return typeof value === "string" && SERVER_CODES.has(value);
@@ -51,6 +52,7 @@ export function errorCodeForStatus(status: number): AiReviewClientErrorCode {
   if (status === 429) return "rate_limited";
   if (status === 400) return "bad_request";
   if (status === 408 || status === 504) return "timeout";
+  if (status === 503) return "unavailable";
   if (status >= 500) return "ai_failed";
   return "unknown";
 }
@@ -59,7 +61,15 @@ export function errorCodeForStatus(status: number): AiReviewClientErrorCode {
 export function parseAiReviewError(status: number, body: unknown): { code: AiReviewClientErrorCode; message: string } {
   const raw = body && typeof body === "object" ? (body as { error?: unknown }).error : undefined;
   const code = isAiReviewErrorCode(raw) ? raw : errorCodeForStatus(status);
+  // Limits differ (a few minutes vs. tomorrow vs. "not enabled for you"): for these two codes the edge function's own,
+  // more specific wording is shown – as plain text, and only if it looks like one of our short messages.
+  const serverMessage = body && typeof body === "object" ? (body as { message?: unknown }).message : undefined;
+  if ((code === "rate_limited" || code === "unavailable") && code === raw && isFriendlyMessage(serverMessage)) return { code, message: serverMessage };
   return { code, message: AI_REVIEW_ERROR_MESSAGES[code] };
+}
+
+function isFriendlyMessage(value: unknown): value is string {
+  return typeof value === "string" && value.length >= 10 && value.length <= 300 && !/[<>{}]|https?:|error|exception|stack/i.test(value);
 }
 
 export function aiReviewErrorMessage(code: unknown): string {

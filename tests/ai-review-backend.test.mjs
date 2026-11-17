@@ -14,6 +14,7 @@ const anthropic = await import(`${fn}anthropic.ts`);
 const { createHandler, isMockMode, bearerToken } = await import(`${fn}handler.ts`);
 const { ReviewFailure, ERROR_MESSAGES, ERROR_STATUS } = await import(`${fn}errors.ts`);
 const { AI_REVIEW_CATEGORIES } = await import(`${fn}types.ts`);
+const { memoryRateLimitRpc } = await import("../supabase/functions/_shared/rate-limit-core.ts");
 
 // ---------- fixtures (generated, so no binary files in the repo) ----------
 
@@ -176,7 +177,7 @@ test("all error messages are friendly Swiss German (no ß) with the documented H
   }
   assert.deepEqual(ERROR_STATUS, {
     unauthorized: 401, consent_required: 400, bad_request: 400, unsupported_file: 415, file_too_large: 413,
-    no_text: 422, too_long: 413, rate_limited: 429, ai_failed: 502,
+    no_text: 422, too_long: 413, rate_limited: 429, ai_failed: 502, unavailable: 503,
   });
   assert.match(ERROR_MESSAGES.no_text, /eingescannt/);
 });
@@ -293,13 +294,16 @@ test("anthropic: JSON wrapped in a code fence is still read", () => {
 
 const USER = "00000000-0000-4000-8000-0000000000a1";
 function setup({ env = {}, limit = null, used = 0, fetch: f } = {}) {
-  const state = { consent: [], inserted: [], logs: [], countSince: null };
+  const state = { consent: [], inserted: [], logs: [] };
+  const rateLimit = memoryRateLimitRpc();
+  // `used` = checks already made today (pre-fills the persistent daily counter).
+  if (used) { const day = Math.floor(Date.now() / 1000); rateLimit.counts.set(`ai-review:user:${USER}:day@${day - (day % 86400)}`, used); }
   const handler = createHandler({
     env: (k) => env[k],
     verifyUser: async (t) => (t === "good-token" ? { id: USER } : null),
     saveConsent: async (id, at) => { state.consent.push({ id, at }); },
     getDailyLimit: async () => limit,
-    countReviewsSince: async (_id, since) => { state.countSince = since; return used; },
+    rateLimit,
     insertReview: async (row) => { state.inserted.push(row); return { id: "row-1", created_at: "2026-11-12T10:00:00Z" }; },
     extract: deps,
     fetch: f,
@@ -402,14 +406,14 @@ test("handler: auth, consent and input errors", async () => {
   assert.equal(state.inserted.length, 0);
 });
 
-test("handler: daily limit from user setting or env, counted over the last 24 h", async () => {
+test("handler: daily limit from user setting or env (persistent counter, default 10)", async () => {
   {
     const { handler, state } = setup({ limit: 3, used: 3 });
     const r = await call(handler, post());
     assert.equal(r.status, 429);
     assert.equal(r.body.error, "rate_limited");
     assert.match(r.body.message, /3 Checks/);
-    assert.equal(state.countSince, "2026-11-11T10:00:00.000Z");
+    assert.ok(Number(r.res.headers.get("retry-after")) >= 1);
     assert.equal(state.inserted.length, 0);
   }
   {
@@ -421,9 +425,9 @@ test("handler: daily limit from user setting or env, counted over the last 24 h"
     assert.equal((await call(handler, post())).status, 429);
   }
   {
-    const { handler, state } = setup({ used: 999 }); // default: no limit, not even counted
+    const { handler } = setup({ used: 9 }); // safe default: 10 per day
     assert.equal((await call(handler, post())).status, 200);
-    assert.equal(state.countSince, null);
+    assert.equal((await call(handler, post())).status, 429);
   }
 });
 
@@ -432,7 +436,7 @@ test("handler: unexpected errors (e.g. database) give a generic 502 without deta
     env: () => undefined,
     verifyUser: async () => ({ id: USER }),
     saveConsent: async () => { throw new Error("db down: secret detail"); },
-    getDailyLimit: async () => null, countReviewsSince: async () => 0, insertReview: async () => ({ id: "x", created_at: "y" }),
+    getDailyLimit: async () => null, rateLimit: memoryRateLimitRpc(), insertReview: async () => ({ id: "x", created_at: "y" }),
     extract: deps,
   });
   const r = await call(handler, post());
