@@ -59,6 +59,8 @@ async function open({ role = "student", access = A(), meta, authed = true, viewp
   const st = { access, checkout: [] };
   await ctx.route(`${SUPABASE_URL}/rest/v1/rpc/my_access`, (r) => typeof st.access === "number" ? json(r, st.access, { code: "PGRST202", message: "Could not find the function public.my_access" }) : json(r, 200, st.access));
   await ctx.route(`${SUPABASE_URL}/rest/v1/rpc/paywall_probe`, (r) => json(r, 400, { code: "P0001", message: "PAYWALL", details: null, hint: null }));
+  // Restrictive RLS policy of the backend (20261118020000_access_guards.sql): PostgREST answers 403 / 42501 naming the policy.
+  await ctx.route(`${SUPABASE_URL}/rest/v1/rls_gate_probe**`, (r) => json(r, 403, { code: "42501", message: 'new row violates row-level security policy "access gate insert" for table "applications"', details: null, hint: null }));
   // Like GoTrue: back to redirect_to (keeps ?next=) with a one-time code.
   await ctx.route(`${SUPABASE_URL}/auth/v1/authorize**`, (r) => {
     const back = new URL(new URL(r.request().url()).searchParams.get("redirect_to") || `${BASE}/auth/callback`);
@@ -334,6 +336,15 @@ const scenarios = {
     st.access = EXPIRED();
     await page.evaluate((u) => fetch(`${u}/rest/v1/rpc/paywall_probe`, { method: "POST" }), SUPABASE_URL);
     check(await vis(page, '[data-testid="paywall"]', 15000), "server answers PAYWALL → paywall without reload");
+    await ctx.close();
+  },
+  async J2() {
+    const { ctx, page, st } = await open({ access: TRIAL({ trial_days_left: 0 }) });
+    await page.goto(`${BASE}/dashboard`);
+    check(await vis(page, '[data-testid="trial-banner"]', 60000), "trial (last day) first");
+    st.access = EXPIRED();
+    await page.evaluate((u) => fetch(`${u}/rest/v1/rls_gate_probe`, { method: "POST", body: "{}" }), SUPABASE_URL);
+    check(await vis(page, '[data-testid="paywall"]', 15000), "RLS 'access gate' refusal (403/42501) → paywall without reload");
     await ctx.close();
   },
   // ------------------------------------------------------------ K: /abo
