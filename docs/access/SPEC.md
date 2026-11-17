@@ -109,3 +109,16 @@ Netlify previews talk to the same Supabase project as production, so migrations 
   Run only after Panat's yes, right after the production deploy (docs/access/GO-LIVE.md).
 - The migration's own backfill creates account_access rows for existing users with `trial_ends_at = greatest(created_at + 7 days, now() + 7 days)`;
   go-live re-bases them to the go-live date.
+
+## 8. Addendum after the flow analysis (orchestrator decisions, 2026-11-17 ~10:00) – see docs/access/FLOW-ANALYSIS.md (G1–G27)
+- ACCEPTED: `AccessInfo.expired_reason` ('trial_ended'|'subscription_ended'|'payment_failed'|'licence_ended'|'family_pending'|null) and
+  `family_pending` (child/parent waiting for the other family member) so the paywall can explain itself (G12, G14).
+- ACCEPTED: trial starts at `coalesce(email_confirmed_at, created_at)` (G13).
+- ALWAYS UNGATED (no _assert_app_access, no restrictive policy blocks them, UI allow-listed): class join by code/link incl. /classes and
+  /classes/join/* (G1); everything in "Meine Daten löschen" and account deletion incl. their UPDATEs on profiles/cvs/storage (G2);
+  family create/invite/join/consent/share + account_set_type for parents AND children incl. /familie/einladung/* (G3); billing; role fix.
+- Account deletion must also block/cancel on an open `solo` subscription (account_billing_blockers) (G4).
+- School admins: own role 'school_admin' in AccessInfo, routed to /schul-admin, gated by licence like teachers (G6); /schul-admin redirects others (G21).
+- Wrong role: users without any class/family may switch role once from /schullizenz and the paywall ("Falsche Rolle gewählt?") via set_my_role (G7).
+- "Schule" signup asks for the class code (optional, "später") right after signup (G8). Teachers cannot create classes without licence (G9).
+- Blocked users: may still export and delete their data (Swiss nDSG data rights) – nothing else (G11).
