@@ -22,3 +22,20 @@ export function newPasswordProblem(password: string, email?: string | null): str
   if (email && (lower === email.trim().toLowerCase() || (local.length >= 4 && lower === local))) return "Dein Passwort darf nicht deine E-Mail-Adresse sein.";
   return null;
 }
+
+/**
+ * supabase.auth.updateUser() attributes for "Passwort ändern". `current_password` lets Supabase Auth check the old
+ * password ON THE SERVER once the project setting security_update_password_require_current_password is on (it is
+ * ignored while the setting is off). Without it, anyone holding a session (a school PC left signed in) can set a new
+ * password and lock the owner out. Reset links (recovery sessions) are exempt on the server: /login/reset sends only
+ * the new password.
+ */
+export function passwordChangeAttributes(current: string, next: string): { password: string; current_password: string } {
+  return { password: next, current_password: current };
+}
+
+/** true for Supabase Auth's "current password missing / wrong" answers (error codes current_password_*). */
+export function isCurrentPasswordError(error: unknown): boolean {
+  const code = error && typeof error === "object" ? String((error as { code?: unknown }).code ?? "") : "";
+  return code === "current_password_required" || code === "current_password_mismatch";
+}

@@ -7,6 +7,7 @@ import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
 import { passwordChangeProblem, withSupport } from "@/lib/account-deletion";
+import { isCurrentPasswordError, passwordChangeAttributes } from "@/lib/password-policy";
 import { SettingsSection } from "./section";
 
 /** Only shown for accounts that sign in with e-mail + password (Google accounts have no password here). */
@@ -39,8 +40,9 @@ export function PasswordChangeCard() {
     try {
       const check = await supabase.auth.signInWithPassword({ email: email ?? "", password: current });
       if (check.error) { setNotice({ tone: "danger", text: /invalid|credentials/i.test(check.error.message) ? "Das aktuelle Passwort stimmt nicht." : withSupport("Die Anmeldung hat nicht geklappt.") }); return; }
-      const { error } = await supabase.auth.updateUser({ password: next });
-      if (error) { setNotice({ tone: "danger", text: /same|different/i.test(error.message) ? "Das neue Passwort muss sich vom aktuellen unterscheiden." : withSupport("Das Passwort konnte nicht geändert werden.") }); return; }
+      // current_password: the server checks the old password itself (security_update_password_require_current_password).
+      const { error } = await supabase.auth.updateUser(passwordChangeAttributes(current, next));
+      if (error) { setNotice({ tone: "danger", text: isCurrentPasswordError(error) ? "Das aktuelle Passwort stimmt nicht." : /same|different/i.test(error.message) ? "Das neue Passwort muss sich vom aktuellen unterscheiden." : withSupport("Das Passwort konnte nicht geändert werden.") }); return; }
       setCurrent(""); setNext(""); setRepeat("");
       setNotice({ tone: "success", text: "Dein Passwort wurde geändert." });
     } catch {
