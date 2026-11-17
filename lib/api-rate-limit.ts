@@ -95,6 +95,13 @@ export async function checkIp(scope: RouteScope, headers: Headers, options: { rp
   return rateLimit({ key: await ipKey(scope, headers), ...cfg.ip }, { onError: cfg.onError, rpc: options.rpc });
 }
 
+/** Per-IP peek (cost 0): is this IP already over the limit? Counts nothing (used before a lookup whose misses count). */
+export async function peekIp(scope: RouteScope, headers: Headers, options: { rpc?: RateLimitRpc } = {}): Promise<RateLimitResult> {
+  const cfg = routeLimit(scope);
+  if (limitsDisabled() || !cfg.ip) return ALLOWED;
+  return rateLimit({ key: await ipKey(scope, headers), ...cfg.ip, cost: 0 }, { onError: cfg.onError, rpc: options.rpc });
+}
+
 /** Per-user (or per-token) check after authentication. id = user uuid or another stable id (never a raw secret). */
 export async function checkUser(scope: RouteScope, id: string, options: { rpc?: RateLimitRpc } = {}): Promise<RateLimitResult> {
   const cfg = routeLimit(scope);
