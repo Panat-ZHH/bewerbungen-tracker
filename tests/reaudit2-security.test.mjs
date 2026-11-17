@@ -45,3 +45,15 @@ test("AI review: a DOCX zip bomb is not inflated (declared size capped), normal 
   const index = await readFile(new URL(`${fn}index.ts`, import.meta.url), "utf8");
   assert.match(index, /only\(f\.name, f\.originalSize\)/);
 });
+
+test("job search cache: known results with edited texts never share a cache entry (no cross-user content planting)", async () => {
+  const { searchCacheKey } = await import("../lib/job-search.ts");
+  const url = "https://www.yousty.ch/de-CH/lehrstellen/profile/123-informatiker-efz";
+  const base = { query: "Informatiker", location: "Zürich", kind: "apprenticeship", cursor: { yousty: { page: 2, offset: 0 }, jobs: null, jobup: null } };
+  const real = searchCacheKey({ ...base, knownResults: [{ title: "Informatiker/in EFZ", company: "Muster AG", source: "Yousty", url }] });
+  const forged = searchCacheKey({ ...base, knownResults: [{ title: "Bewerbung nur gegen CHF 50 Gebühr: zahl-hier.example", company: "Muster AG", source: "Yousty", url }] });
+  assert.notEqual(real, forged);
+  // Same input -> same key (paging back and forth still hits the cache); query case does not matter.
+  assert.equal(real, searchCacheKey({ ...base, query: "informatiker", knownResults: [{ title: "Informatiker/in EFZ", company: "Muster AG", source: "Yousty", url }] }));
+  assert.ok(real.length < 100, "hashed key stays small");
+});
