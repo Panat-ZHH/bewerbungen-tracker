@@ -1,10 +1,11 @@
 "use client";
 // Browser-side data access for reminders (RLS limits everything to the signed-in user).
 import { supabase } from "@/lib/supabase";
+import { requireUserId } from "@/lib/session-user";
 import { registerServiceWorker, SW_URL } from "@/components/pwa/sw-registration";
 import { DEFAULT_SETTINGS, isoDay, newFeedToken, normalizeSettings, type ReminderSettings } from "@/lib/reminders";
 
-async function uid() { const { data, error } = await supabase.auth.getUser(); if (error || !data.user) throw new Error("You must be signed in."); return data.user.id; }
+const uid = requireUserId;
 
 export async function loadReminderSettings(): Promise<ReminderSettings> {
   const { data, error } = await supabase.from("reminder_settings").select("*").eq("user_id", await uid()).maybeSingle();

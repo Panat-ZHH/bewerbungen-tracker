@@ -8,7 +8,7 @@ import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, He
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
-import { useMyAvatar } from "@/components/ui/use-avatars";
+import { clearMyAvatarCache, useMyAvatar } from "@/components/ui/use-avatars";
 import { FriendRequestsProvider, useFriendRequests } from "@/components/friends/friend-requests-context";
 import { RequestBadge } from "@/components/friends/request-badge";
 import { NoticeBadge } from "@/components/classes/notice-badge";
@@ -17,7 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { signOutEverywhere } from "@/lib/sign-out";
-import { clearPendingSignup, clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
+import { cachedRole, clearPendingSignup, clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
 import { FAMILY_PATH, familyInviteCodeFromPath, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
@@ -66,6 +66,30 @@ const accountLinks = [
 ];
 
 /** `fullscreen`: the page owns the whole viewport (map). No page scroll, header hidden on phones (bottom tab bar stays), children fill the remaining space. */
+/**
+ * Perf (2026-11-17): every page mounts its own shell, so without a cache each in-app navigation showed the full-screen skeleton
+ * again until auth.getUser() (a round trip to the auth server), my_access() and social_my_profile() had answered.
+ * The user of this tab is kept here: the next page renders at once. The session is read locally (getSession) and verified with
+ * the auth server once per page load in the background; a rejected session still ends on /login as before.
+ */
+let shellUser: User | null = null;
+let verifiedOnce = false;
+/** "In a class" for the mobile tab bar, per user for this tab (joining / leaving a class reloads the classes page anyway). */
+let classCache: { userId: string; inClass: boolean } | null = null;
+function rememberUser(user: User | null) {
+  // Another account in this tab: forget everything cached for the previous one.
+  if (shellUser?.id !== user?.id) { classCache = null; clearMyAvatarCache(); }
+  shellUser = user;
+  if (!user) verifiedOnce = false;
+}
+
+/** Where the shell must send this user instead of `path` (null = stay). Pure, shared by the first render and the role effect. */
+function shellTarget(resolved: UserRole, path: string, schoolAdmin: boolean, parentAccount: boolean): string | null {
+  // School admins (not teachers) have no student pages: their home is /schul-admin (G6).
+  const adminTarget = schoolAdmin && resolved === "student" && guardRedirect("teacher", path) ? "/schul-admin" : null;
+  return adminTarget ?? guardRedirect(resolved, path) ?? (resolved === "student" && parentAccount ? parentGuardRedirect(path) : null);
+}
+
 export function WorkspaceShell(props: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
   return <FriendRequestsProvider enabled><AccessProvider><ShellInner {...props} /></AccessProvider></FriendRequestsProvider>;
 }
@@ -75,29 +99,46 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
   const { access, loading: accessLoading } = useAccess();
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<User | null>(null);
-  const [checkingSession, setCheckingSession] = useState(true);
+  const [user, setUser] = useState<User | null>(shellUser);
+  const [checkingSession, setCheckingSession] = useState(!shellUser);
   const [moreOpen, setMoreOpen] = useState(false);
   const myAvatar = useMyAvatar(Boolean(user));
-  const [role, setRole] = useState<UserRole | null>(null);
-  const [inClass, setInClass] = useState<boolean | null>(null);
-  const [profileName, setProfileName] = useState("");
+  const [inClass, setInClass] = useState<boolean | null>(() => (shellUser && classCache?.userId === shellUser.id ? classCache.inClass : null));
+  const [profileName, setProfileName] = useState(() => (shellUser ? cachedRole(shellUser.id)?.displayName ?? "" : ""));
   // Parent / school admin by server truth once my_access() answered (G20), metadata only as a fallback.
   const parentAccount = isParentAccount(user?.user_metadata, access);
   const schoolAdmin = isSchoolAdmin(access);
   // Paywall / licence gate / blocked (SPEC §6): replaces the page except on allow-listed paths. Only when enforced.
   const gate = accessView(access, pathname, { parent: parentAccount });
   const fullscreen = fullscreenPage && gate === "page";
+  // Known user + role + access from the previous page: render right away when this page is allowed (no skeleton between pages).
+  const [role, setRole] = useState<UserRole | null>(() => {
+    const known = shellUser && !accessLoading && !needsRoleChoice(shellUser) ? cachedRole(shellUser.id) : null;
+    return known && !shellTarget(known.role, pathname ?? "/", schoolAdmin, parentAccount) ? known.role : null;
+  });
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getUser().then(({ data }) => {
-      if (mounted) {
-        setUser(data.user);
-        setCheckingSession(false);
-      }
+    // Local session first (no network): the page can start at once.
+    supabase.auth.getSession().then(({ data }) => {
+      if (!mounted) return;
+      const local = data.session?.user ?? null;
+      rememberUser(local);
+      setUser(local);
+      setCheckingSession(false);
+      if (local) void loadMyRole(local).catch(() => undefined); // in parallel with my_access()
+      if (!local || verifiedOnce) return;
+      verifiedOnce = true;
+      // Once per page load: does the auth server still accept this session (signed out elsewhere, user deleted)? A network
+      // error keeps the user (offline); a refused session goes to /login exactly like before.
+      supabase.auth.getUser().then(({ data: fresh, error }) => {
+        if (fresh.user) { rememberUser(fresh.user); if (mounted) setUser(fresh.user); return; }
+        if (error?.name === "AuthRetryableFetchError") { verifiedOnce = false; return; }
+        rememberUser(null);
+        if (mounted) setUser(null);
+      }).catch(() => { verifiedOnce = false; });
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setUser(session?.user ?? null));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { const next = session?.user ?? null; rememberUser(next); setUser(next); });
     return () => {
       mounted = false;
       listener.subscription.unsubscribe();
@@ -123,13 +164,12 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
       if (!alive) return;
       setProfileName(name);
       const path = pathname ?? "/";
-      // School admins (not teachers) have no student pages: their home is /schul-admin (G6).
-      const adminTarget = schoolAdmin && resolved === "student" && guardRedirect("teacher", path) ? "/schul-admin" : null;
-      const target = adminTarget ?? guardRedirect(resolved, path) ?? (resolved === "student" && parentAccount ? parentGuardRedirect(path) : null);
+      const target = shellTarget(resolved, path, schoolAdmin, parentAccount);
       if (target) {
         // A class link opened by a parent / a family link opened by a teacher: say why instead of a silent redirect (G16).
         const notice = wrongRoleNotice(resolved === "teacher" ? "teacher" : parentAccount ? "parent" : "student", path);
         if (notice) toast({ message: notice, tone: "info", duration: 8000 });
+        setRole(null);
         router.replace(target);
       } else setRole(resolved);
     });
@@ -140,7 +180,8 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
   useEffect(() => {
     if (!user || role !== "student" || parentAccount) return;
     let alive = true;
-    getMyClassMemberships().then((list) => { if (alive) setInClass(list.length > 0); }).catch(() => {});
+    if (classCache?.userId === user.id) return; // known from the previous page (initial state)
+    getMyClassMemberships().then((list) => { classCache = { userId: user.id, inClass: list.length > 0 }; if (alive) setInClass(list.length > 0); }).catch(() => {});
     return () => { alive = false; };
   }, [user, role, parentAccount]);
 
@@ -165,6 +206,9 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
     await signOutEverywhere(supabase.auth);
     clearRoleCache();
     clearAccessCache();
+    rememberUser(null);
+    classCache = null;
+    clearMyAvatarCache();
     // Another person may sign in on this device next: forget invites / signup choices (G26).
     clearPendingInvite();
     clearPendingSignup();

@@ -18,7 +18,7 @@ import { WeeklyGoal } from "@/components/dashboard/weekly-goal";
 import { ProgressPath } from "@/components/dashboard/progress-path";
 import { firstName, nextStep } from "@/lib/next-step";
 import { loadMyRole } from "@/lib/role";
-import { supabase } from "@/lib/supabase";
+import { sessionUser } from "@/lib/session-user";
 import { todayLocal } from "@/lib/reminders-client";
 import type { Application } from "@/types";
 
@@ -41,10 +41,10 @@ export default function DashboardPage() {
   // Name for the greeting: profile name first, then the name from the sign-up; never an e-mail address.
   useEffect(() => {
     let active = true;
-    supabase.auth.getUser().then(async ({ data }) => {
-      if (!data.user) return;
-      const profile = await loadMyRole(data.user).catch(() => null);
-      const meta = data.user.user_metadata ?? {};
+    sessionUser().then(async (user) => {
+      if (!user) return;
+      const profile = await loadMyRole(user).catch(() => null);
+      const meta = user.user_metadata ?? {};
       const found = firstName(profile?.displayName) || firstName(meta.first_name as string) || firstName(meta.full_name as string) || firstName(meta.name as string);
       if (active) setName(found);
     }).catch(() => undefined);

@@ -87,12 +87,11 @@ export async function deleteClassGoal(id: string): Promise<void> {
 /** Student view: goals of all my classes with the class-wide progress only. null = not available. */
 export async function listMyClassGoals(): Promise<{ classId: string; className: string; goals: ClassGoal[] }[] | null> {
   const memberships = await getMyMemberships();
+  // All classes at once (was one request after the other); same result and order.
+  const all = await Promise.all(memberships.map((m) => listClassGoals(m.classId)));
+  if (all.some((goals) => goals === null)) return null;
   const out: { classId: string; className: string; goals: ClassGoal[] }[] = [];
-  for (const m of memberships) {
-    const goals = await listClassGoals(m.classId);
-    if (goals === null) return null;
-    if (goals.length) out.push({ classId: m.classId, className: m.name, goals });
-  }
+  memberships.forEach((m, i) => { const goals = all[i]!; if (goals.length) out.push({ classId: m.classId, className: m.name, goals }); });
   return out;
 }
 
