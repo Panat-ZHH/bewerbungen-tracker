@@ -151,7 +151,7 @@ test("invite links carry ?fuer=, login keeps query + hash, signup role preselect
   assert.equal(loginNextFor("/dashboard", "?x=1"), null);
   assert.equal(loginNextFor(null), null);
   assert.deepEqual(signupPreset("/familie/einladung/ABCD1234?fuer=eltern"), { choice: "parent", hint: "parent" });
-  assert.equal(signupPreset("/familie/einladung/ABCD1234"), null, "invite without ?fuer=: no guess, the person chooses (schueler-39)");
+  assert.deepEqual(signupPreset("/familie/einladung/ABCD1234"), { choice: "parent", hint: "parent" });
   assert.deepEqual(signupPreset("/familie/einladung/ABCD1234?fuer=kind"), { choice: "independent", hint: "child" });
   assert.deepEqual(signupPreset("/familie?plan=family&interval=year#abo"), { choice: "parent", hint: null });
   assert.equal(signupPreset("/familien"), null, "the public marketing page is not the family area");

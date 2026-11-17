@@ -51,8 +51,9 @@ export default function LoginPage() {
     if (isInvitePath(safeNextPath(params.get("next"))) || params.get("mode") === "signup") setMode("signup");
     if (preset) {
       setRole(preset.choice);
-      setInviteHint(preset.hint);
-    } else if (familyInviteWithoutAudience(safeNextPath(params.get("next")))) setInviteHint("choose");
+      // Invite without ?fuer=: the role stays preset (Elternteil), but the hint doesn't claim it is certain (schueler-39).
+      setInviteHint(familyInviteWithoutAudience(safeNextPath(params.get("next"))) ? "choose" : preset.hint);
+    }
     // Arriving from a teacher / school page: talk to school staff, not to pupils (schule-23).
     if (/^\/(teacher|schul-admin|schullizenz)(\/|\?|#|$)/.test(safeNextPath(params.get("next")) ?? "")) setStaffNext(true);
     if (params.get("deleted") === "1") {
@@ -164,7 +165,7 @@ export default function LoginPage() {
   const isSignup = mode === "signup";
   const hint = isSignup ? passwordHint(password) : null;
   const audience: LoginAudience = staffNext || (isSignup && role === "teacher") ? "staff" : isSignup && role === "parent" ? "parent" : "student";
-  const familyHint = inviteHint === "parent" ? FAMILY_COPY.parent.signupHint : inviteHint === "child" ? FAMILY_COPY.child.signupHint : inviteHint === "choose" ? "Du wurdest in eine Familie eingeladen. Wähle, wer du bist." : null;
+  const familyHint = inviteHint === "parent" ? FAMILY_COPY.parent.signupHint : inviteHint === "child" ? FAMILY_COPY.child.signupHint : inviteHint === "choose" ? "Du wurdest in eine Familie eingeladen. Prüf unten, wer du bist: «Elternteil» oder «Schüler:in privat»." : null;
 
   return (
     <main className="workspace-bg min-h-[100dvh] overflow-x-clip px-4 pb-10 sm:px-6">
