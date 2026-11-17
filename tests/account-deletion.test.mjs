@@ -155,7 +155,7 @@ async function seed(db) {
   await db.query("update public.user_roles set role='teacher' where user_id in ($1,$2)", [U.teacher, U.co]);
   await db.query("insert into public.applications(id,user_id,company,position,category,status,created_at,updated_at) values ('a1',$1,'Acme','Dev','IT','applied',now(),now()),('a2',$1,'Beta','Dev','IT','applied',now(),now()),('o1',$2,'Other','Dev','IT','applied',now(),now())", [U.student, U.other]);
   await db.query("insert into public.profiles(id,user_id,first_name,last_name,email) values ('p1',$1,'a','b','c')", [U.student]);
-  await db.query("insert into public.cvs(id,user_id,name,type,description,updated_at,status,storage_path) values ('c1',$1,'CV','Standard','d',now(),'Ready','x/y')", [U.student]);
+  await db.query("insert into public.cvs(id,user_id,name,type,description,updated_at,status,storage_path) values ('c1',$1,'CV','Standard','d',now(),'Ready',$2)", [U.student, `${U.student}/x/y`]);
   await db.query("insert into public.friendships(requester_id,addressee_id,status) values ($1,$2,'accepted'),($3,$1,'pending')", [U.student, U.friend, U.other]);
   await db.query("insert into public.classes(id,teacher_id,name,join_code) values ('10000000-0000-4000-8000-000000000001',$1,'8a','CODE1'),('10000000-0000-4000-8000-000000000002',$2,'9b','CODE2')", [U.teacher, U.co]);
   await db.query("insert into public.class_members(class_id,student_id) values ('10000000-0000-4000-8000-000000000001',$1),('10000000-0000-4000-8000-000000000001',$2),('10000000-0000-4000-8000-000000000002',$1)", [U.student, U.other]);
