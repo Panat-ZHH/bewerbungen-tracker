@@ -54,7 +54,8 @@ const L = (path) => new RegExp(`/login\\?next=${encodeURIComponent(path).replace
 /** Expected final path (string = exact pathname, RegExp = matched against pathname+search) per persona and route. */
 function expected(persona, path) {
   if (persona === "anon") return path === "/dashboard" ? /^\/login$/ : L(path); // /dashboard is the default landing, no ?next
-  if (persona === "norole") return /^\/auth\/role/;
+  // Settings (export / delete) stay reachable before a role is chosen (access model G10); everything else asks for the role.
+  if (persona === "norole") return path === "/settings" ? "/settings" : /^\/auth\/role/;
   const studentOnly = STUDENT_PAGES.includes(path);
   if (persona === "student") return TEACHER_PAGES.includes(path) ? "/dashboard" : path;
   if (persona === "teacher") {
@@ -224,7 +225,8 @@ async function billing() {
   await withPage("anon", {}, async ({ page }) => {
     await page.goto(BASE + "/preise", { waitUntil: "domcontentloaded" }); await settle(page);
     const text = await page.locator("main").first().innerText().catch(() => "");
-    check("billing/off", "/preise: says it is free for now", /kostenlos/i.test(text), text.slice(0, 200));
+    // access model (G19): no "kostenlos für Schüler" any more – the page promises the 7-day trial instead
+    check("billing/off", "/preise: says how to try it for free (7-day trial)", /7 Tage gratis|kostenlos/i.test(text), text.slice(0, 200));
     check("billing/off", "/preise: no VAT wording (not MWST-registered)", !/MWST|MwSt|Mehrwertsteuer/.test(text), (text.match(/.{0,40}(MWST|MwSt|Mehrwertsteuer).{0,40}/) || [""])[0]);
   });
   if (!BASE_ON) { check("billing/on", "flag-on server given (BASE_ON)", true, "skipped – no BASE_ON"); return; }
