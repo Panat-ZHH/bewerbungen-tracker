@@ -89,14 +89,20 @@ export function isFreshReauth(token: string, user: IdentityInfo | null | undefin
   return freshSignInMethods(token, nowMs).some((method) => method !== "password" || emailLogin);
 }
 
-/** German bullet list of what is deleted, tailored to the counts of this account. */
-export function deletionItems(s: AccountSummary | null): string[] {
+/** German bullet list of what is deleted, tailored to the counts of this account (display strings only). */
+export function deletionItems(s: AccountSummary | null, kind?: "parent"): string[] {
+  if (kind === "parent") return [
+    "Dein Elternkonto und dein Profil mit Profilbild",
+    "Deine Verbindung zur Familie – dein Kind sieht dich danach nicht mehr in seiner Familie",
+    "Das Familienpaket läuft danach nicht mehr über dein Konto – ein laufendes Abo kündigst du vorher unter «Familie»",
+    "Deine Anmeldung (E-Mail oder Google-Verknüpfung)",
+  ];
   const n = (count: number | undefined, one: string, many: string) => (count === undefined ? many : count === 1 ? `1 ${one}` : `${count} ${many}`);
   const items = [
     s ? `${n(s.applications, "Bewerbung", "Bewerbungen")} samt Notizen, Kontakten, Fristen und Verlauf` : "Alle Bewerbungen samt Notizen, Kontakten, Fristen und Verlauf",
     s ? `${n(s.documents, "Dokument", "Dokumente")} (Lebenslauf und Anhänge) inklusive der hochgeladenen Dateien` : "Alle Dokumente und hochgeladenen Dateien (Lebenslauf, Anhänge)",
     "Dein Profil mit Profilbild, deine gespeicherten Suchen, Einstellungen und Bewerbungs-Checks",
-    "Deine Karte mit Inseln, Gebäuden, Münzen und Belohnungen",
+    "Dein Dorf mit Inseln, Häusern, Punkten und Belohnungen",
     s ? `Freundschaften und Anfragen (${s.friends}) – deine Freunde sehen dich danach nicht mehr` : "Freundschaften und Anfragen – deine Freunde sehen dich danach nicht mehr",
     "Deine Anmeldung (E-Mail oder Google-Verknüpfung)",
   ];

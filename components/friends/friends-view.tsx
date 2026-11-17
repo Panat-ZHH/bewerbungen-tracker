@@ -93,7 +93,7 @@ export function FriendsView() {
               <section aria-labelledby="friends-title">
                 <h2 id="friends-title" className="text-heading">Deine Freunde {friends.length > 0 && <span className="tabular text-muted">({friends.length})</span>}</h2>
                 {friends.length === 0 ? (
-                  <EmptyState className="mt-3" icon={<Users />} title="Noch keine Freunde hier" description="Schick deinen Einladungslink an jemanden, der sich auch bewirbt. Zu zweit fällt es leichter." />
+                  <EmptyState className="mt-3" icon={<Users />} title="Noch keine Freunde" description="Teile deinen Einladungscode. Du entscheidest, was Freunde sehen." />
                 ) : (
                   <FriendList friends={friends} activity={activity} onChanged={load} />
                 )}
@@ -108,14 +108,14 @@ export function FriendsView() {
                   <div className="flex items-center gap-3 py-3.5">
                     <div className="min-w-0 flex-1">
                       <h2 id="sharing-title" className="font-display flex items-center gap-2 text-[17px] font-bold leading-snug tracking-[-.01em]">{profile.shareWithFriends ? <Eye size={18} strokeWidth={2.2} className="shrink-0 text-[var(--brand)]" aria-hidden /> : <EyeOff size={18} strokeWidth={2.2} className="shrink-0 text-muted" aria-hidden />}Aktivität mit Freunden teilen</h2>
-                      <p className="mt-0.5 text-small text-muted">{profile.shareWithFriends ? "Freunde sehen, wie viele Bewerbungen du hast und wie weit du bist, nie Notizen oder Gehalt." : "Du bist für Freunde auf privat gestellt."}</p>
+                      <p className="mt-0.5 text-small text-muted">{profile.shareWithFriends ? "Freunde sehen, wie viele Bewerbungen du hast und wie weit du bist. Nie deine Notizen oder Lohnangaben." : "Du bist für Freunde auf privat gestellt. Schalte es ein, damit Freunde deinen Fortschritt sehen."}</p>
                     </div>
                     <Switch label="Aktivität mit Freunden teilen" checked={profile.shareWithFriends} disabled={sharingBusy} onToggle={toggleSharing} />
                   </div>
                   {profile.shareWithFriends && (
                     <>
-                      <SwitchRow title="Firmennamen auf der Karte zeigen" checked={shareCompanies} busy={companiesBusy} onToggle={toggleCompanies}
-                        text={shareCompanies ? "Freunde sehen auf deiner Insel, bei welchen Firmen du dich beworben hast (nur der Name)." : "Deine Häuser erscheinen für Freunde ohne Firmennamen."} />
+                      <SwitchRow title="Firmennamen im Dorf zeigen" checked={shareCompanies} busy={companiesBusy} onToggle={toggleCompanies}
+                        text={shareCompanies ? "Freunde sehen in deinem Dorf, bei welchen Firmen du dich beworben hast (nur der Name)." : "Deine Häuser erscheinen für Freunde ohne Firmennamen."} />
                       <SwitchRow title="Zusagen und Absagen zeigen" checked={shareOutcomes} busy={outcomesBusy} onToggle={toggleOutcomes}
                         text={shareOutcomes ? "Freunde sehen, wenn du eine Zusage oder Absage hast." : "Zusagen und Absagen sieht nur du. Für Freunde zählen sie als «beworben»."} />
                     </>
@@ -123,7 +123,7 @@ export function FriendsView() {
                 </div>
                 {sharingError && <StatusMessage tone="danger" className="mt-3">{sharingError}</StatusMessage>}
               </section>
-              <PrivacyPanel variant="friends" />
+              <PrivacyPanel variant="friends" collapsed />
             </div>
           </div>
         </div>

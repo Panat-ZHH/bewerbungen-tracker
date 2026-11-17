@@ -30,22 +30,22 @@ export function NotificationSettings() {
   useEffect(() => {
     Promise.all([loadReminderSettings(), listFeeds()])
       .then(([settings, feeds]) => { setS(settings); setFeed(feeds.find((f) => f.applicationId === null) ?? null); })
-      .catch((reason) => setNote({ tone: "danger", text: friendlyMessage(reason, "Die Einstellungen konnten nicht geladen werden.") }))
+      .catch((reason) => setNote({ tone: "danger", text: friendlyMessage(reason, "Die Einstellungen konnten nicht geladen werden. Lade die Seite neu.") }))
       .finally(() => setLoaded(true));
   }, []);
 
   async function update(next: ReminderSettings) {
     const prev = s; setS(next); setNote(null);
     try { await saveReminderSettings(next); }
-    catch (reason) { setS(prev); setNote({ tone: "danger", text: friendlyMessage(reason, "Das konnte nicht gespeichert werden.") }); }
+    catch (reason) { setS(prev); setNote({ tone: "danger", text: friendlyMessage(reason, "Die Einstellung konnte nicht gespeichert werden. Versuch es noch einmal.") }); }
   }
   async function togglePush(on: boolean) {
     if (!on) { await disablePush(); return update({ ...s, push: false }); }
     try {
       const r = await enablePush();
       if (r === "ok") return update({ ...s, push: true });
-      setNote({ tone: "danger", text: r === "denied" ? "Dein Browser blockiert Mitteilungen. Erlaube sie in den Browser-Einstellungen für diese Seite." : r === "unsupported" ? "Dieser Browser kann keine Mitteilungen anzeigen. Auf dem iPhone: zuerst «Zum Home-Bildschirm» hinzufügen." : "Mitteilungen sind auf diesem Server noch nicht eingerichtet." });
-    } catch (reason) { setNote({ tone: "danger", text: friendlyMessage(reason, "Mitteilungen konnten nicht aktiviert werden.") }); }
+      setNote({ tone: "danger", text: r === "denied" ? "Dein Browser blockiert Benachrichtigungen. Erlaube sie in den Browser-Einstellungen für diese Seite." : r === "unsupported" ? "Dieser Browser kann keine Benachrichtigungen anzeigen. Auf dem iPhone: zuerst «Zum Home-Bildschirm» hinzufügen." : "Benachrichtigungen sind noch nicht eingerichtet. Versuch es später noch einmal." });
+    } catch (reason) { setNote({ tone: "danger", text: friendlyMessage(reason, "Benachrichtigungen konnten nicht eingeschaltet werden. Versuch es noch einmal.") }); }
   }
 
   return (
@@ -54,7 +54,7 @@ export function NotificationSettings() {
       <div className="rows">
         <Row id="rem-inapp" label="Im Start-Bereich anzeigen" hint="Die Karte «Erinnerungen» auf deiner Startseite." checked={s.inApp} disabled={!loaded} onChange={(v) => update({ ...s, inApp: v })} />
         <Row id="rem-mail" label="Täglich per E-Mail" hint="Eine Mail am Morgen, nur wenn etwas ansteht." checked={s.email} disabled={!loaded} onChange={(v) => update({ ...s, email: v })} />
-        <Row id="rem-push" label="Mitteilung auf diesem Gerät" hint={pushSupported() ? "Eine Push-Mitteilung, auch wenn WendApply geschlossen ist." : "Auf diesem Gerät nicht verfügbar."} checked={s.push} onChange={togglePush} disabled={!loaded || !pushSupported()} />
+        <Row id="rem-push" label="Benachrichtigung auf diesem Gerät" hint={pushSupported() ? "Eine Benachrichtigung, auch wenn WendApply geschlossen ist." : "Auf diesem Gerät nicht verfügbar."} checked={s.push} onChange={togglePush} disabled={!loaded || !pushSupported()} />
       </div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2">
         <label className="text-sm font-semibold">Frist-Erinnerung ab
@@ -68,8 +68,8 @@ export function NotificationSettings() {
           </Select>
         </label>
       </div>
-      <div className="mt-6">
-        <h3 className="text-[15px] font-bold">Kalender-Abo für alle Fristen</h3>
+      <details className="mt-6" open={!!feed}>
+        <summary className="flex min-h-11 cursor-pointer items-center text-[15px] font-bold">Kalender-Link für Fristen</summary>
         <p className="mt-1 text-sm text-muted">Mit diesem Link zeigt dein Kalender (Apple, Google, Outlook) alle deine Fristen. Wer den Link kennt, sieht diese Fristen – widerrufe ihn, wenn du ihn nicht mehr brauchst.</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {!feed ? (
@@ -81,7 +81,7 @@ export function NotificationSettings() {
             </>
           )}
         </div>
-      </div>
+      </details>
     </SettingsSection>
   );
 }

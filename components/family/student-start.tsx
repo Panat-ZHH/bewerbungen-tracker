@@ -14,6 +14,7 @@ import {
   isValidBirthYear, openInvite, parentsOf, type MyFamily,
 } from "@/lib/family-core";
 import { JoinForm, type InviteInfo } from "./invite-panel";
+import { useAccess } from "@/components/access/access-provider";
 
 const DIRECTION = "child_invites_parent" as const;
 /** Auto refresh while waiting for the parents (§3.2): every 15 s and when the tab gets focus again. */
@@ -41,6 +42,9 @@ export function StudentStart({ initialCode = "", onChanged, family = null }: { i
   const [switchCode, setSwitchCode] = useState<string | null>(null);
   const createdFamily = useRef(Boolean(family));
   const inviteMode = Boolean(initialCode);
+  // Presentation only: pupils covered by their school get no Familienpaket sentence (schueler-13).
+  const { access } = useAccess();
+  const connectText = access?.reason === "school_licence" ? FAMILY_COPY.child.connectTextSchool : FAMILY_COPY.child.connectText;
   const step: StudentStep = invite ? "wait" : "connect";
 
   // ---- waiting: poll family_get_my until a parent is in the family
@@ -93,22 +97,13 @@ export function StudentStart({ initialCode = "", onChanged, family = null }: { i
       submitLabel={FAMILY_COPY.child.joinCta} onAlreadyInFamily={alreadyInFamily} />
   );
 
-  return (
-    <div className="space-y-6" data-student-step={step}>
-      {inviteMode && (
-        <section aria-labelledby="student-invite" className="panel-flat space-y-3 p-5" data-testid="student-invite">
-          <h2 id="student-invite" className="text-heading"><KeyRound size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Deine Eltern haben dich eingeladen</h2>
-          <p className="text-body text-muted">Prüfe den Code und tritt der Familie bei. Du entscheidest danach selbst, was deine Eltern sehen.</p>
-          {joinForm}
-        </section>
-      )}
-
+  const connectSection = (
       <section aria-labelledby="student-connect" className="panel-flat space-y-4 p-5" data-testid="student-connect">
         <div className="space-y-1">
           <h2 id="student-connect" className="text-heading"><Heart size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{FAMILY_COPY.child.connectTitle}</h2>
-          <p className="text-body text-muted">{FAMILY_COPY.child.connectText}</p>
+          <p className="text-body text-muted">{connectText}</p>
         </div>
-        {error && <StatusMessage tone="danger">{error}</StatusMessage>}
+        {error && !inviteMode && <StatusMessage tone="danger">{error}</StatusMessage>}
 
         <ol className="space-y-4" aria-label={FAMILY_COPY.child.connectTitle}>
           <ChecklistItem n={1} done={Boolean(invite)} title={FAMILY_COPY.child.check1}>
@@ -131,6 +126,7 @@ export function StudentStart({ initialCode = "", onChanged, family = null }: { i
           </ChecklistItem>
           <ChecklistItem n={2} done={false} current={Boolean(invite)} title={FAMILY_COPY.child.check2}>
             <p className={`text-small ${invite ? "" : "text-muted"}`} {...(invite ? { "data-invite-waiting": "", role: "status" } : {})}>{FAMILY_COPY.child.waiting}</p>
+            <p className="text-small text-muted">{FAMILY_COPY.child.under16}</p>
           </ChecklistItem>
         </ol>
 
@@ -144,8 +140,25 @@ export function StudentStart({ initialCode = "", onChanged, family = null }: { i
           </div>
         )}
       </section>
+  );
 
-      <p className="text-small text-muted">{FAMILY_COPY.child.under16}</p>
+  return (
+    <div className="space-y-6" data-student-step={step}>
+      {inviteMode && (
+        <section aria-labelledby="student-invite" className="panel-flat space-y-3 p-5" data-testid="student-invite">
+          <h2 id="student-invite" className="text-heading"><KeyRound size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Deine Eltern haben dich eingeladen</h2>
+          <p className="text-body text-muted">Prüfe den Code und tritt der Familie bei. Du entscheidest danach selbst, was deine Eltern sehen.</p>
+          {error && <StatusMessage tone="danger">{error}</StatusMessage>}
+          {joinForm}
+        </section>
+      )}
+
+      {inviteMode ? (
+        <details className="group" data-testid="own-link-toggle">
+          <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold underline decoration-2 underline-offset-4">{FAMILY_COPY.child.ownLinkToggle}</summary>
+          <div className="pt-3">{connectSection}</div>
+        </details>
+      ) : connectSection}
 
       <Modal open={switchCode !== null} onClose={() => setSwitchCode(null)} title={FAMILY_COPY.switch.childTitle}
         footer={<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="secondary" onClick={() => setSwitchCode(null)}>{FAMILY_COPY.switch.cancel}</Button><Button loading={busy} onClick={confirmSwitch}>{FAMILY_COPY.switch.confirm}</Button></div>}>

@@ -23,7 +23,7 @@ export function TourReplaySection() {
   }, []);
   if (!student) return null;
   return (
-    <SettingsSection title="Einführung" titleTestId="section-tour" description="Die kurze Tour vom ersten Login. Deine Daten bleiben, wie sie sind.">
+    <SettingsSection title="Einführung" titleTestId="section-tour" description="Die kurze Tour nach deiner ersten Anmeldung. Deine Daten bleiben, wie sie sind.">
       <ButtonLink href={tourHref(safeNextPath, null, true)} variant="secondary" className="sm:min-h-11" icon={<Compass size={16} />}>Einführung nochmals ansehen</ButtonLink>
     </SettingsSection>
   );

@@ -125,8 +125,10 @@ export const FAMILY_COPY = {
   child: {
     connectTitle: "Deine Eltern verbinden",
     connectText: "Schick deinen Eltern einen Link. Sie sehen danach nur, was du freigibst. Mit dem Familienpaket deiner Eltern ist WendApply für dich inbegriffen.",
-    connectCta: "Link für meine Eltern erstellen",
-    check1: "Link für deine Eltern erstellen",
+    /** Pupils covered by a school licence: no Familienpaket pitch (schueler-13). */
+    connectTextSchool: "Zeig deinen Eltern, wie weit du bist. Du entscheidest, was sie sehen.",
+    connectCta: "Eltern einladen",
+    check1: "Link erstellen",
     check2: "Deine Eltern öffnen den Link",
     shareCta: "Link teilen",
     copyLink: "Link kopieren",
@@ -141,7 +143,9 @@ export const FAMILY_COPY = {
     birthText: "Damit wir wissen, ob deine Eltern zuerst zustimmen müssen, brauchen wir deinen Jahrgang.",
     birthLabel: "Jahrgang",
     birthCta: "Speichern und weiter",
-    under16: "Bist du unter 16? Dann muss ein Elternteil zuerst zustimmen, bevor deine Familie etwas sieht. WendApply kannst du trotzdem sofort nutzen.",
+    under16: "Bist du unter 16? Dann stimmt ein Elternteil zuerst zu. WendApply kannst du trotzdem sofort nutzen.",
+    /** Invite link open (schueler-38): the own-link path is only a collapsed alternative. */
+    ownLinkToggle: "Lieber selbst einen Link erstellen",
     planActive: "Familienpaket aktiv",
     planNone: "Das Familienpaket bucht ein Elternteil. Es gilt dann auch für dich.",
     tourLink: "Eltern verbinden (freiwillig)",

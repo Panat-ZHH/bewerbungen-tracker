@@ -18,6 +18,7 @@ import { PasswordChangeCard } from "@/components/settings/password-change";
 import { SettingsSection } from "@/components/settings/section";
 import { AboSection } from "@/components/settings/abo-section";
 import { TourReplaySection } from "@/components/settings/tour-replay";
+import { useAccountKind, type AccountKind } from "@/components/settings/account-kind";
 import { withSupport } from "@/lib/account-deletion";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { SchoolAdminLink } from "@/components/b2b/school-admin-link";
@@ -27,7 +28,26 @@ import { exportMyFamilyData } from "@/lib/family";
 import { clearLocalData, getApplications, getCVs, getProfile, importApplications, saveProfile } from "@/lib/storage";
 import type { Application } from "@/types";
 
+/** What the JSON export contains, in the words of each role (eltern-08, lehrperson-24). */
+const EXPORT_TEXT: Record<AccountKind, string> = {
+  student: "Der Export enthält alles, was WendApply über dich speichert: Bewerbungen, Profil, Dokument-Angaben, Klassen, Freundschaften, Familie und dein Dorf. Die Datei bleibt auf deinem Gerät.",
+  parent: "Der Export enthält alles, was WendApply über dich speichert: Profil, Familie und Abo-Angaben. Die Datei bleibt auf deinem Gerät.",
+  teacher: "Der Export enthält dein Profil, deine Klassen, Mitteilungen und Fristen. Die Datei bleibt auf deinem Gerät.",
+  school_admin: "Der Export enthält alles, was WendApply über dich speichert: dein Profil und deine Einstellungen. Die Datei bleibt auf deinem Gerät.",
+};
+
 export default function SettingsPage() {
+  return (
+    <WorkspaceShell active="Settings">
+      <SettingsBody />
+    </WorkspaceShell>
+  );
+}
+
+/** Rendered inside the shell (AccessProvider): sections depend on the role – presentation only. */
+function SettingsBody() {
+  const kind = useAccountKind();
+  const student = kind === "student";
   const importRef = useRef<HTMLInputElement>(null);
   const [notice, setNotice] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -52,7 +72,7 @@ export default function SettingsPage() {
       anchor.download = fileName;
       anchor.click();
       URL.revokeObjectURL(url);
-      say("success", `Deine Daten wurden als Datei „${fileName}“ heruntergeladen.`);
+      say("success", `Daten exportiert. Die Datei «${fileName}» ist in deinen Downloads.`);
     } catch (reason) {
       say("danger", withSupport(friendlyMessage(reason, "Der Download konnte nicht erstellt werden.")));
     } finally {
@@ -69,9 +89,9 @@ export default function SettingsPage() {
       const data = JSON.parse(await file.text()) as { applications?: Application[]; profile?: Parameters<typeof saveProfile>[0] };
       if (Array.isArray(data.applications)) await importApplications(data.applications);
       if (data.profile && typeof data.profile === "object") await saveProfile(data.profile);
-      say("success", "Deine Sicherung wurde eingelesen. Die Bewerbungen findest du unter „Bewerbungen“.");
+      say("success", "Sicherung wiederhergestellt. Deine Bewerbungen findest du unter «Bewerbungen».");
     } catch (reason) {
-      say("danger", reason instanceof SyntaxError ? "Diese Datei kann nicht gelesen werden. Nutze eine WendApply-Sicherungsdatei (.json)." : withSupport(friendlyMessage(reason, "Die Sicherung konnte nicht eingelesen werden.")));
+      say("danger", reason instanceof SyntaxError ? "Diese Datei kann nicht gelesen werden. Nutze eine WendApply-Sicherungsdatei (.json)." : withSupport(friendlyMessage(reason, "Die Sicherung konnte nicht wiederhergestellt werden.")));
     } finally {
       setBusy(false);
       event.target.value = "";
@@ -84,7 +104,7 @@ export default function SettingsPage() {
     try {
       await clearLocalData();
       setConfirmClear(false);
-      toast({ message: "Deine Bewerbungen und Profildaten wurden gelöscht." });
+      toast({ message: "Bewerbungen und Profilangaben gelöscht." });
     } catch (reason) {
       setConfirmClear(false);
       say("danger", withSupport(friendlyMessage(reason, "Die Daten konnten nicht vollständig gelöscht werden.")));
@@ -94,58 +114,64 @@ export default function SettingsPage() {
   }
 
   return (
-    <WorkspaceShell active="Settings">
       <div className="max-w-4xl pb-safe">
-        <PageHeader title="Einstellungen" description="Du hast die Kontrolle über deine Daten und das Aussehen." />
+        <PageHeader title="Einstellungen" description="Dein Konto, deine Benachrichtigungen und deine Daten." />
 
         <div id="settings-notice" className="scroll-mt-24">{notice && <StatusMessage tone={notice.tone} icon={notice.tone === "success" ? <CheckCircle2 /> : undefined} className="mb-5">{notice.text}</StatusMessage>}</div>
 
         <SchoolAdminLink className="mb-8" />
 
-        {/* Plain groups under display-font headings, separated by dashed lines. Only the account deletion gets a danger contour. */}
+        {/* Order (schueler-22): Konto (Abo, Passwort) · Benachrichtigungen · Darstellung · Daten & Datenschutz. Plain groups,
+            dashed lines between them; only the account deletion gets a danger contour. No blue primary button on this page. */}
         <div className="rows">
-          <SettingsSection title="Darstellung" description="Hell, dunkel oder passend zu deinem Gerät. Wir merken uns deine Wahl.">
+          <AboSection />
+
+          <PasswordChangeCard />
+
+          {student && <NotificationSettings />}
+
+          <SettingsSection title="Darstellung" description="Hell, dunkel oder wie dein Gerät. Wir merken uns deine Wahl.">
             <div className="flex items-center gap-3">
               <ThemeToggle />
               <DoodleSparkle className="hidden h-6 w-6 shrink-0 text-[var(--sun)] min-[420px]:block" />
             </div>
           </SettingsSection>
 
-          <AboSection />
+          {student && <TourReplaySection />}
 
-          <SettingsSection title="Meine Daten" titleTestId="section-my-data" description="Du hast das Recht, deine Daten zu sehen, mitzunehmen und löschen zu lassen.">
-            <p className="text-body text-muted">Der Export enthält alles, was WendApply über dich speichert: Bewerbungen, Profil, Dokument-Angaben, Klassen, Freundschaften, Familie und dein Dorf. Die Datei bleibt auf deinem Gerät.</p>
-            <div className="mt-4 flex flex-col gap-2.5 sm:flex-row">
-              <Button className="sm:min-h-11" onClick={exportData} loading={busy} icon={<Download size={16} />}>Daten exportieren (JSON)</Button>
-              <Button variant="secondary" className="sm:min-h-11" onClick={() => importRef.current?.click()} disabled={busy} icon={<Upload size={16} />}>Sicherung einlesen</Button>
-              <input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" />
+          <SettingsSection title="Daten & Datenschutz" titleTestId="section-my-data" description="Du kannst deine Daten jederzeit herunterladen und löschen.">
+            <p className="text-body text-muted">{EXPORT_TEXT[kind ?? "student"]}</p>
+            <div className="mt-4">
+              <Button variant="secondary" className="sm:min-h-11" onClick={exportData} loading={busy} icon={<Download size={16} />}>Daten exportieren</Button>
             </div>
-            <p className="mt-3 flex items-start gap-2 text-small text-muted"><ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden /><span>Löschen kannst du weiter unten: nur deine Bewerbungsdaten oder das ganze Konto. Wie lange wir was aufbewahren, steht im <Link href="/loeschkonzept" className="font-semibold underline underline-offset-2">Löschkonzept</Link> und in der <Link href="/datenschutz" className="font-semibold underline underline-offset-2">Datenschutzerklärung</Link>.</span></p>
+            {student && (
+              <details className="group mt-4">
+                <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold underline decoration-2 underline-offset-4">Sicherung wiederherstellen</summary>
+                <p className="mt-1 text-body text-muted">Hast du früher Daten exportiert? Lade die Datei (.json) hier wieder hoch. Deine Bewerbungen und dein Profil kommen zurück.</p>
+                <Button variant="ghost" className="mt-2 sm:min-h-11" onClick={() => importRef.current?.click()} disabled={busy} icon={<Upload size={16} />}>Datei auswählen</Button>
+                <input ref={importRef} type="file" accept="application/json" onChange={importData} className="hidden" />
+              </details>
+            )}
+            <p className="mt-3 flex items-start gap-2 text-small text-muted"><ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden /><span>Wie lange wir was aufbewahren, steht im <Link href="/loeschkonzept" className="font-semibold underline underline-offset-2">Löschkonzept</Link> und in der <Link href="/datenschutz" className="font-semibold underline underline-offset-2">Datenschutzerklärung</Link>.</span></p>
           </SettingsSection>
 
-          <TourReplaySection />
-
-          <NotificationSettings />
-
-          <PasswordChangeCard />
-
-          <SettingsSection title="Deine Daten" titleTestId="section-data" description="Das Konto und der Zugang bleiben bestehen.">
-            <h3 className="text-[15px] font-bold">Meine Daten löschen</h3>
-            <p className="mt-1 text-body text-muted">Entfernt nur deine Bewerbungen, Notizen und Profilangaben. Du bleibst angemeldet, dein Konto und deine Lebenslauf-Vorlagen bleiben bestehen.</p>
-            <Button variant="secondary" onClick={() => setConfirmClear(true)} disabled={busy} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<Trash2 size={16} />}>Meine Daten löschen</Button>
-            <p className="mt-3 text-small text-muted">Tipp: Lade vorher eine Sicherung herunter. Gelöschte Daten lassen sich nicht zurückholen.</p>
-          </SettingsSection>
+          {student && (
+            <SettingsSection title="Meine Daten löschen" titleTestId="section-data" description="Dein Konto bleibt bestehen.">
+              <p className="text-body text-muted">Entfernt nur deine Bewerbungen, Notizen und Profilangaben. Du bleibst angemeldet. Deine Lebenslauf-Vorlagen bleiben.</p>
+              <Button variant="secondary" onClick={() => setConfirmClear(true)} disabled={busy} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<Trash2 size={16} />}>Meine Daten löschen</Button>
+              <p className="mt-3 text-small text-muted">Tipp: Exportiere vorher deine Daten. Gelöschte Daten lassen sich nicht zurückholen.</p>
+            </SettingsSection>
+          )}
 
           <SettingsSection title="Dein Konto" titleTestId="section-account" description="Hier löschst du alles: Daten, Dateien und die Anmeldung.">
-            <DeleteAccountCard />
+            <DeleteAccountCard kind={kind} />
           </SettingsSection>
         </div>
 
-        <Modal open={confirmClear} onClose={() => !busy && setConfirmClear(false)} title="Alle Daten wirklich löschen?" description="Alle Bewerbungen, Notizen und Profilangaben werden entfernt. Deine Lebenslauf-Vorlagen bleiben erhalten."
-          footer={<><Button variant="ghost" onClick={() => setConfirmClear(false)} disabled={busy}>Abbrechen</Button><Button variant="danger" onClick={clearData} loading={busy}>Ja, alles löschen</Button></>}>
-          <p className="text-sm text-muted">Das kann nicht rückgängig gemacht werden. Hast du eine Sicherung heruntergeladen?</p>
+        <Modal open={confirmClear} onClose={() => !busy && setConfirmClear(false)} title="Bewerbungsdaten löschen?" description="Alle Bewerbungen, Notizen und Profilangaben werden entfernt. Deine Lebenslauf-Vorlagen bleiben."
+          footer={<><Button variant="ghost" onClick={() => setConfirmClear(false)} disabled={busy}>Abbrechen</Button><Button variant="danger" onClick={clearData} loading={busy}>Löschen</Button></>}>
+          <p className="text-sm text-muted">Das lässt sich nicht rückgängig machen. Exportiere vorher deine Daten, wenn du sie behalten willst.</p>
         </Modal>
       </div>
-    </WorkspaceShell>
   );
 }
