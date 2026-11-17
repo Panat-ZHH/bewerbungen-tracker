@@ -57,3 +57,12 @@ test("job search: only our own plain Error messages are shown, library/network e
   assert.match(route, /Object\.getPrototypeOf\(cause\) === Error\.prototype/);
   assert.doesNotMatch(route, /error: cause instanceof Error \? cause\.message/);
 });
+
+test("AI review edge function: a forged Netlify client-IP header cannot dodge the per-IP limit on Supabase", async () => {
+  const { keys } = await import("../supabase/functions/ai-review/limits.ts");
+  const h = (extra) => new Headers({ "cf-connecting-ip": "198.51.100.7", ...extra });
+  const real = await keys.ip(h({}));
+  assert.equal(await keys.ip(h({ "x-nf-client-connection-ip": "203.0.113.1" })), real);
+  assert.equal(await keys.ip(h({ "x-nf-client-connection-ip": "203.0.113.2" })), real);
+  assert.notEqual(await keys.ip(new Headers({ "cf-connecting-ip": "198.51.100.8" })), real);
+});

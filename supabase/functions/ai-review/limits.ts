@@ -48,8 +48,15 @@ export function dailyChecksFor(userLimit: number | null | undefined, config: Lim
   return typeof userLimit === "number" && Number.isInteger(userLimit) && userLimit >= 0 ? userLimit : config.defaultDailyChecks;
 }
 
+/** Header view for the Supabase edge runtime: Netlify's client-IP header is not trusted there. */
+export function edgeHeaders(headers: { get(name: string): string | null }): { get(name: string): string | null } {
+  return { get: (name) => (name.toLowerCase().startsWith("x-nf-") ? null : headers.get(name)) };
+}
+
 export const keys = {
-  ip: (headers: { get(name: string): string | null }) => ipKey("ai-review", headers),
+  // x-nf-client-connection-ip is set by NETLIFY only; on Supabase it is a plain client header (forgeable, would bypass
+  // the per-IP limit with a new fake IP per request). Hide it here so the shared core falls back to cf-connecting-ip.
+  ip: (headers: { get(name: string): string | null }) => ipKey("ai-review", edgeHeaders(headers)),
   burst: (userId: string) => `ai-review:user:${userId}:burst`,
   day: (userId: string) => `ai-review:user:${userId}:day`,
   userTokens: (userId: string) => `ai-review:user:${userId}:tokens`,
