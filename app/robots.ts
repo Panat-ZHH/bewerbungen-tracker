@@ -7,7 +7,7 @@ import { SITE_URL } from "../lib/seo/site.ts";
  */
 export const DISALLOW = [
   "/api/", "/auth/", "/dashboard", "/applications", "/search", "/map", "/friends", "/classes", "/teacher", "/settings", "/profile",
-  "/onboarding", "/cvs", "/analytics", "/invite", "/login", "/bewerbung-check", "/schul-admin", "/familie/", "/familie$",
+  "/onboarding", "/cvs", "/analytics", "/invite", "/login", "/bewerbung-check", "/schul-admin", "/familie/", "/familie$", "/admin",
 ];
 
 export default function robots(): MetadataRoute.Robots {

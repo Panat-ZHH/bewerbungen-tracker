@@ -83,7 +83,7 @@ test("service role key is only used server-side", async () => {
   for (const f of files) {
     const src = await read(f);
     assert.ok(!/^["']use client["']/m.test(src), `${f} is a client component`);
-    assert.ok(f.startsWith("app/api/") || f.startsWith("lib/billing/server") || f === "lib/reminders-server.ts" || f === "lib/account-delete-server.ts" || f === "lib/rate-limit/index.ts", `${f} is not a server-only module`);
+    assert.ok(f.startsWith("app/api/") || f.startsWith("lib/billing/server") || f === "lib/reminders-server.ts" || f === "lib/account-delete-server.ts" || f === "lib/admin/server.ts" || f === "lib/rate-limit/index.ts", `${f} is not a server-only module`);
   }
   // The service-role rate limiter must only be reachable from route handlers, never from client code.
   const importers = execFileSync("git", ["grep", "-lE", "from [\"']@/lib/(rate-limit|api-rate-limit)[\"'/]", "--", "app", "components", "lib"], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
