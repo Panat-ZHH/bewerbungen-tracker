@@ -20,7 +20,7 @@ type Action = "grant_access" | "revoke_access" | "assign_licence" | "update_lice
 const TITLE: Record<Action, string> = {
   grant_access: "Gratis-Zugang für die Schule",
   revoke_access: "Gratis-Zugang entziehen",
-  assign_licence: "Lizenz vergeben",
+  assign_licence: "Lizenz zuweisen",
   update_licence: "Lizenz anpassen",
   revoke_licence: "Lizenz widerrufen",
   add_admin: "Schuladmin hinzufügen",
@@ -31,7 +31,7 @@ const TITLE: Record<Action, string> = {
 const DONE: Record<Action, string> = {
   grant_access: "Gratis-Zugang für die Schule gegeben.",
   revoke_access: "Gratis-Zugang der Schule entzogen.",
-  assign_licence: "Lizenz vergeben.",
+  assign_licence: "Lizenz zugewiesen.",
   update_licence: "Lizenz angepasst.",
   revoke_licence: "Lizenz widerrufen.",
   add_admin: "Schuladmin hinzugefügt.",
@@ -159,9 +159,9 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
   );
 
   return (
-    <div className="animate-rise space-y-8" data-testid="admin-school-detail">
+    <div className="space-y-7" data-testid="admin-school-detail">
       <header className="space-y-2">
-        <h1 className="text-title break-words">{s.name}</h1>
+        <h2 className="text-title break-words">{s.name}</h2>
         <div className="flex flex-wrap items-center gap-2">
           <FreeAccessBadge grant={s.free_access} />
           <LicenceBadge licence={s.licence} />
@@ -173,7 +173,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
       <Card>
         <CardContent className="space-y-3" data-testid="admin-school-free">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-heading">Gratis-Zugang</h2>
+            <h3 className="text-heading">Gratis-Zugang</h3>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" data-testid="admin-action-grant_access" onClick={() => openAction({ action: "grant_access" })}>{freeText ? "Ändern" : "Gratis-Zugang geben"}</Button>
               {s.free_access && <Button size="sm" variant="danger" data-testid="admin-action-revoke_access" onClick={() => openAction({ action: "revoke_access" })}>Entziehen</Button>}
@@ -190,8 +190,8 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
       <Card>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-heading">Lizenzen</h2>
-            <Button size="sm" data-testid="admin-action-assign_licence" icon={<Plus size={16} strokeWidth={2.4} aria-hidden />} onClick={() => openAction({ action: "assign_licence" })}>Lizenz vergeben</Button>
+            <h3 className="text-heading">Lizenzen</h3>
+            <Button size="sm" data-testid="admin-action-assign_licence" icon={<Plus size={16} strokeWidth={2.4} aria-hidden />} onClick={() => openAction({ action: "assign_licence" })}>Lizenz zuweisen</Button>
           </div>
           {s.licences.length === 0 ? <p className="text-small text-muted">Noch keine Lizenz.</p> : (
             <ul className="rows">
@@ -221,7 +221,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
         </CardContent>
       </Card>
 
-      <div className="grid gap-8 md:grid-cols-2">
+      <div className="grid gap-7 sm:grid-cols-2">
         <Section title="Schuladmins" actions={<Button size="sm" variant="secondary" data-testid="admin-action-add_admin" onClick={() => openAction({ action: "add_admin" })}>Hinzufügen</Button>}>
           {people(s.admin_users, "remove_admin", "Noch kein Schuladmin.")}
         </Section>
@@ -245,8 +245,8 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
         )}
       </Section>
 
-      <Section title="Protokoll">
-        <AuditList entries={s.audit} onOpen={onOpen} />
+      <Section title="Verlauf">
+        <AuditList entries={s.audit} onOpen={onOpen} empty="Noch keine Änderungen durch Admins." />
       </Section>
 
       <ConfirmModal

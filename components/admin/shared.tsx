@@ -9,6 +9,7 @@ import { StatusMessage } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { AuditEntry, AdminRole } from "@/lib/admin/types";
 import type { AccessState } from "@/lib/access/types";
+import { auditActionLabel, userStatus, type StatusRowLike } from "@/lib/admin/status";
 
 export type OpenDetail = (target: { kind: "user" | "school"; id: string }) => void;
 
@@ -33,6 +34,22 @@ export function isoDay(days = 0): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(d);
 }
 
+const relFmt = new Intl.RelativeTimeFormat("de-CH", { numeric: "auto" });
+/** "vor 3 Stunden", "gestern", "vor 2 Wochen"; older than ~2 months → date. */
+export function fmtRelative(v: string | null | undefined, now = Date.now()): string {
+  if (!v) return "noch nie";
+  const t = Date.parse(v);
+  if (Number.isNaN(t)) return "–";
+  const sec = Math.round((t - now) / 1000);
+  const abs = Math.abs(sec);
+  if (abs < 60) return "gerade eben";
+  if (abs < 3600) return relFmt.format(Math.round(sec / 60), "minute");
+  if (abs < 86_400) return relFmt.format(Math.round(sec / 3600), "hour");
+  if (abs < 14 * 86_400) return relFmt.format(Math.round(sec / 86_400), "day");
+  if (abs < 60 * 86_400) return relFmt.format(Math.round(sec / (7 * 86_400)), "week");
+  return fmtDate(v);
+}
+
 export function useDebounced<T>(value: T, ms = 350): T {
   const [v, setV] = useState(value);
   useEffect(() => { const t = window.setTimeout(() => setV(value), ms); return () => window.clearTimeout(t); }, [value, ms]);
@@ -53,6 +70,12 @@ export function AccessBadge({ state }: { state: AccessState | null }) {
   if (!state) return <Badge tone="neutral">Zugang unbekannt</Badge>;
   const a = ACCESS[state] ?? { label: state, tone: "neutral" as BadgeTone };
   return <Badge tone={a.tone}>{a.label}</Badge>;
+}
+
+/** The one status per person shown in lists and the panel: Gesperrt / Gratis unbefristet / Zahlend / Trial / Abgelaufen … */
+export function StatusBadge({ row, className }: { row: StatusRowLike; className?: string }) {
+  const s = userStatus(row, fmtDate);
+  return <Badge tone={s.tone} className={className} data-testid="admin-status-badge" data-status={s.key}>{s.label}</Badge>;
 }
 
 export const ROLE_LABEL: Record<AdminRole, string> = {
@@ -98,7 +121,7 @@ export function Section({ title, actions, children, className }: { title: string
   return (
     <section className={cn("space-y-3", className)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-heading">{title}</h2>
+        <h3 className="text-heading">{title}</h3>
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
       {children}
@@ -108,11 +131,12 @@ export function Section({ title, actions, children, className }: { title: string
 
 export function Pager({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (p: number) => void }) {
   const pages = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
-  if (total <= pageSize && page === 1) return <p className="text-small text-muted">{total} Einträge</p>;
+  const entries = `${total} ${total === 1 ? "Eintrag" : "Einträge"}`;
+  if (total <= pageSize && page === 1) return <p className="text-small text-muted">{entries}</p>;
   return (
     <nav aria-label="Seiten" className="flex flex-wrap items-center gap-3">
       <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => onPage(page - 1)} icon={<ChevronLeft size={16} aria-hidden />}>Zurück</Button>
-      <span className="text-small tabular text-muted">Seite {page} von {pages} · {total} Einträge</span>
+      <span className="text-small tabular text-muted">Seite {page} von {pages} · {entries}</span>
       <Button variant="secondary" size="sm" disabled={page >= pages} onClick={() => onPage(page + 1)}>Weiter<ChevronRight size={16} aria-hidden /></Button>
     </nav>
   );
@@ -182,7 +206,7 @@ export function AuditList({ entries, onOpen, empty = "Noch keine Einträge." }: 
         <li key={a.id} data-testid="admin-audit-row" className="py-2.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <time dateTime={a.at} className="text-small tabular text-muted">{fmtDateTime(a.at)}</time>
-            <Badge tone={a.action.endsWith(".failed") ? "danger" : "paper"} className="font-mono">{a.action}</Badge>
+            <Badge tone={a.action.endsWith(".failed") ? "danger" : "paper"} title={a.action}>{auditActionLabel(a.action)}</Badge>
             {a.target_user && (onOpen
               ? <button type="button" onClick={() => onOpen({ kind: "user", id: a.target_user! })} className="text-small font-semibold text-[var(--brand)] underline underline-offset-4">Person öffnen</button>
               : null)}
@@ -194,7 +218,12 @@ export function AuditList({ entries, onOpen, empty = "Noch keine Einträge." }: 
             {a.admin_email ?? (a.admin_id ? `Admin ${a.admin_id.slice(0, 8)}` : "System")}
             {a.ip && <> · IP {a.ip}</>}
           </p>
-          <AuditDetails details={a.details} />
+          {a.details && (
+            <details className="mt-1 text-small">
+              <summary className="cursor-pointer text-muted underline decoration-[var(--line)] underline-offset-4">Details</summary>
+              <AuditDetails details={a.details} />
+            </details>
+          )}
         </li>
       ))}
     </ul>

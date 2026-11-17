@@ -112,7 +112,7 @@ function createMock() {
     const p = url.pathname.replace(/^\/api\/admin/, "");
     const reply = (status, body) => route.fulfill({ status, headers: { "content-type": "application/json", "cache-control": "no-store" }, body: JSON.stringify(body) });
     const auth = req.headers().authorization ?? "";
-    state.apiCalls.push({ method: req.method(), path: p, auth: auth.slice(0, 7), cookie: Boolean(req.headers().cookie && /sb-/.test(req.headers().cookie)) });
+    state.apiCalls.push({ method: req.method(), path: p, query: url.search, auth: auth.slice(0, 7), cookie: Boolean(req.headers().cookie && /sb-/.test(req.headers().cookie)) });
     if (!auth.startsWith("Bearer ")) return reply(401, { error: "unauthenticated" });
     if (!state.admin) return reply(404, { error: "not_found" });
     const claims = JSON.parse(Buffer.from(auth.slice(7).split(".")[1], "base64url").toString());
@@ -124,7 +124,10 @@ function createMock() {
     if (p === "/users") {
       const q = (url.searchParams.get("q") ?? "").toLowerCase();
       const st = url.searchParams.get("state") ?? "all";
-      const items = state.users.filter((u) => (!q || u.email.includes(q) || u.name.toLowerCase().includes(q)) && (st === "all" || (st === "blocked" && u.blocked) || (st === "grant" && u.free_access_until) || (st === "trial" && u.access_state === "trial") || (st === "trial_over" && u.access_state === "expired")));
+      const sub = url.searchParams.get("sub") ?? "all";
+      const items = state.users.filter((u) => (!q || u.email.includes(q) || u.name.toLowerCase().includes(q))
+        && (st === "all" || (st === "blocked" && u.blocked) || (st === "grant" && (u.free_access_until || u.free_access_forever)) || (st === "grant_forever" && u.free_access_forever) || (st === "trial" && u.access_state === "trial") || (st === "trial_over" && u.access_state === "expired"))
+        && (sub === "all" || (sub === "active" && u.subscription?.status === "active") || (sub === "none" && !u.subscription)));
       return reply(200, { items, total: items.length, page: 1, page_size: 50 });
     }
     let m;
@@ -236,7 +239,8 @@ async function main() {
     page.on("pageerror", (e) => errors.push(e.message));
     return { context, page, mock, errors };
   };
-  const shot = (page, name) => page.screenshot({ path: `${OUT}${name}.png`, fullPage: true });
+  // The side panel is fixed to the viewport: capture just the viewport while it is open.
+  const shot = async (page, name) => page.screenshot({ path: `${OUT}${name}.png`, fullPage: !(await page.locator('[data-testid="admin-panel"]').count()), animations: "disabled" });
 
   await step("logged out → login prompt, noindex meta", async () => {
     const { context, page } = await ctx("desktop", "light", { authed: false });
@@ -295,11 +299,37 @@ async function main() {
       await tid(page, "admin-dashboard").waitFor({ timeout: 30000 });
       await tid(page, "admin-user-row").first().waitFor();
       assert((await tid(page, "admin-user-row").count()) === 6, "6 people listed");
+      await page.waitForFunction(() => document.querySelector('[data-testid="admin-stat-total-value"]')?.textContent === "6", null, { timeout: 10000 });
+      assert((await tid(page, "admin-stat-paying-value").textContent()) === "1", "1 paying");
+      assert((await tid(page, "admin-stat-schools-value").textContent()) === "1", "1 school");
+      const statuses = await page.locator('[data-testid="admin-user-row"] [data-testid="admin-status-badge"]:visible').evaluateAll((els) => els.map((e) => e.textContent));
+      for (const want of ["Trial", "Zahlend", "Gesperrt", "Lizenz fehlt"]) assert(statuses.includes(want), `status ${want} in ${statuses.join(",")}`);
       await shot(page, `users-${tag}`);
+
+      // Filter chips and the number tiles use the same filters.
+      await tid(page, "admin-chip-blocked").click();
+      await page.waitForFunction(() => document.querySelectorAll('[data-testid="admin-user-row"]').length === 1, null, { timeout: 5000 });
+      await tid(page, "admin-stat-paying").click();
+      await page.waitForFunction(() => document.querySelectorAll('[data-testid="admin-user-row"]').length === 1 && document.querySelector('[data-testid="admin-chip-paying"]')?.getAttribute("aria-pressed") === "true", null, { timeout: 5000 });
+      await tid(page, "admin-stat-newWeek").click();
+      await page.waitForFunction(() => document.querySelectorAll('[data-testid="admin-user-row"]').length === 4, null, { timeout: 5000 });
+      await tid(page, "admin-chip-all").click();
+      await page.waitForFunction(() => document.querySelectorAll('[data-testid="admin-user-row"]').length === 6, null, { timeout: 5000 });
 
       await tid(page, "admin-search").fill("lena");
       await page.waitForFunction(() => document.querySelectorAll('[data-testid="admin-user-row"]').length === 1, null, { timeout: 5000 });
+      if (profile === "desktop") {
+        // Keyboard: the row's button opens the panel with Enter, Esc closes it and focus goes back.
+        await tid(page, "admin-user-open").first().focus();
+        await page.keyboard.press("Enter");
+        await tid(page, "admin-panel").waitFor();
+        await tid(page, "admin-action-extend_trial").waitFor();
+        await page.keyboard.press("Escape");
+        await page.waitForFunction(() => !document.querySelector('[data-testid="admin-panel"]'), null, { timeout: 5000 });
+        assert(await page.evaluate(() => document.activeElement?.getAttribute("data-testid") === "admin-user-open"), "focus back on the row");
+      }
       await tid(page, "admin-user-row").first().click();
+      await tid(page, "admin-panel").waitFor();
       await tid(page, "admin-user-detail").waitFor();
       await tid(page, "admin-action-extend_trial").waitFor();
       await shot(page, `user-detail-${tag}`);
@@ -312,39 +342,61 @@ async function main() {
       if (profile === "desktop" && theme === "light") await shot(page, `confirm-${tag}`);
       await tid(page, "admin-confirm-submit").click();
       await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+      assert(await tid(page, "admin-panel").count(), "panel stays open after the confirmation");
       const last = mock.state.audit[0];
       assert(last?.action === "user.extend_trial", `audit: ${last?.action}`);
 
-      // Free access without end date ("Gratis (unbefristet)") with confirmation (free-forever, 20261118400000).
+      // Esc in a confirmation closes only the confirmation, not the panel.
+      await tid(page, "admin-action-grant_access").click();
+      await tid(page, "admin-confirm-modal").waitFor();
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+      assert(await tid(page, "admin-panel").count(), "Esc in the dialog keeps the panel");
+
+      // Free access without end date ("Gratis unbefristet") with confirmation (preselected).
       await tid(page, "admin-action-grant_access").click();
       await tid(page, "admin-confirm-modal").waitFor();
       await tid(page, "admin-free-forever").waitFor();
+      assert((await tid(page, "admin-free-forever").getAttribute("aria-pressed")) === "true", "unbefristet preselected");
       if (profile === "desktop") await shot(page, `grant-forever-${tag}`);
       await tid(page, "admin-confirm-submit").click();
       await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
       assert(mock.state.audit[0].action === "user.grant_access" && mock.state.audit[0].details.after.forever === true, `audit: ${mock.state.audit[0].action}`);
-      await page.waitForFunction(() => (document.querySelector('[data-testid="admin-user-detail"]')?.textContent ?? "").includes("Gratis (unbefristet)"), null, { timeout: 5000 });
+      await page.waitForFunction(() => (document.querySelector('[data-testid="admin-user-detail"]')?.textContent ?? "").includes("Gratis unbefristet"), null, { timeout: 5000 });
+      await tid(page, "admin-action-revoke_access").waitFor();
+
+      // Lizenz zuweisen = add to a school (existing school action add_teacher), with confirmation.
+      await tid(page, "admin-action-assign_school").click();
+      await tid(page, "admin-confirm-modal").waitFor();
+      await page.locator("#f-school").waitFor();
+      if (profile === "desktop" && theme === "light") await shot(page, `assign-licence-${tag}`);
+      await tid(page, "admin-confirm-submit").click();
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+      assert(mock.state.audit[0].action === "school.add_teacher", `audit: ${mock.state.audit[0].action}`);
 
       // Block needs a reason.
       await tid(page, "admin-action-block").click();
       await tid(page, "admin-confirm-modal").waitFor();
+      await tid(page, "admin-confirm-submit").click();
+      await page.waitForFunction(() => /Grund/.test(document.querySelector('[data-testid="admin-confirm-modal"]')?.textContent ?? ""), null, { timeout: 5000 });
+      assert(await tid(page, "admin-confirm-modal").count(), "no reason → stays open");
       const reason = page.locator('[data-testid="admin-confirm-modal"] textarea, [data-testid="admin-confirm-modal"] input[type="text"]').first();
       await reason.fill("Test-Sperre");
       await tid(page, "admin-confirm-submit").click();
       await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
       assert(mock.state.audit[0].action === "user.block", `audit: ${mock.state.audit[0].action}`);
-      // After blocking, the final delete is offered; it needs the e-mail typed.
+      await tid(page, "admin-action-unblock").waitFor({ timeout: 5000 });
+      // After blocking, the final delete is offered under "Weitere Aktionen"; it needs the e-mail typed.
+      await page.locator('[data-testid="admin-more-actions"] summary').click();
       await tid(page, "admin-action-delete_account").waitFor({ timeout: 5000 });
-      await page.keyboard.press("Escape").catch(() => {});
-
-      await tid(page, "admin-tab-signups").click();
-      await tid(page, "admin-signups-total").waitFor();
-      await shot(page, `signups-${tag}`);
+      await tid(page, "admin-panel-close").click();
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-panel"]'), null, { timeout: 5000 });
+      await tid(page, "admin-search").fill("");
 
       await tid(page, "admin-tab-schools").click();
       await tid(page, "admin-school-row").first().waitFor();
       await shot(page, `schools-${tag}`);
-      await tid(page, "admin-school-row").first().click();
+      await tid(page, "admin-school-row").first().locator("button").click();
       await tid(page, "admin-school-detail").waitFor();
       await page.waitForFunction(() => (document.querySelector('[data-testid="admin-school-detail"]')?.textContent ?? "").includes("schulleitung@beispiel.ch"), null, { timeout: 10000 });
       await shot(page, `school-detail-${tag}`);
@@ -358,10 +410,17 @@ async function main() {
       await page.waitForFunction(() => (document.querySelector('[data-testid="admin-school-free"]')?.textContent ?? "").includes("Gratis (unbefristet)"), null, { timeout: 5000 });
       if (profile === "desktop") await shot(page, `school-free-${tag}`);
       await tid(page, "admin-action-revoke_access").waitFor();
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-panel"]'), null, { timeout: 5000 });
 
       await tid(page, "admin-tab-audit").click();
       await tid(page, "admin-audit-row").first().waitFor();
+      const auditText = await tid(page, "admin-audit-row").first().textContent();
+      assert(/Gratis-Zugang|Schule gratis/.test(auditText ?? ""), `audit in words: ${auditText}`);
       await shot(page, `audit-${tag}`);
+      await tid(page, "admin-audit-action").selectOption("block");
+      await page.waitForTimeout(300);
+      assert(mock.state.apiCalls.some((c) => c.path === "/audit" && new URLSearchParams(c.query).get("action") === "block"), "audit filter sent as action=block");
 
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       assert(overflow <= 1, `horizontal overflow ${overflow}px`);
@@ -370,6 +429,23 @@ async function main() {
       await context.close();
     });
   }
+
+  await step("empty search + API error states", async () => {
+    const { context, page, mock } = await ctx("mobile", "light", { aal2: true });
+    await page.goto(`${base}/admin`);
+    await tid(page, "admin-user-row").first().waitFor({ timeout: 30000 });
+    await tid(page, "admin-search").fill("niemandhier");
+    await page.getByText("Niemand gefunden").waitFor({ timeout: 5000 });
+    await shot(page, "empty-mobile-light");
+    await page.getByRole("button", { name: "Filter zurücksetzen" }).click();
+    await page.waitForFunction(() => document.querySelectorAll('[data-testid="admin-user-row"]').length === 6, null, { timeout: 5000 });
+    await context.route((u) => u.pathname === "/api/admin/users", (route) => route.fulfill({ status: 500, contentType: "application/json", body: JSON.stringify({ error: "failed" }) }));
+    await tid(page, "admin-chip-trial").click();
+    await page.getByRole("button", { name: "Nochmals laden" }).waitFor({ timeout: 5000 });
+    await shot(page, "error-mobile-light");
+    assert(mock.state.apiCalls.length > 0, "calls made");
+    await context.close();
+  });
 
   await step("school: create school + assign licence with confirmation", async () => {
     const { context, page, mock } = await ctx("desktop", "light", { aal2: true });

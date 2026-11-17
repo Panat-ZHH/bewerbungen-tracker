@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, School, Search } from "lucide-react";
+import { ChevronRight, Plus, School, Search } from "lucide-react";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -85,9 +85,9 @@ export function SchoolsTab({ onOpen, version }: { onOpen: OpenDetail; version: n
       )}
       {loading && <ListSkeleton />}
       {!loading && result?.items && (result.items.length === 0
-        ? <EmptyState icon={<School />} title="Keine Schule gefunden" />
+        ? <EmptyState icon={<School />} title={debounced ? "Keine Schule gefunden" : "Noch keine Schule"} description={debounced ? "Probier einen anderen Namen." : "Lege die erste Schule mit «Schule anlegen» an."} />
         : (
-          <ul className="rows">
+          <ul className="rows panel-flat px-3 sm:px-4">
             {result.items.map((s) => (
               <li key={s.id} data-testid="admin-school-row" data-school-id={s.id}>
                 <button type="button" onClick={() => onOpen({ kind: "school", id: s.id })}
@@ -101,6 +101,7 @@ export function SchoolsTab({ onOpen, version }: { onOpen: OpenDetail; version: n
                     <LicenceBadge licence={s.licence} />
                     {s.licence && <span className="text-small text-muted">bis {fmtDate(licenceEnd(s.licence))} · max. {s.licence.student_limit}</span>}
                     <span className="text-small tabular">{s.students} Lernende · {s.teachers} Lehrpersonen · {s.admins} Admins</span>
+                    <ChevronRight size={18} aria-hidden className="hidden text-muted md:block" />
                   </span>
                 </button>
               </li>

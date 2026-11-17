@@ -128,7 +128,9 @@ test("admin UI helpers + wiring: badges, filter, confirmation dialog for person 
   assert.match(school, /FreeAccessFields scope="school"/);
   assert.match(school, /admin-action-grant_access/);
   assert.match(school, /admin-action-revoke_access/);
-  assert.match(read("components/admin/users-tab.tsx"), /<option value="grant_forever">Gratis \(unbefristet\)<\/option>/);
+  // Filter chip "Gratis unbefristet" → /api/admin/users?state=grant_forever (admin UI redesign: chips instead of a select).
+  assert.match(read("components/admin/overview.tsx"), /case "free_forever": return \{ state: "grant_forever" \};/);
+  assert.match(read("components/admin/overview.tsx"), /\{ value: "free_forever", label: "Gratis unbefristet" \}/);
   assert.match(read("components/admin/schools-tab.tsx"), /<FreeAccessBadge grant=\{s\.free_access\} \/>/);
 });
 
