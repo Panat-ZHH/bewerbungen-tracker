@@ -30,7 +30,7 @@ export default function AnleitungPage() {
             <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>App öffnen</ButtonLink>
             <ButtonLink href="#installieren" size="lg" variant="secondary" icon={<Download size={18} strokeWidth={2.4} aria-hidden />}>Als App installieren</ButtonLink>
           </div>
-          <p className="text-small mt-5 max-w-md text-muted">Kostenlos für Schülerinnen und Schüler. Kein App Store nötig.</p>
+          <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig.</p>
         </div>
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <GuideShot src="/landing/04-dashboard-light.webp" darkSrc="/landing/04-dashboard-dark.webp" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />

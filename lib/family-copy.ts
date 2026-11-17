@@ -59,7 +59,7 @@ export const FAMILY_COPY = {
     yearBadge: "Spare {saving}",
     cta: "Familienpaket buchen · {price}",
     note: "{term}. Sichere Bezahlung mit Karte über Stripe.",
-    childFree: "Für dein Kind bleibt WendApply kostenlos.",
+    childFree: "Das Familienpaket gilt für dich und dein Kind.",
     redirecting: "Wir öffnen die sichere Bezahlseite …",
   },
   return: {
@@ -124,7 +124,7 @@ export const FAMILY_COPY = {
   },
   child: {
     connectTitle: "Deine Eltern verbinden",
-    connectText: "Schick deinen Eltern einen Link. Sie sehen danach nur, was du freigibst. Für dich bleibt WendApply kostenlos.",
+    connectText: "Schick deinen Eltern einen Link. Sie sehen danach nur, was du freigibst. Mit dem Familienpaket deiner Eltern ist WendApply für dich inbegriffen.",
     connectCta: "Link für meine Eltern erstellen",
     check1: "Link für deine Eltern erstellen",
     check2: "Deine Eltern öffnen den Link",

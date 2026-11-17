@@ -38,7 +38,7 @@ export default function LandingPage() {
         <div className="animate-rise">
           <p className="mb-5 max-w-xl text-sm font-semibold uppercase tracking-[.08em] text-muted">{BRAND_TAGLINE}</p>
           <h1 id="hero-h" className="text-hero">Von der ersten Bewerbung bis zur <span className="marker">Zusage</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Stellen finden, Bewerbungen und Fristen verwalten und bei Bedarf mit deiner Lehrperson teilen. Alles an einem Ort, kostenlos für Schülerinnen und Schüler.</p>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Stellen finden, Bewerbungen und Fristen verwalten und bei Bedarf mit deiner Lehrperson teilen. Alles an einem Ort. 7 Tage gratis testen, mit Schullizenz für dich gratis.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
             <ButtonLink href="/schulen" size="lg" variant="secondary">Für Schulen</ButtonLink>
@@ -47,7 +47,7 @@ export default function LandingPage() {
         </div>
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <Screenshot name="04-dashboard" alt="Startseite von WendApply: Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />
-          <span className="sticker tilt-l3 absolute -left-2 -top-4 text-sm sm:-left-5">Kostenlos für dich</span>
+          <span className="sticker tilt-l3 absolute -left-2 -top-4 text-sm sm:-left-5">7 Tage gratis testen</span>
           <span className="sticker sticker-mint tilt-r absolute -bottom-4 right-3 text-sm"><Check size={14} strokeWidth={3} aria-hidden />Zusage!</span>
           <DoodleArrow className="absolute -left-16 top-1/3 hidden h-12 w-16 text-[var(--ink)] lg:block" />
         </div>

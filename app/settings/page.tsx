@@ -16,6 +16,7 @@ import { DeleteAccountCard } from "@/components/settings/delete-account";
 import { NotificationSettings } from "@/components/settings/notification-settings";
 import { PasswordChangeCard } from "@/components/settings/password-change";
 import { SettingsSection } from "@/components/settings/section";
+import { AboSection } from "@/components/settings/abo-section";
 import { TourReplaySection } from "@/components/settings/tour-replay";
 import { withSupport } from "@/lib/account-deletion";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
@@ -109,6 +110,8 @@ export default function SettingsPage() {
               <DoodleSparkle className="hidden h-6 w-6 shrink-0 text-[var(--sun)] min-[420px]:block" />
             </div>
           </SettingsSection>
+
+          <AboSection />
 
           <SettingsSection title="Meine Daten" titleTestId="section-my-data" description="Du hast das Recht, deine Daten zu sehen, mitzunehmen und löschen zu lassen.">
             <p className="text-body text-muted">Der Export enthält alles, was WendApply über dich speichert: Bewerbungen, Profil, Dokument-Angaben, Klassen, Freundschaften, Familie und dein Dorf. Die Datei bleibt auf deinem Gerät.</p>

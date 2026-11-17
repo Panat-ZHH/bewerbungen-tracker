@@ -28,7 +28,7 @@ test("flag: off by default and for anything but 'true'", () => {
 });
 
 test("honest copy while off; no VAT wording anywhere (not MWST-registered, decided 2026-11-16)", () => {
-  assert.equal(FREE_NOTICE, "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.");
+  assert.equal(FREE_NOTICE, "Neue Konten testen WendApply 7 Tage gratis. Die Online-Bezahlung ist gerade nicht verfügbar, schreib uns über die Kontaktseite.");
   for (const f of [...BILLING_FILES, ...PARENT_FILES, "app/preise/page.tsx", "app/familien/page.tsx", "app/hilfe/page.tsx", "components/public/marketing.ts", "lib/family-copy.ts"]) {
     assert.doesNotMatch(read(f), /MWST|MwSt|VAT_NOTE|vatNote/, f);
   }
