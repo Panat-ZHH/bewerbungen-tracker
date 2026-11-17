@@ -6,14 +6,17 @@ import Link from "next/link";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
 import { FAMILY, PACKAGES, PILOT, chf } from "@/components/public/marketing";
+import { onlinePaymentEnabled } from "@/components/billing/logic";
+
+const online = onlinePaymentEnabled();
 
 export const metadata: Metadata = publicMetadata({ canonical: "/hilfe" });
 
-const link = "font-medium text-[var(--brand)] underline underline-offset-4";
+const link = "s-link";
 
 const groups: { id: string; title: string; items: FaqItem[] }[] = [
   { id: "schueler", title: "Erste Schritte für Schülerinnen und Schüler", items: [
-    { q: "Wie starte ich?", a: <>Auf <Link className={link} href="/login">Loslegen</Link> ein Konto erstellen und «Schüler:in» wählen. Danach kannst du Stellen suchen und deine erste Bewerbung eintragen.</> },
+    { q: "Wie starte ich?", a: <>Auf <Link className={link} href="/login">Anmelden</Link> ein Konto erstellen und «Schüler:in» wählen. Danach kannst du Stellen suchen und deine erste Bewerbung eintragen.</> },
     { q: "Wie trage ich eine Bewerbung ein?", a: "Im Bereich «Bewerbungen» auf «Bewerbung hinzufügen» tippen, Betrieb und Stelle eingeben, Status und Frist festlegen. Du kannst jederzeit Notizen ergänzen und den Status ändern." },
     { q: "Wie trete ich der Klasse bei?", a: "Deine Lehrperson gibt dir einen Link, einen Code oder einen QR-Code. Öffne den Link oder gib den Code im Bereich «Klassen» ein. Vor dem Beitritt siehst du genau, was die Lehrperson sehen wird." },
     { q: "Was ist der Bewerbungs-Check?", a: <>Im <Link className={link} href="/bewerbung-check">Bewerbungs-Check</Link> lädst du deinen Brief als PDF oder Word-Datei hoch. Eine KI gibt dir Punkte und Tipps mit Beispielsätzen. Deine Datei wird nicht gespeichert, nur das Ergebnis. Eine KI kann sich irren: Lass deinen Brief auch von einer Lehrperson oder deinen Eltern lesen.</> },
@@ -26,13 +29,13 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
   { id: "schulen", title: "Schulen, Preise und Pilot", items: [
     { q: "Müssen Schülerinnen und Schüler bezahlen?", a: "Hat die Schule eine Lizenz, nicht: Dann bezahlt die Schule, die Gemeinde oder der Schulträger. Ohne Schullizenz kannst du WendApply 7 Tage gratis testen. Danach brauchst du das Einzelabo (CHF 4.90 pro Monat oder CHF 49 pro Jahr) oder deine Eltern buchen das Familienpaket (CHF 7.90 pro Monat oder CHF 79 pro Jahr)." },
     { q: "Was kostet WendApply für Schulen?", a: <>Eine Jahreslizenz nach Anzahl Schülerinnen und Schüler: {PACKAGES.map((p) => `${p.name} bis ${p.maxStudents} für CHF ${chf(p.pricePerYear)}`).join(", ")} pro Jahr. Für mehrere Standorte gibt es ein individuelles Angebot. Details unter <Link className={link} href="/preise">Preise</Link>.</> },
-    { q: "Kann die Schule monatlich bezahlen?", a: "Wir empfehlen den Jahresvertrag. Monatliche Zahlung ist gegen Aufpreis möglich. Bezahlt wird auf Rechnung nach Offerte, nicht in der App." },
+    { q: "Kann die Schule monatlich bezahlen?", a: "Die Schullizenz läuft jährlich. Andere Zahlungsrhythmen klären wir in der Offerte." },
     { q: "Wie funktioniert der Pilot?", a: <>{PILOT.days} Tage mit {PILOT.classes}, zeitlich begrenzt und mit einem vereinbarten Feedback- und Entscheidungsgespräch am Ende. Ablauf unter <Link className={link} href="/pilot">Pilot</Link>.</> },
     { q: "Wie buchen wir eine Demo?", a: <>Schreiben Sie uns an <a className={link} href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent("WendApply: Demo buchen")}`}>{CONTACT_EMAIL}</a>. Wir zeigen WendApply live aus Sicht der Schülerinnen und Schüler und der Lehrpersonen.</> },
     { q: "Sehen Mitschülerinnen und Mitschüler meine Bewerbungen?", a: "Nein. Klassenziele und Klassendorf zeigen keine vertraulichen Bewerbungsdetails. Lehrpersonen sehen nur, was du für die Klasse freigibst." },
   ] },
   { id: "familien", title: "Familien und Eltern", items: [
-    { q: "Gibt es WendApply auch für Familien?", a: <>Ja, bald. Das {FAMILY.name} mit 1 Schüleraccount und 1 Elternaccount kostet {FAMILY.priceMonthText} pro Monat oder {FAMILY.priceYearText} pro Jahr. Weitere Kinder sollen später möglich sein. Mehr und Warteliste unter <Link className={link} href="/familien">Für Familien</Link>.</> },
+    { q: "Gibt es WendApply auch für Familien?", a: <>{online ? "Ja." : "Ja, bald."} Das {FAMILY.name} mit 1 Schüleraccount und 1 Elternaccount kostet {FAMILY.priceMonthText} pro Monat oder {FAMILY.priceYearText} pro Jahr. Weitere Kinder sollen später möglich sein. Mehr unter <Link className={link} href="/familien">Für Eltern</Link>.</> },
     { q: "Was sehen Eltern?", a: "Nur das, was das Kind freigibt: standardmässig Fortschritt und Dorf, die Bewerbungsliste nur auf Wunsch. Notizen und Dokumente bleiben privat. Das Kind kann das Teilen jederzeit beenden." },
     { q: "Braucht es eine Einwilligung der Eltern?", a: "Für Kinder unter 16 ja, bevor etwas mit dem Elternkonto geteilt wird. Die App selbst kann das Kind auch ohne Einwilligung nutzen." },
   ] },
@@ -41,7 +44,7 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
     { q: "Kann ich mein Konto löschen?", a: "Ja. In den Einstellungen findest du «Konto löschen». Dein Konto und alle Daten werden damit entfernt." },
     { q: "Wo finde ich die Datenschutzerklärung?", a: <><Link className={link} href="/datenschutz-uebersicht">Datenschutz im Überblick</Link>, <Link className={link} href="/datenschutz">Datenschutzerklärung</Link>, <Link className={link} href="/datenschutz-jugend">Datenschutz einfach erklärt</Link> und <Link className={link} href="/datenschutz-schulen">Datenschutz für Schulen</Link>.</> },
   ] },
-  { id: "login", title: "Probleme beim Login", items: [
+  { id: "login", title: "Probleme bei der Anmeldung", items: [
     { q: "Ich habe mein Passwort vergessen.", a: "Auf der Anmeldeseite «Passwort vergessen» wählen und die E-Mail-Adresse eingeben. Du erhältst einen Link zum Zurücksetzen. Schau auch im Spam-Ordner nach." },
     { q: "Die Bestätigungs-E-Mail kommt nicht an.", a: "Prüfe den Spam-Ordner und ob du die Adresse richtig geschrieben hast. Warte ein paar Minuten und versuche es dann erneut. Schulische Mailfilter blockieren manchmal Nachrichten, dann hilft eine private Adresse." },
     { q: "Die Anmeldung mit Google funktioniert nicht.", a: "Erlaube Pop-ups für diese Seite und versuche es in einem normalen Browserfenster statt im privaten Modus. Alternativ kannst du dich mit E-Mail und Passwort anmelden." },
@@ -51,12 +54,13 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
 
 export default function HilfePage() {
   return (
-    <TextPage title={<>Häufige <span className="marker">Fragen</span></>} intro="Antworten auf die wichtigsten Fragen. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
+    <TextPage title="Hilfe zur App" intro="Antworten auf die wichtigsten Fragen zur Arbeit mit WendApply. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
       <JsonLd data={publicBreadcrumb("/hilfe")} />
       <JsonLd data={faqJsonLd(groups.flatMap((g) => g.items))} />
-      <p className="panel-flat px-4 py-3.5 text-[15px]">Neu hier? Die <Link className={link} href="/anleitung">Schritt-für-Schritt-Anleitung</Link> erklärt alle Funktionen und wie du WendApply als App installierst.</p>
-      <nav aria-label="Themen" className="flex flex-wrap gap-2">
-        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="inline-flex min-h-10 items-center rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold hover:bg-[var(--sun)] hover:text-[var(--on-sun)] pointer-coarse:min-h-11">{g.title.replace("Erste Schritte für ", "Start: ").replace("Schulen, Preise und Pilot", "Schulen und Preise")}</a>)}
+      <p className="s-note">Fragen vor der Anmeldung? Die <Link className={link} href="/faq">häufigen Fragen</Link> beantworten Kosten, Testwoche und Datenschutz.</p>
+      <p className="s-note">Neu hier? Die <Link className={link} href="/anleitung">Schritt-für-Schritt-Anleitung</Link> erklärt alle Funktionen und wie du WendApply als App installierst.</p>
+      <nav aria-label="Themen" className="s-chips">
+        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="s-chip">{g.title.replace("Erste Schritte für ", "Start: ").replace("Schulen, Preise und Pilot", "Schulen und Preise")}</a>)}
       </nav>
       {groups.map((g) => (
         <section key={g.id} id={g.id} aria-labelledby={`${g.id}-h`} className="scroll-mt-24">

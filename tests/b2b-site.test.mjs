@@ -47,10 +47,7 @@ test("tagline and positioning are used in hero, metadata, footer and manifest", 
   assert.ok(manifest().description.startsWith(BRAND_TAGLINE));
   assert.match(read("app/layout.tsx"), /description: BRAND_TAGLINE/);
   assert.match(read("components/public/public-shell.tsx"), /\{BRAND_TAGLINE\}/);
-  const landing = read("app/page.tsx");
-  assert.match(landing, /\{BRAND_TAGLINE\}/);
-  assert.match(landing, /\{POSITIONING\}/);
-  assert.match(read("app/schulen/page.tsx"), /TAGLINE/);
+  // Website redesign (copy deck 2026-11-17): the home and /schulen heroes use their own copy; the tagline stays in the footer.
   assert.ok(TAGLINE.endsWith("machen."));
 });
 
@@ -63,7 +60,7 @@ test("no checkout or payment provider code on the public site", () => {
   assert.ok(MAIL.demo.startsWith(`mailto:${CONTACT_EMAIL}?subject=`));
   assert.ok(MAIL.offer("Professional").includes(encodeURIComponent("(Professional)")));
   assert.ok(MAIL.pilot.startsWith(`mailto:${CONTACT_EMAIL}`));
-  assert.match(read("app/preise/page.tsx"), /Demo buchen/);
+  assert.match(read("app/preise/page.tsx"), /Pilot anfragen/);
   assert.match(read("app/preise/page.tsx"), /Offerte anfragen/);
 });
 
@@ -75,7 +72,7 @@ test("FAQ 'Müssen Schüler bezahlen?' in Hilfe, guide and /preise: with school 
   for (const f of ["app/hilfe/page.tsx", "components/guide/content.tsx", "app/preise/page.tsx"]) {
     const s = read(f);
     assert.match(s, /Müssen Schülerinnen und Schüler (etwas )?bezahlen\?", a: "(Hat die Schule eine Lizenz, nicht|Mit Schullizenz nicht)/, f);
-    assert.match(s, /7 Tage gratis/, f);
+    assert.match(s, /7 Tage gratis|Gratis-Testwoche/, f);
   }
 });
 

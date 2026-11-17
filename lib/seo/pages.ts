@@ -4,7 +4,7 @@
  * descriptions are 140 to 160 characters. tests/seo.test.mjs checks both, plus that every sitemap path is listed here.
  * Swiss spelling only (ss, never the sharp s). Light keyword use only: no keyword stuffing, no new claims.
  */
-import { PACKAGES, PILOT, chf } from "../../components/public/marketing.ts";
+import { FAMILY, PACKAGES, PILOT, SOLO, TRIAL_DAYS, chf } from "../../components/public/marketing.ts";
 import { breadcrumbJsonLd, pageMetadata, type OgImageKey } from "./site.ts";
 
 export type PageSeo = {
@@ -22,24 +22,39 @@ export const PAGE_SEO = {
   "/": {
     // Home uses the full title as is (brand at the end, no template).
     title: "Bewerbungs-Tracker für die Lehrstellensuche | WendApply",
-    description: "Lehrstellen finden, Bewerbungen organisieren und Fristen im Blick: der Bewerbungs-Tracker für Schülerinnen, Schüler und Sekundarschulen in der Schweiz.",
+    description: `Lehrstellen finden, Bewerbungen und Fristen im Griff: WendApply für Schülerinnen, Schüler, Eltern und Sekundarschulen in der Schweiz. ${TRIAL_DAYS} Tage kostenlos testen.`,
     crumb: "Start",
   },
+  "/funktionen": {
+    title: "Funktionen: Lehrstellen suchen und bewerben",
+    description: "Lehrstellen suchen, Bewerbungen und Fristen verwalten, Dokumente ablegen, Motivationsschreiben prüfen und den Fortschritt mit Klasse oder Eltern teilen.",
+    crumb: "Funktionen",
+  },
+  "/faq": {
+    title: "Häufige Fragen zu WendApply",
+    description: "Antworten zu Kosten, Testwoche, Kündigung, Datenschutz, Klasse und Eltern: alles, was du vor dem Start mit WendApply wissen willst, kurz und klar erklärt.",
+    crumb: "Häufige Fragen",
+  },
+  "/ueber-uns": {
+    title: "Über uns: wer hinter WendApply steht",
+    description: "WendApply ist ein Angebot von Wendico aus Kleinandelfingen. Warum wir einen Bewerbungs-Tracker für die Lehrstellensuche bauen und wie wir arbeiten.",
+    crumb: "Über uns",
+  },
   "/schulen": {
-    title: "Berufswahl an der Sekundarschule begleiten",
-    description: `Den Bewerbungsprozess der Klasse sehen, ohne Listen nachzuführen: WendApply für Sekundarschulen. Klassenübersicht, Klassenziele, Demo und ${PILOT.days}-Tage-Pilot.`,
+    title: "Für Schulen: Berufswahl in der Sek begleiten",
+    description: `Klassenübersicht, Fristen und Mitteilungen für Lehrpersonen, eine Schullizenz für die Schule, ohne Kosten für Jugendliche. Demo oder ${PILOT.days}-Tage-Pilot anfragen.`,
     crumb: "Für Schulen",
     og: "schulen",
   },
   "/familien": {
-    title: "Lehrstellensuche als Familie begleiten",
-    description: "WendApply für Eltern und Jugendliche: Bewerbungen, Fristen und Fortschritt bei der Lehrstellensuche im Blick. Das Kind entscheidet, was es teilt.",
-    crumb: "Für Familien",
+    title: "Für Eltern: Lehrstellensuche begleiten",
+    description: `Sieh, wo dein Kind bei der Lehrstellensuche steht, ohne täglich nachzufragen. Dein Kind entscheidet, was es teilt. Familienpaket ab ${FAMILY.priceMonthText} pro Monat.`,
+    crumb: "Für Eltern",
     og: "familien",
   },
   "/preise": {
-    title: `Preise für Schulen: Jahreslizenz ab CHF ${minPrice}`,
-    description: `WendApply für Sekundarschulen: Jahreslizenz ab CHF ${minPrice} nach Anzahl Schülerinnen und Schüler, Lehrpersonen und Schülerinnen und Schüler inbegriffen.`,
+    title: "Preise für Familien und Schulen",
+    description: `${TRIAL_DAYS} Tage kostenlos testen. Einzelabo ab ${SOLO.priceMonthText} pro Monat, Familienpaket ab ${FAMILY.priceMonthText} pro Monat. Schulen: Schullizenz ab CHF ${minPrice} pro Jahr, ${PILOT.days}-Tage-Pilot.`,
     crumb: "Preise",
   },
   "/pilot": {
@@ -54,13 +69,13 @@ export const PAGE_SEO = {
     type: "article",
   },
   "/hilfe": {
-    title: "Hilfe und häufige Fragen",
-    description: "Antworten zu WendApply: erste Schritte für Schülerinnen, Schüler und Lehrpersonen, Preise und Pilot für Schulen, Familien, Datenschutz und Login.",
+    title: "Hilfe zur App",
+    description: "Erste Schritte, Klasse beitreten, Passwort vergessen, Bestätigungs-E-Mail fehlt: Antworten und Lösungen für die Arbeit mit WendApply im Alltag.",
     crumb: "Hilfe",
   },
   "/kontakt": {
-    title: "Kontakt, Demo und Pilot-Anfrage",
-    description: "So erreichen Sie das WendApply-Team: Fragen zur App, Feedback, eine Live-Demo oder ein Pilot für Ihre Sekundarschule. Wir antworten per E-Mail.",
+    title: "Kontakt, Demo und Pilot",
+    description: "Fragen zu WendApply, Feedback, eine Live-Demo oder ein Pilot für die Sekundarschule: So erreichst du das WendApply-Team per E-Mail, wir antworten rasch.",
     crumb: "Kontakt",
   },
   "/impressum": {

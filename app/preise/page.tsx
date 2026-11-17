@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
-import { faqJsonLd } from "@/lib/seo/site";
-import Link from "next/link";
-import { ArrowRight, Building2, CalendarDays, Check, CreditCard, FileText, Heart, Mail, Presentation, School, Sparkles } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
-import { PublicShell, Section } from "@/components/public/public-shell";
-import { CtaBand } from "@/components/public/cta-band";
+import { faqJsonLd, pricingJsonLd } from "@/lib/seo/site";
+import { PublicShell } from "@/components/public/public-shell";
+import { ButtonLink, Checks, FinalCta, MoreLink, PageHero, SiteSection } from "@/components/public/site-ui";
 import { Faq, type FaqItem } from "@/components/public/faq";
-import { FAMILY, MAIL, PACKAGES, PILOT, chf, perStudentMonth, perStudentYear } from "@/components/public/marketing";
-import { FREE_NOTICE, PAYMENT_LABEL, buyHref, familyPlan, intervalPriceText, onlinePaymentEnabled, priceText, savingText } from "@/components/billing/logic";
-
+import { FAMILY, MAIL, PACKAGES, PILOT, SIGNUP_HREF, SOLO, TRIAL_DAYS, chf, perStudentMonth } from "@/components/public/marketing";
+import { FREE_NOTICE, PAYMENT_LABEL, buyHref, familyPlan, intervalPriceText, onlinePaymentEnabled } from "@/components/billing/logic";
+import { PLANS } from "@/lib/billing/plans";
 
 export const metadata: Metadata = publicMetadata({ canonical: "/preise" });
 
@@ -18,136 +16,134 @@ const pro = PACKAGES.find((p) => p.recommended)!;
 /** Online payment (feature flag, default off). Off = today's offer/contact flows plus the FREE_NOTICE note. */
 const online = onlinePaymentEnabled();
 const fam = familyPlan();
-const link = "font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]";
+const pilotLimit = PLANS.pilot.studentLimit;
 
 const faq: FaqItem[] = [
-  { q: "Müssen Schülerinnen und Schüler etwas bezahlen?", a: "Mit Schullizenz nicht: Die Schule (bzw. Gemeinde oder Schulträger) bezahlt die Lizenz, die Schülerinnen und Schüler kaufen nichts. Ohne Schullizenz testet jedes neue Konto WendApply 7 Tage gratis. Danach gibt es das Einzelabo (CHF 4.90 pro Monat oder CHF 49 pro Jahr) oder das Familienpaket." },
-  { q: "Was passiert nach der Gratis-Testwoche?", a: "Ohne Abo wird WendApply gesperrt, bis ein Abo gebucht ist. Die Daten bleiben gespeichert und können jederzeit exportiert oder gelöscht werden. Es wird nichts automatisch belastet: Für die Testwoche braucht es keine Karte." },
-  { q: "Wie wird gezählt?", a: "Massgebend ist die Zahl der Schülerinnen und Schüler, die WendApply an Ihrer Schule nutzen. Lehrpersonen sind in allen Paketen inbegriffen." },
-  { q: "Kann die Schule monatlich bezahlen?", a: "Wir empfehlen den Jahresvertrag. Eine monatliche Zahlung ist gegen Aufpreis möglich. Die Details stehen in der Offerte." },
-  { q: "Wir haben mehrere Schulhäuser oder sind ein Schulverband.", a: "Für mehrere Standorte und Schulverbände erstellen wir ein individuelles Angebot. Schreiben Sie uns, wie viele Standorte und Schülerinnen und Schüler es sind." },
-  { q: "Können wir zuerst testen?", a: <>Ja, mit dem <Link className={link} href="/pilot">30-Tage-Pilot</Link> für 1 bis 2 Klassen. Danach entscheiden Sie in einem gemeinsamen Gespräch über die Jahreslizenz.</> },
-  { q: "Gibt es ein Angebot für Familien?", a: online
-    ? <>Ja: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}. Buchbar im Elternkonto unter <Link className={link} href="/familie">Meine Familie</Link>.</>
-    : <>Ja, bald: das {FAMILY.name} für 1 Schüler- und 1 Elternaccount, {priceText(fam)}. Mehr unter <Link className={link} href="/familien">Für Familien</Link>.</> },
+  { q: "Müssen Schülerinnen und Schüler etwas bezahlen?", a: "Mit Schullizenz nicht: Dann bezahlt die Schule, die Gemeinde oder der Schulträger. Ohne Schullizenz gibt es nach der Gratis-Testwoche das Einzelabo oder das Familienpaket." },
+  { q: "Wie kündige ich ein Abo?", a: "Unter «Abo verwalten» in deinem Konto. Das Abo läuft bis zum Ende der bezahlten Zeit und verlängert sich dann nicht mehr." },
+  { q: "Wie wird bei Schulen gezählt?", a: "Massgebend ist die Zahl der Schülerinnen und Schüler, die WendApply an Ihrer Schule nutzen. Lehrpersonen sind in allen Paketen inbegriffen." },
+  { q: "Kann die Schule monatlich bezahlen?", a: "Die Schullizenz läuft jährlich. Andere Zahlungsrhythmen klären wir in der Offerte." },
+  { q: "Können wir zuerst testen?", a: <>Ja, mit dem <Link href="/pilot">{PILOT.days}-Tage-Pilot</Link> für {PILOT.classes}. Er ist gratis und endet automatisch.</> },
   online
-    ? { q: "Kann man online bestellen?", a: `Ja. Die Schuladministration wählt das Paket in WendApply unter «Abo & Rechnung» und bezahlt mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title} (zahlbar innert 30 Tagen). Eine Offerte mit Vertrag ist weiterhin möglich.` }
-    : { q: "Kann man online bestellen?", a: `Noch nicht. ${FREE_NOTICE} Bis dahin erhalten Sie eine Offerte und einen Vertrag, wie bei Schulen üblich.` },
+    ? { q: "Kann man online bestellen?", a: `Ja. Die Schuladministration wählt das Paket in WendApply im Bereich Schule und bezahlt mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title} (zahlbar innert 30 Tagen).` }
+    : { q: "Kann man online bestellen?", a: "Noch nicht. Sie erhalten eine Offerte und einen Vertrag, wie bei Schulen üblich." },
 ];
 
 export default function PreisePage() {
   return (
     <PublicShell>
       <JsonLd data={publicBreadcrumb("/preise")} />
+      <JsonLd data={pricingJsonLd()} />
       <JsonLd data={faqJsonLd(faq)} />
-      <section aria-labelledby="preise-h" className="mx-auto w-full max-w-6xl px-4 pb-10 pt-10 sm:px-6 sm:pt-16">
-        <p className="sticker sticker-paper tilt-l mb-5 text-sm">Preise für Schulen</p>
-        <h1 id="preise-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Schüler bezahlen nichts.</span></h1>
-        <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">Die Schule bezahlt eine Jahreslizenz nach Anzahl Schülerinnen und Schüler. Lehrpersonen sind immer inbegriffen. Im Paket Professional sind das bei {pro.maxStudents} Schülerinnen und Schülern rund CHF {chf(perStudentMonth(pro), 2)} pro Schüler und Monat.</p>
-        <p role="note" data-billing-notice={online ? "on" : "off"} className={`status ${online ? "status-success" : "status-info"} mt-6 max-w-2xl text-[15px] font-semibold`}>
-          {online ? `Online abschliessen: mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title}.` : `${FREE_NOTICE} Für eine Offerte schreiben Sie uns.`}
-        </p>
-      </section>
 
-      <section aria-label="Pakete" className="mx-auto w-full max-w-6xl px-4 pb-14 sm:px-6 sm:pb-20">
-        <ul className="grid gap-6 pt-4 md:grid-cols-3 md:items-stretch">
-          {PACKAGES.map((p) => (
-            <li key={p.id} className={`panel relative flex flex-col p-6 sm:p-7 ${p.recommended ? "md:-mt-4 shadow-[var(--shadow-lg)] ring-4 ring-[var(--sun)]" : ""}`} aria-labelledby={`pkg-${p.id}`}>
-              {p.recommended && <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">Empfohlen</span>}
-              <h2 id={`pkg-${p.id}`} className="text-title !text-[1.75rem]">{p.name}</h2>
-              <p className="text-small mt-1 text-muted">{p.audience}</p>
-              <p className="mt-5 flex items-baseline gap-2"><span className="text-sm font-semibold">CHF</span><span className="num-big !text-5xl">{chf(p.pricePerYear)}</span><span className="text-sm text-muted">pro Jahr</span></p>
-              <p className="mt-2 text-[15px] font-semibold">bis {p.maxStudents} Schülerinnen und Schüler</p>
-              <p className="text-small mt-1 text-muted">entspricht ab CHF {chf(perStudentYear(p), 2)} pro Schüler und Jahr</p>
-              <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
-                {p.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
-              </ul>
-              {online && <ButtonLink href={buyHref(p.id)} variant={p.recommended ? "primary" : "secondary"} full className="mt-7" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />} aria-label={`${p.name} online abschliessen`}>Online abschliessen</ButtonLink>}
-              <ButtonLink href={MAIL.offer(p.name)} variant={online ? "ghost" : p.recommended ? "primary" : "secondary"} full className={online ? "mt-2" : "mt-7"} icon={<Mail size={16} strokeWidth={2.2} aria-hidden />} aria-label={`Offerte für ${p.name} anfragen (E-Mail)`}>Offerte anfragen</ButtonLink>
+      <PageHero id="preise-h" kicker="Preise" title={<>Einfache Preise. {TRIAL_DAYS} Tage gratis testen.</>}
+        lead="Für dich und deine Familie gibt es zwei Abos. Schulen kaufen eine Schullizenz, dann ist WendApply für Schülerinnen und Schüler gratis.">
+        <nav aria-label="Sprungmarken" className="s-chips" style={{ marginTop: 0 }}>
+          <a className="s-chip" href="#familie">Für dich und deine Familie</a>
+          <a className="s-chip" href="#schulen">Für Schulen</a>
+        </nav>
+      </PageHero>
+
+      <section id="familie" aria-labelledby="familie-h" className="s-section">
+        <span id="familien" aria-hidden />
+        <div className="s-wrap">
+          <div className="s-head">
+            <h2 id="familie-h" className="s-h2">Für dich und deine Familie</h2>
+          </div>
+          <ul className="s-plans">
+            <li className="s-plan" aria-labelledby="pkg-trial">
+              <h3 id="pkg-trial" className="s-plan-name">Gratis-Testwoche</h3>
+              <p className="s-price"><span className="s-price-num">CHF 0</span><span className="s-small">{TRIAL_DAYS} Tage</span></p>
+              <Checks plain items={["Alle Funktionen", "Ohne Zahlungsangaben", "Endet automatisch, nichts wird belastet"]} />
+              <div className="s-plan-cta"><ButtonLink href={SIGNUP_HREF} full>Kostenlos testen</ButtonLink></div>
             </li>
-          ))}
-        </ul>
-
-        <div className="panel-flat mt-8 grid gap-5 p-6 sm:grid-cols-[auto_1fr_auto] sm:items-center sm:p-7">
-          <Building2 size={32} strokeWidth={2} aria-hidden className="text-[var(--brand)]" />
-          <div>
-            <h2 className="text-heading">Mehrere Standorte oder Schulverband</h2>
-            <p className="text-body mt-1 text-muted">Für Gemeinden, Schulträger und Verbände mit mehreren Schulhäusern erstellen wir ein individuelles Angebot.</p>
-          </div>
-          <ButtonLink href={MAIL.multi} variant="secondary" icon={<Mail size={16} strokeWidth={2.2} aria-hidden />}>Individuelles Angebot</ButtonLink>
-        </div>
-      </section>
-
-      <section id="familien" aria-labelledby="familien-h" className="mx-auto w-full max-w-6xl scroll-mt-24 px-4 pb-14 sm:px-6 sm:pb-20">
-        <h2 id="familien-h" className="text-title max-w-3xl">Ohne Schullizenz: <span className="marker">7 Tage gratis testen</span></h2>
-        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">Für Jugendliche und Eltern, deren Schule WendApply (noch) nicht nutzt. Jedes neue Konto kann WendApply 7 Tage mit allen Funktionen gratis testen, ohne Karte. Danach braucht es ein Abo.</p>
-        <div className="panel relative mt-8 grid gap-6 p-6 sm:p-7 md:grid-cols-[1fr_1.2fr_auto] md:items-center" aria-labelledby="pkg-solo" data-testid="preise-solo">
-          <span className="sticker tilt-l absolute -top-3.5 right-5 text-sm">Für Schüler:innen</span>
-          <div>
-            <h3 id="pkg-solo" className="text-title flex items-center gap-2 !text-[1.75rem]"><Sparkles size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />Einzelabo</h3>
-            <p className="text-small mt-1 text-muted">1 Schüleraccount</p>
-            <p className="mt-4 flex items-baseline gap-2" data-solo-price><span className="num-big !text-4xl">CHF 4.90</span><span className="text-sm text-muted">pro Monat</span></p>
-            <p className="text-small mt-1 text-muted">oder CHF 49 pro Jahr (2 Monate gratis)</p>
-          </div>
-          <ul className="space-y-2 text-[15px]">
-            {["Alle Funktionen: Lehrstellensuche, Bewerbungen, KI-Check, Dorf", "7 Tage gratis testen, ohne Karte", "Monatlich kündbar"].map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
-          </ul>
-          <ButtonLink href="/login?next=%2Fabo" variant="sun" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Gratis testen</ButtonLink>
-        </div>
-        <div className="panel relative mt-6 grid gap-6 p-6 sm:p-7 md:grid-cols-[1fr_1.2fr_auto] md:items-center" aria-labelledby="pkg-family">
-          <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{online ? "Online buchbar" : FAMILY.status}</span>
-          <div>
-            <h3 id="pkg-family" className="text-title flex items-center gap-2 !text-[1.75rem]"><Heart size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />{FAMILY.name}</h3>
-            <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
-            <p className="mt-4 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{intervalPriceText(fam, "month")}</span></p>
-            <p className="text-small mt-1 text-muted">oder {intervalPriceText(fam, "year")} ({savingText(fam)})</p>
-          </div>
-          <ul className="space-y-2 text-[15px]">
-            {FAMILY.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
-          </ul>
-          {online
-            ? <div className="flex flex-col gap-2">
-                <ButtonLink href={buyHref("family", "year")} variant="sun" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Jährlich buchen</ButtonLink>
-                <ButtonLink href={buyHref("family", "month")} variant="secondary" icon={<CreditCard size={16} strokeWidth={2.2} aria-hidden />}>Monatlich buchen</ButtonLink>
+            <li className="s-plan" aria-labelledby="pkg-solo" data-testid="preise-solo">
+              <h3 id="pkg-solo" className="s-plan-name">{SOLO.name}</h3>
+              <p className="s-small" style={{ margin: "4px 0 0" }}>1 Schülerkonto</p>
+              <p className="s-price" data-solo-price><span className="s-price-num">{SOLO.priceMonthText}</span><span className="s-small">pro Monat</span></p>
+              <p className="s-small" style={{ margin: "6px 0 0" }}>oder {SOLO.priceYearText} pro Jahr (du sparst {SOLO.savingText})</p>
+              <Checks plain items={["Alle Funktionen ohne Einschränkung", "Monatlich oder jährlich", "Kündbar auf Ende der Laufzeit"]} />
+              <div className="s-plan-cta"><ButtonLink href="/login?next=%2Fabo" variant="secondary" full>{online ? "Abo wählen" : "Kostenlos testen"}</ButtonLink></div>
+            </li>
+            <li className="s-plan s-plan-featured" aria-labelledby="pkg-family">
+              <span className="s-badge">Für Eltern</span>
+              <h3 id="pkg-family" className="s-plan-name">{FAMILY.name}</h3>
+              <p className="s-small" style={{ margin: "4px 0 0" }}>{FAMILY.seatsChildren} Schülerkonto + {FAMILY.seatsParents} Elternkonto</p>
+              <p className="s-price" data-family-price><span className="s-price-num">{FAMILY.priceMonthText}</span><span className="s-small">pro Monat</span></p>
+              <p className="s-small" style={{ margin: "6px 0 0" }}>oder {intervalPriceText(fam, "year")} (du sparst {FAMILY.savingText})</p>
+              <Checks plain items={["Alle Funktionen für dein Kind", "Du siehst den Fortschritt, den dein Kind freigibt", "Kündbar auf Ende der Laufzeit"]} />
+              <div className="s-plan-cta">
+                {online
+                  ? <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      <ButtonLink href={buyHref("family", "year")} variant="sun" full>Jährlich buchen</ButtonLink>
+                      <ButtonLink href={buyHref("family", "month")} variant="secondary" full>Monatlich buchen</ButtonLink>
+                    </div>
+                  : <ButtonLink href="/familien#warteliste" variant="sun" full>Auf die Warteliste</ButtonLink>}
               </div>
-            : <ButtonLink href="/familien#warteliste" variant="secondary" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Zugang anfragen</ButtonLink>}
+            </li>
+          </ul>
+          <p className="s-note" style={{ marginTop: 28 }}>Hat deine Schule eine Schullizenz? Dann brauchst du kein Abo. Tritt einfach der Klasse deiner Lehrperson bei.</p>
+          <p role="note" data-billing-notice={online ? "on" : "off"} className="s-small" style={{ marginTop: 16 }}>
+            {online ? "Bezahlt wird mit Karte. Die Quittung kommt per E-Mail." : FREE_NOTICE}
+          </p>
         </div>
-        <p className="text-small mt-4 text-muted">{online ? `Bezahlung mit ${PAYMENT_LABEL.card.title}, monatlich oder jährlich, kündbar auf Ende der Laufzeit.` : "Noch kein Online-Kauf: Der Zugang wird in der Startphase manuell freigeschaltet."} Für Schülerinnen und Schüler einer Schule mit Lizenz ist WendApply inbegriffen.</p>
       </section>
 
-      <Section id="konditionen" title="Gut zu wissen" tint>
-        <ul className="grid gap-x-12 sm:grid-cols-2">
-          {[
-            [School, "Mit Schullizenz bezahlen Schüler nichts", "Die Lizenz bezahlt die Schule, die Gemeinde oder der Schulträger. Schülerinnen und Schüler der Schule brauchen kein Abo."],
-            [CalendarDays, "Jahresvertrag", "Wir empfehlen den Jahresvertrag. Monatliche Zahlung ist gegen Aufpreis möglich."],
-            [Presentation, `Zuerst testen: ${PILOT.days}-Tage-Pilot`, `Mit ${PILOT.classes} testen, danach gemeinsam auswerten und entscheiden.`],
-            online
-              ? [FileText, "Online oder mit Offerte", "Online mit Karte oder auf Rechnung abschliessen, oder eine Offerte mit Vertrag, Datenschutz-Unterlagen und AVV-Vorlage anfragen."]
-              : [FileText, "Offerte statt Online-Kauf", "Sie erhalten eine Offerte und einen Vertrag, inklusive Datenschutz-Unterlagen und AVV-Vorlage."],
-          ].map(([Icon, t, text]) => {
-            const I = Icon as typeof School;
-            return (
-              <li key={t as string} className="flex gap-4 border-t-2 border-dashed border-[var(--line)] py-5">
-                <I size={24} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0" />
-                <div><h3 className="text-heading">{t as string}</h3><p className="text-body mt-1 text-muted">{text as string}</p></div>
+      <section id="schulen" aria-labelledby="schulen-h" className="s-section s-section-tint">
+        <div className="s-wrap">
+          <div className="s-head">
+            <span className="s-kicker">Schullizenz</span>
+            <h2 id="schulen-h" className="s-h2">Für Schulen: eine Lizenz für die ganze Schule</h2>
+            <p className="s-lead">Die Schule bezahlt eine Schullizenz pro Jahr nach Anzahl Schülerinnen und Schüler. Lehrpersonen sind immer inbegriffen. Im Paket {pro.name} sind das bei {pro.maxStudents} Schülerinnen und Schülern rund CHF {chf(perStudentMonth(pro), 2)} pro Person und Monat.</p>
+          </div>
+          <ul className="s-plans">
+            {PACKAGES.map((p) => (
+              <li key={p.id} className={`s-plan ${p.recommended ? "s-plan-featured" : ""}`} aria-labelledby={`pkg-${p.id}`}>
+                {p.recommended && <span className="s-badge">Empfohlen</span>}
+                <h3 id={`pkg-${p.id}`} className="s-plan-name">{p.name}</h3>
+                <p className="s-small" style={{ margin: "4px 0 0" }}>{p.audience}</p>
+                <p className="s-price"><span className="s-small">CHF</span><span className="s-price-num">{chf(p.pricePerYear)}</span><span className="s-small">pro Jahr</span></p>
+                <p style={{ margin: "8px 0 0", fontWeight: 600 }}>bis {p.maxStudents} Schülerinnen und Schüler</p>
+                <Checks plain items={p.features} />
+                <div className="s-plan-cta">
+                  {online && <ButtonLink href={buyHref(p.id)} variant={p.recommended ? "primary" : "secondary"} full aria-label={`${p.name} online abschliessen`}>Online abschliessen</ButtonLink>}
+                  <ButtonLink href={MAIL.offer(p.name)} variant={online ? "ghost" : p.recommended ? "primary" : "secondary"} full aria-label={`Offerte für ${p.name} anfragen (E-Mail)`}>Offerte anfragen</ButtonLink>
+                </div>
               </li>
-            );
-          })}
-        </ul>
-        <p className="text-small mt-5 text-muted">Alle Preise in CHF pro Schuljahr.</p>
-      </Section>
-
-      <Section id="fragen" title="Fragen zu Preisen">
-        <div className="max-w-3xl">
-          <Faq items={faq} />
-          <p className="text-small mt-5 text-muted">Weitere Antworten: <Link className={link} href="/hilfe#schulen">Hilfe für Schulen</Link></p>
+            ))}
+          </ul>
+          <div className="s-band">
+            <div>
+              <h3 className="s-h3">Mehrere Schulhäuser oder ein Schulverband?</h3>
+              <p className="s-text">Für Gemeinden, Schulträger und Verbände erstellen wir eine individuelle Offerte.</p>
+            </div>
+            <ButtonLink href={MAIL.multi} variant="secondary">Offerte anfragen</ButtonLink>
+          </div>
+          <div className="s-band">
+            <div>
+              <h3 className="s-h3">Zuerst testen: {PILOT.days}-Tage-Pilot</h3>
+              <p className="s-text">Gratis mit {PILOT.classes}{pilotLimit ? ` und bis zu ${pilotLimit} Schülerinnen und Schülern` : ""}. Danach entscheiden Sie in einem gemeinsamen Gespräch.</p>
+              <MoreLink href="/pilot">So läuft der Pilot</MoreLink>
+            </div>
+            <ButtonLink href={MAIL.pilot} variant="secondary">Pilot anfragen</ButtonLink>
+          </div>
+          <p className="s-small" style={{ marginTop: 24 }}>
+            {online
+              ? `Online mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title} (zahlbar innert 30 Tagen). Eine Offerte mit Vertrag ist weiterhin möglich.`
+              : "Sie erhalten eine Offerte und einen Vertrag, inklusive Datenschutz-Dokumenten und AVV-Vorlage."}
+          </p>
         </div>
-      </Section>
+      </section>
 
-      <CtaBand title="Zuerst sehen, dann entscheiden." text="In einer Live-Demo zeigen wir WendApply aus Sicht der Schülerinnen und Schüler und der Lehrpersonen. Danach können Sie mit 1 bis 2 Klassen den Pilot starten.">
-        <ButtonLink href={MAIL.demo} size="lg" icon={<Presentation size={18} strokeWidth={2.2} aria-hidden />}>Demo buchen</ButtonLink>
-        <ButtonLink href="/pilot" size="lg" variant="secondary" className="!border-[var(--outline-fill)]" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zum Pilot</ButtonLink>
-      </CtaBand>
+      <SiteSection id="fragen" title="Fragen zu den Preisen" narrow>
+        <Faq items={faq} />
+        <p className="s-small" style={{ marginTop: 24 }}>Weitere Antworten: <Link className="s-link" href="/faq">Häufige Fragen</Link></p>
+      </SiteSection>
+
+      <FinalCta title="Noch Fragen zu den Preisen?" text="Schreib uns oder probier WendApply einfach aus.">
+        <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>
+        <ButtonLink href="/kontakt" size="lg" variant="secondary">Kontakt</ButtonLink>
+      </FinalCta>
     </PublicShell>
   );
 }

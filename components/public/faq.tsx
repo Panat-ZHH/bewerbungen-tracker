@@ -1,18 +1,18 @@
-import { ChevronDown } from "lucide-react";
+import { Plus } from "lucide-react";
 
 export type FaqItem = { q: string; a: React.ReactNode };
 
-/** Accordion built on native <details>: keyboard accessible, no JS. */
+/** Accordion built on native <details>: keyboard accessible, no JS. Calm website style (thin rules, plus icon). */
 export function Faq({ items }: { items: FaqItem[] }) {
   return (
-    <div className="rows panel-flat overflow-hidden">
+    <div className="s-faq">
       {items.map((item) => (
-        <details key={item.q} className="group">
-          <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3.5 text-[15px] font-semibold marker:content-none hover:bg-[var(--surface-2)] group-open:bg-[var(--surface-2)] [&::-webkit-details-marker]:hidden">
+        <details key={item.q}>
+          <summary>
             {item.q}
-            <ChevronDown size={18} strokeWidth={2.4} aria-hidden className="shrink-0 transition-transform group-open:rotate-180" />
+            <Plus size={20} strokeWidth={2} aria-hidden />
           </summary>
-          <div className="bg-[var(--surface-2)] px-4 pb-4 text-[15px] leading-relaxed text-muted">{item.a}</div>
+          <div className="s-faq-a">{item.a}</div>
         </details>
       ))}
     </div>

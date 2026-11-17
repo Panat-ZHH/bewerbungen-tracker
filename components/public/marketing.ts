@@ -26,13 +26,13 @@ export type Package = {
 const core = [
   "Alle Funktionen für Schülerinnen und Schüler",
   "Klassenübersicht und Begleitung für Lehrpersonen",
-  "Klassenziele, Klassendorf und Statistiken",
-  "Datenschutz-Unterlagen inkl. AVV-Vorlage",
+  "Klassenziele, Klassendorf und Auswertungen",
+  "Datenschutz-Dokumente inkl. AVV-Vorlage",
 ];
 
 export const PACKAGES: Package[] = [
   { id: "starter", name: "Starter", maxStudents: PLANS.starter.studentLimit!, pricePerYear: PLANS.starter.priceChfPerYear!, audience: "Kleine Schulen", features: [...core, "Support per E-Mail"] },
-  { id: "professional", name: "Professional", maxStudents: PLANS.professional.studentLimit!, pricePerYear: PLANS.professional.priceChfPerYear!, audience: "Das Kernpaket für die meisten Sekundarschulen", recommended: true, features: [...core, "Persönliche Einführung für das Kollegium"] },
+  { id: "professional", name: "Professional", maxStudents: PLANS.professional.studentLimit!, pricePerYear: PLANS.professional.priceChfPerYear!, audience: "Für die meisten Sekundarschulen", recommended: true, features: [...core, "Persönliche Einführung für das Kollegium"] },
   { id: "enterprise", name: "Enterprise", maxStudents: PLANS.enterprise.studentLimit!, pricePerYear: PLANS.enterprise.priceChfPerYear!, audience: "Grosse Schulen mit erweiterter Administration", features: [...core, "Erweiterte Administration für die Schule", "Persönliche Einführung für das Kollegium"] },
 ];
 
@@ -107,3 +107,19 @@ export const MAIL_FAMILY = mailto(
   "WendApply: Zugang anfragen (Familien)",
   "Ich interessiere mich für WendApply für Familien.\n\nIch bin: Elternteil / Jugendliche:r\n\nNachricht:\n",
 );
+
+/** Einzelabo (one pupil, no school licence), read from PLANS.solo like FAMILY: CHF 4.90 per month or CHF 49 per year. */
+export const SOLO = {
+  name: PLANS.solo.name,
+  priceMonthText: formatChf(PLANS.solo.priceChfPerMonth ?? 0),
+  priceYearText: formatChf(PLANS.solo.priceChfPerYear ?? 0),
+  savingText: formatChf(yearlySavingChf(PLANS.solo)),
+};
+
+/** Length of the free trial week for new pupil and parent accounts (docs/access/SPEC.md §1). */
+export const TRIAL_DAYS = 7;
+
+/** Primary CTA of the public site ("Kostenlos testen"). The login page opens the sign-up form for mode=signup (falls back to the
+ * normal login form while that parameter is not supported yet). Secondary CTA "Anmelden" goes to LOGIN_HREF. */
+export const SIGNUP_HREF = "/login?mode=signup";
+export const LOGIN_HREF = "/login";

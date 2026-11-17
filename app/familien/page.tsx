@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqJsonLd } from "@/lib/seo/site";
-import Link from "next/link";
-import { ArrowRight, BadgeCheck, Ban, Check, Download, Eye, EyeOff, Footprints, House, LayoutList, ListChecks, Mail, MailPlus, ShieldCheck, Sparkles, Trash2, UserPlus, Users } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
 import { PublicShell, Section } from "@/components/public/public-shell";
-import { Screenshot } from "@/components/public/screenshot";
-import { CtaBand } from "@/components/public/cta-band";
+import { ButtonLink, Checks, FinalCta, PageHero, PhoneShot, Shot, SiteSection, Steps } from "@/components/public/site-ui";
 import { Faq, type FaqItem } from "@/components/public/faq";
+import { pickFaq } from "@/components/public/faq-content";
 import { WaitlistForm } from "@/components/public/waitlist-form";
-import { FAMILY, MAIL_FAMILY, WAITLIST_KIND_FAMILY } from "@/components/public/marketing";
+import { FAMILY, MAIL_FAMILY, SIGNUP_HREF, WAITLIST_KIND_FAMILY } from "@/components/public/marketing";
 import { buyHref, onlinePaymentEnabled } from "@/components/billing/logic";
 
 /** Online payment (feature flag, default off). */
@@ -22,154 +20,111 @@ const FAMILY_STATUS = online ? "online buchbar" : FAMILY.status;
 
 export const metadata: Metadata = publicMetadata({ canonical: "/familien" });
 
-type Item = { icon: typeof Eye; title: string; text: string };
-
-const young: Item[] = [
-  { icon: LayoutList, title: "Alles an einem Ort", text: "Stellen, Bewerbungen, Status, Fristen und Unterlagen in einer übersichtlichen Liste, auch ohne Schule, die WendApply nutzt." },
-  { icon: Footprints, title: "Fortschritt sehen", text: "Jeder Schritt von der Schnupperlehre bis zum Lehrvertrag wird sichtbar. Das hilft, nach einer Absage weiterzumachen." },
-  { icon: House, title: "Persönliches Dorf", text: "Jede Bewerbung wird zu einem Haus, das mit dem Fortschritt wächst. Belohnt werden sinnvolle Schritte, nicht möglichst viele Bewerbungen." },
+const benefits = [
+  { title: "Den Fortschritt kennen", text: "Du siehst, wie viele Bewerbungen laufen und welchen Status sie haben, soweit dein Kind das teilt." },
+  { title: "Gezielt helfen", text: "Fristen und nächste Schritte sind sichtbar. So weisst du, wann Hilfe beim Brief oder bei der Vorbereitung aufs Gespräch nützt." },
+  { title: "Motivation statt Druck", text: "Dorf und Fortschritt machen kleine Erfolge sichtbar, auch nach einer Absage." },
 ];
 
-const parents: Item[] = [
-  { icon: Eye, title: "Den Stand kennen", text: "Sie sehen, wie viele Bewerbungen laufen und wo Ihr Kind steht, soweit es das teilt. Ohne täglich nachfragen zu müssen." },
-  { icon: ListChecks, title: "Gezielt unterstützen", text: "Fristen und nächste Schritte sind sichtbar. So wissen Sie, wann Hilfe beim Brief oder bei der Vorbereitung aufs Gespräch nützt." },
-  { icon: Sparkles, title: "Motivation statt Kontrolle", text: "Fortschritt und Dorf machen Erfolge sichtbar. Bewerbungsdetails und Notizen bleiben privat, wenn Ihr Kind das so will." },
+const steps = [
+  { title: "Konto erstellen", text: "Du oder dein Kind erstellt ein Konto. Wir fragen nur das Geburtsjahr, nicht das genaue Datum." },
+  { title: "Kind einladen", text: "Du erstellst einen Einladungscode. Er gilt 7 Tage und nur einmal. Dein Kind kann umgekehrt auch dich einladen." },
+  { title: "Einwilligung", text: "Ist dein Kind unter 16, gibst du die Einwilligung. Erst dann wird geteilt, was dein Kind freigibt." },
+  { title: "Fortschritt sehen", text: "Standardmässig siehst du Fortschritt und Dorf. Die Liste der Bewerbungen nur, wenn dein Kind sie freigibt." },
 ];
-
-const steps: Item[] = [
-  { icon: UserPlus, title: "Registrieren", text: "Elternteil oder Jugendliche:r erstellt ein Konto. Wir fragen nur das Geburtsjahr, nicht das genaue Datum." },
-  { icon: MailPlus, title: "Kind einladen", text: "Sie erstellen einen Einladungscode (7 Tage gültig, nur einmal nutzbar). Ihr Kind kann umgekehrt auch Sie einladen." },
-  { icon: BadgeCheck, title: "Einwilligung", text: "Ist Ihr Kind unter 16, geben Sie als Elternteil die Einwilligung. Erst dann wird geteilt, was Ihr Kind freigibt." },
-  { icon: Footprints, title: "Fortschritt sehen", text: "Sie sehen den freigegebenen Fortschritt: Anzahl und Status der Bewerbungen, das Dorf und, falls freigegeben, die Liste." },
-];
-
-const privacy: Item[] = [
-  { icon: ListChecks, title: "Datenminimierung", text: "Nur was nötig ist: Name, E-Mail und das Geburtsjahr, um zu prüfen, ob eine Einwilligung nötig ist. Kein genaues Geburtsdatum." },
-  { icon: BadgeCheck, title: "Einwilligung unter 16", text: "Für Kinder unter 16 braucht das Teilen mit dem Elternkonto die Einwilligung der Eltern (Schweizer DSG, DSGVO Art. 8). Ohne Einwilligung bleibt das Teilen aus." },
-  { icon: EyeOff, title: "Das Kind entscheidet", text: "Ihr Kind wählt, was das Elternkonto sieht: Fortschritt, Dorf, Bewerbungsliste. Notizen und Dokumente bleiben standardmässig privat. Das Teilen lässt sich jederzeit beenden." },
-  { icon: Download, title: "Export und Löschung", text: "Alle können ihre eigenen Daten exportieren, die Familie verlassen und das Konto löschen. Verlassen beendet das Teilen sofort." },
-  { icon: Ban, title: "Keine Werbung", text: "WendApply zeigt keine Werbung und verkauft keine Daten. Das gilt für Eltern- und Kinderkonten gleich." },
-  { icon: Users, title: "Getrennt von der Schule", text: "Ein Familienkonto sieht nie Mitschülerinnen, Mitschüler oder andere Familien. Nutzt die Schule WendApply, bleibt der Schulzugang davon unberührt." },
-];
-
-const link = "font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]";
 
 const faq: FaqItem[] = [
-  { q: "Was kostet das Familienpaket?", a: `${FAMILY.priceMonthText} pro Monat oder ${FAMILY.priceYearText} pro Jahr. Mit der Jahreszahlung spart ihr ${FAMILY.savingText} gegenüber 12 Monatszahlungen. Enthalten sind 1 Schüleraccount und 1 Elternaccount.` },
-  { q: "Unsere Schule nutzt WendApply schon. Brauchen wir das Familienpaket?", a: "Nein. Für Schülerinnen und Schüler einer Schule mit Lizenz ist WendApply kostenlos. Das Familienpaket ist für Familien, deren Schule WendApply (noch) nicht nutzt, oder für Eltern, die den Fortschritt begleiten möchten." },
-  { q: "Kann mein Kind WendApply auch allein nutzen?", a: "Ja. Jugendliche können ein eigenes Konto erstellen und WendApply 7 Tage gratis testen. Danach brauchen sie das Einzelabo (Preise unter wendapply.ch/preise) oder ihr bucht das Familienpaket. Das Teilen mit Eltern ist freiwillig." },
-  { q: "Gibt es eine Gratis-Testphase?", a: "Ja. Jedes neue Konto kann WendApply 7 Tage mit allen Funktionen gratis testen, ohne Karte. Danach braucht es ein Abo, die Daten bleiben gespeichert." },
-  { q: "Ab welchem Alter braucht es eine Einwilligung?", a: <>Für Kinder unter 16 geben die Eltern die Einwilligung, bevor Daten mit dem Elternkonto geteilt werden. Die App selbst kann Ihr Kind auch ohne Einwilligung nutzen, nur das Teilen bleibt aus. Mehr dazu unter <Link className={link} href="/datenschutz-jugend">Datenschutz für Jugendliche</Link>.</> },
-  { q: "Sehe ich als Elternteil alle Bewerbungen und Notizen?", a: "Nur das, was Ihr Kind freigibt. Standardmässig sind das der Fortschritt und das Dorf. Die Bewerbungsliste ist nur sichtbar, wenn Ihr Kind sie freigibt. Notizen und Dokumente bleiben privat." },
-  { q: "Kann ich später ein zweites Kind hinzufügen?", a: "Das Familienpaket startet mit 1 Elternteil und 1 Kind. Weitere Kinder und ein zweites Elternteil sollen später möglich sein." },
-  { q: "Was passiert, wenn mein Kind das Teilen beendet?", a: "Das Elternkonto sieht dann keinen Fortschritt mehr. Ihr Kind behält alle seine Daten. Sie können die Familie jederzeit verlassen oder Ihr Kind aus der Familie entfernen." },
+  ...pickFaq(["Wie funktioniert die Gratis-Testwoche?", "Was passiert nach der Gratis-Testwoche?", "Wo liegen meine Daten?", "Was passiert mit meinem Brief beim Bewerbungs-Check?"]),
+  { q: "Kann ich später ein zweites Kind hinzufügen?", a: "Das Familienpaket gilt für 1 Elternteil und 1 Kind. Weitere Kinder und ein zweites Elternteil sind geplant, aber noch nicht möglich." },
 ];
-
-function Grid({ items, cols = "sm:grid-cols-2 lg:grid-cols-3" }: { items: Item[]; cols?: string }) {
-  return (
-    <ul className={`grid gap-x-10 ${cols}`}>
-      {items.map(({ icon: Icon, title: t, text }) => (
-        <li key={t} className="border-t-2 border-dashed border-[var(--line)] py-5">
-          <h3 className="text-heading flex items-start gap-2.5"><Icon size={22} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{t}</h3>
-          <p className="text-body mt-2 pl-8 text-muted">{text}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 export default function FamilienPage() {
   return (
     <PublicShell>
       <JsonLd data={publicBreadcrumb("/familien")} />
       <JsonLd data={faqJsonLd(faq)} />
-      <section aria-labelledby="familien-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.15fr_.85fr]">
-        <div className="min-w-0">
-          <p className="sticker sticker-paper tilt-l mb-5 text-sm">Für Familien · {FAMILY_STATUS}</p>
-          <h1 id="familien-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Gemeinsam durch die Lehrstellensuche. <span className="marker [box-decoration-break:clone]">Mit Privatsphäre.</span></h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">WendApply hilft Jugendlichen, Bewerbungen, Fristen und Fortschritt im Griff zu haben. Eltern sehen, wie es vorwärtsgeht, aber nur das, was ihr Kind teilen möchte.</p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            {online
-              ? <ButtonLink href={FAMILY_BUY_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Familienpaket buchen</ButtonLink>
-              : <ButtonLink href="#warteliste" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zugang anfragen</ButtonLink>}
-            <ButtonLink href="#so-gehts" size="lg" variant="secondary">So funktioniert es</ButtonLink>
+
+      <PageHero id="familien-h" kicker="Für Eltern" title="Begleiten statt kontrollieren"
+        lead="Die Lehrstellensuche ist für die ganze Familie eine intensive Zeit. Mit WendApply siehst du, wo dein Kind steht. Was du siehst, entscheidet dein Kind."
+        note="7 Tage gratis für Schülerinnen, Schüler und Eltern, ohne Zahlungsangaben."
+        visual={<Shot center caption="So sieht es ein Elternkonto: nur, was das Kind freigibt."><PhoneShot name="m-familie" priority alt="Familienbereich in WendApply aus Sicht der Eltern: das Kind mit erteilter Zustimmung und der Überblick über seine Bewerbungen, nur mit den Angaben, die das Kind teilt" /></Shot>}>
+        {online ? <ButtonLink href={FAMILY_BUY_HREF} size="lg">Familienpaket buchen</ButtonLink> : <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>}
+        <ButtonLink href="/preise#familie" size="lg" variant="secondary">Preise ansehen</ButtonLink>
+      </PageHero>
+
+      <SiteSection id="eltern" title="Was du davon hast">
+        <ul className="s-cols s-cols-3">
+          {benefits.map((b) => <li key={b.title}><h3 className="s-h3">{b.title}</h3><p className="s-text">{b.text}</p></li>)}
+        </ul>
+      </SiteSection>
+
+      <SiteSection id="so-gehts" kicker="In vier Schritten" title="So funktioniert es" tint>
+        <Steps items={steps} cols={4} />
+      </SiteSection>
+
+      <SiteSection id="sichtbarkeit" title="Was du siehst und was nicht">
+        <div className="s-grid-2" style={{ alignItems: "start" }}>
+          <div>
+            <h3 className="s-h3">Sichtbar</h3>
+            <Checks items={["Anzahl und Status der Bewerbungen", "Das Dorf", "Die Bewerbungsliste, wenn dein Kind sie freigibt"]} />
           </div>
-          <p className="text-small mt-5 text-muted">Nutzt eure Schule WendApply? Dann ist es für Schülerinnen und Schüler kostenlos. <Link className={link} href="/schulen">Für Schulen</Link></p>
+          <div>
+            <h3 className="s-h3">Nie sichtbar</h3>
+            <Checks no items={["Notizen", "Dokumente wie Lebenslauf und Zeugnisse", "Die Klasse und die Mitschülerinnen und Mitschüler", "Andere Familien"]} />
+          </div>
         </div>
-        <Screenshot name="familie-overview" alt="Familienbereich in WendApply aus Sicht der Eltern: Überblick über die Bewerbungen des Kindes nach Status und sein Dorf, mit Zustimmung und nur mit dem, was das Kind teilt" width={1600} height={1280} priority className="tilt-r" />
+        <p className="s-lead">Dein Kind kann das Teilen jederzeit beenden. Dann siehst du nichts mehr, und alle Daten bleiben bei deinem Kind.</p>
+      </SiteSection>
+
+      <section id="familienpaket" aria-labelledby="familienpaket-h" className="s-section s-section-tint">
+        <div className="s-wrap s-grid-2" style={{ alignItems: "start" }}>
+          <div>
+            <span className="s-kicker">Preis</span>
+            <h2 id="familienpaket-h" className="s-h2">Das {FAMILY.name}</h2>
+            <p className="s-lead">Nutzt die Schule deines Kindes WendApply schon mit Schullizenz, ist WendApply für dein Kind gratis.</p>
+            <p className="s-small" style={{ marginTop: 16 }}>Alle Preise und das Einzelabo: <Link className="s-link" href="/preise#familie">Preise</Link></p>
+          </div>
+          <div className="s-plan s-plan-featured" aria-labelledby="pkg-family">
+            <span className="s-badge">{FAMILY_STATUS}</span>
+            <h3 id="pkg-family" className="s-plan-name">{FAMILY.name}</h3>
+            <p className="s-small" style={{ margin: "4px 0 0" }}>{FAMILY.seatsChildren} Schülerkonto + {FAMILY.seatsParents} Elternkonto</p>
+            <p className="s-price" data-family-price><span className="s-price-num">{FAMILY.priceMonthText}</span><span className="s-small">pro Monat</span></p>
+            <p className="s-small" style={{ margin: "6px 0 0" }}>oder {FAMILY.priceYearText} pro Jahr (du sparst {FAMILY.savingText})</p>
+            <Checks plain items={["Alle Funktionen für dein Kind", "Du siehst den Fortschritt, den dein Kind freigibt", "Kündbar auf Ende der Laufzeit"]} />
+            <div className="s-plan-cta">
+              {online ? <ButtonLink href={FAMILY_BUY_HREF} full>Familienpaket buchen</ButtonLink> : <ButtonLink href="#warteliste" full>Auf die Warteliste</ButtonLink>}
+            </div>
+          </div>
+        </div>
       </section>
 
-      <Section id="jugendliche" title={<>Für Jugendliche: <span className="marker">dranbleiben lohnt sich</span></>} intro="Mit eigenem Konto, auch wenn die Schule WendApply nicht nutzt. Du entscheidest, was deine Eltern sehen." tint>
-        <Grid items={young} />
-      </Section>
+      <SiteSection id="datenschutz" title="Datenschutz für Minderjährige">
+        <Checks items={[
+          "Nur nötige Daten: Name, E-Mail und Geburtsjahr.",
+          "Einwilligung der Eltern für Kinder unter 16, bevor etwas geteilt wird.",
+          "Keine Werbung, kein Verkauf von Daten. Für Eltern- und Kinderkonten gleich.",
+          "Alle können ihre Daten exportieren, die Familie verlassen und ihr Konto löschen.",
+        ]} />
+        <p className="s-small" style={{ marginTop: 24 }}>Mehr dazu: <Link className="s-link" href="/datenschutz-uebersicht">Datenschutz im Überblick</Link> · <Link className="s-link" href="/datenschutz-jugend">Datenschutz für Jugendliche</Link> · <Link className="s-link" href="/loeschkonzept">Löschkonzept</Link></p>
+      </SiteSection>
 
-      <Section id="eltern" title="Für Eltern: begleiten statt kontrollieren" intro="Die Lehrstellensuche ist für die ganze Familie eine intensive Zeit. WendApply zeigt, wo Ihr Kind steht, ohne in seine Privatsphäre einzugreifen.">
-        <Grid items={parents} />
-      </Section>
-
-      <Section id="familienpaket" title={<>Das <span className="marker">Familienpaket</span></>} intro="Ein Paket für ein Elternteil und ein Kind. Weitere Kinder und ein zweites Elternteil sollen später dazukommen können." tint>
-        <div className="grid items-start gap-8 md:grid-cols-[1fr_1fr]">
-          <div className="panel relative flex flex-col p-6 sm:p-7" aria-labelledby="pkg-family">
-            <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{FAMILY_STATUS}</span>
-            <h3 id="pkg-family" className="text-title !text-[1.75rem]">{FAMILY.name}</h3>
-            <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
-            <p className="mt-5 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{FAMILY.priceMonthText}</span><span className="text-sm text-muted">pro Monat</span></p>
-            <p className="text-small mt-1 text-muted">oder {FAMILY.priceYearText} pro Jahr ({FAMILY.savingText} günstiger als 12 Monatszahlungen)</p>
-            <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
-              {FAMILY.features.map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
-            </ul>
-            {online
-              ? <ButtonLink href={FAMILY_BUY_HREF} full className="mt-7" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Familienpaket buchen</ButtonLink>
-              : <ButtonLink href="#warteliste" full className="mt-7" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Auf die Warteliste</ButtonLink>}
-          </div>
-          <ul className="space-y-4 text-[15px] leading-relaxed">
-            <li className="flex gap-3"><ShieldCheck size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{online ? "Buchbar im Elternkonto unter «Meine Familie»: monatlich oder jährlich, kündbar auf Ende der Laufzeit." : "Noch kein Online-Kauf: Der Zugang wird während der Startphase manuell freigeschaltet."}</li>
-            <li className="flex gap-3"><Users size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />Jugendliche ohne Elternkonto können WendApply auch allein nutzen.</li>
-            <li className="flex gap-3"><House size={20} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />Nutzt die Schule WendApply, bleibt der Schulzugang kostenlos und unverändert.</li>
-          </ul>
-        </div>
-      </Section>
-
-      <Section id="so-gehts" title={<>So funktioniert es: <span className="marker">vier Schritte</span></>} intro="Ohne Installation. WendApply läuft im Browser und lässt sich als App auf Handy und Computer installieren.">
-        <ol className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map(({ icon: Icon, title: t, text }, i) => (
-            <li key={t} className="panel relative p-6">
-              <span aria-hidden className="num-big text-[var(--brand)]">{i + 1}</span>
-              <h3 className="text-heading mt-3 flex items-center gap-2"><Icon size={20} strokeWidth={2.2} aria-hidden />{t}</h3>
-              <p className="text-body mt-2 text-muted">{text}</p>
-            </li>
-          ))}
-        </ol>
-      </Section>
-
-      <Section id="datenschutz" title="Datenschutz für Minderjährige" intro="WendApply arbeitet mit Daten von Jugendlichen. Darum gelten im Familienkonto strenge Regeln nach Schweizer DSG und DSGVO." tint>
-        <Grid items={privacy} />
-        <div className="mt-7 flex flex-wrap items-center gap-3">
-          <ButtonLink href="/datenschutz-uebersicht" variant="secondary" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Datenschutz im Überblick</ButtonLink>
-          <ButtonLink href="/datenschutz-jugend" variant="ghost">Datenschutz für Jugendliche</ButtonLink>
-          <ButtonLink href="/loeschkonzept" variant="ghost" icon={<Trash2 size={16} strokeWidth={2.2} aria-hidden />}>Löschkonzept</ButtonLink>
-        </div>
-      </Section>
-
-      <Section id="fragen" title="Häufige Fragen von Familien">
-        <div className="max-w-3xl">
-          <Faq items={faq} />
-          <p className="text-small mt-5 text-muted">Weitere Antworten: <Link className={link} href="/hilfe#familien">Hilfe für Familien</Link></p>
-        </div>
-      </Section>
+      <SiteSection id="fragen" title="Häufige Fragen von Eltern" narrow>
+        <Faq items={faq} />
+        <p className="s-small" style={{ marginTop: 24 }}>Weitere Antworten: <Link className="s-link" href="/faq">Alle Fragen</Link></p>
+      </SiteSection>
 
       {!online && (
-        <Section id="warteliste" title={<>Auf die Warteliste / <span className="marker">Zugang anfragen</span></>} intro="Wir starten mit wenigen Familien. Trag dich ein, dann melden wir uns, sobald ein Platz frei ist." tint>
-          <div className="max-w-2xl">
+        <Section id="warteliste" title="Auf die Warteliste" intro="Wir starten mit wenigen Familien. Trag dich ein, dann melden wir uns, sobald ein Platz frei ist." tint>
+          <div style={{ maxWidth: 640 }}>
             <WaitlistForm kind={WAITLIST_KIND_FAMILY} mailFallback={MAIL_FAMILY} />
           </div>
         </Section>
       )}
 
-      <CtaBand title="Fragen zu WendApply für Familien?" text="Schreib uns. Wir erklären gern, wie WendApply funktioniert und was Eltern sehen und was nicht.">
-        <ButtonLink href={MAIL_FAMILY} size="lg" icon={<Mail size={18} strokeWidth={2.2} aria-hidden />}>E-Mail schreiben</ButtonLink>
-        <ButtonLink href="/anleitung" size="lg" variant="secondary" className="!border-[var(--outline-fill)]" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Zur Anleitung</ButtonLink>
-      </CtaBand>
+      <FinalCta title="Fragen zu WendApply für Familien?" text="Schreib uns. Wir erklären gern, was Eltern sehen und was nicht.">
+        <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>
+        <ButtonLink href="/kontakt" size="lg" variant="secondary">Kontakt</ButtonLink>
+      </FinalCta>
     </PublicShell>
   );
 }
