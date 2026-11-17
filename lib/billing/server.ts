@@ -49,17 +49,35 @@ export function supabaseBillingDb(admin: SupabaseClient = serviceClient()): Bill
 /** Subscription statuses that block a second checkout (the existing one is managed in the portal). */
 export const OPEN_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due", "unpaid", "paused"];
 
+export interface CustomerRow { stripe_customer_id: string; created_by: string | null }
+
+/**
+ * Family customer the caller may use (rows newest first): the caller's own, else one created by another parent who is
+ * still active in the family. Never one whose creator left / deleted the account (created_by null): that customer holds
+ * the former parent's card, address and invoices (reaudit 2026-11-17).
+ */
+export function pickFamilyCustomer(rows: CustomerRow[], userId: string, activeParents: string[]): string | null {
+  const own = rows.find((r) => r.created_by === userId);
+  if (own) return own.stripe_customer_id;
+  return rows.find((r) => r.created_by !== null && activeParents.includes(r.created_by))?.stripe_customer_id ?? null;
+}
+
 const ownerCol = (owner: BillingOwner) => (owner.kind === "school" ? "school_id" : "family_id");
 
 export function supabaseApiDb(admin: SupabaseClient = serviceClient()): BillingApiDb {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
   return {
-    async findCustomerId(owner) {
-      const { data, error } = await admin.from("billing_customers").select("stripe_customer_id").eq(ownerCol(owner), owner.id)
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    async findCustomerId(owner, userId) {
+      const { data, error } = await admin.from("billing_customers").select("stripe_customer_id, created_by").eq(ownerCol(owner), owner.id)
+        .order("created_at", { ascending: false }).limit(20);
       if (error) throw new Error(`DB_READ_FAILED:${error.code ?? ""}`);
-      return data?.stripe_customer_id ?? null;
+      const rows = (data ?? []) as CustomerRow[];
+      if (owner.kind === "school") return rows[0]?.stripe_customer_id ?? null;
+      const { data: parents, error: e2 } = await admin.from("family_members").select("user_id")
+        .eq("family_id", owner.id).eq("role", "parent").eq("status", "active");
+      if (e2) throw new Error(`DB_READ_FAILED:${e2.code ?? ""}`);
+      return pickFamilyCustomer(rows, userId, ((parents ?? []) as { user_id: string }[]).map((p) => p.user_id));
     },
     async saveCustomer(owner, customerId, userId) {
       const { error } = await admin.from("billing_customers")

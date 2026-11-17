@@ -123,15 +123,17 @@ export function apiStripe(stripe: Stripe = getStripe()): BillingApiStripe {
         collection_method: "send_invoice",
         days_until_due: p.daysUntilDue,
         metadata: p.metadata,
-      });
+      }, p.idempotencyKey ? { idempotencyKey: p.idempotencyKey } : undefined);
       // The first invoice of a send_invoice subscription starts as a draft (auto-finalised after ~1 h). Finalise it now
       // so the admin gets the hosted invoice page (PDF, bank details / QR-bill if enabled on the account) right away.
       const invoiceId = typeof sub.latest_invoice === "string" ? sub.latest_invoice : sub.latest_invoice?.id;
       let hostedInvoiceUrl: string | null = null;
       if (invoiceId) {
         let invoice = await stripe.invoices.retrieve(invoiceId);
-        if (invoice.status === "draft") invoice = await stripe.invoices.finalizeInvoice(invoiceId, { auto_advance: true });
-        if (invoice.status === "open") {
+        // Only the request that finalises the draft e-mails it: a replayed (idempotent) request must not send it twice.
+        const wasDraft = invoice.status === "draft";
+        if (wasDraft) invoice = await stripe.invoices.finalizeInvoice(invoiceId, { auto_advance: true });
+        if (wasDraft && invoice.status === "open") {
           try { invoice = await stripe.invoices.sendInvoice(invoiceId); } catch { /* e-mail delivery is best effort; the link still works */ }
         }
         hostedInvoiceUrl = invoice.hosted_invoice_url ?? null;

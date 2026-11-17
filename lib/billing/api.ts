@@ -23,7 +23,11 @@ export interface BillingApiStripe {
   createElementsSession(p: { customer: string; price: string; kind: "school" | "family"; metadata: Record<string, string>; returnUrl: string }): Promise<{ clientSecret: string | null }>;
   /** Minimal view of a Checkout Session for the in-app return page. */
   retrieveCheckoutSession(id: string): Promise<CheckoutSessionView | null>;
-  createInvoiceSubscription(p: { customer: string; price: string; daysUntilDue: number; metadata: Record<string, string> }): Promise<{ subscriptionId: string; hostedInvoiceUrl: string | null }>;
+  /**
+   * idempotencyKey: a double click on "Rechnung anfordern" (or two admins at once) must create ONE subscription. Without
+   * it both requests pass the "already subscribed" checks before either subscription exists (reaudit 2026-11-17).
+   */
+  createInvoiceSubscription(p: { customer: string; price: string; daysUntilDue: number; metadata: Record<string, string>; idempotencyKey?: string }): Promise<{ subscriptionId: string; hostedInvoiceUrl: string | null }>;
   createPortalSession(p: { customer: string; returnUrl: string }): Promise<{ url: string }>;
 }
 
@@ -39,8 +43,14 @@ export type CheckoutUi = "hosted" | "elements";
 export const IN_APP_RETURN_PATH = "/familie/bezahlen/fertig";
 
 export interface BillingApiDb {
-  /** Newest billing_customers.stripe_customer_id of the owner (service role). */
-  findCustomerId(owner: BillingOwner): Promise<string | null>;
+  /**
+   * Newest billing_customers.stripe_customer_id of the owner that the caller may use (service role).
+   * Families: only a customer created by a parent who is STILL an active parent of the family (the caller's own first).
+   * A Stripe customer holds the creator's card, billing address and invoices; a parent who joined later (after the
+   * creator left or deleted the account) must never open that portal or renew that subscription on the old card.
+   * Schools: any customer of the school (all school admins manage the school's billing).
+   */
+  findCustomerId(owner: BillingOwner, userId: string): Promise<string | null>;
   /**
    * Remember a freshly created Stripe customer right away (service role), so a cancelled / failed Checkout doesn't leave a
    * new orphan customer each time (the webhook only writes billing_customers after a payment). Optional, best effort.
@@ -156,7 +166,7 @@ export async function checkout(input: { token: string | null; body: unknown }, d
     return err(503, "price_not_found");
   }
   const metadata = { app: "wendapply", plan_id: plan.id, interval, ...ownerMeta(owner), user_id: auth.user.id };
-  let customer = await deps.db.findCustomerId(owner);
+  let customer = await deps.db.findCustomerId(owner, auth.user.id);
   if (!customer) {
     customer = await deps.stripe.createCustomer({
       email: auth.user.email, name: await deps.db.ownerName(owner), metadata: { app: "wendapply", ...ownerMeta(owner), user_id: auth.user.id },
@@ -172,7 +182,12 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   await deps.stripe.expireOpenCheckoutSessions?.(customer);
 
   if (payment === "invoice") {
-    const { hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({ customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata });
+    const { hostedInvoiceUrl } = await deps.stripe.createInvoiceSubscription({
+      customer, price, daysUntilDue: BILLING.invoiceDaysUntilDue, metadata,
+      // Same owner + price within 10 minutes = the same request (Stripe replays the first answer; a parallel one with a
+      // different customer is rejected by Stripe). Owner-based, not customer-based: two admins racing get one subscription.
+      idempotencyKey: invoiceIdempotencyKey(owner, lookupKey),
+    });
     return { status: 200, body: { url: hostedInvoiceUrl, invoice: true } };
   }
   if (ui === "elements") {
@@ -193,6 +208,11 @@ export async function checkout(input: { token: string | null; body: unknown }, d
   return { status: 200, body: { url: session.url } };
 }
 
+/** Idempotency key of an invoice subscription: owner + price + 10-minute bucket. */
+export function invoiceIdempotencyKey(owner: BillingOwner, lookupKey: string, now: number = Date.now()): string {
+  return `wendapply-invoice-sub-${owner.kind}-${owner.id}-${lookupKey}-${Math.floor(now / 600_000)}`;
+}
+
 /** POST /api/billing/portal  body { schoolId? , familyId? } */
 export async function portal(input: { token: string | null; body: unknown }, deps: BillingApiDeps): Promise<ApiResult> {
   const closed = gate(deps);
@@ -201,7 +221,7 @@ export async function portal(input: { token: string | null; body: unknown }, dep
   if (!owner) return err(400, "invalid_owner");
   const auth = await authorizeOwner(input.token, owner, deps.auth);
   if (!auth.ok) return err(auth.status, auth.error);
-  const customer = await deps.db.findCustomerId(owner);
+  const customer = await deps.db.findCustomerId(owner, auth.user.id);
   if (!customer) return err(404, "no_customer");
   const session = await deps.stripe.createPortalSession({ customer, returnUrl: portalReturnUrl(deps.baseUrl, owner) });
   return { status: 200, body: { url: session.url } };
@@ -218,12 +238,16 @@ export async function checkoutSession(input: { token: string | null; query: URLS
   const id = input.query.get("id") ?? "";
   if (!SESSION_ID.test(id)) return err(400, "invalid_session");
   if (!input.token) return err(401, "unauthenticated");
+  // Verify the token BEFORE asking Stripe: otherwise any string as Bearer token makes us call the Stripe API (no auth,
+  // no per-user limit), which can burn the account's Stripe rate limit for every real payer (reaudit 2026-11-17).
+  const user = await deps.auth.getUser(input.token);
+  if (!user) return err(401, "unauthenticated");
   const session = await deps.stripe.retrieveCheckoutSession(id);
   if (!session || session.metadata.app !== "wendapply") return err(404, "session_not_found");
   const owner = parseOwner({ schoolId: session.metadata.school_id, familyId: session.metadata.family_id });
   if (!owner) return err(404, "session_not_found");
-  const auth = await authorizeOwner(input.token, owner, deps.auth);
-  if (!auth.ok) return err(auth.status === 401 ? 401 : 404, auth.status === 401 ? auth.error : "session_not_found"); // never confirm foreign sessions
+  const allowed = owner.kind === "school" ? await deps.auth.isSchoolAdmin(input.token, owner.id) : await deps.auth.isFamilyParent(input.token, owner.id);
+  if (!allowed) return err(404, "session_not_found"); // never confirm foreign sessions
   const plan = purchasablePlan(session.metadata.plan_id);
   const interval = session.metadata.interval === "month" ? "month" : "year";
   return {
