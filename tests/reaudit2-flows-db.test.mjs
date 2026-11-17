@@ -119,6 +119,27 @@ test("school network: 120 pupils behind one IP preview + join (≈ 4 code calls 
   }
 });
 
+test("school network: 60 pupils send 5 friend requests each from one IP in one hour; one account still stops at 20", async () => {
+  const pupils = (await ctx.admin("select id from auth.users where email like 'pupil%@schule.ch' order by email limit 61")).map((r) => r.id);
+  const codes = (await ctx.admin("select user_id, invite_code from public.user_roles where user_id = any($1::uuid[])", [pupils]));
+  const codeOf = Object.fromEntries(codes.map((r) => [r.user_id, r.invite_code]));
+  await ctx.admin("delete from public.rate_limits");
+  await viaApi("198.51.100.79");
+  try {
+    let sent = 0;
+    for (let i = 0; i < 60; i += 1) {
+      await ctx.as(pupils[i]);
+      for (let k = 1; k <= 5; k += 1) sent += (await ctx.rpc("select * from public.social_send_request($1)", [codeOf[pupils[(i + k * 7) % 61]]]).catch((e) => { if (/REQUEST_PENDING|ALREADY_FRIENDS/.test(e.message)) return [{}]; throw e; })).length;
+    }
+    assert.equal(sent, 300);
+    await ctx.as(pupils[60]);
+    for (let i = 0; i < 20; i += 1) await ctx.rpc("select * from public.social_send_request('nobody-' || $1 || '@x.ch')", [i]);
+    assert.match(await ctx.code(ctx.rpc("select * from public.social_send_request('nobody-x@x.ch')")), /rate_limited/);
+  } finally {
+    await notApi();
+  }
+});
+
 test("per-user code limit is unchanged: one account still gets 30 lookups per hour", async () => {
   await ctx.admin("delete from public.rate_limits");
   await viaApi("198.51.100.78");
@@ -129,8 +150,8 @@ test("per-user code limit is unchanged: one account still gets 30 lookups per ho
   } finally {
     await notApi();
   }
-  const rows = await ctx.admin("select scope, user_limit, ip_limit from public.rate_limit_settings where scope in ('code', 'code-day', 'invite-token') order by scope");
-  assert.deepEqual(rows.map((r) => [r.scope, r.user_limit, r.ip_limit]), [["code", null, 1000], ["code-day", null, 3000], ["invite-token", null, 1000]]);
+  const rows = await ctx.admin("select scope, user_limit, ip_limit from public.rate_limit_settings where scope in ('code', 'code-day', 'invite-token', 'friend-request', 'friend-request-day') order by scope");
+  assert.deepEqual(rows.map((r) => [r.scope, r.user_limit, r.ip_limit]), [["code", null, 1000], ["code-day", null, 3000], ["friend-request", null, 500], ["friend-request-day", null, 1500], ["invite-token", null, 1000]]);
 });
 
 test("the settings migration keeps values an operator already set (idempotent, on conflict do nothing)", async () => {

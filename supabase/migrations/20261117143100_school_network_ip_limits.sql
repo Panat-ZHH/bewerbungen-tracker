@@ -4,7 +4,8 @@
 -- school network) reach Supabase through ONE public IP. One class joining costs about 4 calls per pupil (invite_context
 -- on the login page, class_preview, class_join, a reload); a "add your classmates as friends" exercise adds a code
 -- lookup per friend. Two or three classes in the same hour – or a year group at an info event – already hit 300/h, and
--- the next pupils get "Bitte warte …" for up to an hour.
+-- the next pupils get "Bitte warte …" for up to an hour. Friend requests (200/h, 600/day per IP) are hit the same way
+-- when classes add their classmates.
 -- The per-USER limits (30/h, 100/day on codes) are what makes guessing hopeless and stay unchanged. The per-IP limit only
 -- matters for anonymous invite_context and for attackers with many accounts; with 40-bit codes 1000/h per IP still
 -- leaves guessing pointless.
@@ -16,5 +17,9 @@
 insert into public.rate_limit_settings (scope, ip_limit, note) values
   ('code', 1000, 'school networks: many pupils behind one IP (re-audit 2, flows)'),
   ('code-day', 3000, 'school networks: many pupils behind one IP (re-audit 2, flows)'),
-  ('invite-token', 1000, 'school networks: many pupils behind one IP (re-audit 2, flows)')
+  ('invite-token', 1000, 'school networks: many pupils behind one IP (re-audit 2, flows)'),
+  -- friend requests (by code or e-mail): per user 20/h, 60/day stay (e-mail enumeration); per IP 200/h, 600/day were
+  -- one or two classes doing "add your classmates" on the same day.
+  ('friend-request', 500, 'school networks: many pupils behind one IP (re-audit 2, flows)'),
+  ('friend-request-day', 1500, 'school networks: many pupils behind one IP (re-audit 2, flows)')
 on conflict (scope) do nothing;
