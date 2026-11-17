@@ -69,7 +69,7 @@ export function computeReminders(apps: Pick<Application, "id" | "company" | "pos
 }
 
 // ---------- .ics ----------
-const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+const esc = (s: string) => s.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 /** RFC 5545: lines max 75 octets, continuation = CRLF + space. */
 function fold(line: string) {
   const bytes = new TextEncoder(); const parts: string[] = []; let cur = "", len = 0;

@@ -27,7 +27,12 @@ const handler = createHandler({
     if (error) throw new Error(`settings: ${error.code}`);
     return (data?.daily_limit as number | null | undefined) ?? null;
   },
+  // Counts the append-only usage log (migration 20261117041700): users may delete their ai_reviews rows, which must not
+  // reset the daily limit. Falls back to ai_reviews only while the migration is not applied yet (table missing).
   async countReviewsSince(userId, sinceIso) {
+    const usage = await admin.from("ai_review_usage").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", sinceIso);
+    if (!usage.error) return usage.count ?? 0;
+    if (usage.error.code !== "42P01" && usage.error.code !== "PGRST205") throw new Error(`count: ${usage.error.code}`);
     const { count, error } = await admin.from("ai_reviews").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", sinceIso);
     if (error) throw new Error(`count: ${error.code}`);
     return count ?? 0;
