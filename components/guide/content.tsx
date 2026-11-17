@@ -97,7 +97,7 @@ export const guideSteps: GuideStep[] = [
     intro: "Unter «Dorf» wird jede Bewerbung zu einem Haus. Je weiter du kommst, desto grösser wird es.",
     steps: [
       <>Eine gemerkte Stelle startet als Baustelle. Mit jedem Schritt wächst das Haus, bei einer Zusage wird es zum Palast. Eine Absage bleibt als Ruine stehen.</>,
-      <>Für jede abgeschickte Bewerbung bekommst du einmalig 100 Punkte. Die bleiben dir, auch wenn du den Status später änderst.</>,
+      <>Für jede abgeschickte Bewerbung bekommst du einmalig 100 Punkte, für höchstens 10 Bewerbungen pro Tag. Trägst du mehr ein, bekommst du die restlichen Punkte an den nächsten Tagen automatisch. Die Punkte bleiben dir, auch wenn du den Status später änderst.</>,
       <>Im {k("Laden")} kaufst du mit deinen Punkten Strassen, Bäume, Brunnen, E-Roller und Autos. Danach {k("Platzieren")}, drehen oder verschieben.</>,
       <>Mit genug Punkten schaltest du neue Inseln frei, eine nach der anderen.</>,
     ],

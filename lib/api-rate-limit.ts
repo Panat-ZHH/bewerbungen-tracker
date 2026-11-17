@@ -34,11 +34,14 @@ export const ROUTE_LIMITS = {
   "billing-session": { ip: { limit: 120, windowSeconds: 600 }, user: { limit: 60, windowSeconds: 600 } },
   // Only requests with a missing / invalid signature are counted – a valid Stripe event is never limited.
   "stripe-webhook-invalid": { ip: { limit: 30, windowSeconds: 600 } },
-  // Scraping three job portals per search is expensive.
-  "job-search": { ip: { limit: 40, windowSeconds: 60 }, user: { limit: 12, windowSeconds: 60 }, userDay: { limit: 400, windowSeconds: D },
+  // Scraping three job portals per search is expensive: the per-USER limits carry the cost protection. The per-IP limit
+  // only stops floods of fake tokens and must fit a whole school behind one IP (25-30 pupils searching in a lesson,
+  // debounced auto-search + "load more" ≈ 2-6 requests per pupil and minute), so it is ~ one class × the user limit.
+  "job-search": { ip: { limit: 360, windowSeconds: 60 }, user: { limit: 12, windowSeconds: 60 }, userDay: { limit: 400, windowSeconds: D },
     message: "Bitte warte kurz vor der nächsten Suche." },
   "account-delete": { ip: { limit: 20, windowSeconds: H }, user: { limit: 5, windowSeconds: H } },
-  "push-subscribe": { ip: { limit: 60, windowSeconds: H }, user: { limit: 30, windowSeconds: H } },
+  // Per IP sized for a class switching reminders on together from one school IP.
+  "push-subscribe": { ip: { limit: 300, windowSeconds: H }, user: { limit: 30, windowSeconds: H } },
   // Wrong cron secret only.
   "digest-unauthorized": { ip: { limit: 10, windowSeconds: H } },
   // Calendar feeds: unknown tokens are counted per IP (guessing), a known token is limited per token
