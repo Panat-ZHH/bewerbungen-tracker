@@ -17,17 +17,20 @@ function clean(pathname: string | null | undefined) { return String(pathname ?? 
 const ALWAYS_OPEN = [
   "/settings", ABO_PATH, LICENCE_PATH, CONTACT_PATH, "/hilfe", "/anleitung", "/preise", "/auth", "/login",
   "/datenschutz", "/datenschutz-jugend", "/datenschutz-schulen", "/datenschutz-uebersicht", "/impressum", "/avv", "/loeschkonzept", "/hosting",
+  // Joining a class of a licensed school is how a student gets access through the school.
+  "/classes/join",
   // A family invite link must stay usable: joining the parent's family is how a child gets covered by the family plan.
   "/familie/einladung",
 ];
 /** Pages a blocked account may still open: export + delete, contact, help, legal, auth. No billing. */
 const BLOCKED_OPEN = ["/settings", CONTACT_PATH, "/hilfe", "/auth", "/login", "/datenschutz", "/datenschutz-jugend", "/impressum"];
 
-/** Allow-listed path for a user without access. Parents also keep /familie (create family, invite, pay). */
+/** Allow-listed path for a user without access (also /familie: family plan = the way to pay for parent and child). */
 export function isAllowListed(pathname: string | null | undefined, opts: { parent?: boolean } = {}): boolean {
   const path = clean(pathname);
   if (ALWAYS_OPEN.some((prefix) => under(path, prefix))) return true;
-  return !!opts.parent && under(path, "/familie");
+  // /familie: parents create the family, invite and pay; children invite their parents (who then pay). No app content there.
+  return under(path, "/familie") || (!!opts.parent && under(path, "/familie"));
 }
 
 /** True when the rules apply to this user (enforcement switch on + a real answer from the database). */
@@ -118,6 +121,8 @@ export function readAccessInfo(data: unknown): AccessInfo | null {
     school: row.school ?? null,
     blocked: row.blocked === true,
     enforced: row.enforced === true,
+    expired_reason: row.expired_reason ?? null,
+    family_pending: row.family_pending === true,
   };
 }
 
@@ -125,4 +130,5 @@ export function readAccessInfo(data: unknown): AccessInfo | null {
 export const OPEN_ACCESS: AccessInfo = {
   has_access: true, state: "active", reason: "none", role: "student", account_type: null, trial_ends_at: null, trial_days_left: null,
   grace_until: null, grant_until: null, subscription: null, school: null, blocked: false, enforced: false,
+  expired_reason: null, family_pending: false,
 };

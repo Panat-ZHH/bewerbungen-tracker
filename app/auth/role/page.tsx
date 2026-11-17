@@ -7,7 +7,7 @@ import { AuthFrame, AuthTitle } from "@/components/onboarding/auth-frame";
 import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
-import { chooseRole, landingPath, needsRoleChoice, parentLandingPath, studentOnboardingHref, TEACHER_HOME } from "@/lib/role";
+import { applyKnownRole, chooseRole, clearPendingSignup, landingPath, needsRoleChoice, parentLandingPath, resolveLanding, studentOnboardingHref, TEACHER_HOME } from "@/lib/role";
 import { choiceToAccount, isValidBirthYear, signupMetadata, type SignupChoice } from "@/lib/family-core";
 import { syncPendingAccountType } from "@/lib/family";
 import { authMessage, safeNextPath } from "@/lib/ux";
@@ -29,7 +29,12 @@ export default function ChooseRolePage() {
       if (!data.user) { router.replace("/login"); return; }
       // Already decided (or an old account with a role): nothing to ask.
       if (!needsRoleChoice(data.user)) { router.replace(landingPath(data.user.user_metadata?.role === "teacher" ? "teacher" : "student", next())); return; }
-      setReady(true);
+      // Known from the signup tab, a family invite or the server: apply it instead of asking a second time.
+      applyKnownRole(data.user, next()).then(async (applied) => {
+        if (!alive) return;
+        if (applied && !needsRoleChoice(applied)) { router.replace(await resolveLanding(next())); return; }
+        setReady(true);
+      }).catch(() => { if (alive) setReady(true); });
     });
     return () => { alive = false; };
   }, [router]);
@@ -42,13 +47,16 @@ export default function ChooseRolePage() {
       const { data } = await supabase.auth.getUser();
       if (!data.user) { router.replace("/login"); return; }
       const { role: baseRole, accountType } = choiceToAccount(role);
+      clearPendingSignup();
       const effective = await chooseRole(data.user, baseRole);
       if (effective === "student" && accountType) {
         // Private customers: remember the account type and store it with account_set_type (retried later if not deployed yet).
         const { data: updated } = await supabase.auth.updateUser({ data: signupMetadata(role, birthYear) });
         await syncPendingAccountType(updated.user ?? data.user);
       }
-      router.replace(effective === "teacher" ? TEACHER_HOME : accountType === "parent" && effective === "student" ? parentLandingPath(next()) : studentOnboardingHref(next()));
+      const fallback = effective === "teacher" ? TEACHER_HOME : accountType === "parent" && effective === "student" ? parentLandingPath(next()) : studentOnboardingHref(next());
+      // resolveLanding also knows the licence gate (teachers without a school licence → /schullizenz).
+      router.replace(effective === "teacher" ? await resolveLanding(next()).catch(() => fallback) : fallback);
     } catch (reason) { setError(authMessage(reason)); setBusy(false); }
   }
 

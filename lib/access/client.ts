@@ -2,13 +2,14 @@
 // a billing return, and a watcher that turns any PAYWALL answer (Postgres 'PAYWALL' or HTTP 402) into the paywall.
 import { supabase } from "@/lib/supabase";
 import { isMissingFamilyFeature } from "@/lib/family-core";
-import { isPaywallError, OPEN_ACCESS, readAccessInfo } from "./gate";
-import type { AccessInfo } from "./types";
+import { isPaywallError, OPEN_ACCESS, readAccessInfo } from "@/lib/access/gate";
+import type { AccessInfo } from "@/lib/access/types";
 
 export const ACCESS_CHANGED_EVENT = "wa:access-changed";
 export const PAYWALL_EVENT = "wa:paywall";
 /** Re-read at most this often on focus (a billing return / paywall error always re-reads). */
 const FOCUS_TTL_MS = 60_000;
+const LOAD_TIMEOUT_MS = 6_000;
 
 type Cached = { userId: string; info: AccessInfo; at: number };
 let cache: Cached | null = null;
@@ -37,11 +38,15 @@ export async function loadMyAccess(opts: { force?: boolean; userId?: string | nu
   })().then((info) => {
     cache = { userId: userId!, info, at: Date.now() };
     if (inflight?.promise === promise) inflight = null;
-    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent(ACCESS_CHANGED_EVENT, { detail: info }));
+    emit(ACCESS_CHANGED_EVENT, info);
     return info;
   });
   inflight = { userId, promise };
-  return promise;
+  // Never keep the app waiting on a slow network: after LOAD_TIMEOUT_MS answer "open" (not cached); when the real answer
+  // arrives it is cached and ACCESS_CHANGED_EVENT updates the UI (the server enforces the rules either way).
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<AccessInfo>((resolve) => { timer = setTimeout(() => resolve(OPEN_ACCESS), LOAD_TIMEOUT_MS); });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 /** True when the cached value is older than the focus TTL. */
@@ -51,9 +56,10 @@ export function accessIsStale(now = Date.now()) { return !cache || now - cache.a
 export const isAccessFeatureMissing = (error: unknown) => isMissingFamilyFeature(error);
 
 /** Tell the app that the server refused something because of the paywall (it re-reads my_access and shows the paywall). */
-export function reportPaywall() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent(PAYWALL_EVENT));
+export function reportPaywall() { emit(PAYWALL_EVENT); }
+
+function emit(name: string, detail?: unknown) {
+  try { if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") window.dispatchEvent(new CustomEvent(name, { detail })); } catch { /* no DOM */ }
 }
 
 /** Call with any error: if it is a PAYWALL error, the paywall is shown. Returns true when it was one. */

@@ -3,8 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { safeNextPath } from "@/lib/ux";
 import { interpretTourRow, needsTour, tourDoneInMeta, UNKNOWN_TOUR, type TourStatus } from "@/lib/onboarding-tour-core";
 import type { UserRole } from "@/types";
-import { FAMILY_PATH, isParentMeta, parentGuardRedirect } from "@/lib/family-core";
+import { choiceToAccount, decodePendingSignup, encodePendingSignup, FAMILY_PATH, isParentMeta, knownSignupChoice, parentGuardRedirect, PENDING_SIGNUP_KEY, signupMetadata, type SignupChoice } from "@/lib/family-core";
 import { syncPendingAccountType } from "@/lib/family";
+import { loadMyAccess } from "@/lib/access/client";
+import { accessLanding, isEnforced, LICENCE_PATH } from "@/lib/access/gate";
 
 /** Pure routing rules (unit tested in tests/role.test.mjs). */
 export const TEACHER_HOME = "/teacher";
@@ -99,14 +101,70 @@ export async function chooseRole(user: Pick<User, "id">, role: UserRole): Promis
 
 export async function markTeacherOnboarded() { await supabase.auth.updateUser({ data: { teacher_onboarded: true } }); }
 
+// ---- Role chosen on the signup tab before "Weiter mit Google" (FINDINGS 1: the parent was asked twice) ----
+function storages(): Storage[] {
+  if (typeof window === "undefined") return [];
+  const out: Storage[] = [];
+  try { out.push(window.sessionStorage); } catch { /* blocked */ }
+  try { out.push(window.localStorage); } catch { /* blocked */ }
+  return out;
+}
+/** Remembers the signup choice (session + local storage: the OAuth return can open in a new tab). */
+export function storePendingSignup(choice: SignupChoice, birthYear: number | null) {
+  const value = encodePendingSignup(choice, birthYear);
+  for (const store of storages()) { try { store.setItem(PENDING_SIGNUP_KEY, value); } catch { /* full / blocked */ } }
+}
+export function clearPendingSignup() { for (const store of storages()) { try { store.removeItem(PENDING_SIGNUP_KEY); } catch { /* ignore */ } } }
+export function readPendingSignup() {
+  for (const store of storages()) { try { const v = decodePendingSignup(store.getItem(PENDING_SIGNUP_KEY)); if (v) return v; } catch { /* ignore */ } }
+  return null;
+}
+
+/**
+ * Applies a role we already know (signup choice carried through Google, or the family invite link) to an account that has
+ * none yet, so the picker is never shown twice. Returns the updated user, or null when nothing was known / applied.
+ */
+export async function applyKnownRole(user: User, next?: string | null): Promise<User | null> {
+  const known = knownSignupChoice(readPendingSignup(), safeNextPath(next)) ?? (await serverKnownChoice(user.id));
+  if (!known) return null;
+  clearPendingSignup();
+  const { role: baseRole, accountType } = choiceToAccount(known.choice);
+  const effective = await chooseRole(user, baseRole);
+  if (effective === "student" && accountType) {
+    const { data: updated } = await supabase.auth.updateUser({ data: signupMetadata(known.choice, known.birthYear) });
+    await syncPendingAccountType(updated.user ?? user);
+    return updated.user ?? user;
+  }
+  const { data: fresh } = await supabase.auth.getUser();
+  return fresh.user ?? user;
+}
+
+/** The account type / staff role the server already stored (backend trigger, earlier device): never ask again for those. */
+async function serverKnownChoice(userId: string): Promise<{ choice: SignupChoice; birthYear: number | null } | null> {
+  const access = await loadMyAccess({ userId }).catch(() => null);
+  if (!access) return null;
+  if (access.account_type === "parent") return { choice: "parent", birthYear: null };
+  if (access.account_type === "independent_student") return { choice: "independent", birthYear: null };
+  if (access.account_type === "school_student") return { choice: "school", birthYear: null };
+  if (access.role === "teacher" || access.role === "school_admin") return { choice: "teacher", birthYear: null };
+  return null;
+}
+
 /** Decides where a freshly signed-in user goes. */
 export async function resolveLanding(next?: string | null): Promise<string> {
   const { data } = await supabase.auth.getUser();
-  const user = data.user;
+  let user = data.user;
   if (!user) return "/login";
-  if (needsRoleChoice(user)) return rolePickerHref(next);
+  if (needsRoleChoice(user)) {
+    const applied = await applyKnownRole(user, next).catch(() => null);
+    if (!applied || needsRoleChoice(applied)) return rolePickerHref(next);
+    user = applied;
+  } else clearPendingSignup();
   await syncPendingAccountType(user);
   const { role } = await loadMyRole(user);
+  const access = await loadMyAccess({ userId: user.id }).catch(() => null);
+  // Teachers / school admins without a licence: the licence page instead of an empty teacher area.
+  if (isEnforced(access) && accessLanding(access) === LICENCE_PATH) return LICENCE_PATH;
   if (role === "student" && isParentMeta(user.user_metadata)) return parentLandingPath(next);
   if (role === "teacher" && !teacherOnboarded(user.user_metadata) && !safeNextPath(next)?.startsWith("/classes/join")) return TEACHER_HOME;
   if (role === "student" && !tourDoneInMeta(user.user_metadata) && needsTour(role, user.user_metadata, await readTourStatus(user.id))) return studentOnboardingHref(next);

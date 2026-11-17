@@ -143,7 +143,7 @@ export const FAMILY_COPY = {
     birthCta: "Speichern und weiter",
     under16: "Bist du unter 16? Dann muss ein Elternteil zuerst zustimmen, bevor deine Familie etwas sieht. WendApply kannst du trotzdem sofort nutzen.",
     planActive: "Familienpaket aktiv",
-    planNone: "Das Familienpaket bucht ein Elternteil. Für dich bleibt WendApply kostenlos.",
+    planNone: "Das Familienpaket bucht ein Elternteil. Es gilt dann auch für dich.",
     tourLink: "Eltern verbinden (freiwillig)",
     signupHint: "Deine Eltern haben dich eingeladen. Erstelle dein Schülerkonto.",
   },

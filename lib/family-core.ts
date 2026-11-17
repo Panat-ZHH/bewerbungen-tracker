@@ -291,8 +291,11 @@ export function formatDateCh(iso: string | null | undefined): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
   return m ? `${m[3]}.${m[2]}.${m[1]}` : "";
 }
-/** Plan states (server `state`) that give access: the child sees "Familienpaket aktiv" only for these. */
-export const PLAN_ACCESS_STATES = ["trial", "pilot", "active"] as const;
+/**
+ * Plan states (server `state`) that give access: the child sees "Familienpaket aktiv" only for these.
+ * The old 30-day family `trial` row does NOT give access any more (SPEC §3): the per-user 7-day trial replaced it.
+ */
+export const PLAN_ACCESS_STATES = ["pilot", "active"] as const;
 /** True when the family plan currently gives access (uses the computed `state`, falls back to the raw status). */
 export function planGivesAccess(plan: FamilyPlan | null | undefined): boolean {
   if (!plan) return false;
@@ -305,24 +308,25 @@ export function planGivesAccess(plan: FamilyPlan | null | undefined): boolean {
 export function childPlanLine(plan: FamilyPlan | null | undefined): { active: boolean; badge: string | null; text: string } {
   return planGivesAccess(plan)
     ? { active: true, badge: "Aktiv", text: "Familienpaket aktiv" }
-    : { active: false, badge: null, text: "Das Familienpaket bucht ein Elternteil. Für dich bleibt WendApply kostenlos." };
+    : { active: false, badge: null, text: "Das Familienpaket bucht ein Elternteil. Es gilt dann auch für dich." };
 }
 
 /**
- * One line describing the plan: "Testphase · noch 12 Tage" / "Familienpaket: 1 Elternteil, 1 Kind".
+ * One line describing the plan: "Noch nicht gebucht" / "Familienpaket: 1 Elternteil, 1 Kind".
  * `online` (online payment flag, onlinePaymentEnabled()): with online payment on, "Bald verfügbar" never appears (S7); a missing plan has no status.
  * The status label follows the computed `state` when the server sends it (an expired row is never "Aktiv").
  */
 export function planSummary(plan: FamilyPlan | null, now: Date = new Date(), opts: { online?: boolean } = {}): { title: string; status: string; detail: string } {
-  if (!plan && opts.online) return { title: "Familienpaket", status: "", detail: "Für Schülerinnen und Schüler bleibt WendApply kostenlos. Das Familienpaket bucht ein Elternteil." };
+  if (!plan && opts.online) return { title: "Familienpaket", status: "", detail: "CHF 7.90 pro Monat oder CHF 79 pro Jahr, für ein Elternteil und ein Kind. Das Familienpaket bucht ein Elternteil." };
   if (!plan) return { title: "Familienpaket", status: "Bald verfügbar", detail: "Das Familienpaket ist noch nicht freigeschaltet. Du kannst WendApply trotzdem schon nutzen." };
   if (plan.state === "expired") return { title: "Familienpaket", status: "Abgelaufen", detail: "Das Familienpaket ist abgelaufen." };
   const key = plan.state && plan.state in PLAN_STATUS_LABEL ? plan.state : plan.status;
   const status = PLAN_STATUS_LABEL[key] ?? key;
   const seats = `${plan.seatsParents} ${plan.seatsParents === 1 ? "Elternteil" : "Elternteile"}, ${plan.seatsChildren} ${plan.seatsChildren === 1 ? "Kind" : "Kinder"}`;
-  const left = plan.status === "trial" ? daysLeft(plan.trialEndsAt, now) : null;
-  const detail = left === null ? seats : left === 0 ? `${seats} · Testphase endet heute` : `${seats} · noch ${left} ${left === 1 ? "Tag" : "Tage"} Testphase`;
-  return { title: "Familienpaket", status, detail };
+  // The old family `trial` row is no plan any more (no 30-day trial): it simply means "not booked yet".
+  if (key === "trial") return { title: "Familienpaket", status: "Noch nicht gebucht", detail: `${seats} · CHF 7.90 pro Monat oder CHF 79 pro Jahr` };
+  void now;
+  return { title: "Familienpaket", status, detail: seats };
 }
 
 // ---------------------------------------------------------------- errors
@@ -374,4 +378,37 @@ export function waitlistProblem(email: string, message: string): string | null {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e) || e.length > 254) return "Bitte gib eine gültige E-Mail-Adresse ein.";
   if (message.trim().length > 1000) return "Die Nachricht ist zu lang (höchstens 1000 Zeichen).";
   return null;
+}
+
+// ---- Role chosen before "Weiter mit Google" (SPEC §6): survives the OAuth round trip, applied once in /auth/callback ----
+export const PENDING_SIGNUP_KEY = "wa_pending_signup";
+/** A pending choice older than this is ignored (the user abandoned the Google login). */
+export const PENDING_SIGNUP_TTL_MS = 2 * 60 * 60 * 1000;
+export type PendingSignup = { choice: SignupChoice; birthYear: number | null; at: number };
+const CHOICES: SignupChoice[] = ["school", "independent", "parent", "teacher"];
+
+export function encodePendingSignup(choice: SignupChoice, birthYear: number | null, now = Date.now()): string {
+  return JSON.stringify({ choice, birthYear: choice === "independent" && isValidBirthYear(birthYear) ? birthYear : null, at: now });
+}
+/** Reads a stored pending signup; null when missing, malformed or expired. */
+export function decodePendingSignup(raw: string | null | undefined, now = Date.now()): PendingSignup | null {
+  if (!raw) return null;
+  try {
+    const v = JSON.parse(raw) as Partial<PendingSignup>;
+    if (!v || !CHOICES.includes(v.choice as SignupChoice) || typeof v.at !== "number") return null;
+    if (now - v.at > PENDING_SIGNUP_TTL_MS || v.at - now > 60_000) return null;
+    const birthYear = typeof v.birthYear === "number" && isValidBirthYear(v.birthYear) ? v.birthYear : null;
+    return { choice: v.choice as SignupChoice, birthYear, at: v.at };
+  } catch { return null; }
+}
+/**
+ * The role we may apply without asking: the pending choice from the signup form, else the family invite (?next=/familie/einladung/…,
+ * ?fuer=kind → private student, otherwise parent). null = nothing known, the picker asks (once).
+ */
+export function knownSignupChoice(pending: PendingSignup | null, next: string | null | undefined): { choice: SignupChoice; birthYear: number | null } | null {
+  if (pending) return { choice: pending.choice, birthYear: pending.birthYear };
+  const n = String(next ?? "");
+  if (!n.startsWith(`${FAMILY_INVITE_PATH}/`)) return null;
+  const preset = signupPreset(n);
+  return preset ? { choice: preset.choice, birthYear: null } : null;
 }

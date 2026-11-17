@@ -124,14 +124,17 @@ test("AC-U4 readMyFamily exposes plan.state and the open invites; planSummary is
 
 test("S8 child plan line: neutral, never payment details", () => {
   const plan = (state) => ({ planType: "family", status: "active", state, seatsParents: 1, seatsChildren: 1, trialEndsAt: null });
-  for (const s of ["active", "trial", "pilot"]) assert.deepEqual(childPlanLine(plan(s)), { active: true, badge: "Aktiv", text: FAMILY_COPY.child.planActive }, s);
+  // The old 30-day family "trial" row no longer gives access (SPEC §3): only paid / admin-assigned plans do.
+  assert.equal(childPlanLine(plan("trial")).active, false);
+  for (const s of ["active", "pilot"]) assert.deepEqual(childPlanLine(plan(s)), { active: true, badge: "Aktiv", text: FAMILY_COPY.child.planActive }, s);
   for (const p of [null, plan("expired"), plan("paused"), plan("past_due")]) {
     const line = childPlanLine(p);
     assert.equal(line.badge, null);
     assert.equal(line.text, FAMILY_COPY.child.planNone);
     assert.doesNotMatch(line.text, /Zahlung|Karte|überfällig|bald verfügbar/i);
   }
-  assert.equal(planGivesAccess({ ...plan(null), status: "trial" }), true, "falls back to the raw status");
+  assert.equal(planGivesAccess({ ...plan(null), status: "active" }), true, "falls back to the raw status");
+  assert.equal(planGivesAccess({ ...plan(null), status: "trial" }), false, "old family trial row: no access");
 });
 
 test("invite links carry ?fuer=, login keeps query + hash, signup role preselect (P5–P7)", () => {

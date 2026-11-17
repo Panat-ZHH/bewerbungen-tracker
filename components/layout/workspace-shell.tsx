@@ -23,6 +23,11 @@ import { getMyClassMemberships } from "@/lib/classes";
 import { FAMILY_PATH, familyInviteCodeFromPath, isParentMeta, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
 import { storePendingInvite } from "@/components/friends/shared";
 import { NotificationsBell } from "./notifications-bell";
+import { AccessProvider, useAccess } from "@/components/access/access-provider";
+import { AccessBanner } from "@/components/access/access-banner";
+import { AccessGatePage } from "@/components/access/access-pages";
+import { clearAccessCache } from "@/lib/access/client";
+import { accessView } from "@/lib/access/gate";
 
 type NavItem = { label: string; href: string; icon: typeof Search; keys: string[]; prefixes?: string[] };
 
@@ -57,11 +62,12 @@ const accountLinks = [
 
 /** `fullscreen`: the page owns the whole viewport (map). No page scroll, header hidden on phones (bottom tab bar stays), children fill the remaining space. */
 export function WorkspaceShell(props: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
-  return <FriendRequestsProvider enabled><ShellInner {...props} /></FriendRequestsProvider>;
+  return <FriendRequestsProvider enabled><AccessProvider><ShellInner {...props} /></AccessProvider></FriendRequestsProvider>;
 }
 
-function ShellInner({ children, active, fullscreen = false }: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
+function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { children: React.ReactNode; active: string; title?: string; fullscreen?: boolean }) {
   const { count: requestCount } = useFriendRequests();
+  const { access, loading: accessLoading } = useAccess();
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
@@ -71,6 +77,9 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
   const [role, setRole] = useState<UserRole | null>(null);
   const [inClass, setInClass] = useState<boolean | null>(null);
   const [profileName, setProfileName] = useState("");
+  // Paywall / licence gate / blocked (SPEC §6): replaces the page except on allow-listed paths. Only when enforced.
+  const gate = accessView(access, pathname, { parent: isParentMeta(user?.user_metadata) });
+  const fullscreen = fullscreenPage && gate === "page";
 
   useEffect(() => {
     let mounted = true;
@@ -138,10 +147,11 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
     setMoreOpen(false);
     await signOutEverywhere(supabase.auth);
     clearRoleCache();
+    clearAccessCache();
     router.replace("/login");
   }
 
-  if (checkingSession || !user || !role) {
+  if (checkingSession || !user || !role || accessLoading) {
     return (
       <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
         <BrandMark size={56} className="animate-wiggle" priority />
@@ -221,10 +231,12 @@ function ShellInner({ children, active, fullscreen = false }: { children: React.
         </div>
       </header>
 
-      {fullscreen ? (
+      {gate !== "page" ? (
+        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10"><AccessGatePage view={gate} access={access} /></main>
+      ) : fullscreen ? (
         <main id="main" className="relative min-h-0 flex-1 max-md:mb-[calc(var(--tabbar-h)+var(--safe-bottom))]">{children}</main>
       ) : (
-        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{children}</main>
+        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{!/^\/(abo|familie\/bezahlen)(\/|$)/.test(pathname ?? "") && <AccessBanner access={access} parent={isParentMeta(user.user_metadata)} />}{children}</main>
       )}
 
       <nav aria-label="Hauptmenü mobil" className="app-bar app-bar-bottom fixed inset-x-0 bottom-0 z-30 md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
