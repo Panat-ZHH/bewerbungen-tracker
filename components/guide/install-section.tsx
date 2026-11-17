@@ -15,7 +15,7 @@ const systems: Os[] = [
       <>Scrolle in der Liste nach unten und wähle {k("Zum Home-Bildschirm")}.</>,
       <>Lass den Namen «WendApply» stehen und tippe auf {k("Hinzufügen")}.</>,
     ],
-    note: <>Seit iOS 16.4 klappt das auch in Chrome und Edge über das Teilen-Menü. Mitteilungen (Push) funktionieren auf dem iPhone nur, wenn du WendApply so installiert hast.</>,
+    note: <>Seit iOS 16.4 klappt das auch in Chrome und Edge über das Teilen-Menü. Benachrichtigungen (Push) funktionieren auf dem iPhone nur, wenn du WendApply so installiert hast.</>,
   },
   {
     id: "install-android", icon: Smartphone, title: "Android", browser: "Chrome",
