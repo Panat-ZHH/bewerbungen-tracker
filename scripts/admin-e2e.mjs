@@ -366,13 +366,15 @@ async function main() {
       await tid(page, "admin-action-revoke_access").waitFor();
 
       // Lizenz zuweisen = add to a school (existing school action add_teacher), with confirmation.
+      // Students are never turned into teachers: the dialog explains and sends nothing.
+      const before = mock.state.apiCalls.length;
       await tid(page, "admin-action-assign_school").click();
       await tid(page, "admin-confirm-modal").waitFor();
-      await page.locator("#f-school").waitFor();
-      if (profile === "desktop" && theme === "light") await shot(page, `assign-licence-${tag}`);
       await tid(page, "admin-confirm-submit").click();
+      await page.waitForFunction(() => /Klasse/.test(document.querySelector('[data-testid="admin-confirm-modal"]')?.textContent ?? ""), null, { timeout: 5000 });
+      assert(!mock.state.apiCalls.slice(before).some((c) => c.method === "POST"), "no POST for a student");
+      await page.keyboard.press("Escape");
       await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
-      assert(mock.state.audit[0].action === "school.add_teacher", `audit: ${mock.state.audit[0].action}`);
 
       // Block needs a reason.
       await tid(page, "admin-action-block").click();
@@ -429,6 +431,23 @@ async function main() {
       await context.close();
     });
   }
+
+  await step("Lizenz zuweisen for a teacher → existing school action add_teacher, confirmed", async () => {
+    const { context, page, mock } = await ctx("desktop", "light", { aal2: true });
+    await page.goto(`${base}/admin`);
+    await tid(page, "admin-user-row").first().waitFor({ timeout: 30000 });
+    await tid(page, "admin-search").fill("brunner");
+    await page.waitForFunction(() => document.querySelectorAll('[data-testid="admin-user-row"]').length === 1, null, { timeout: 5000 });
+    await tid(page, "admin-user-row").first().click();
+    await tid(page, "admin-action-assign_school").click();
+    await tid(page, "admin-confirm-modal").waitFor();
+    await page.locator("#f-school").waitFor();
+    await shot(page, "assign-licence-desktop-light");
+    await tid(page, "admin-confirm-submit").click();
+    await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+    assert(mock.state.audit[0].action === "school.add_teacher", `audit: ${mock.state.audit[0].action}`);
+    await context.close();
+  });
 
   await step("empty search + API error states", async () => {
     const { context, page, mock } = await ctx("mobile", "light", { aal2: true });

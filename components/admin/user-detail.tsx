@@ -42,7 +42,7 @@ const DONE: Record<Action, string> = {
   unblock: "Sperre aufgehoben.",
   soft_delete: "Konto gesperrt und zur Löschung vorgemerkt.",
   delete_account: "Konto gelöscht.",
-  assign_school: "Zur Schule hinzugefügt. Die Person nutzt jetzt deren Lizenz.",
+  assign_school: "Zur Schule hinzugefügt.",
 };
 
 const SUBMIT: Partial<Record<Action, string>> = {
@@ -117,6 +117,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
     setError(null);
     setBadField(null);
     if (action === "assign_school") {
+      if (!["teacher", "school_admin", "unknown"].includes(res.data.role)) { setBusy(false); setError("Lernende und Eltern bekommen eine Lizenz über ihre Klasse, nicht hier."); return; }
       // Licences belong to schools: adding the person to a school (existing school action) gives them its licence.
       if (!form.school_id || !res.data.email) { setBusy(false); setError("Bitte wähle eine Schule."); return; }
       r = await adminFetch(`/api/admin/schools/${encodeURIComponent(form.school_id)}`, {
@@ -176,6 +177,8 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
   const protectedAccount = isSelf || u.platform_admin; // server refuses block / delete / revoke for these (409)
   const trialEnd = aa?.trial_ends_at ?? u.trial_ends_at;
   const statusRow = { ...u, free_access_forever: grant.forever, free_access_until: grant.until };
+  // Only staff can be added to a school here; students join via a class, parents via family (server would make them teachers).
+  const canJoinSchool = u.role === "teacher" || u.role === "school_admin" || u.role === "unknown";
   const openSub = u.subscriptions.find((s) => ["active", "trialing", "past_due", "unpaid", "paused", "incomplete"].includes(s.status)) ?? null;
 
   return (
@@ -215,7 +218,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
           {u.blocked
             ? <ActionTile action="unblock" icon={<LockOpen />} label="Sperre aufheben" help="Die Person kann die App wieder nutzen." onClick={() => openAction("unblock")} />
             : !protectedAccount && <ActionTile action="block" tone="danger" icon={<Ban />} label="Sperren" help="Die Person sieht nur noch «Konto gesperrt»." onClick={() => openAction("block")} />}
-          <ActionTile action="assign_school" icon={<KeyRound />} label="Lizenz zuweisen" help="Zu einer Schule hinzufügen und deren Lizenz nutzen." onClick={() => openAction("assign_school")} />
+          <ActionTile action="assign_school" icon={<KeyRound />} label="Lizenz zuweisen" help={canJoinSchool ? "Zu einer Schule hinzufügen und deren Lizenz nutzen." : "Lernende und Eltern: über Klasse oder Familie."} onClick={() => openAction("assign_school")} />
         </div>
 
         <details className="group rounded-[var(--radius-lg)] border-[length:var(--border-w)] border-dashed border-[var(--line)] px-3.5 py-2" data-testid="admin-more-actions">
@@ -342,14 +345,25 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
             {!u.email && <StatusMessage tone="warning">Diese Person hat keine E-Mail und kann nicht zugewiesen werden.</StatusMessage>}
             {schools === null && !error && <Skeleton className="h-11 w-full" />}
             {schools?.length === 0 && <StatusMessage tone="info">Noch keine Schule angelegt. Lege sie zuerst im Bereich «Schulen» an.</StatusMessage>}
-            {schools && schools.length > 0 && (
+            {!canJoinSchool && <StatusMessage tone="info">{ROLE_LABEL[u.role] ?? "Diese Person"}: Der Zugang über eine Schule kommt automatisch, sobald die Person in einer Klasse der Schule ist. Für Lernende oder Eltern ohne Schule nimm «Gratis geben».</StatusMessage>}
+            {canJoinSchool && schools && schools.length > 0 && (
               <>
                 <Field label="Schule" htmlFor="f-school">
                   <Select id="f-school" value={form.school_id} onChange={set("school_id")} data-autofocus>
                     {schools.map((s) => <option key={s.id} value={s.id}>{s.name}{s.licence ? "" : " (ohne Lizenz)"}</option>)}
                   </Select>
                 </Field>
-                {(() => { const s = schools.find((x) => x.id === form.school_id); return s ? <p className="flex items-center gap-2 text-small">Lizenz: <LicenceBadge licence={s.licence} /></p> : null; })()}
+                {(() => {
+                  const s = schools.find((x) => x.id === form.school_id);
+                  if (!s) return null;
+                  const usable = (s.licence && ["active", "pilot"].includes(s.licence.state)) || freeAccessActive(s.free_access);
+                  return (
+                    <div className="space-y-2">
+                      <p className="flex flex-wrap items-center gap-2 text-small">Lizenz: <LicenceBadge licence={s.licence} /></p>
+                      {!usable && <StatusMessage tone="warning">Diese Schule hat gerade keine gültige Lizenz. Die Person wird eingetragen, bekommt aber erst Zugang, wenn die Schule eine Lizenz hat.</StatusMessage>}
+                    </div>
+                  );
+                })()}
                 <div className="flex flex-wrap gap-2" role="group" aria-label="Als">
                   {(["teacher", "admin"] as const).map((r) => (
                     <Button key={r} type="button" size="sm" variant={form.school_role === r ? "primary" : "secondary"} aria-pressed={form.school_role === r}
