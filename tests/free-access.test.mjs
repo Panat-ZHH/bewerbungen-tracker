@@ -141,7 +141,14 @@ const SCHOOL = "55555555-5555-4555-8555-555555555555";
 const NOSCHOOL = "55555555-5555-4555-8555-555555555599";
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const jwt = (claims) => `${b64({ alg: "HS256", typ: "JWT" })}.${b64(claims)}.c2ln`;
-const T = { admin: jwt({ sub: ADMIN, aal: "aal2" }), user: jwt({ sub: USER, aal: "aal2" }), adminAal1: jwt({ sub: ADMIN, aal: "aal1" }) };
+// Fresh login (amr timestamp = now): since security review #3 the guard refuses admin tokens older than 12 h (reauth_required).
+const AUTH_AT = Math.floor(ANOW.getTime() / 1000) - 60;
+const amr = (t = AUTH_AT) => [{ method: "totp", timestamp: t }, { method: "oauth", timestamp: t }];
+const T = {
+  admin: jwt({ sub: ADMIN, aal: "aal2", amr: amr() }), user: jwt({ sub: USER, aal: "aal2", amr: amr() }),
+  adminAal1: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "password", timestamp: AUTH_AT }] }),
+  adminStale: jwt({ sub: ADMIN, aal: "aal2", amr: amr(AUTH_AT - 13 * 3600) }), adminNoAmr: jwt({ sub: ADMIN, aal: "aal2" }),
+};
 
 function mockStore() {
   const calls = [];
@@ -151,7 +158,7 @@ function mockStore() {
   const fail = new Set();
   const rec = (name, ...args) => { calls.push({ name, args }); if (fail.has(name)) throw new Error(`DB_FAILED:${name}:detail`); };
   const store = {
-    async verifyToken(token) { return token === T.admin || token === T.adminAal1 ? { id: ADMIN, email: "panat@example.ch" } : token === T.user ? { id: USER, email: "kim@example.ch" } : null; },
+    async verifyToken(token) { return token === T.admin || token === T.adminAal1 || token === T.adminStale || token === T.adminNoAmr ? { id: ADMIN, email: "panat@example.ch" } : token === T.user ? { id: USER, email: "kim@example.ch" } : null; },
     async isPlatformAdmin(id) { return id === ADMIN; },
     async userBasics(id) { return id === USER || id === ADMIN ? { id, email: id === USER ? "kim@example.ch" : "panat@example.ch", created_at: null } : null; },
     async getAccess(id) { return access.get(id) ?? null; },
@@ -239,6 +246,32 @@ test("admin API: only platform admins (with MFA) can grant: anon 401, normal use
   }
   assert.equal(changes().length, 0);
   assert.equal(m.audit.length, 0);
+});
+
+test("admin API (re-audit #4): grant / revoke need a fresh admin login – stale or missing amr → 403 reauth_required, nothing written", async () => {
+  for (const token of [T.adminStale, T.adminNoAmr]) {
+    for (const body of [{ action: "grant_access", forever: true, confirm: true }, { action: "revoke_access", confirm: true }]) {
+      for (const send of [userPost, schoolPost]) {
+        const res = await send(body, token);
+        assert.deepEqual([res.status, (await res.json()).error], [403, "reauth_required"]);
+      }
+    }
+  }
+  assert.equal(changes().length, 0);
+  assert.equal(m.audit.length, 0);
+});
+
+test("admin API (re-audit #4): revoke_access never targets yourself or another platform admin (ADMIN.md §4 rule 4)", async () => {
+  m.access.set(ADMIN, { user_id: ADMIN, trial_ends_at: null, free_access_until: null, free_access_note: null, free_access_forever: true, blocked_at: null, blocked_reason: null });
+  const res = await api.userAction(post(`/api/admin/users/${ADMIN}`, { action: "revoke_access", confirm: true }), ADMIN);
+  assert.deepEqual([res.status, (await res.json()).reason], [409, "self"]);
+  m.store.isPlatformAdmin = async (id) => id === ADMIN || id === USER; // USER is another platform admin now
+  const other = await userPost({ action: "revoke_access", confirm: true });
+  assert.deepEqual([other.status, (await other.json()).reason], [409, "platform_admin"]);
+  assert.equal(changes().length, 0);
+  assert.equal(m.audit.length, 0);
+  // granting stays possible (it only adds app access, never admin rights)
+  assert.equal((await userPost({ action: "grant_access", forever: true, confirm: true })).status, 200);
 });
 
 test("admin API: school grant forever / until / revoke, each audited first", async () => {

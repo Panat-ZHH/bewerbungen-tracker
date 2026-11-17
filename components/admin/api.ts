@@ -61,7 +61,8 @@ export function qs(params: Record<string, string | number | null | undefined>): 
 const CONFLICTS: Record<string, string> = {
   not_blocked: "Das Konto muss zuerst gesperrt sein.",
   self: "Das geht nicht mit deinem eigenen Konto.",
-  platform_admin: "Admin-Konten kannst du hier nicht sperren oder löschen.",
+  platform_admin: "Admin-Konten kannst du hier nicht sperren, löschen oder ihnen den Gratis-Zugang entziehen.",
+  not_granted: "Hier gibt es keinen Gratis-Zugang zum Entziehen.",
   user_not_found: "Kein Konto mit dieser E-Mail.",
   already_member: "Diese Person ist schon dabei.",
   licence_closed: "Diese Lizenz ist schon beendet.",
