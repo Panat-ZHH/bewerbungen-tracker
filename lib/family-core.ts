@@ -137,8 +137,17 @@ export function signupPreset(next: string | null | undefined): { choice: SignupC
   const n = String(next ?? "");
   if (!(n === FAMILY_PATH || n.startsWith(`${FAMILY_PATH}/`) || n.startsWith(`${FAMILY_PATH}?`) || n.startsWith(`${FAMILY_PATH}#`))) return null;
   const invite = n.startsWith(`${FAMILY_INVITE_PATH}/`);
-  if (readInviteAudience(n) === "kind") return { choice: "independent", hint: "child" };
+  const audience = readInviteAudience(n);
+  if (audience === "kind") return { choice: "independent", hint: "child" };
+  // An invite without `fuer` (code typed in, query stripped by a messenger) may be meant for a child or a parent:
+  // don't guess "parent" – the person chooses (schueler-39, see familyInviteWithoutAudience).
+  if (invite && audience !== "eltern") return null;
   return { choice: "parent", hint: invite ? "parent" : null };
+}
+/** A family invite link that doesn't say who it is for: the signup shows a neutral hint and lets the person choose. */
+export function familyInviteWithoutAudience(next: string | null | undefined): boolean {
+  const n = String(next ?? "");
+  return n.startsWith(`${FAMILY_INVITE_PATH}/`) && readInviteAudience(n) === null;
 }
 export function inviteShareText(direction: InviteDirection, code: string, link: string): string {
   const who = direction === "parent_invites_child" ? "Ich lade dich in unsere Familie bei WendApply ein." : "Ich möchte dir meinen Fortschritt bei WendApply zeigen.";

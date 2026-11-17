@@ -15,10 +15,10 @@ import { newPasswordProblem } from "@/lib/password-policy";
 import { pendingInvitePath } from "@/components/friends/shared";
 import { clearPendingSignup, isInvitePath, resolveLanding, storePendingSignup } from "@/lib/role";
 import { InviteBanner } from "@/components/onboarding/invite-banner";
-import { LoginValueProp } from "@/components/onboarding/login-value-prop";
+import { LoginValueProp, type LoginAudience } from "@/components/onboarding/login-value-prop";
 import { AuthBrand } from "@/components/onboarding/auth-frame";
 import { BirthYearField, SIGNUP_OPTIONS } from "@/components/onboarding/role-cards";
-import { isValidBirthYear, signupMetadata, signupPreset, type SignupChoice } from "@/lib/family-core";
+import { familyInviteWithoutAudience, isValidBirthYear, signupMetadata, signupPreset, type SignupChoice } from "@/lib/family-core";
 import { FAMILY_COPY } from "@/lib/family-copy";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleTrail } from "@/components/ui/doodles";
 
@@ -36,7 +36,8 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [inviteHint, setInviteHint] = useState<"parent" | "child" | null>(null);
+  const [inviteHint, setInviteHint] = useState<"parent" | "child" | "choose" | null>(null);
+  const [staffNext, setStaffNext] = useState(false);
 
   useEffect(() => {
     // Error handed over by /auth/callback (or by Supabase directly, in the query or the hash).
@@ -45,12 +46,15 @@ export default function LoginPage() {
     // Family invite links: preselect the matching signup role (parent, or private student with ?fuer=kind) + a short hint.
     const preset = signupPreset(safeNextPath(params.get("next")));
     // Invite links are mostly opened by people without an account yet: open the signup tab (G18).
+    // `?mode=signup` (website CTA «Kostenlos testen») opens the signup tab too.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
-    if (isInvitePath(safeNextPath(params.get("next")))) setMode("signup");
+    if (isInvitePath(safeNextPath(params.get("next"))) || params.get("mode") === "signup") setMode("signup");
     if (preset) {
       setRole(preset.choice);
       setInviteHint(preset.hint);
-    }
+    } else if (familyInviteWithoutAudience(safeNextPath(params.get("next")))) setInviteHint("choose");
+    // Arriving from a teacher / school page: talk to school staff, not to pupils (schule-23).
+    if (/^\/(teacher|schul-admin|schullizenz)(\/|\?|#|$)/.test(safeNextPath(params.get("next")) ?? "")) setStaffNext(true);
     if (params.get("deleted") === "1") {
       setSuccess("Dein Konto und alle deine Daten wurden gelöscht. Danke, dass du WendApply genutzt hast.");
       window.history.replaceState(null, "", "/login");
@@ -119,7 +123,7 @@ export default function LoginPage() {
       return;
     }
     if (mode === "signup" && !result.data.session) {
-      setSuccess("Fast geschafft! Öffne die E-Mail von uns und bestätige dein Konto. Danach kannst du dich anmelden.");
+      setSuccess(role === "teacher" ? "Fast geschafft. Öffne die E-Mail von uns und bestätige dein Konto. Danach kannst du dich anmelden." : "Fast geschafft. Öffne die E-Mail von uns und bestätige dein Konto. Danach startet deine Gratis-Testwoche (7 Tage) und du kannst dich anmelden.");
       setLoading(false);
       return;
     }
@@ -159,6 +163,8 @@ export default function LoginPage() {
 
   const isSignup = mode === "signup";
   const hint = isSignup ? passwordHint(password) : null;
+  const audience: LoginAudience = staffNext || (isSignup && role === "teacher") ? "staff" : isSignup && role === "parent" ? "parent" : "student";
+  const familyHint = inviteHint === "parent" ? FAMILY_COPY.parent.signupHint : inviteHint === "child" ? FAMILY_COPY.child.signupHint : inviteHint === "choose" ? "Du wurdest in eine Familie eingeladen. Wähle, wer du bist." : null;
 
   return (
     <main className="workspace-bg min-h-[100dvh] overflow-x-clip px-4 pb-10 sm:px-6">
@@ -170,8 +176,9 @@ export default function LoginPage() {
             {isSignup ? <>Konto <span className="marker">erstellen</span></> : <>Schön, dass du <span className="marker">da bist.</span></>}
             <DoodleBurst className="ml-2 inline-block h-[.5em] w-[.5em] -translate-y-[.15em] text-[var(--coral)]" />
           </h1>
-          <LoginValueProp />
-          <span className="sticker sticker-coral tilt-l3 absolute right-1 top-5 lg:static lg:mt-10">7 Tage gratis testen</span>
+          <LoginValueProp audience={audience} />
+          {/* Teachers and school admins have no trial: no «7 Tage gratis» promise for them (lehrperson-04, schule-23). */}
+          {audience !== "staff" && <span className="sticker sticker-coral tilt-l3 absolute right-1 top-5 lg:static lg:mt-10">7 Tage gratis testen</span>}
           <div className="pointer-events-none absolute -bottom-2 right-4 hidden items-end gap-1 text-[var(--brand)] lg:flex" aria-hidden>
             <DoodleTrail className="h-12 w-36" />
             <DoodlePlane className="mb-6 h-12 w-16" />
@@ -183,7 +190,13 @@ export default function LoginPage() {
           <DoodleArrow className="absolute -left-14 top-6 hidden h-12 w-16 text-[var(--ink)] lg:block" />
 
           <form onSubmit={submit} className="panel space-y-5 p-5 shadow-[var(--shadow-lg)] sm:p-7">
-            {inviteHint && <p role="note" data-testid="family-signup-hint" className="rounded-[var(--radius-md)] bg-[var(--info-bg)] px-3 py-2 text-sm font-semibold text-[var(--info-fg)]">{inviteHint === "parent" ? FAMILY_COPY.parent.signupHint : FAMILY_COPY.child.signupHint}</p>}
+            {isSignup && (
+              <p className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
+                Schon ein Konto?
+                <Button type="button" variant="secondary" size="sm" className="min-h-11" onClick={() => switchMode("login")}>Anmelden</Button>
+              </p>
+            )}
+            {familyHint && <p role="note" data-testid="family-signup-hint" className="rounded-[var(--radius-md)] bg-[var(--info-bg)] px-3 py-2 text-sm font-semibold text-[var(--info-fg)]">{familyHint}</p>}
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             {success && <StatusMessage tone="success" icon={<CheckCircle2 />}>{success}</StatusMessage>}
 
@@ -203,6 +216,8 @@ export default function LoginPage() {
                   })}
                 </div>
                 {role === "independent" && <div className="mt-3"><BirthYearField value={birthYear} onChange={setBirthYear} id="signup-birth-year" /></div>}
+                {role === "teacher" && <p role="note" className="mt-3 rounded-[var(--radius-md)] bg-[var(--info-bg)] px-3 py-2 text-small text-[var(--info-fg)]">Lehrpersonen nutzen WendApply über die Schullizenz ihrer Schule. Ohne Lizenz siehst du nach der Anmeldung, wie deine Schule dazukommt.</p>}
+                <p className="mt-3 text-small text-muted">Du verwaltest WendApply für deine Schule? <Link href="/schulen#einfuehrung" className="font-semibold text-[var(--brand)] underline underline-offset-4">So kommt WendApply an eure Schule</Link></p>
               </fieldset>
             )}
 
@@ -232,10 +247,12 @@ export default function LoginPage() {
               {loading ? "Einen Moment …" : isSignup ? "Konto erstellen" : "Anmelden"}{!loading && <ArrowRight size={16} strokeWidth={2.4} />}
             </Button>
 
-            <p className="border-t-2 border-dashed border-[var(--line)] pt-4 text-center text-sm text-muted">
-              {isSignup ? "Du hast schon ein Konto?" : "Noch kein Konto?"}{" "}
-              <button type="button" onClick={() => switchMode(isSignup ? "login" : "signup")} className="inline-flex min-h-11 items-center px-1 font-bold text-[var(--ink)] underline decoration-[var(--sun)] decoration-[3px] underline-offset-4 hover:decoration-[var(--ink)]">{isSignup ? "Anmelden" : "Konto erstellen"}</button>
-            </p>
+            {!isSignup && (
+              <p className="border-t-2 border-dashed border-[var(--line)] pt-4 text-center text-sm text-muted">
+                Noch kein Konto?{" "}
+                <button type="button" onClick={() => switchMode("signup")} className="inline-flex min-h-11 items-center px-1 font-bold text-[var(--ink)] underline decoration-[var(--sun)] decoration-[3px] underline-offset-4 hover:decoration-[var(--ink)]">Konto erstellen</button>
+              </p>
+            )}
           </form>
           <p className="mt-6 text-center text-xs text-muted">Deine Daten bleiben in deinem persönlichen Konto.</p>
           <p className="mt-2 text-center text-xs text-muted"><Link href="/datenschutz" className="underline underline-offset-2">Datenschutz</Link> · <Link href="/datenschutz-jugend" className="underline underline-offset-2">Datenschutz für Jugendliche</Link> · <Link href="/impressum" className="underline underline-offset-2">Impressum</Link></p>
