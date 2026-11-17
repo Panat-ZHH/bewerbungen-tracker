@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { load } from "cheerio";
 import robotsParser from "robots-parser";
 import { listingSources, mergeJobResults, type JobSearchResult } from "./job-results.ts";
@@ -655,9 +656,20 @@ export function clearSearchCache() {
   catalogCache = undefined;
 }
 
+/**
+ * Cache key of a search. The cache is shared by ALL users of a server instance, and `knownResults` are sent by the
+ * browser (titles, companies, snippets … only the URL is checked against the source). They come back in `updates`, so
+ * the key covers their full content, not only their URLs: otherwise one user could plant edited texts (e.g. a phishing
+ * line as job title) for everybody who pages the same search within the TTL (re-audit 2 2026-11-17). Hashed, because the
+ * known results can be large.
+ */
+export function searchCacheKey(input: MultiSourceSearchInput): string {
+  return createHash("sha256").update(JSON.stringify([input.query.toLowerCase(), input.location.toLowerCase(), input.kind, input.filters ?? null, input.cursor ?? null, input.pageSize ?? null, [...(input.excludedUrls ?? [])].sort(), input.knownResults ?? []])).digest("base64url");
+}
+
 /** Identical searches (same query, filters, cursor, known results) within 60 s are answered from memory so paging back and forth does not hit the sources again. */
 export async function searchMultipleSourcesCached(input: MultiSourceSearchInput, ttl = 60000, now = Date.now()): Promise<MultiSourceSearchBatch> {
-  const key = JSON.stringify([input.query.toLowerCase(), input.location.toLowerCase(), input.kind, input.filters ?? null, input.cursor ?? null, input.pageSize ?? null, [...(input.excludedUrls ?? [])].sort(), (input.knownResults ?? []).map((result) => result.url)]);
+  const key = searchCacheKey(input);
   for (const [cacheKey, entry] of searchCache) if (entry.expires <= now) searchCache.delete(cacheKey);
   const hit = searchCache.get(key);
   if (hit) return structuredClone(hit.value);

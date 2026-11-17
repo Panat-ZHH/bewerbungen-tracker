@@ -9,12 +9,21 @@ export const MAX_TEXT_CHARS = 20_000;
 export const MAX_COMPANY = 200;
 export const MAX_BERUF = 200;
 export const MAX_JOB_AD = 8000;
+/**
+ * Largest word/document.xml we inflate. A 5 MB upload can declare (and deflate to) gigabytes: without this cap a zip
+ * bomb makes the edge function allocate the declared size and crash. Real CVs have a document.xml of well under 5 MB
+ * (the text itself is capped at MAX_TEXT_CHARS anyway).
+ */
+export const MAX_DOCX_XML_BYTES = 30 * 1024 * 1024;
 
 export type FileKind = "pdf" | "docx";
 
 export interface ExtractDeps {
-  /** Returns the files of a ZIP archive. `only` restricts which entries are inflated. */
-  unzip: (bytes: Uint8Array, only?: (name: string) => boolean) => Record<string, Uint8Array>;
+  /**
+   * Returns the files of a ZIP archive. `only` restricts which entries are inflated; it gets the entry name and the
+   * uncompressed size declared in the ZIP header (fflate allocates exactly that much and never more).
+   */
+  unzip: (bytes: Uint8Array, only?: (name: string, originalSize: number) => boolean) => Record<string, Uint8Array>;
   /** Returns the text of a PDF (all pages merged). */
   pdfText: (bytes: Uint8Array) => Promise<string>;
 }
@@ -107,7 +116,7 @@ export async function extractApplicationText(bytes: Uint8Array, deps: ExtractDep
   } else {
     let files: Record<string, Uint8Array>;
     try {
-      files = deps.unzip(bytes, (name) => name === DOCX_MAIN);
+      files = deps.unzip(bytes, (name, originalSize) => name === DOCX_MAIN && Number.isFinite(originalSize) && originalSize >= 0 && originalSize <= MAX_DOCX_XML_BYTES);
     } catch {
       throw new ReviewFailure("unsupported_file", undefined, "zip parse failed");
     }

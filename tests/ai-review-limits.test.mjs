@@ -32,7 +32,7 @@ const makeDocx = (lines) => zipSync({
   "word/document.xml": strToU8(`<w:document><w:body>${lines.map((l) => `<w:p><w:r><w:t>${esc(l)}</w:t></w:r></w:p>`).join("")}</w:body></w:document>`),
 });
 const extract = {
-  unzip: (b, only) => unzipSync(b, only ? { filter: (f) => only(f.name) } : undefined),
+  unzip: (b, only) => unzipSync(b, only ? { filter: (f) => only(f.name, f.originalSize) } : undefined),
   pdfText: async () => "",
 };
 
