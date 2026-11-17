@@ -197,7 +197,7 @@ flow("application-crud", student(), async (t) => {
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   t.check("empty form is rejected with a clear message", await t.text(/Felder? brauchen noch deine Aufmerksamkeit|Gib einen Firmennamen ein/, 5000));
   await page.getByLabel(/^Firma/).fill("Migros");
-  await page.getByLabel(/^Welche Stelle/).fill("Mediamatiker:in");
+  await page.getByLabel(/^Beruf \/ Stelle/).fill("Mediamatiker:in");
   await page.getByLabel("Status", { exact: true }).selectOption("applied");
   await t.shot("form");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();

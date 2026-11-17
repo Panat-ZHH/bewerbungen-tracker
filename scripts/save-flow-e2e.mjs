@@ -77,7 +77,7 @@ try {
   await page.getByLabel(/^Firma/).waitFor();
   await page.waitForTimeout(1500); // let React hydrate so the typed value is not reset
   await page.getByLabel(/^Firma/).fill("Draft AG");
-  await page.getByLabel(/^Welche Stelle/).fill("Polymechaniker:in");
+  await page.getByLabel(/^Beruf \/ Stelle/).fill("Polymechaniker:in");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   await waitSaved();
   const id = idFromUrl();
@@ -157,7 +157,7 @@ try {
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   check(await page.getByText(/Bitte gib die Stelle an/).first().isVisible(), "5 draft: incomplete save shows a clear German message");
   check((await rows()).length === before, "5 draft: incomplete save stores nothing");
-  await page.getByLabel(/^Welche Stelle/).fill("Koch/Köchin");
+  await page.getByLabel(/^Beruf \/ Stelle/).fill("Koch/Köchin");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   await waitSaved();
   check((await rows()).some((x) => x.company === "Halbfertig GmbH" && x.notes === "Noch nicht fertig"), "5 draft: completed form is stored");

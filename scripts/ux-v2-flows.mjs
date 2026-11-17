@@ -38,7 +38,7 @@ await scenario("add", async () => {
   check(await page.evaluate(() => document.activeElement?.getAttribute("aria-invalid") === "true"), "validation: focus moved to first invalid field");
   check(await page.getByRole("alert").first().isVisible(), "validation: summary alert visible");
   await shot(page, "02-validation-375");
-  await page.getByLabel(/^Firma/).fill("Novartis"); await page.getByLabel(/^Welche Stelle/).fill("Laborant:in EFZ");
+  await page.getByLabel(/^Firma/).fill("Novartis"); await page.getByLabel(/^Beruf \/ Stelle/).fill("Laborant:in EFZ");
   await page.getByLabel("Status", { exact: true }).selectOption("applied");
   check(await page.getByText("Deine Bewerbung ist unterwegs.").isVisible(), "form: status hint shown");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
@@ -51,7 +51,7 @@ await scenario("add", async () => {
 await scenario("save-error", async () => {
   const { ctx, page } = await session({ failWrites: 500 }, { w: 375, h: 812 });
   await page.goto(BASE + "/applications/new");
-  await page.getByLabel(/^Firma/).fill("X AG"); await page.getByLabel(/^Welche Stelle/).fill("Y");
+  await page.getByLabel(/^Firma/).fill("X AG"); await page.getByLabel(/^Beruf \/ Stelle/).fill("Y");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   const alert = page.getByRole("alert").filter({ hasText: /gespeichert/ }); await alert.waitFor();
   const text = await alert.innerText();
