@@ -8,3 +8,5 @@ export function badgeText(count: number) { return count <= 0 ? "" : count > 9 ? 
 export function badgeLabel(count: number) { return count === 1 ? "1 offene Freundschaftsanfrage" : `${count} offene Freundschaftsanfragen`; }
 /** Parses NEXT_PUBLIC_FRIEND_REQUESTS_MOCK: null when unset/invalid, else a non-negative integer. */
 export function parseMock(value: string | undefined) { return value !== undefined && value.trim() !== "" && Number.isFinite(Number(value)) ? Math.max(0, Math.floor(Number(value))) : null; }
+/** The badge only asks social_list when the provider is on AND someone is signed in (logged-out pages would get a 401). */
+export function shouldPollRequests(enabled: boolean, signedIn: boolean) { return enabled && signedIn; }
