@@ -83,7 +83,13 @@ test("service role key is only used server-side", async () => {
   for (const f of files) {
     const src = await read(f);
     assert.ok(!/^["']use client["']/m.test(src), `${f} is a client component`);
-    assert.ok(f.startsWith("app/api/") || f.startsWith("lib/billing/server") || f === "lib/reminders-server.ts" || f === "lib/account-delete-server.ts", `${f} is not a server-only module`);
+    assert.ok(f.startsWith("app/api/") || f.startsWith("lib/billing/server") || f === "lib/reminders-server.ts" || f === "lib/account-delete-server.ts" || f === "lib/rate-limit/index.ts", `${f} is not a server-only module`);
+  }
+  // The service-role rate limiter must only be reachable from route handlers, never from client code.
+  const importers = execFileSync("git", ["grep", "-lE", "from [\"']@/lib/(rate-limit|api-rate-limit)[\"'/]", "--", "app", "components", "lib"], { cwd: root, encoding: "utf8" }).split("\n").filter(Boolean);
+  for (const f of importers) {
+    assert.ok(f.startsWith("app/api/") || f.startsWith("lib/"), `${f} imports the service-role rate limiter`);
+    assert.ok(!/^["']use client["']/m.test(await read(f)), `${f} is a client module importing the rate limiter`);
   }
   assert.ok(!/NEXT_PUBLIC_[A-Z_]*SERVICE/.test(execFileSync("git", ["grep", "-h", "NEXT_PUBLIC_", "--", "app", "components", "lib", ".env.example"], { cwd: root, encoding: "utf8" })));
 });
@@ -133,9 +139,11 @@ test("SQL: AI review daily limit survives deleting reviews; usage log is invisib
   await ctx.apply(f);
 });
 
-test("edge function counts the append-only usage log, not the deletable reviews", async () => {
+test("edge function: daily limit uses the persistent rate_limit_hit counter, never the deletable ai_reviews rows", async () => {
+  // Integration note: audit-sec counted ai_review_usage; audit-ai replaced the count with rate_limit_hit
+  // (ai-review:user:<id>:day). Both are independent of ai_reviews deletes; the trigger log stays as audit trail.
   const src = await read("supabase/functions/ai-review/index.ts");
-  const fn = src.slice(src.indexOf("async countReviewsSince"), src.indexOf("async insertReview"));
-  assert.ok(fn.indexOf('from("ai_review_usage")') >= 0 && fn.indexOf('from("ai_review_usage")') < fn.indexOf('from("ai_reviews")'));
-  assert.match(fn, /42P01|PGRST205/, "fallback only when the table is missing");
+  assert.match(src, /rpc\("rate_limit_hit"/);
+  assert.doesNotMatch(src, /countReviewsSince/);
+  assert.doesNotMatch(src, /from\("ai_reviews"\)\.select\("id", \{ count/);
 });

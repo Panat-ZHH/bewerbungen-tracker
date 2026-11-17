@@ -36,6 +36,7 @@ before(async () => {
   // Supabase has a service_role; the helper does not. Create it and re-run the (idempotent) billing migration for its grants.
   await ctx.admin("create role service_role");
   await ctx.apply("20261116200000_billing_stripe.sql");
+  await ctx.apply("20261117100000_billing_hardening.sql");
   classes = await seededClasses(ctx);
   const rows = Object.entries(U).map(([k, v]) => `('${v}','${k.toLowerCase()}@billing.ch','${JSON.stringify({ full_name: k })}')`);
   await ctx.admin(`insert into auth.users values ${rows.join(",")}`);
@@ -278,4 +279,41 @@ test("deleting a family removes its billing rows (cascade); the user's export st
   assert.equal(late.reason, "owner_not_found");
   const exp = (await asUser(U.parentA, "select public.export_my_data() as d"))[0].d;
   assert.ok(JSON.stringify(exp).includes("cus_FamA"), "billing_customers.created_by makes the row part of the parent's export");
+});
+
+test("past_due grace: a failed renewal keeps access 14 days (card) / 44 days (invoice), not the whole unpaid period", async () => {
+  // Renewal: Stripe already moved the period forward (start = today - 3, end = +362) but the payment failed.
+  const sub = { p_stripe_customer_id: "cus_SchoolA1", p_stripe_subscription_id: "sub_SchoolPd1", p_plan_id: "starter",
+    p_current_period_start: iso(-3), p_current_period_end: iso(362) };
+  await apply({ ...sub, p_status: "past_due", p_latest_invoice_status: "open" });
+  let lic = (await licences("stripe_subscription_id='sub_SchoolPd1'"))[0];
+  assert.deepEqual([lic.status, lic.valid_until], ["active", zurichDate(11)]);
+  // Previously stored 'paid' (last year's invoice) must not lift the clamp when the snapshot carries no invoice status.
+  await apply({ ...sub, p_status: "active", p_latest_invoice_status: "paid", p_current_period_start: iso(-368), p_current_period_end: iso(-3) });
+  await apply({ ...sub, p_status: "past_due" });
+  lic = (await licences("stripe_subscription_id='sub_SchoolPd1'"))[0];
+  assert.equal(lic.valid_until, zurichDate(11));
+  // Grace over (renewal 20 days ago): access ends.
+  await apply({ ...sub, p_status: "past_due", p_current_period_start: iso(-20), p_current_period_end: iso(345) });
+  lic = (await licences("stripe_subscription_id='sub_SchoolPd1'"))[0];
+  assert.equal((await svc("select public._licence_state($1, null, $2::date, $3::date) as s", [lic.status, lic.valid_from, lic.valid_until]))[0].s, "expired");
+  // Paid late -> full period again.
+  await apply({ ...sub, p_status: "active", p_latest_invoice_status: "paid", p_current_period_start: iso(-20), p_current_period_end: iso(345) });
+  assert.equal((await licences("stripe_subscription_id='sub_SchoolPd1'"))[0].valid_until, zurichDate(345));
+  // Invoice (send_invoice): 30 days payment term + 14 days.
+  const inv = { ...sub, p_stripe_subscription_id: "sub_SchoolPd2", p_collection_method: "send_invoice", p_current_period_start: iso(-31), p_current_period_end: iso(334) };
+  await apply({ ...inv, p_status: "past_due", p_latest_invoice_status: "open" });
+  assert.equal((await licences("stripe_subscription_id='sub_SchoolPd2'"))[0].valid_until, zurichDate(13));
+  // A non-past_due status is never clamped.
+  await apply({ ...inv, p_status: "active" });
+  assert.equal((await licences("stripe_subscription_id='sub_SchoolPd2'"))[0].valid_until, zurichDate(334));
+});
+
+test("canceled immediately (refund / dunning): the webhook passes ended_at as period end, access ends then", async () => {
+  const sub = { p_stripe_customer_id: "cus_SchoolA1", p_stripe_subscription_id: "sub_SchoolCi1", p_plan_id: "starter", p_current_period_start: iso(-30) };
+  await apply({ ...sub, p_status: "active", p_current_period_end: iso(335) });
+  await apply({ ...sub, p_status: "canceled", p_current_period_end: iso(-1) });
+  const lic = (await licences("stripe_subscription_id='sub_SchoolCi1'"))[0];
+  assert.equal(lic.valid_until, zurichDate(-1));
+  assert.equal((await svc("select public._licence_state($1, null, $2::date, $3::date) as s", [lic.status, lic.valid_from, lic.valid_until]))[0].s, "expired");
 });

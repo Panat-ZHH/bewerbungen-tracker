@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, ExternalLink, FileText, Lock, Mail, ReceiptText, RefreshCw, Settings2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
   FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
-  onlinePaymentEnabled, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
+  inAppPaymentEnabled, onlinePaymentEnabled, payPageHref, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
   type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
 import { IntervalChoice } from "./interval-choice";
@@ -87,10 +88,13 @@ function SubscriptionDetails({ status, owner, canManage }: { status: BillingStat
 
 /** Checkout / invoice request. Card → redirect to the payment page; invoice → message (+ link to the invoice if there is one). */
 function useCheckout(owner: BillingOwner, onInvoice: (url: string | null) => void) {
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   async function buy(plan: PlanId, payment: PaymentMethod, interval: BillingInterval = "year") {
     setBusy(true); setError("");
+    // Families pay inside the app (Payment Element on /familie/bezahlen); hosted Checkout stays the fallback.
+    if (owner.kind === "family" && payment === "card" && inAppPaymentEnabled()) { router.push(payPageHref(owner.id, interval)); return; }
     const r = await startCheckout(owner, plan, payment, interval);
     if (!r.ok) { setError(r.message); setBusy(false); return; }
     if (r.data?.invoice) { setBusy(false); onInvoice(r.data.url ?? null); return; }

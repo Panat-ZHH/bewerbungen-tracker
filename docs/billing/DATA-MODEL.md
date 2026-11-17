@@ -32,8 +32,8 @@ Owners are deleted with `ON DELETE CASCADE` (school or family gone ⇒ its billi
 
 | Stripe `status` | Licence row (`source = 'stripe'`) |
 |---|---|
-| `active`, `trialing`, `past_due` | `status = 'active'`, `valid_from`/`valid_until` = current period (Europe/Zurich dates). `past_due` keeps access until the period end. |
-| `canceled` (subscription deleted) | stays `active` with `valid_until` = period end ⇒ usable until then, `expired` afterwards (computed by `_licence_state`). |
+| `active`, `trialing`, `past_due` | `status = 'active'`, `valid_from`/`valid_until` = current period (Europe/Zurich dates). `past_due` keeps access only for a grace period after the (unpaid) period start: 14 days card, 44 days invoice (migration 20261117100000). |
+| `canceled` (subscription deleted) | stays `active` with `valid_until` = period end, or Stripe's `ended_at` if it was cancelled earlier (immediate cancel / refund / dunning) ⇒ usable until then, `expired` afterwards (computed by `_licence_state`). |
 | `unpaid`, `incomplete_expired` | `expired` (no new joins; existing students keep their data). |
 | `paused` | school `expired`, family `paused`. |
 | `incomplete` | no licence yet (first payment pending); an existing row is not changed. |

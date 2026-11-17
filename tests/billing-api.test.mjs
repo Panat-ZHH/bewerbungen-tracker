@@ -106,7 +106,7 @@ test("card checkout: creates the customer once, Checkout session with owner meta
   assert.deepEqual(r, { status: 200, body: { url: "https://checkout.stripe.test/c/pay/cs_1" } });
   assert.deepEqual(calls.find((c) => c[0] === "price"), ["price", "wendapply_professional_yearly_chf"]);
   const customer = calls.find((c) => c[0] === "customer")[1];
-  assert.deepEqual(customer, { email: ADMIN.email, name: "Schule Test", metadata: { app: "wendapply", school_id: SCHOOL, user_id: ADMIN.id } });
+  assert.deepEqual(customer, { email: ADMIN.email, name: "Schule Test", metadata: { app: "wendapply", school_id: SCHOOL, user_id: ADMIN.id }, idempotencyKey: `wendapply-customer-school-${SCHOOL}-${ADMIN.id}-${Math.floor(Date.now() / 600_000)}` });
   const session = calls.find((c) => c[0] === "checkout")[1];
   assert.equal(session.customer, "cus_new");
   assert.equal(session.price, "price_for_wendapply_professional_yearly_chf");
@@ -238,5 +238,52 @@ test("routes with the flag off: 503 billing_disabled, webhook too (before readin
     assert.notEqual(res.status, 200);
   } finally {
     process.env = saved;
+  }
+});
+
+test("double checkout: open Stripe subscription (webhook lag) -> 409, older open sessions expired, idempotent customer", async () => {
+  // Customer known, Stripe already has a subscription the webhook has not mirrored yet (double click on invoice / 2nd tab).
+  const { deps, calls } = makeDeps();
+  deps.db.customers[SCHOOL] = "cus_known";
+  deps.stripe.hasOpenStripeSubscription = async (c) => { calls.push(["openSub", c]); return true; };
+  deps.stripe.expireOpenCheckoutSessions = async (c) => { calls.push(["expire", c]); return 1; };
+  for (const payment of ["invoice", "card"]) {
+    const r = await checkout({ token: "tok-admin", body: { plan: "starter", schoolId: SCHOOL, payment } }, deps);
+    assert.deepEqual([r.status, r.body.error], [409, "already_subscribed"], payment);
+  }
+  assert.ok(!calls.some(([k]) => k === "invoice" || k === "checkout"), "nothing created");
+  // No open subscription: the older open session is expired BEFORE the new one is created.
+  deps.stripe.hasOpenStripeSubscription = async () => false;
+  calls.length = 0;
+  const ok = await checkout({ token: "tok-admin", body: { plan: "starter", schoolId: SCHOOL } }, deps);
+  assert.equal(ok.status, 200);
+  assert.deepEqual(calls.filter(([k]) => k === "expire" || k === "checkout").map(([k]) => k), ["expire", "checkout"]);
+  // First checkout of an owner: customer creation carries an idempotency key per owner + user.
+  const fresh = makeDeps();
+  await checkout({ token: "tok-parent", body: { plan: "family", familyId: FAMILY } }, fresh.deps);
+  const [, cust] = fresh.calls.find(([k]) => k === "customer");
+  assert.equal(cust.idempotencyKey, `wendapply-customer-family-${FAMILY}-${PARENT.id}-${Math.floor(Date.now() / 600_000)}`);
+});
+
+test("return URLs: only allowlisted origins, spoofed hosts fall back to wendapply.ch", async () => {
+  const { safeBaseUrl, CANONICAL_BASE_URL } = await import("../lib/billing/api.ts");
+  assert.equal(safeBaseUrl(["https://wendapply.ch/"]), "https://wendapply.ch");
+  assert.equal(safeBaseUrl([undefined, "", "https://stripe-preview--bewerbungen-pawat.netlify.app"]), "https://stripe-preview--bewerbungen-pawat.netlify.app");
+  assert.equal(safeBaseUrl(["http://localhost:3000"]), "http://localhost:3000");
+  for (const bad of ["https://evil.example", "http://wendapply.ch", "https://wendapply.ch.evil.example", "https://evil--bewerbungen-pawat.netlify.app.evil.io",
+    "https://user:pw@wendapply.ch", "javascript:alert(1)", "https://bewerbungen-pawat-evil.netlify.app"]) {
+    assert.equal(safeBaseUrl([bad]), CANONICAL_BASE_URL, bad);
+  }
+  assert.equal(safeBaseUrl(["https://evil.example", "https://www.wendapply.ch"]), "https://www.wendapply.ch", "first allowed candidate wins");
+  assert.equal(safeBaseUrl(["https://staging.example.ch"], ["staging.example.ch"]), "https://staging.example.ch");
+  // The real route deps: no APP_URL/URL and a spoofed Host -> canonical origin.
+  const { apiDeps } = await import("../lib/billing/server.ts");
+  const saved = { APP_URL: process.env.APP_URL, URL: process.env.URL };
+  delete process.env.APP_URL; delete process.env.URL;
+  try {
+    assert.equal(apiDeps(new Request("https://attacker.example/api/billing/checkout")).baseUrl, CANONICAL_BASE_URL);
+    assert.equal(apiDeps(new Request("http://localhost:3000/api/billing/checkout")).baseUrl, "http://localhost:3000");
+  } finally {
+    for (const [k, v] of Object.entries(saved)) if (v !== undefined) process.env[k] = v;
   }
 });

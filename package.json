@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/Panat-ZHH/bewerbungen-tracker#readme",
   "dependencies": {
+    "@stripe/stripe-js": "^10.3.0",
     "@supabase/supabase-js": "^2.116.0",
     "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
