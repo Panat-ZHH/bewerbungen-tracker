@@ -12,8 +12,8 @@ import { FAMILY_COPY, fill } from "@/lib/family-copy";
 import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
-  FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyManageMode, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
-  inAppPaymentEnabled, onlinePaymentEnabled, payPageHref, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
+  FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyBuyTarget, familyManageMode, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
+  onlinePaymentEnabled, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
   type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
 import { IntervalChoice } from "./interval-choice";
@@ -94,7 +94,7 @@ function useCheckout(owner: BillingOwner, onInvoice: (url: string | null) => voi
   async function buy(plan: PlanId, payment: PaymentMethod, interval: BillingInterval = "year") {
     setBusy(true); setError("");
     // Families pay inside the app (Payment Element on /familie/bezahlen); hosted Checkout stays the fallback.
-    if (owner.kind === "family" && payment === "card" && inAppPaymentEnabled()) { router.push(payPageHref(owner.id, interval)); return; }
+    if (owner.kind === "family" && payment === "card") { const target = familyBuyTarget(owner.id, interval); if (target.kind === "in-app") { router.push(target.href); return; } }
     const r = await startCheckout(owner, plan, payment, interval);
     if (!r.ok) { setError(r.message); setBusy(false); return; }
     if (r.data?.invoice) { setBusy(false); onInvoice(r.data.url ?? null); return; }
@@ -351,6 +351,7 @@ export function FamilyPortalButton({ familyId, phase, label, primary = false, no
 function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: string; billing: FamilyBillingState; primary: boolean; ctaLabel?: string }) {
   const plan = familyPlan();
   const intervals = billingIntervals(plan);
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const errorRef = useRef<HTMLDivElement>(null);
@@ -359,6 +360,9 @@ function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: stri
   async function buy() {
     setBusy(true); setError("");
     store.set(INTERVAL_KEY, billing.interval);
+    // In-app Payment Element page when available (preview e2e B1); hosted Checkout stays the fallback.
+    const target = familyBuyTarget(familyId, billing.interval);
+    if (target.kind === "in-app") { router.push(target.href); return; }
     const r = await startCheckout({ kind: "family", id: familyId }, plan.id, "card", billing.interval);
     if (r.ok && r.data?.url) { window.location.assign(r.data.url); return; }
     setError(r.ok ? "Die Bezahlseite konnte nicht geöffnet werden. Bitte versuche es nochmals." : r.status === 503 || r.status === 404 ? FAMILY_COPY.api.unreachable : r.message);

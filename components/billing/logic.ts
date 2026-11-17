@@ -293,6 +293,13 @@ export const PAY_DONE_PATH = "/familie/bezahlen/fertig";
 export function payPageHref(familyId: string, interval: BillingInterval = "year"): string {
   return `${PAY_PATH}?${new URLSearchParams({ familie: familyId, interval }).toString()}`;
 }
+/**
+ * Where the family "Familienpaket buchen" button goes (preview e2e B1): the in-app payment page when the Payment Element is
+ * available, otherwise hosted Stripe Checkout (fallback, e.g. NEXT_PUBLIC_STRIPE_CHECKOUT_UI=hosted or no publishable key).
+ */
+export function familyBuyTarget(familyId: string, interval: BillingInterval, inApp: boolean = inAppPaymentEnabled()): { kind: "in-app"; href: string } | { kind: "hosted" } {
+  return inApp ? { kind: "in-app", href: payPageHref(familyId, interval) } : { kind: "hosted" };
+}
 /** `?familie=<uuid>&interval=month|year` of the payment page (null family = invalid link). */
 export function readPayParams(search: string): { familyId: string | null; interval: BillingInterval } {
   const q = new URLSearchParams(search);

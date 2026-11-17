@@ -145,7 +145,9 @@ test("source contracts: pages, publishable key only, hosted fallback kept, font 
   assert.match(page, /confirm\(\{ redirect: "if_required" \}\)/, "3DS in the modal, redirects only when needed; no returnUrl (would hang, the session has it)");
   assert.ok(!page.includes("ß"));
   const card = readFileSync(new URL("../components/billing/billing-card.tsx", import.meta.url), "utf8");
-  assert.match(card, /inAppPaymentEnabled\(\)/);
+  // The in-app decision is familyBuyTarget() (defaults to inAppPaymentEnabled()), used by the family buy button and useCheckout (preview fix B1).
+  assert.match(card, /familyBuyTarget\(/);
+  assert.match(readFileSync(new URL("./logic.ts", new URL("../components/billing/", import.meta.url)), "utf8"), /inApp: boolean = inAppPaymentEnabled\(\)/);
   assert.match(card, /startCheckout\(owner, plan, payment, interval\)/, "hosted checkout stays as fallback");
   assert.match(readFileSync(new URL("../next.config.ts", import.meta.url), "utf8"), /\/fonts\/:file\*/);
   readFileSync(new URL("../app/familie/bezahlen/page.tsx", import.meta.url));
