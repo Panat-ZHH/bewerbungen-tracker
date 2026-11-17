@@ -71,7 +71,7 @@ function makeDocx(paragraphs, { withMain = true } = {}) {
 }
 
 const deps = {
-  unzip: (bytes, only) => unzipSync(bytes, only ? { filter: (f) => only(f.name) } : undefined),
+  unzip: (bytes, only) => unzipSync(bytes, only ? { filter: (f) => only(f.name, f.originalSize) } : undefined),
   pdfText: async (bytes) => (await extractText(bytes, { mergePages: true })).text,
 };
 
