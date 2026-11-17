@@ -8,7 +8,7 @@
  *
  * What it does (each step "find first, create only if missing"):
  *  1. one Product per plan with a lookupKey, found by metadata.plan_id (metadata: plan_id, student_limit, kind)
- *  2. one CHF Price per plan and interval (yearly; family also monthly), found by lookup_key. If the amount in plans.ts changed, a new Price is created
+ *  2. one CHF Price per plan and interval (yearly; family and solo also monthly), found by lookup_key. If the amount in plans.ts changed, a new Price is created
  *     with transfer_lookup_key=true and the old Price is archived (existing subscriptions keep their old price).
  *  3. a Customer Portal configuration (metadata.wendapply_portal=default): cancel at period end, update payment
  *     method, invoice history, update billing address / e-mail / tax ID.
@@ -120,6 +120,8 @@ function desiredProduct(plan) {
     name: `WendApply ${plan.name}`,
     description: plan.kind === "family"
       ? `Familienpaket: ${plan.seats?.children ?? 1} Schüleraccount + ${plan.seats?.parents ?? 1} Elternaccount, Monats- oder Jahresabo`
+      : plan.kind === "individual"
+      ? `Einzelabo: ${plan.studentLimit ?? 1} Schüleraccount, Monats- oder Jahresabo`
       : `Schullizenz bis ${plan.studentLimit} Schülerinnen und Schüler, Jahresabo`,
     metadata: { plan_id: plan.id, student_limit: String(plan.studentLimit ?? ""), kind: plan.kind, app: "wendapply" },
   };

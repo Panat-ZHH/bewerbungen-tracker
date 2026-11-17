@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { computeReminders, digestText, isoDay, normalizeSettings } from "@/lib/reminders";
 import { getMailer, type Mailer } from "@/lib/reminders-mail";
 import { MAX_PUSH_SUBSCRIPTIONS_PER_USER, sendPush, vapidFromEnv, type VapidKeys } from "@/lib/reminders-push";
+import { hasAppAccessVia } from "@/lib/access/server";
 
 export function adminClient(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -13,14 +14,16 @@ export const appBaseUrl = () => (process.env.APP_URL || process.env.URL || "http
 /** Today in the Swiss calendar, whatever the server time zone is. */
 export const swissToday = (now = new Date()) => isoDay(new Date(now.toLocaleString("en-US", { timeZone: "Europe/Zurich" })));
 
-export type DigestSummary = { users: number; emails: number; pushes: number; skippedNoMailer: number; dryRun: boolean };
+export type DigestSummary = { users: number; emails: number; pushes: number; skippedNoMailer: number; skippedNoAccess: number; dryRun: boolean };
 
 export async function runDigest(admin: SupabaseClient, opts: { dryRun?: boolean; mailer?: Mailer; vapid?: VapidKeys | null; today?: string } = {}): Promise<DigestSummary> {
   const mailer = opts.mailer ?? getMailer(), vapid = opts.vapid === undefined ? vapidFromEnv() : opts.vapid, today = opts.today ?? swissToday();
-  const sum: DigestSummary = { users: 0, emails: 0, pushes: 0, skippedNoMailer: 0, dryRun: Boolean(opts.dryRun) };
+  const sum: DigestSummary = { users: 0, emails: 0, pushes: 0, skippedNoMailer: 0, skippedNoAccess: 0, dryRun: Boolean(opts.dryRun) };
   const { data: rows, error } = await admin.from("reminder_settings").select("*").or("email.eq.true,push.eq.true");
   if (error) throw new Error(`SETTINGS_FAILED:${error.code ?? ""}`);
   for (const row of rows ?? []) {
+    // Access model: no reminder mails / pushes behind the paywall (service role asks has_app_access for this user).
+    if (!(await hasAppAccessVia(admin, row.user_id))) { sum.skippedNoAccess++; continue; }
     const settings = normalizeSettings(row);
     const { data: apps } = await admin.from("applications").select("id,company,position,status,deadline,updated_at,applied_at").eq("user_id", row.user_id);
     const mapped = (apps ?? []).map((a) => ({ id: a.id, company: a.company, position: a.position, status: a.status, deadline: a.deadline ?? undefined, updatedAt: a.updated_at, appliedAt: a.applied_at ?? undefined }));

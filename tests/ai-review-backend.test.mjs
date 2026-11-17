@@ -177,7 +177,7 @@ test("all error messages are friendly Swiss German (no ß) with the documented H
   }
   assert.deepEqual(ERROR_STATUS, {
     unauthorized: 401, consent_required: 400, bad_request: 400, unsupported_file: 415, file_too_large: 413,
-    no_text: 422, too_long: 413, rate_limited: 429, ai_failed: 502, unavailable: 503,
+    no_text: 422, too_long: 413, rate_limited: 429, ai_failed: 502, unavailable: 503, paywall: 402, // + access model (20261118)
   });
   assert.match(ERROR_MESSAGES.no_text, /eingescannt/);
 });

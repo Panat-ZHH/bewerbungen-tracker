@@ -42,6 +42,15 @@ const handler = createHandler({
     if (error || !data) throw new Error(`insert: ${error?.code}`);
     return { id: data.id as string, created_at: data.created_at as string };
   },
+  // Access model (supabase/migrations/20261118010000_access_core.sql). Old database without the function → allowed.
+  async hasAccess(userId) {
+    const { data, error } = await admin.rpc("has_app_access", { p_uid: userId });
+    if (error) {
+      if (error.code === "PGRST202" || error.code === "42883") return true;
+      throw new Error(`has_app_access: ${error.code}`);
+    }
+    return data !== false;
+  },
   extract: {
     unzip: (bytes, only) => unzipSync(bytes, only ? { filter: (f) => only(f.name, f.originalSize) } : undefined),
     pdfText: async (bytes) => (await extractText(bytes, { mergePages: true })).text,

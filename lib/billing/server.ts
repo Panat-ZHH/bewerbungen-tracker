@@ -7,7 +7,7 @@ import { apiStripe, getStripe, isLiveMode, isStripeConfigured, webhookStripe } f
 import { sharedMemoryBillingDb } from "./memory-db.ts";
 import { safeBaseUrl, type BillingApiDb, type BillingApiDeps } from "./api.ts";
 import type { BillingDb, WebhookDeps } from "./webhook.ts";
-import type { BillingApplySubscriptionResult } from "./db-types.ts";
+import type { BillingApplySubscriptionResult, BillingApplyUserSubscriptionResult, BillingStatusForUser, SoloEligibility } from "./db-types.ts";
 
 export const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -43,11 +43,18 @@ export function supabaseBillingDb(admin: SupabaseClient = serviceClient()): Bill
       if (error) throw new Error(error.message || `DB_RPC_FAILED:${error.code ?? ""}`);
       return data as BillingApplySubscriptionResult;
     },
+    async applyUserSubscription(params) {
+      const { data, error } = await admin.rpc("billing_apply_user_subscription", params);
+      if (error) throw new Error(error.message || `DB_RPC_FAILED:${error.code ?? ""}`);
+      return data as BillingApplyUserSubscriptionResult;
+    },
   };
 }
 
 /** Subscription statuses that block a second checkout (the existing one is managed in the portal). */
 export const OPEN_SUBSCRIPTION_STATUSES = ["active", "trialing", "past_due", "unpaid", "paused"];
+/** Solo: also a first payment in progress (incomplete), same list as billing_solo_eligibility. */
+export const OPEN_SOLO_STATUSES = [...OPEN_SUBSCRIPTION_STATUSES, "incomplete"];
 
 export interface CustomerRow { stripe_customer_id: string; created_by: string | null }
 
@@ -62,11 +69,12 @@ export function pickFamilyCustomer(rows: CustomerRow[], userId: string, activePa
   return rows.find((r) => r.created_by !== null && activeParents.includes(r.created_by))?.stripe_customer_id ?? null;
 }
 
-const ownerCol = (owner: BillingOwner) => (owner.kind === "school" ? "school_id" : "family_id");
+const ownerCol = (owner: BillingOwner) => (owner.kind === "school" ? "school_id" : owner.kind === "family" ? "family_id" : "user_id");
 
 export function supabaseApiDb(admin: SupabaseClient = serviceClient()): BillingApiDb {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!;
+  const asUser = (token: string) => createClient(url, publishable, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
   return {
     async findCustomerId(owner, userId) {
       const { data, error } = await admin.from("billing_customers").select("stripe_customer_id, created_by").eq(ownerCol(owner), owner.id)
@@ -74,6 +82,8 @@ export function supabaseApiDb(admin: SupabaseClient = serviceClient()): BillingA
       if (error) throw new Error(`DB_READ_FAILED:${error.code ?? ""}`);
       const rows = (data ?? []) as CustomerRow[];
       if (owner.kind === "school") return rows[0]?.stripe_customer_id ?? null;
+      // Solo: billing_customers.user_id = owner.id, and the API only builds a user owner for the caller themselves.
+      if (owner.kind === "user") return owner.id === userId ? rows[0]?.stripe_customer_id ?? null : null;
       const { data: parents, error: e2 } = await admin.from("family_members").select("user_id")
         .eq("family_id", owner.id).eq("role", "parent").eq("status", "active");
       if (e2) throw new Error(`DB_READ_FAILED:${e2.code ?? ""}`);
@@ -86,21 +96,33 @@ export function supabaseApiDb(admin: SupabaseClient = serviceClient()): BillingA
     },
     async hasOpenSubscription(owner) {
       const { data, error } = await admin.from("billing_subscriptions").select("id").eq(ownerCol(owner), owner.id)
-        .in("status", OPEN_SUBSCRIPTION_STATUSES).limit(1); // cancel_at_period_end rows count too (renew in the portal)
+        .in("status", owner.kind === "user" ? OPEN_SOLO_STATUSES : OPEN_SUBSCRIPTION_STATUSES).limit(1); // cancel_at_period_end rows count too (renew in the portal)
       if (error) throw new Error(`DB_READ_FAILED:${error.code ?? ""}`);
       return (data ?? []).length > 0;
     },
     async ownerName(owner) {
+      if (owner.kind === "user") return null; // the payer enters their name in Checkout (customer_update.name = auto)
       const { data } = await admin.from(owner.kind === "school" ? "schools" : "families").select("name").eq("id", owner.id).maybeSingle();
       return (data as { name?: string } | null)?.name ?? null;
     },
     async status(owner, token) {
+      if (owner.kind === "user") throw new Error("USE_USER_STATUS");
       // With the caller's token: the DB checks admin/parent again (defence in depth).
-      const user = createClient(url, publishable, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
       const fn = owner.kind === "school" ? "billing_status_for_school" : "billing_status_for_family";
-      const { data, error } = await user.rpc(fn, owner.kind === "school" ? { p_school_id: owner.id } : { p_family_id: owner.id });
+      const { data, error } = await asUser(token).rpc(fn, owner.kind === "school" ? { p_school_id: owner.id } : { p_family_id: owner.id });
       if (error) throw new Error(`DB_RPC_FAILED:${error.code ?? ""}`);
       return data;
+    },
+    async userStatus(userId, token) {
+      // With the caller's token: the DB checks uid = owner again.
+      const { data, error } = await asUser(token).rpc("billing_status_for_user", { p_user_id: userId });
+      if (error) throw new Error(`DB_RPC_FAILED:${error.code ?? ""}`);
+      return data as BillingStatusForUser;
+    },
+    async soloEligibility(userId) {
+      const { data, error } = await admin.rpc("billing_solo_eligibility", { p_user_id: userId });
+      if (error) throw new Error(`DB_RPC_FAILED:${error.code ?? ""}`);
+      return data as SoloEligibility;
     },
   };
 }

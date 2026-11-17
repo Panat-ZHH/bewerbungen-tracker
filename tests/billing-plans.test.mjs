@@ -44,6 +44,7 @@ test("family plan: 1 parent + 1 child, card only, CHF 7.90/month or CHF 79/year,
 test("lookup keys match the contract and are unique", () => {
   assert.deepEqual(STRIPE_PLANS.map((p) => p.lookupKey), [
     "wendapply_starter_yearly_chf", "wendapply_professional_yearly_chf", "wendapply_enterprise_yearly_chf", "wendapply_family_yearly_chf",
+    "wendapply_solo_yearly_chf", // solo = "Einzelabo" (access model 2026-11-17, tests/billing-solo-api.test.mjs)
   ]);
   for (const id of ["pilot", "individual"]) {
     assert.equal(PLANS[id].lookupKey, null);

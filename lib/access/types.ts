@@ -42,4 +42,15 @@ export interface AccessInfo {
   school: { id: string; name: string; valid_until: string | null } | null;
   blocked: boolean;
   enforced: boolean; // false = rules not active for this user yet (access_settings.enforce_mode) → UI shows no banner/paywall
+  // SPEC §8 (G12, G14): why there is no access (only for state expired / licence_required, else null) …
+  expired_reason: AccessExpiredReason | null;
+  // … and: child in a family whose plan is not paid (yet) – waits for the parent, no prices.
+  family_pending: boolean;
 }
+
+export type AccessExpiredReason =
+  | "trial_ended" // 7-day trial over (also: re-signup with an e-mail whose trial was used)
+  | "subscription_ended" // own solo / family subscription canceled or expired
+  | "payment_failed" // past_due after the grace, or unpaid
+  | "licence_ended" // linked to a school whose licence is no longer valid (students and teachers)
+  | "family_pending"; // child in an unpaid family: waiting for the parent

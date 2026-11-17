@@ -6,7 +6,7 @@ import { limitIp, RateLimitedError, withUserLimit } from "@/lib/api-rate-limit";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** GET ?schoolId= | ?familyId= -> { enabled, plan, status, studentLimit, validUntil, cancelAtPeriodEnd, source, … }. Auth: Bearer token. */
+/** GET ?schoolId= | ?familyId= | ?owner=me (solo, docs/billing/README.md) -> { enabled, plan, status, studentLimit, validUntil, cancelAtPeriodEnd, source, … }. Auth: Bearer token. */
 export async function GET(request: Request) {
   const limited = await limitIp("billing-status", request.headers);
   if (limited) return limited;

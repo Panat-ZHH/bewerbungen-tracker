@@ -59,7 +59,8 @@ export type AiReviewErrorCode =
   | "too_long" // 413 (extracted text > 20'000 characters)
   | "rate_limited" // 429
   | "ai_failed" // 502
-  | "unavailable"; // 503 (switched off, global daily budget used up, or the limiter is unreachable)
+  | "unavailable" // 503 (switched off, global daily budget used up, or the limiter is unreachable)
+  | "paywall"; // 402 (access model: trial over / no subscription / no licence – public.has_app_access is false)
 
 export interface AiReviewError {
   error: AiReviewErrorCode;

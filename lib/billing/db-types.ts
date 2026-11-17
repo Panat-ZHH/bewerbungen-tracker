@@ -1,8 +1,13 @@
 // Row and RPC types for the Stripe billing tables (supabase/migrations/20261116200000_billing_stripe.sql).
 // Docs: docs/billing/DATA-MODEL.md. Keep in sync with the migration (tests/billing-db.test.mjs checks the SQL side).
 
-/** Plans that can come from Stripe (pilot is never paid; individual = contact sales, created by hand in Stripe). */
-export type BillingPlanId = 'starter' | 'professional' | 'enterprise' | 'individual' | 'family';
+/**
+ * Plans that can come from Stripe (pilot is never paid; individual = contact sales, created by hand in Stripe;
+ * solo = "Einzelabo" of one student, written by billing_apply_user_subscription, 20261118030000_billing_solo.sql).
+ */
+export type BillingPlanId = 'starter' | 'professional' | 'enterprise' | 'individual' | 'family' | 'solo';
+/** Plans written by billing_apply_subscription (schools + families). 'solo' has its own function. */
+export type OrgBillingPlanId = Exclude<BillingPlanId, 'solo'>;
 
 /** Stripe subscription statuses (mirrored 1:1 in billing_subscriptions.status). */
 export type StripeSubscriptionStatus =
@@ -20,8 +25,9 @@ export type LicenceState = 'pilot' | 'active' | 'trial' | 'not_started' | 'expir
 export interface BillingCustomerRow {
   id: string;
   stripe_customer_id: string; // cus_…
-  school_id: string | null;   // exactly one of school_id / family_id
+  school_id: string | null;   // exactly one of school_id / family_id / user_id
   family_id: string | null;
+  user_id: string | null;     // owner of a solo customer
   created_by: string | null;
   created_at: string;
 }
@@ -39,7 +45,8 @@ export interface BillingSubscriptionRow {
   latest_invoice_status: InvoiceStatus | null;
   school_id: string | null;
   family_id: string | null;
-  licence_id: string | null;
+  user_id: string | null; // owner of a 'solo' subscription (plan_id = 'solo' <=> user_id set)
+  licence_id: string | null; // always null for solo (no school_licences row)
   last_event_at: string | null;
   created_at: string;
   updated_at: string;
@@ -74,7 +81,7 @@ export interface LicenceBillingColumns {
 export interface BillingApplySubscriptionParams {
   p_stripe_customer_id: string;
   p_stripe_subscription_id: string;
-  p_plan_id: BillingPlanId;
+  p_plan_id: OrgBillingPlanId;
   p_status: StripeSubscriptionStatus;
   p_current_period_end: string | null;
   p_current_period_start?: string | null;
@@ -91,6 +98,33 @@ export interface BillingApplySubscriptionParams {
   p_event_id?: string | null;
   p_event_type?: string | null;
   p_event_created?: string | null;
+}
+
+/**
+ * Named parameters of public.billing_apply_user_subscription (solo plan, service role). Same idempotency / stale-event
+ * rules as billing_apply_subscription; no licence row. p_user_id is required the first time the customer is seen.
+ */
+export interface BillingApplyUserSubscriptionParams {
+  p_stripe_customer_id: string;
+  p_stripe_subscription_id: string;
+  p_status: StripeSubscriptionStatus;
+  p_current_period_end: string | null;
+  p_current_period_start?: string | null;
+  p_cancel_at_period_end?: boolean;
+  p_collection_method?: CollectionMethod;
+  p_latest_invoice_status?: InvoiceStatus | null;
+  p_user_id?: string | null;
+  p_plan_id?: 'solo';
+  p_event_id?: string | null;
+  p_event_type?: string | null;
+  p_event_created?: string | null;
+}
+
+export interface BillingApplyUserSubscriptionResult {
+  applied: boolean;
+  reason?: BillingApplySkipReason;
+  subscription_id?: string;
+  user_id?: string;
 }
 
 export type BillingApplySkipReason = 'duplicate_event' | 'stale_event' | 'owner_not_found';
@@ -138,3 +172,31 @@ export interface BillingStatusForFamily extends BillingStatusBase {
 /** RPC params: `rpc('billing_status_for_school', { p_school_id })` / `rpc('billing_status_for_family', { p_family_id })`. */
 export interface BillingStatusForSchoolParams { p_school_id: string }
 export interface BillingStatusForFamilyParams { p_family_id: string }
+
+/** public.billing_status_for_user(p_user_id) – the caller's own solo subscription (all null when there is none). */
+export interface BillingStatusForUser {
+  user_id: string;
+  plan: 'solo' | null;
+  /** 'active' (active/trialing), 'grace' (past_due, 7 days), 'expired' (anything else), null = never subscribed. */
+  state: 'active' | 'grace' | 'expired' | null;
+  subscription_status: StripeSubscriptionStatus | null;
+  interval: 'month' | 'year' | null;
+  current_period_end: string | null;
+  /** Zurich date: grace end while in grace, else the period end. */
+  valid_until: string | null;
+  grace_until: string | null;
+  cancel_at_period_end: boolean;
+  collection_method: CollectionMethod | null;
+  latest_invoice_status: InvoiceStatus | null;
+  has_customer: boolean;
+}
+
+/** public.billing_solo_eligibility(p_user_id) (service role): may this user buy 'solo'? */
+export interface SoloEligibility {
+  role: 'student' | 'parent' | 'staff';
+  account_type: 'school_student' | 'independent_student' | 'parent' | null;
+  /** Blocked by a WendApply admin: may export / delete data, never buy (SPEC §8 G11). */
+  blocked: boolean;
+  /** Already covered: own open solo subscription, family subscription / plan, or valid school licence. */
+  covered_by: 'solo' | 'family' | 'school' | null;
+}
