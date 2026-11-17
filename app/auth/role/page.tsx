@@ -21,12 +21,15 @@ export default function ChooseRolePage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const next = () => safeNextPath(new URLSearchParams(window.location.search).get("next"));
+  const switching = () => new URLSearchParams(window.location.search).get("wechseln") === "1";
 
   useEffect(() => {
     let alive = true;
     supabase.auth.getUser().then(({ data }) => {
       if (!alive) return;
       if (!data.user) { router.replace("/login"); return; }
+      // "Falsche Rolle gewählt?" (G7, from /schullizenz and the paywall): ask again; the server refuses once classes exist.
+      if (switching()) { setReady(true); return; }
       // Already decided (or an old account with a role): nothing to ask.
       if (!needsRoleChoice(data.user)) { router.replace(landingPath(data.user.user_metadata?.role === "teacher" ? "teacher" : "student", next())); return; }
       // Known from the signup tab, a family invite or the server: apply it instead of asking a second time.
@@ -49,6 +52,11 @@ export default function ChooseRolePage() {
       const { role: baseRole, accountType } = choiceToAccount(role);
       clearPendingSignup();
       const effective = await chooseRole(data.user, baseRole);
+      if (switching() && effective !== baseRole) { setError("Die Rolle lässt sich nicht mehr ändern, weil dein Konto schon Klassen hat. Schreib uns über die Kontaktseite."); setBusy(false); return; }
+      if (switching() && effective === "student" && !accountType) {
+        // Switched to "Schule": forget an earlier private / parent type in the metadata (the server keeps its own truth).
+        await supabase.auth.updateUser({ data: { account_type: null, account_type_synced: null, birth_year: null } });
+      }
       if (effective === "student" && accountType) {
         // Private customers: remember the account type and store it with account_set_type (retried later if not deployed yet).
         const { data: updated } = await supabase.auth.updateUser({ data: signupMetadata(role, birthYear) });
@@ -64,7 +72,7 @@ export default function ChooseRolePage() {
     <AuthFrame className="max-w-[600px]">
         {!ready ? <p role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einen Moment …</p> : (
           <div className="space-y-6">
-            <AuthTitle title={<>Wie nutzt du <span className="marker">WendApply</span>?</>}>Das fragen wir nur einmal. So zeigen wir dir die passende Ansicht.</AuthTitle>
+            <AuthTitle title={<>Wie nutzt du <span className="marker">WendApply</span>?</>}>{switching() ? "Wähle die Rolle, die zu dir passt. Das geht nur, solange du noch keine Klassen hast." : "Das fragen wir nur einmal. So zeigen wir dir die passende Ansicht."}</AuthTitle>
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             <RoleCards value={role} onChange={setRole} disabled={busy} />
             {role === "independent" && <BirthYearField value={birthYear} onChange={setBirthYear} />}

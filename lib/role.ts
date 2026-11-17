@@ -3,10 +3,10 @@ import { supabase } from "@/lib/supabase";
 import { safeNextPath } from "@/lib/ux";
 import { interpretTourRow, needsTour, tourDoneInMeta, UNKNOWN_TOUR, type TourStatus } from "@/lib/onboarding-tour-core";
 import type { UserRole } from "@/types";
-import { choiceToAccount, decodePendingSignup, encodePendingSignup, FAMILY_PATH, isParentMeta, knownSignupChoice, parentGuardRedirect, PENDING_SIGNUP_KEY, signupMetadata, type SignupChoice } from "@/lib/family-core";
+import { choiceToAccount, decodePendingSignup, encodePendingSignup, FAMILY_PATH, knownSignupChoice, parentGuardRedirect, PENDING_SIGNUP_KEY, signupMetadata, type SignupChoice } from "@/lib/family-core";
 import { syncPendingAccountType } from "@/lib/family";
 import { loadMyAccess } from "@/lib/access/client";
-import { accessLanding, isEnforced, LICENCE_PATH } from "@/lib/access/gate";
+import { accessLanding, isEnforced, isParentAccount, isSchoolAdmin, LICENCE_PATH } from "@/lib/access/gate";
 
 /** Pure routing rules (unit tested in tests/role.test.mjs). */
 export const TEACHER_HOME = "/teacher";
@@ -61,6 +61,20 @@ export function parentLandingPath(next?: string | null): string {
   const safe = safeNextPath(next);
   if (!safe || safe === "/" || guardRedirect("student", safe) || parentGuardRedirect(safe)) return FAMILY_PATH;
   return safe;
+}
+
+/** Invite links that must come before the student tour (G17): they may grant access (class of a licensed school, family plan). */
+export function isInvitePath(next: string | null | undefined): boolean {
+  const path = String(next ?? "").split(/[?#]/)[0];
+  return path.startsWith("/classes/join/") || path.startsWith("/familie/einladung/");
+}
+
+/** Why a link was not opened for this role (G16): shown as a short notice instead of a silent redirect. */
+export function wrongRoleNotice(kind: "student" | "parent" | "teacher", pathname: string): string | null {
+  const path = pathname.split(/[?#]/)[0] || "/";
+  if (kind === "parent" && path.startsWith("/classes/join/")) return "Dieser Link ist für Schüler:innen einer Klasse. Als Elternteil kannst du keiner Klasse beitreten.";
+  if (kind === "teacher" && path.startsWith("/familie/einladung/")) return "Dieser Link ist für Familien. Mit einem Konto als Lehrperson kannst du keiner Familie beitreten.";
+  return null;
 }
 
 /** `?next=` aware path to the role picker. */
@@ -125,7 +139,16 @@ export function readPendingSignup() {
  * none yet, so the picker is never shown twice. Returns the updated user, or null when nothing was known / applied.
  */
 export async function applyKnownRole(user: User, next?: string | null): Promise<User | null> {
-  const known = knownSignupChoice(readPendingSignup(), safeNextPath(next)) ?? (await serverKnownChoice(user.id));
+  const pending = knownSignupChoice(readPendingSignup(), safeNextPath(next));
+  if (!pending) {
+    // School admins are created by WendApply: never ask them, never turn them into students (G6).
+    const access = await loadMyAccess({ userId: user.id }).catch(() => null);
+    if (isSchoolAdmin(access)) {
+      const { data: updated } = await supabase.auth.updateUser({ data: { role_confirmed: true } });
+      return updated.user ?? user;
+    }
+  }
+  const known = pending ?? (await serverKnownChoice(user.id));
   if (!known) return null;
   clearPendingSignup();
   const { role: baseRole, accountType } = choiceToAccount(known.choice);
@@ -163,12 +186,35 @@ export async function resolveLanding(next?: string | null): Promise<string> {
   await syncPendingAccountType(user);
   const { role } = await loadMyRole(user);
   const access = await loadMyAccess({ userId: user.id }).catch(() => null);
-  // Teachers / school admins without a licence: the licence page instead of an empty teacher area.
+  // School admins: their school area, never the student tour (G6). Licensed or not: /schul-admin shows the licence state.
+  if (isSchoolAdmin(access) && role !== "teacher") return "/schul-admin";
+  // Teachers without a licence: the licence page instead of an empty teacher area (G9).
   if (isEnforced(access) && accessLanding(access) === LICENCE_PATH) return LICENCE_PATH;
-  if (role === "student" && isParentMeta(user.user_metadata)) return parentLandingPath(next);
+  if (role === "student" && isParentAccount(user.user_metadata, access)) return parentLandingPath(next);
+  // Invite links first, the tour afterwards (G17).
+  if (role === "student" && isInvitePath(safeNextPath(next))) return safeNextPath(next)!;
   if (role === "teacher" && !teacherOnboarded(user.user_metadata) && !safeNextPath(next)?.startsWith("/classes/join")) return TEACHER_HOME;
-  if (role === "student" && !tourDoneInMeta(user.user_metadata) && needsTour(role, user.user_metadata, await readTourStatus(user.id))) return studentOnboardingHref(next);
+  if (role === "student" && !tourDoneInMeta(user.user_metadata) && needsTour(role, user.user_metadata, await readTourStatus(user.id))) {
+    // A teacher-only ?next= would only end in a silent redirect after the tour (G23): drop it.
+    const keep = safeNextPath(next) && !guardRedirect("student", safeNextPath(next)!) ? next : null;
+    // "Schule" signup: ask for the class code once before the tour (G8).
+    if (needsClassCodeStep(user.user_metadata, access) && !(await isInAnyClass())) return classCodeHref(keep);
+    return studentOnboardingHref(keep);
+  }
   return landingPath(role, next);
+}
+
+// ---- Class code step for "Schule" signups (G8) ----
+export const CLASS_CODE_PATH = "/onboarding/klasse";
+/** School student (signup "Schule": no account_type), not asked yet, no access through a school yet. */
+export function needsClassCodeStep(meta: Record<string, unknown> | null | undefined, access?: { reason?: string } | null): boolean {
+  if (meta?.class_code_asked === true || meta?.account_type) return false;
+  if (access?.reason === "school_licence") return false;
+  return meta?.role === "student";
+}
+export function classCodeHref(next?: string | null) { const safe = safeNextPath(next); return safe && safe !== "/" ? `${CLASS_CODE_PATH}?next=${encodeURIComponent(safe)}` : CLASS_CODE_PATH; }
+async function isInAnyClass(): Promise<boolean> {
+  try { const { data, error } = await supabase.rpc("class_my_classes"); return !error && Array.isArray(data) && data.length > 0; } catch { return false; }
 }
 
 /** Tour state straight from profiles (inline so this module stays light). Old DB without the column: UNKNOWN_TOUR. */

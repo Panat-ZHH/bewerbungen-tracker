@@ -44,7 +44,8 @@ test("expired parent keeps /familie (create family, invite, pay), paywall elsewh
 test("teacher without licence: licence gate (never paywall / trial), /schullizenz and settings open", () => {
   assert.equal(gate.accessView(teacherNoLicence, "/teacher"), "licence");
   assert.equal(gate.accessView(teacherNoLicence, "/teacher/classes/c1"), "licence");
-  assert.equal(gate.accessView({ ...teacherNoLicence, role: "school_admin" }, "/schul-admin"), "licence");
+  assert.equal(gate.accessView({ ...teacherNoLicence, role: "school_admin" }, "/teacher"), "licence");
+  assert.equal(gate.accessView(teacherNoLicence, "/schul-admin"), "licence", "teachers do not get the school admin page");
   assert.equal(gate.accessView(teacherNoLicence, "/schullizenz"), "page");
   assert.equal(gate.accessView(teacherNoLicence, "/settings"), "page");
   assert.equal(gate.accessLanding(teacherNoLicence), "/schullizenz");
@@ -232,4 +233,104 @@ test("shell + teacher layout use the gate; family trial row no longer grants acc
   assert.equal(fam.planGivesAccess({ planType: "family", status: "trial", state: "trial", seatsParents: 1, seatsChildren: 1, trialEndsAt: null }), false);
   assert.equal(fam.planGivesAccess({ planType: "family", status: "active", state: "active", seatsParents: 1, seatsChildren: 1, trialEndsAt: null }), true);
   assert.doesNotMatch(fam.childPlanLine(null).text, /kostenlos/);
+});
+
+// ---------------------------------------------------------------- flow-analysis gaps (FLOW-ANALYSIS.md, SPEC §8)
+test("G1: /classes (code field) and /classes/join/* stay open under the paywall; paywall offers 'Klassencode eingeben'", () => {
+  assert.equal(gate.accessView(expired, "/classes"), "page");
+  assert.equal(gate.accessView(expired, "/classes/join/ABC123"), "page");
+  assert.equal(gate.accessView(expired, "/classes/c1"), "paywall");
+  const pages = readFileSync(new URL("../components/access/access-pages.tsx", import.meta.url), "utf8");
+  assert.match(pages, /Klassencode eingeben/);
+});
+
+test("G3: /familie + /familie/einladung/* open for students and parents under the paywall", () => {
+  assert.equal(gate.accessView(expired, "/familie"), "page");
+  assert.equal(gate.accessView(expired, "/familie/einladung/ABCD1234"), "page");
+});
+
+test("G6: school admins land on /schul-admin, keep it under the licence gate, never the role picker", async () => {
+  const admin = { ...base, has_access: false, state: "licence_required", role: "school_admin" };
+  assert.equal(gate.accessView(admin, "/schul-admin"), "page");
+  assert.equal(gate.accessView(admin, "/dashboard"), "licence");
+  assert.equal(gate.accessLanding(admin), "/schul-admin");
+  assert.equal(gate.isSchoolAdmin(admin), true);
+  assert.equal(gate.isSchoolAdmin(gate.OPEN_ACCESS), false, "fallback is never an admin");
+
+  let meta = {};
+  globalThis.__supabaseStub = {
+    getUser: async () => ({ data: { user: { id: "sa1", user_metadata: { ...meta } } }, error: null }),
+    updateUser: async ({ data }) => { meta = { ...meta, ...data }; return { data: { user: { id: "sa1", user_metadata: { ...meta } } }, error: null }; },
+    rpc: async (name) => name === "my_access" ? { data: { ...base, role: "school_admin", reason: "school_licence" }, error: null } : name === "social_my_profile" ? { data: [{ role: "student", display_name: "" }], error: null } : { data: null, error: null },
+  };
+  role.clearRoleCache();
+  assert.equal(await role.resolveLanding(null), "/schul-admin");
+  assert.equal(meta.role_confirmed, true);
+  assert.equal(meta.account_type, undefined, "not turned into a student type");
+});
+
+test("G7: paywall and licence gate offer 'Falsche Rolle gewählt?' → picker in switch mode", () => {
+  const pages = readFileSync(new URL("../components/access/access-pages.tsx", import.meta.url), "utf8");
+  assert.match(pages, /Falsche Rolle gewählt\?/);
+  assert.match(pages, /\/auth\/role\?wechseln=1/);
+  const picker = readFileSync(new URL("../app/auth/role/page.tsx", import.meta.url), "utf8");
+  assert.match(picker, /wechseln/);
+});
+
+test("G8: 'Schule' signups get the class code step once, before the tour", () => {
+  assert.equal(role.needsClassCodeStep({ role: "student" }, null), true);
+  assert.equal(role.needsClassCodeStep({ role: "student", class_code_asked: true }, null), false);
+  assert.equal(role.needsClassCodeStep({ role: "student", account_type: "independent_student" }, null), false);
+  assert.equal(role.needsClassCodeStep({ role: "student" }, { reason: "school_licence" }), false);
+  assert.equal(role.needsClassCodeStep({ role: "teacher" }, null), false);
+  assert.equal(role.classCodeHref("/dashboard"), "/onboarding/klasse?next=%2Fdashboard");
+});
+
+test("G8 + G23: new school student → class code step; teacher-only ?next= is dropped before the tour", async () => {
+  globalThis.__supabaseStub = {
+    getUser: async () => ({ data: { user: { id: "s5", user_metadata: { role: "student" } } }, error: null }),
+    rpc: async (name) => name === "social_my_profile" ? { data: [{ role: "student", display_name: "" }], error: null } : name === "class_my_classes" ? { data: [], error: null } : name === "my_access" ? { data: trial, error: null } : { data: null, error: null },
+    from: async () => ({ data: null, error: null }),
+  };
+  role.clearRoleCache();
+  assert.equal(await role.resolveLanding("/teacher/classes"), "/onboarding/klasse");
+  client.clearAccessCache(); role.clearRoleCache();
+  globalThis.__supabaseStub.getUser = async () => ({ data: { user: { id: "s6", user_metadata: { role: "student", class_code_asked: true } } }, error: null });
+  assert.equal(await role.resolveLanding("/teacher/classes"), "/onboarding");
+});
+
+test("G17: invite links come before the tour", async () => {
+  globalThis.__supabaseStub = {
+    getUser: async () => ({ data: { user: { id: "s7", user_metadata: { role: "student", account_type: "independent_student" } } }, error: null }),
+    rpc: async (name) => name === "social_my_profile" ? { data: [{ role: "student", display_name: "" }], error: null } : name === "my_access" ? { data: trial, error: null } : { data: null, error: null },
+    from: async () => ({ data: null, error: null }),
+  };
+  role.clearRoleCache();
+  assert.equal(await role.resolveLanding("/familie/einladung/ABCD1234?fuer=kind"), "/familie/einladung/ABCD1234?fuer=kind");
+  assert.equal(role.isInvitePath("/classes/join/X1"), true);
+  assert.equal(role.isInvitePath("/dashboard"), false);
+});
+
+test("G10: shell lets /settings through without a role; G16 wrong-role notices; G18 signup tab; G26 logout clears invites", () => {
+  const shell = readFileSync(new URL("../components/layout/workspace-shell.tsx", import.meta.url), "utf8");
+  assert.match(shell, /startsWith\("\/settings"\)/);
+  assert.match(shell, /clearPendingInvite\(\)/);
+  assert.match(shell, /clearPendingSignup\(\)/);
+  assert.match(role.wrongRoleNotice("parent", "/classes/join/AB12"), /Schüler:innen/);
+  assert.match(role.wrongRoleNotice("teacher", "/familie/einladung/ABCD1234"), /Familien/);
+  assert.equal(role.wrongRoleNotice("student", "/classes/join/AB12"), null);
+  const login = readFileSync(new URL("../app/login/page.tsx", import.meta.url), "utf8");
+  assert.match(login, /isInvitePath\(.*setMode\("signup"\)/s);
+});
+
+test("G20: parent routing uses the server account type once known", () => {
+  assert.equal(gate.isParentAccount({ account_type: "parent" }, { ...trial, account_type: "independent_student" }), false, "server wins over metadata");
+  assert.equal(gate.isParentAccount({}, { ...trial, account_type: "parent" }), true);
+  assert.equal(gate.isParentAccount({ account_type: "parent" }, gate.OPEN_ACCESS), true, "fallback: metadata");
+});
+
+test("G12/G14: paywall explains the reason (licence ended, family pending without prices)", () => {
+  const pages = readFileSync(new URL("../components/access/access-pages.tsx", import.meta.url), "utf8");
+  for (const r of ["family_pending", "licence_ended", "subscription_ended", "payment_failed"]) assert.match(pages, new RegExp(`case "${r}"`));
+  assert.match(pages, /family_pending[\s\S]{0,300}showPrices: false/);
 });

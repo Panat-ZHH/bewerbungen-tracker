@@ -13,7 +13,7 @@ import { oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
 import { authErrorMessage as authMessage } from "@/lib/auth-errors";
 import { newPasswordProblem } from "@/lib/password-policy";
 import { pendingInvitePath } from "@/components/friends/shared";
-import { clearPendingSignup, resolveLanding, storePendingSignup } from "@/lib/role";
+import { clearPendingSignup, isInvitePath, resolveLanding, storePendingSignup } from "@/lib/role";
 import { InviteBanner } from "@/components/onboarding/invite-banner";
 import { LoginValueProp } from "@/components/onboarding/login-value-prop";
 import { AuthBrand } from "@/components/onboarding/auth-frame";
@@ -44,8 +44,10 @@ export default function LoginPage() {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     // Family invite links: preselect the matching signup role (parent, or private student with ?fuer=kind) + a short hint.
     const preset = signupPreset(safeNextPath(params.get("next")));
+    // Invite links are mostly opened by people without an account yet: open the signup tab (G18).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
+    if (isInvitePath(safeNextPath(params.get("next")))) setMode("signup");
     if (preset) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
       setRole(preset.choice);
       setInviteHint(preset.hint);
     }

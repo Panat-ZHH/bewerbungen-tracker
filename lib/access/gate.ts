@@ -29,6 +29,8 @@ const BLOCKED_OPEN = ["/settings", CONTACT_PATH, "/hilfe", "/auth", "/login", "/
 export function isAllowListed(pathname: string | null | undefined, opts: { parent?: boolean } = {}): boolean {
   const path = clean(pathname);
   if (ALWAYS_OPEN.some((prefix) => under(path, prefix))) return true;
+  // The class list with the "Klassencode" field (G1): joining a licensed class is how a student gets access.
+  if (path === "/classes" || path === "/classes/") return true;
   // /familie: parents create the family, invite and pay; children invite their parents (who then pay). No app content there.
   return under(path, "/familie") || (!!opts.parent && under(path, "/familie"));
 }
@@ -46,14 +48,32 @@ export function accessView(access: AccessInfo | null | undefined, pathname: stri
   if (access.blocked || access.state === "blocked") return BLOCKED_OPEN.some((prefix) => under(path, prefix)) ? "page" : "blocked";
   if (access.has_access) return "page";
   if (isAllowListed(path, { parent: opts.parent || access.account_type === "parent" })) return "page";
+  // School admins keep /schul-admin (licence status, renew) even without a valid licence (G6).
+  if (access.role === "school_admin" && under(path, "/schul-admin")) return "page";
   if (access.state === "licence_required" || isStaff(access)) return "licence";
   return "paywall";
 }
+
+/** Did the answer come from the database (not the "feature off / not deployed" fallback)? */
+export function isServerAccess(access: AccessInfo | null | undefined): access is AccessInfo { return !!access && access !== OPEN_ACCESS; }
+
+/**
+ * Parent account? Server truth (my_access().account_type) once it is known; the client-writable metadata only as a
+ * fallback before the RPC exists (G20 / FINDINGS 2).
+ */
+export function isParentAccount(meta: Record<string, unknown> | null | undefined, access: AccessInfo | null | undefined): boolean {
+  if (isServerAccess(access) && access.account_type) return access.account_type === "parent";
+  return meta?.account_type === "parent";
+}
+
+/** School admin by server truth (my_access().role). */
+export function isSchoolAdmin(access: AccessInfo | null | undefined): boolean { return isServerAccess(access) && access.role === "school_admin"; }
 
 /** Where a signed-in user without access should land after login (null = normal landing). */
 export function accessLanding(access: AccessInfo | null | undefined): string | null {
   if (!isEnforced(access) || access.has_access) return null;
   if (access.blocked || access.state === "blocked") return "/settings";
+  if (access.role === "school_admin") return "/schul-admin";
   if (access.state === "licence_required" || isStaff(access)) return LICENCE_PATH;
   if (access.account_type === "parent") return "/familie";
   return ABO_PATH;
