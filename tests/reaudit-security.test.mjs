@@ -50,3 +50,10 @@ test("web push: only real push services are contacted (no SSRF / digest stall), 
   const server = await readFile(new URL("../lib/reminders-server.ts", import.meta.url), "utf8");
   assert.match(server, /\.limit\(MAX_PUSH_SUBSCRIPTIONS_PER_USER\)/);
 });
+
+test("job search: only our own plain Error messages are shown, library/network errors get the generic text", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const route = await readFile(new URL("../app/api/job-search/route.ts", import.meta.url), "utf8");
+  assert.match(route, /Object\.getPrototypeOf\(cause\) === Error\.prototype/);
+  assert.doesNotMatch(route, /error: cause instanceof Error \? cause\.message/);
+});

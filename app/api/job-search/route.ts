@@ -150,6 +150,9 @@ export async function POST(request: Request) {
   } catch (cause) {
     // an unknown place is the user's input, not an outage: say so clearly (the browser shows it next to the Ort field's results)
     if (cause instanceof PlaceNotFoundError) return Response.json({ error: cause.message, code: cause.code }, { status: 422, headers });
-    return Response.json({ error: cause instanceof Error ? cause.message : "Die Quelle antwortet gerade nicht. Versuch es später erneut." }, { status: 502, headers });
+    // Only our own German messages (plain Error) reach the browser; library / network errors (TypeError "fetch failed",
+    // AbortError, parser errors with internal details) get the generic text.
+    const own = cause instanceof Error && Object.getPrototypeOf(cause) === Error.prototype;
+    return Response.json({ error: own ? cause.message : "Die Quelle antwortet gerade nicht. Versuch es später erneut." }, { status: 502, headers });
   }
 }
