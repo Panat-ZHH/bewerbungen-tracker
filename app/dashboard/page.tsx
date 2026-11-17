@@ -137,7 +137,7 @@ export default function DashboardPage() {
                 </ul>
               </section>
             )}
-            <ButtonLink href="/applications/new" full size="lg" icon={<Plus size={18} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>
+            <ButtonLink href="/applications/new" variant="secondary" full size="lg" icon={<Plus size={18} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>
           </div>
         </div>
       )}

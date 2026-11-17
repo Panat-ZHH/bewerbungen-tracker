@@ -51,7 +51,7 @@ export function TeacherDashboardView() {
   const firstClass = (data?.classes ?? []).find((c) => !c.archived);
   return (
     <div>
-      <PageHeader title="Übersicht" description="So weit sind deine Klassen mit der Lehrstellensuche. Es zählen nur Schülerinnen und Schüler, die ihre Daten teilen." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
+      <PageHeader title="Übersicht" description="So weit sind deine Klassen mit der Lehrstellensuche. Es zählen nur Schülerinnen und Schüler, die ihre Daten teilen." actions={<Button variant={mode === "no-students" && firstClass ? "secondary" : "primary"} className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
       <SchoolAdminLink className="mb-8" />
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!data && !error && <div className="space-y-3"><Skeleton className="h-24 rounded-[var(--radius-lg)]" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />)}</div>}
@@ -86,7 +86,7 @@ export function TeacherDashboardView() {
               <h2 className="text-heading">Klassen</h2>
               <Segmented className="[&_button]:min-h-11" label="Klassen anzeigen" value={showArchived} onChange={setShowArchived} options={[{ value: "active", label: "Aktiv", count: active.length }, { value: "archived", label: "Archiv", icon: <Archive size={13} />, count: archived.length }]} />
             </div>
-            {data.classes.length === 0 && <EmptyState className="mt-3" icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und lade dann deine Schülerinnen und Schüler per Link, Code oder QR-Code ein." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
+            {data.classes.length === 0 && <EmptyState className="mt-3" icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und lade dann deine Schülerinnen und Schüler per Link, Code oder QR-Code ein." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
             {data.classes.length > 0 && shown.length === 0 && <EmptyState className="mt-3" icon={<Archive size={24} />} title={showArchived === "archived" ? "Das Archiv ist leer" : "Alle Klassen sind archiviert"} description={showArchived === "archived" ? "Archivierte Klassen erscheinen hier. Ihre Daten bleiben erhalten." : "Wechsle zum Archiv, um eine Klasse wieder zu aktivieren."} />}
             {shown.length > 0 && (
               <ul className="rows mt-3 border-y-[length:var(--border-w)] border-[var(--outline)]">

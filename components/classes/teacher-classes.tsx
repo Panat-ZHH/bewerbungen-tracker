@@ -43,7 +43,7 @@ export function TeacherClasses() {
       <PageHeader title="Meine Klassen" description="Erstelle eine Klasse, teile den Code und behalte den Bewerbungsfortschritt deiner Schülerinnen und Schüler im Blick." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
       {error && <div role="alert" className="status status-danger flex items-center justify-between gap-3 text-sm"><span>{error}</span><Button size="sm" variant="secondary" className="min-h-11 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button></div>}
       {!classes && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-20 rounded-[var(--radius-lg)]" />)}</div>}
-      {classes && classes.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und teile den Beitrittscode mit deinen Schüler:innen." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
+      {classes && classes.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und teile den Beitrittscode mit deinen Schüler:innen." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
       {classes && classes.length > 0 && (
         <ul className="rows border-y-[length:var(--border-w)] border-[var(--outline)]">
           {classes.map((c) => (

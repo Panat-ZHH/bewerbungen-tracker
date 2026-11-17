@@ -27,7 +27,7 @@ export function ReviewResult({ result, meta }: { result: AiReviewResult; meta?: 
           <p id="ai-review-score" className="num-display" aria-label={`${score} von 100 Punkten`}>{score}</p>
           <div className="pb-1">
             <p className="text-sm font-semibold text-muted">von 100</p>
-            <span className={cn("sticker tilt-l mt-2", stickerTone[label.tone])}>{label.label}</span>
+            <span className={cn("sticker mt-2", stickerTone[label.tone])}>{label.label}</span>
           </div>
         </div>
         <div className="min-w-0 md:pr-8">

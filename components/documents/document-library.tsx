@@ -85,7 +85,7 @@ export function DocumentLibrary() {
     <>
       {notice && <StatusMessage tone="danger" className="mb-5">{notice}</StatusMessage>}
       <p className="mb-4 flex items-center gap-2.5 text-sm text-muted">
-        <span className={`sticker tilt-l ${kindsDone === DOCUMENT_KINDS.length ? "sticker-mint" : ""}`}>{kindsDone} von {DOCUMENT_KINDS.length}</span>
+        <span className={`sticker ${kindsDone === DOCUMENT_KINDS.length ? "sticker-mint" : ""}`}>{kindsDone} von {DOCUMENT_KINDS.length}</span>
         {kindsDone === DOCUMENT_KINDS.length ? "Dein Dossier ist komplett." : "Arten von Unterlagen sind schon da."}
       </p>
       <div className="pb-safe"><div className="rows border-y-[length:var(--border-w)] border-[var(--outline)] [&>*]:min-w-0">

@@ -115,7 +115,7 @@ export default function ApplicationsPage() {
           action={applications.length ? (
             <Button type="button" variant="secondary" onClick={() => { setQuery(""); setStatus("all"); }}>Filter zurücksetzen</Button>
           ) : (
-            <ButtonLink href="/applications/new" icon={<Plus size={16} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>
+            <ButtonLink href="/applications/new" variant="secondary" icon={<Plus size={16} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>
           )}
         />
       )}

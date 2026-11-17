@@ -15,7 +15,7 @@ export function AuthBrand({ className }: { className?: string }) {
 /** Paper frame for the small screens around sign-in (role picker, onboarding, reset, callback): logo on top, content in a narrow column. */
 export function AuthFrame({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <main className="workspace-bg flex min-h-[100dvh] flex-col px-4 pb-10 sm:px-6">
+    <main data-ui="app" className="workspace-bg flex min-h-[100dvh] flex-col px-4 pb-10 sm:px-6">
       <div className={cn("mx-auto w-full max-w-[520px]", className)}>
         <AuthBrand className="h-16" />
       </div>

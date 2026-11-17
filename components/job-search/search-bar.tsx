@@ -45,7 +45,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
         <form role="search" onSubmit={(e) => { e.preventDefault(); setOpen(false); onSubmit(query); }} className="relative flex flex-col gap-3 sm:flex-row sm:items-start">
           <div className="relative min-w-0 flex-1">
             {/* The bar is one sticker: ink contour + hard shadow, blue contour while the field has focus. */}
-            <div className="flex min-h-14 items-center rounded-xl border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] pl-4 shadow-[var(--shadow-md)] transition-[box-shadow,border-color] duration-150 focus-within:border-[var(--brand)] focus-within:shadow-[3px_3px_0_var(--brand)]">
+            <div className="flex min-h-14 items-center rounded-xl border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] pl-4 shadow-[var(--shadow-md)] transition-[box-shadow,border-color] duration-150 focus-within:border-[var(--brand)] focus-within:shadow-[var(--field-focus-shadow)]">
             <Search size={20} strokeWidth={2.4} aria-hidden className="pointer-events-none shrink-0 text-[var(--ink)]" />
             <input
               ref={inputRef}
