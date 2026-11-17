@@ -148,7 +148,8 @@ export async function exportMyDataFromServer(): Promise<unknown | undefined> { r
 export async function attachClassToSchool(schoolId: string, joinCode: string): Promise<{ classId: string; name: string; students: number }> {
   const { data, error } = await supabase.rpc("school_attach_class", { p_school_id: schoolId, p_join_code: joinCode.trim().toUpperCase() });
   if (error) fail(error);
-  const r = ((Array.isArray(data) ? data[0] : data) ?? {}) as Row;
+  const r = ((Array.isArray(data) ? data[0] : data) ?? null) as Row | null;
+  if (!r) fail({ message: "CLASS_NOT_FOUND" }); // no row = unknown code (rate limiter, migration 20261117020000)
   return { classId: String(r.class_id ?? ""), name: String(r.name ?? ""), students: num(r.students) };
 }
 export async function detachClassFromSchool(schoolId: string, classId: string): Promise<void> {

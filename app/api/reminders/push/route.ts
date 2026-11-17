@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { limitIp, limitUser } from "@/lib/api-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,6 +9,16 @@ const headers = { "Cache-Control": "no-store" };
 export async function GET() {
   const publicKey = process.env.VAPID_PUBLIC_KEY || process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   return publicKey ? Response.json({ publicKey }, { headers }) : Response.json({ code: "NOT_CONFIGURED" }, { status: 503, headers });
+}
+
+/** Rate limit (per IP, then per verified user) + auth. Returns a ready Response when the request must stop. */
+async function guarded(request: Request): Promise<{ client: NonNullable<Awaited<ReturnType<typeof userClient>>> } | { response: Response }> {
+  const limitedIp = await limitIp("push-subscribe", request.headers);
+  if (limitedIp) return { response: limitedIp };
+  const ctx = await userClient(request);
+  if (!ctx) return { response: Response.json({ code: "UNAUTHENTICATED" }, { status: 401, headers }) };
+  const limitedUser = await limitUser("push-subscribe", ctx.userId);
+  return limitedUser ? { response: limitedUser } : { client: ctx };
 }
 
 async function userClient(request: Request) {
@@ -21,8 +32,9 @@ async function userClient(request: Request) {
 
 /** POST { endpoint, keys: { p256dh, auth } } stores the subscription; DELETE { endpoint } removes it. RLS limits it to the caller. */
 export async function POST(request: Request) {
-  const ctx = await userClient(request);
-  if (!ctx) return Response.json({ code: "UNAUTHENTICATED" }, { status: 401, headers });
+  const g = await guarded(request);
+  if ("response" in g) return g.response;
+  const ctx = g.client;
   const body = await request.json().catch(() => null) as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } } | null;
   const { endpoint, keys } = body ?? {};
   if (typeof endpoint !== "string" || !/^https:\/\//.test(endpoint) || endpoint.length > 2000 || typeof keys?.p256dh !== "string" || typeof keys?.auth !== "string") return Response.json({ code: "INVALID_REQUEST" }, { status: 400, headers });
@@ -30,8 +42,9 @@ export async function POST(request: Request) {
   return error ? Response.json({ code: "SAVE_FAILED" }, { status: 500, headers }) : Response.json({ ok: true }, { headers });
 }
 export async function DELETE(request: Request) {
-  const ctx = await userClient(request);
-  if (!ctx) return Response.json({ code: "UNAUTHENTICATED" }, { status: 401, headers });
+  const g = await guarded(request);
+  if ("response" in g) return g.response;
+  const ctx = g.client;
   const body = await request.json().catch(() => null) as { endpoint?: unknown } | null;
   if (typeof body?.endpoint !== "string") return Response.json({ code: "INVALID_REQUEST" }, { status: 400, headers });
   await ctx.client.from("push_subscriptions").delete().eq("endpoint", body.endpoint).eq("user_id", ctx.userId);

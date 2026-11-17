@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { adminClient, runDigest } from "@/lib/reminders-server";
+import { checkIp, limitedResponse } from "@/lib/api-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +17,11 @@ function authorized(request: Request) {
 
 /** POST /api/reminders/digest  Authorization: Bearer <REMINDERS_CRON_SECRET>  [?dryRun=1]. Called by the Netlify scheduled function. */
 export async function POST(request: Request) {
-  if (!authorized(request)) return Response.json({ ok: false }, { status: 401, headers });
+  if (!authorized(request)) {
+    // only wrong secrets are counted per IP (the scheduled function itself is never limited)
+    const r = await checkIp("digest-unauthorized", request.headers);
+    return r.allowed ? Response.json({ ok: false }, { status: 401, headers }) : limitedResponse("digest-unauthorized", r);
+  }
   const admin = adminClient();
   if (!admin) return Response.json({ ok: false, code: "NOT_CONFIGURED" }, { status: 503, headers });
   try {

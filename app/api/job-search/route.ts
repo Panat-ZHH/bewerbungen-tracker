@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { PlaceNotFoundError, normalizeRadius, searchMultipleSourcesCached, type JobSource, type MultiSourceSearchInput, type ServerJobFilters } from "@/lib/job-search";
 import { originalSourceName, type JobSearchResult } from "@/lib/job-results";
+import { limitIp, limitUser } from "@/lib/api-rate-limit";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -8,7 +9,6 @@ export const maxDuration = 60;
 // Popular professions change slowly: keep their first page longer (shared by all users, no personal data in the key).
 const POPULAR = /^(informatiker|kaufmann|kauffrau|detailhandel|fachmann gesundheit|fage|fabe|polymechaniker|elektroinstallateur|logistiker|koch|maurer|zeichner|mediamatiker|automobil|schreiner|med\.? praxis|dentalassistent|landwirt|gaertner|gärtner|maler|sanitär|sanitaer|coiffeur|metzger|baecker|bäcker)/i;
 const POPULAR_TTL = 15 * 60000;
-const searchLimits = new Map<string, { startedAt: number; count: number }>();
 const headers = { "Cache-Control": "no-store" };
 
 function readKnownResult(value: unknown): JobSearchResult {
@@ -92,6 +92,9 @@ function readFilters(value: unknown): ServerJobFilters | undefined {
 }
 
 export async function POST(request: Request) {
+  // Per IP before the token check (stops floods of fake tokens), per user after it (shared across all instances).
+  const limitedIp = await limitIp("job-search", request.headers);
+  if (limitedIp) return limitedIp;
   const token = request.headers.get("authorization")?.match(/^Bearer (\S+)$/)?.[1];
   if (!token) return Response.json({ error: "Bitte melde dich an." }, { status: 401, headers });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -137,16 +140,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "Gib einen Beruf mit 2 bis 80 Zeichen und optional einen Ort ein." }, { status: 400, headers });
   }
 
-  const now = Date.now();
-  for (const [userId, limit] of searchLimits) {
-    if (now - limit.startedAt >= 60000) searchLimits.delete(userId);
-  }
-  const limit = searchLimits.get(data.user.id) ?? { startedAt: now, count: 0 };
-  if (limit.count >= 12) {
-    const retryAfter = String(Math.max(1, Math.ceil((60000 - (now - limit.startedAt)) / 1000)));
-    return Response.json({ error: "Bitte warte kurz vor der nächsten Suche." }, { status: 429, headers: { ...headers, "Retry-After": retryAfter } });
-  }
-  searchLimits.set(data.user.id, { ...limit, count: limit.count + 1 });
+  const limitedUser = await limitUser("job-search", data.user.id);
+  if (limitedUser) return limitedUser;
 
   try {
     const batch = await searchMultipleSourcesCached(input, !input.cursor && POPULAR.test(input.query) ? POPULAR_TTL : 60000);
