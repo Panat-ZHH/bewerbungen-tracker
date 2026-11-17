@@ -22,18 +22,15 @@ export function useJoinConsent() {
   const [choice, setChoice] = useState<ConsentChoice>(defaultConsent(null));
 
   const [editName, setEditName] = useState(true);
-  const [agePrefilled, setAgePrefilled] = useState(false);
 
-  /** Call when the join step opens. Prefills name and age band from the profile so nothing is asked twice (schueler-04). */
+  /** Call when the join step opens. Prefills only the name from the profile (schueler-04); the age band comes from the server or the pupil (QA M2). */
   const load = useCallback(async () => {
     const [s, known] = await Promise.all([getMyNameStatus().catch(() => null), knownProfile()]);
     const f = known.first, l = known.last;
     setStatus(s); setFirst(f); setLast(l);
     setEditName(!(f && l && cleanNameInput(f, l)));
-    const under16 = s?.under16 ?? known.under16;
-    setAge(under16 === true ? "u16" : under16 === false ? "o16" : null);
-    setAgePrefilled(under16 === true || under16 === false);
-    setChoice(defaultConsent(under16 ?? null));
+    setAge(s?.under16 === true ? "u16" : s?.under16 === false ? "o16" : null);
+    setChoice(defaultConsent(s?.under16 ?? null));
   }, []);
 
   const needsName = status?.needsName ?? false;
@@ -67,7 +64,7 @@ export function useJoinConsent() {
       )}
       <fieldset className="space-y-1">
         <legend className="text-sm font-bold">Wie alt bist du?</legend>
-        <p className="text-small text-muted">{agePrefilled ? "Aus deinem Profil übernommen. Unter 16 ist das Teilen zu Beginn ausgeschaltet." : "Wenn du unter 16 bist, ist das Teilen zu Beginn ausgeschaltet. Du entscheidest unten selbst."}</p>
+        <p className="text-small text-muted">Wenn du unter 16 bist, ist das Teilen zu Beginn ausgeschaltet. Du entscheidest unten selbst.</p>
         <div className="flex flex-wrap gap-2 pt-1">
           {([["u16", "Unter 16"], ["o16", "16 oder älter"]] as const).map(([value, label]) => (
             <label key={value} className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[length:var(--border-w)] px-4 text-sm font-semibold transition-colors has-[:focus-visible]:outline-[3px] has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--focus-ring)] ${age === value ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-sm)]" : "border-[var(--outline)] bg-[var(--surface)]"}`}>
@@ -87,17 +84,13 @@ export function useJoinConsent() {
   return { load, ready, run, fields };
 }
 
-/** First/last name and – only when certain – the age band from the own profile row (birth year). Empty when unknown. */
-async function knownProfile(): Promise<{ first: string; last: string; under16: boolean | null }> {
+/** First/last name from the own profile row (prefill only). Empty when unknown. No age/consent default is derived here. */
+async function knownProfile(): Promise<{ first: string; last: string }> {
   try {
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return { first: "", last: "", under16: null };
-    const { data } = await supabase.from("profiles").select("first_name,last_name,birth_year").eq("user_id", auth.user.id).maybeSingle();
-    const row = data as { first_name?: string | null; last_name?: string | null; birth_year?: number | null } | null;
-    const by = Number(row?.birth_year ?? auth.user.user_metadata?.birth_year);
-    const diff = Number.isInteger(by) && by > 1900 ? new Date().getFullYear() - by : null;
-    // Born this year minus 16: could be 15 or 16 – then the pupil chooses.
-    const under16 = diff === null ? null : diff <= 15 ? true : diff >= 17 ? false : null;
-    return { first: (row?.first_name ?? "").trim(), last: (row?.last_name ?? "").trim(), under16 };
-  } catch { return { first: "", last: "", under16: null }; }
+    if (!auth.user) return { first: "", last: "" };
+    const { data } = await supabase.from("profiles").select("first_name,last_name").eq("user_id", auth.user.id).maybeSingle();
+    const row = data as { first_name?: string | null; last_name?: string | null } | null;
+    return { first: (row?.first_name ?? "").trim(), last: (row?.last_name ?? "").trim() };
+  } catch { return { first: "", last: "" }; }
 }
