@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         source: "/:path*",
         headers: securityHeaders({ supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL, dev: process.env.NODE_ENV === "development" }),
       },
+      // Platform admin: never indexed, never stored by a shared cache (the API sets the same on every answer).
+      ...["/admin", "/admin/:path*"].map((source) => ({
+        source,
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Cache-Control", value: "private, no-store" }],
+      })),
       // The in-app Stripe Payment Element (iframe on js.stripe.com) loads our Instrument Sans from /fonts: needs CORS.
       { source: "/fonts/:file*", headers: [{ key: "Access-Control-Allow-Origin", value: "*" }, { key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
     ];

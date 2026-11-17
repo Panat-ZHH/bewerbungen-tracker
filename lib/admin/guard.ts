@@ -8,7 +8,10 @@
 //      As soon as the admin enrols a TOTP factor, aal2 is required again.
 //      NOTE: amr "oauth" does not name the provider. Google is the only OAuth provider enabled in this project; if another one
 //      is ever enabled, tighten this check (e.g. require the provider in app_metadata) before relying on it.
-//   4. 60 requests / min per admin, 10 / min for mutations → 429
+//   4. fresh login: the newest amr timestamp of the (verified) token is at most ADMIN_SESSION_MAX_AGE_HOURS old (default 12)
+//      → else 403 reauth_required. Refreshing a session keeps its amr, so a stolen refresh token stops working for /admin
+//      after this window; a token without amr timestamps is treated as stale (fail closed).
+//   5. 60 requests / min per admin, 10 / min for mutations → 429
 // No cookies are read anywhere: the token comes only from the Authorization header, so cross-site requests cannot ride
 // on a session (CSRF-safe by construction).
 import { clientIp, envInt, hashKeyPart, hitAll, ipBucket, tooManyRequests, type RateLimitRpc } from "../rate-limit/core.ts";
@@ -79,6 +82,28 @@ export interface GuardDeps {
   store: AdminStore;
   rpc: RateLimitRpc;
   env?: Record<string, string | undefined>;
+  now?: () => Date;
+}
+
+/** Default maximum age of the last real authentication (password, Google, TOTP …) for admin access. */
+export const ADMIN_SESSION_MAX_AGE_HOURS = 12;
+
+/** Seconds; ADMIN_SESSION_MAX_AGE_HOURS = 1 … 168, anything else → default. */
+export function adminSessionMaxAge(env: Record<string, string | undefined> = process.env): number {
+  const h = envInt(env.ADMIN_SESSION_MAX_AGE_HOURS, -1);
+  return (h >= 1 && h <= 168 ? h : ADMIN_SESSION_MAX_AGE_HOURS) * 3600;
+}
+
+/** Unix seconds of the newest authentication listed in the (already verified) token's amr claim, or null. */
+export function lastAuthAt(claims: Record<string, unknown>): number | null {
+  const amr = claims.amr;
+  if (!Array.isArray(amr)) return null;
+  let max: number | null = null;
+  for (const e of amr) {
+    const t = e && typeof e === "object" ? (e as { timestamp?: unknown }).timestamp : undefined;
+    if (typeof t === "number" && Number.isFinite(t) && t > 0 && (max === null || t > max)) max = t;
+  }
+  return max;
 }
 
 export interface AdminContext { admin: VerifiedUser; ip: string | null; auth: "totp" | "google" }
@@ -120,6 +145,12 @@ export async function guard(request: Request, deps: GuardDeps, opts: { mutation:
   const aal2 = claims.aal === "aal2";
   const viaGoogle = !aal2 && user.mfaEnrolled !== true && user.googleVerified === true && amrHas(claims, "oauth");
   if (!aal2 && !viaGoogle) return { ok: false, response: fail(403, "mfa_required") };
+
+  const authAt = lastAuthAt(claims);
+  const nowS = (deps.now ? deps.now() : new Date()).getTime() / 1000;
+  if (authAt === null || nowS - authAt > adminSessionMaxAge(env) || authAt > nowS + 300) {
+    return { ok: false, response: fail(403, "reauth_required") };
+  }
 
   if (!disabled) {
     const rules = [{ key: `admin:user:${user.id}`, ...limits.user }];

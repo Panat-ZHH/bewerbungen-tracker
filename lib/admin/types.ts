@@ -124,5 +124,5 @@ export interface SignupStats { days: 7 | 30; total: number; by_day: { day: strin
 
 /** Error codes returned by the API (generic on purpose: never internals). */
 export type AdminErrorCode =
-  | "unauthenticated" | "not_found" | "mfa_required" | "rate_limited" | "invalid_input" | "confirm_required"
+  | "unauthenticated" | "not_found" | "mfa_required" | "reauth_required" | "rate_limited" | "invalid_input" | "confirm_required"
   | "conflict" | "subscription_active" | "failed" | "not_configured";
