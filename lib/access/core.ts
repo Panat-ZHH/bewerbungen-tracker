@@ -82,11 +82,12 @@ export function decideAccess(i: AccessInput): AccessInfo {
   if (blocked && i.mode !== "off") { state = "blocked"; reason = "none"; }
   else if (grant) { state = "active"; reason = "grant"; }
   else if (i.licensedSchool) { state = "active"; reason = "school_licence"; }
+  // Teachers / school admins only via licence or grant, never via a subscription (security review S1, 20261118300000).
+  else if (staff) { state = "licence_required"; reason = "none"; }
   else if (subState(i.solo, now) === "active") { state = "active"; reason = "subscription"; }
   else if (subState(famSub, now) === "active" || famPlan) { state = "active"; reason = "family_subscription"; }
   else if (subState(i.solo, now) === "grace") { state = "grace"; reason = "grace"; grace = graceUntil(i.solo); }
   else if (subState(famSub, now) === "grace") { state = "grace"; reason = "grace"; grace = graceUntil(famSub); }
-  else if (staff) { state = "licence_required"; reason = "none"; }
   else if (ms(i.trialEndsAt) > now.getTime()) { state = "trial"; reason = "trial"; }
   else { state = "expired"; reason = "none"; }
   const real = state === "active" || state === "trial" || state === "grace";

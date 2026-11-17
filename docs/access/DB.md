@@ -41,10 +41,13 @@ independent_student + birth year from `raw_user_meta_data` into `profiles`, not 
 1. **enforced** = mode 'on', or mode 'test_users' and `enforce_test`, or blocked (and mode ≠ 'off'). Not enforced → `has_access = true`
    (the real `state` is still reported; the UI shows nothing).
 2. First match wins: **blocked** → **grant** (`free_access_until > now`) → **school licence** (student in a not-archived class of a
-   school with a valid licence, or staff: school_admins / school_teachers / class owner / co-teacher) → own **solo** subscription
-   active/trialing → **family**: active member (parent or child) of a family with an active/trialing family subscription or an
-   admin-assigned family plan (`pilot`/`active`, source ≠ stripe; the old 30-day family `trial` row does NOT count) → **grace**
-   (solo or family `past_due`) → teacher / school admin: **licence_required** (no trial) → **trial** → **expired**.
+   school with a valid licence, or staff: school_admins / school_teachers (only while the user has the teacher role) / class owner /
+   co-teacher) → teacher / school admin: **licence_required** (no trial; staff NEVER get access through a solo / family
+   subscription or its grace – security review S1, 20261118300000) → own **solo** subscription active/trialing → **family**: active
+   member (parent or child) of a family with an active/trialing family subscription or an admin-assigned family plan
+   (`pilot`/`active`, source ≠ stripe; the old 30-day family `trial` row does NOT count) → **grace** (solo or family `past_due`) →
+   **trial** → **expired**.
+   Trial ledger: the e-mail is normalised before hashing (lowercase, `+tag` removed, Gmail dots removed, googlemail → gmail).
 3. A subscription counts as active only while `current_period_end` is not more than 2 days past (missed webhook safety net).
    `cancel_at_period_end` keeps Stripe status `active` until the period end → access until then. `canceled`, `unpaid`,
    `incomplete`, `incomplete_expired`, `paused` → no access.

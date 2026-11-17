@@ -140,9 +140,9 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
             {actionButton("set_trial")}
             {actionButton("grant_access")}
             {aa?.free_access_until && actionButton("revoke_access")}
-            {u.blocked ? actionButton("unblock") : !isSelf && actionButton("block")}
+            {u.blocked ? actionButton("unblock") : !isSelf && !u.platform_admin && actionButton("block")}
           </div>
-          {!isSelf && (
+          {!isSelf && !u.platform_admin && (
             <div className="flex flex-wrap gap-2 border-t-[length:var(--border-w)] border-dashed border-[var(--line)] pt-4">
               {!u.blocked && actionButton("soft_delete", "danger")}
               {u.blocked && !u.platform_admin && actionButton("delete_account", "danger")}
