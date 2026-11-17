@@ -52,5 +52,5 @@ test("profiles id guard migration is additive and idempotent", async () => {
   await ctx.database.exec(sql);
   await ctx.database.exec(sql);
   const trig = await ctx.admin("select tgname from pg_trigger where tgrelid = 'public.profiles'::regclass and not tgisinternal");
-  assert.deepEqual(trig.map((t) => t.tgname), ["profiles_account_guard"]);
+  assert.deepEqual(trig.map((t) => t.tgname).sort(), ["profiles_account_guard", "profiles_delete_keeps_account"]); // + re-audit 3 (20261117163000)
 });
