@@ -7,7 +7,7 @@ import { CheckCircle2, CreditCard, ExternalLink, FileText, Lock, Mail, ReceiptTe
 import { Badge } from "@/components/ui/badge";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
-import { PLANS, formatChf, yearlySavingChf, type PlanId } from "@/lib/billing/plans";
+import { BILLING, PLANS, formatChf, yearlySavingChf, type PlanId } from "@/lib/billing/plans";
 import { FAMILY_COPY, fill } from "@/lib/family-copy";
 import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
@@ -108,7 +108,7 @@ function InvoiceSent({ url }: { url: string | null }) {
   return (
     <StatusMessage tone="success" icon={<CheckCircle2 />}>
       <span className="block font-bold">Rechnung angefordert</span>
-      <span className="block">Die Rechnung kommt per E-Mail. Die Lizenz wird freigeschaltet, sobald sie bezahlt ist.</span>
+      <span className="block">{`Die Rechnung kommt per E-Mail. Die Lizenz ist in wenigen Sekunden aktiv. Die Rechnung ist innert ${BILLING.invoiceDaysUntilDue} Tagen zahlbar; bleibt sie offen, endet der Zugang nach einer kurzen Nachfrist.`}</span>
       {url && <a href={url} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 font-semibold underline underline-offset-2">Rechnung ansehen<ExternalLink size={14} aria-hidden /><span className="sr-only"> (öffnet in neuem Tab)</span></a>}
     </StatusMessage>
   );
@@ -154,7 +154,7 @@ export function BillingOffNotice({ children }: { children?: React.ReactNode }) {
 export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentEnabled() }: { schoolId: string; anchor?: boolean; enabled?: boolean }) {
   const owner: BillingOwner = { kind: "school", id: schoolId };
   const { load, reload } = useBillingStatus(owner, enabled);
-  // Invoice requested: keep the confirmation (the licence follows once the invoice is paid, via the webhook).
+  // Invoice requested: keep the confirmation (send_invoice subscriptions are active right away; unpaid after the term => grace, then expired).
   const [invoice, setInvoice] = useState<{ url: string | null } | null>(null);
   const ref = useRef<HTMLElement>(null);
   useEffect(() => { if (anchor && window.location.hash === "#abo") ref.current?.scrollIntoView({ block: "start" }); }, [anchor]);

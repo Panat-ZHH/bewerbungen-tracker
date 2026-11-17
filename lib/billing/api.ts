@@ -175,7 +175,10 @@ export async function checkout(input: { token: string | null; body: unknown }, d
       idempotencyKey: `wendapply-customer-${owner.kind}-${owner.id}-${auth.user.id}-${Math.floor(Date.now() / 600_000)}`,
     });
     await deps.db.saveCustomer?.(owner, customer, auth.user.id).catch((e) => deps.log?.("billing checkout: could not save customer", { error: String(e) }));
-  } else if (await deps.stripe.hasOpenStripeSubscription?.(customer)) {
+  }
+  // Also for a "new" customer: within 10 minutes the idempotency key above hands back the SAME customer when saving it
+  // failed, and that customer may have been paid seconds ago (re-audit 2 2026-11-17).
+  if (await deps.stripe.hasOpenStripeSubscription?.(customer)) {
     return err(409, "already_subscribed"); // paid / invoiced seconds ago, the webhook has not mirrored it yet
   }
   // Double checkout (two tabs, interval switch on the pay page, back button): only the newest session stays payable.

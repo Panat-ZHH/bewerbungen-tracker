@@ -108,6 +108,35 @@ export function planPrice(plan: Plan, interval: BillingInterval = "year"): numbe
   return interval === "month" ? plan.priceChfPerMonth ?? null : plan.priceChfPerYear;
 }
 
+/** The minimal Stripe Price fields the catalogue check needs (Stripe.Price is assignable). */
+export interface PriceShape {
+  active?: boolean;
+  currency?: string | null;
+  unit_amount?: number | null;
+  type?: string | null;
+  recurring?: { interval?: string | null; interval_count?: number | null } | null;
+}
+
+/**
+ * Price integrity (re-audit 2 2026-11-17): the Stripe price found by lookup_key must be exactly what the app shows and the
+ * payer consents to ("CHF 7.90 pro Monat … automatisch abzubuchen"): same amount in Rappen, CHF, recurring with the same
+ * interval, every 1 interval. A price created by hand in the Dashboard, a lookup key transferred to the wrong price or a
+ * plans.ts change deployed before scripts/stripe/setup-products.mjs ran must never be charged.
+ */
+export function priceMatchesCatalogue(price: PriceShape | null | undefined, lookupKey: string): boolean {
+  const plan = planByLookupKey(lookupKey);
+  if (!plan || !price) return false;
+  const interval: BillingInterval = plan.lookupKeyMonthly === lookupKey ? "month" : "year";
+  const chf = planPrice(plan, interval);
+  if (chf === null || chf <= 0) return false;
+  return price.active !== false
+    && (price.currency ?? "").toLowerCase() === BILLING.currency
+    && price.unit_amount === Math.round(chf * 100)
+    && (price.type == null || price.type === "recurring")
+    && price.recurring?.interval === interval
+    && (price.recurring?.interval_count ?? 1) === 1;
+}
+
 /** CHF saved per year by paying yearly instead of 12 monthly payments (0 if there is no monthly price). */
 export function yearlySavingChf(plan: Plan): number {
   if (!plan.priceChfPerMonth || !plan.priceChfPerYear) return 0;
