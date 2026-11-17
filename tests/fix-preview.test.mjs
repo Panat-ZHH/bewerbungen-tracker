@@ -53,3 +53,29 @@ test("B1: FamilyChoose.buy uses the decision before hosted Checkout (fallback ke
   assert.match(card, /data-billing-manage="manual"/);
   assert.match(card, /p === "trialing" && \(rebuy \|\| open \? <FamilyChoose/);
 });
+
+test("B2: netlify.toml sends CORS for /fonts/* (static files bypass next.config headers); Next headers/CSP untouched", () => {
+  const toml = src("netlify.toml");
+  const lines = toml.split("\n").map((l) => l.replace(/#.*/, "").trim()).filter(Boolean);
+  const blocks = [];
+  for (const l of lines) {
+    if (l === "[[headers]]") blocks.push({ for: null, values: {}, inValues: false });
+    else if (l === "[headers.values]") blocks.at(-1).inValues = true;
+    else if (l.startsWith("[")) blocks.push({ other: l });
+    else {
+      const m = /^([A-Za-z0-9_-]+)\s*=\s*"([^"]*)"$/.exec(l);
+      assert.ok(m, `simple key = "value" line: ${l}`);
+      const b = blocks.at(-1);
+      if (b.inValues) b.values[m[1]] = m[2]; else b[m[1]] = m[2];
+    }
+  }
+  const fonts = blocks.find((b) => b.for === "/fonts/*");
+  assert.ok(fonts, "[[headers]] for /fonts/*");
+  assert.equal(fonts.values["Access-Control-Allow-Origin"], "*");
+  assert.match(fonts.values["Cache-Control"], /immutable/);
+  assert.doesNotMatch(toml, /Content-Security-Policy/, "CSP stays in next.config (no second, conflicting CSP)");
+  assert.doesNotMatch(toml, /^\s*\[build\]/m, "build settings stay in the Netlify UI");
+  const next = src("next.config.ts");
+  assert.match(next, /securityHeaders\(/);
+  assert.match(next, /source: "\/fonts\/:file\*"/);
+});

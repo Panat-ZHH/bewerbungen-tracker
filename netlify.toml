@@ -1,0 +1,12 @@
+# Netlify file config. Only headers live here: build command, publish dir, env vars and the Next.js runtime stay in the
+# Netlify UI (keys not set in this file keep their UI values). Page headers (CSP, X-Frame-Options, ...) come from
+# next.config.ts headers() and are NOT repeated here.
+#
+# Static files in public/ are served straight from the Netlify CDN, so next.config.ts headers() never reaches them
+# (preview e2e B2, 2026-11-17). The in-app Stripe Payment Element (iframe on js.stripe.com) loads our Instrument Sans
+# from /fonts and needs CORS for it, otherwise the payment form falls back to a system font.
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Cache-Control = "public, max-age=31536000, immutable"
