@@ -391,4 +391,71 @@ test("migration replays twice (idempotent)", async () => {
   assert.equal((await admin("select count(*)::int c from public.access_settings"))[0].c, 1);
 });
 
+test("expired_reason + family_pending explain the paywall (SPEC §8, G12/G14)", async () => {
+  await mode("on");
+  const t1 = await user(next()); await expire(t1);
+  let a = await access(t1);
+  assert.deepEqual([a.expired_reason, a.family_pending], ["trial_ended", false]);
+  const t2 = await user(next()); await expire(t2); await solo(t2, { status: "canceled" });
+  assert.equal((await access(t2)).expired_reason, "subscription_ended");
+  const t3 = await user(next()); await expire(t3); await solo(t3, { status: "unpaid" });
+  assert.equal((await access(t3)).expired_reason, "payment_failed");
+  const t4 = await user(next()); await expire(t4);
+  await solo(t4, { status: "past_due", periodStart: new Date(Date.now() - 9 * day) });
+  assert.equal((await access(t4)).expired_reason, "payment_failed");
+  // child in an unpaid family
+  const p = await user(next(), { meta: { account_type: "parent" } }); const c = await user(next()); await expire(c);
+  await family(p, c);
+  a = await access(c);
+  assert.deepEqual([a.state, a.expired_reason, a.family_pending], ["expired", "family_pending", true]);
+  assert.equal((await access(p)).family_pending, false);
+  // still in trial: family_pending true, but no expired_reason
+  const c2 = await user(next()); const p2 = await user(next(), { meta: { account_type: "parent" } });
+  await family(p2, c2);
+  a = await access(c2);
+  assert.deepEqual([a.state, a.expired_reason, a.family_pending], ["trial", null, true]);
+  // licence ended (student and teacher)
+  const sid = await school(); const x = await teacherWithClass(sid);
+  const st = await user(next()); await expire(st);
+  await admin("insert into public.class_members (class_id, student_id) values ($1, $2)", [x.classId, st]);
+  await admin("update public.school_licences set valid_from = '2019-01-01', valid_until = '2020-01-01' where school_id = $1", [sid]);
+  assert.equal((await access(st)).expired_reason, "licence_ended");
+  assert.deepEqual([(await access(x.t)).state, (await access(x.t)).expired_reason], ["licence_required", "licence_ended"]);
+  // teacher who never had a licence: null; with access: null
+  const t5 = await user(next(), { meta: { role: "teacher" } });
+  assert.equal((await access(t5)).expired_reason, null);
+  assert.equal((await access(await user(next()))).expired_reason, null);
+});
+
+test("trial starts at the e-mail confirmation (G13), not before; ledger moves along; inherited trials are not moved", async () => {
+  await mode("on");
+  const created = new Date(Date.now() - 5 * day).toISOString();
+  const u = await user(next(), { email: "late@confirm.test", createdAt: created });
+  let a = await access(u);
+  assert.equal(a.trial_days_left, 2);
+  await admin("update auth.users set email_confirmed_at = now() where id = $1", [u]);
+  a = await access(u);
+  assert.equal(a.trial_days_left, 7);
+  const [l] = await admin("select first_trial_ends_at from public.trial_ledger where email_hash = encode(sha256(convert_to('late@confirm.test', 'UTF8')), 'hex')");
+  assert.equal(new Date(l.first_trial_ends_at).getTime(), new Date(a.trial_ends_at).getTime());
+  // a second update (sign-in) changes nothing
+  await admin("update auth.users set email_confirmed_at = email_confirmed_at, raw_user_meta_data = '{}' where id = $1", [u]);
+  assert.equal((await access(u)).trial_ends_at, a.trial_ends_at);
+  // created already confirmed (Google): trial from confirmation
+  const g = await user(next(), { email: "g@confirm.test" });
+  await admin("update auth.users set email_confirmed_at = created_at where id = $1", [g]);
+  assert.equal((await access(g)).trial_days_left, 7);
+  // re-signup with a used e-mail: inherited (expired) trial is NOT re-based by confirming
+  await admin("update public.trial_ledger set first_trial_ends_at = now() - interval '1 day' where email_hash = encode(sha256(convert_to('late@confirm.test', 'UTF8')), 'hex')");
+  await admin("delete from auth.users where id = $1", [u]);
+  const again = await user(next(), { email: "late@confirm.test" });
+  await admin("update auth.users set email_confirmed_at = now() where id = $1", [again]);
+  assert.equal((await access(again)).state, "expired");
+  // admin-extended trial is not touched by a later confirmation
+  const ext = await user(next(), { email: "ext@confirm.test" });
+  await admin("update public.account_access set trial_ends_at = now() + interval '30 days' where user_id = $1", [ext]);
+  await admin("update auth.users set email_confirmed_at = now() + interval '1 day' where id = $1", [ext]);
+  assert.equal((await access(ext)).trial_days_left, 30);
+});
+
 test("uid helper sanity", () => assert.equal(uid(1).length, 36));

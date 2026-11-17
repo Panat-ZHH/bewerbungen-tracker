@@ -181,7 +181,7 @@ create or replace function public._access_after_signup()
 returns trigger language plpgsql security definer set search_path = '' as $$
 declare meta jsonb := coalesce(new.raw_user_meta_data, '{}'::jsonb); v_type text; v_year integer; v_start timestamptz;
 begin
-  v_start := coalesce((to_jsonb(new) ->> 'created_at')::timestamptz, now());
+  v_start := coalesce((to_jsonb(new) ->> 'email_confirmed_at')::timestamptz, (to_jsonb(new) ->> 'created_at')::timestamptz, now());
   perform public._access_ensure(new.id, new.email, v_start);
   v_type := meta ->> 'account_type';
   if v_type in ('parent', 'independent_student') and coalesce(meta ->> 'role', 'student') <> 'teacher' then
@@ -204,6 +204,36 @@ revoke all on function public._access_after_signup() from public, anon, authenti
 drop trigger if exists access_after_signup on auth.users;
 create trigger access_after_signup after insert on auth.users
   for each row execute function public._access_after_signup();
+
+-- Trial starts at the e-mail confirmation (SPEC §8, G13): an e-mail signup that confirms days later gets its full 7 days.
+-- Only an untouched own trial (trial_ends_at = trial_started_at + 7 days, i.e. not inherited from the ledger, not changed
+-- by an admin) is moved, and the ledger row it created moves with it. Never shortens a trial.
+create or replace function public._access_after_confirm()
+returns trigger language plpgsql security definer set search_path = '' as $$
+declare v_conf timestamptz; v_old timestamptz; v_hash text;
+begin
+  v_conf := (to_jsonb(new) ->> 'email_confirmed_at')::timestamptz;
+  if v_conf is null or (to_jsonb(old) ->> 'email_confirmed_at') is not null then return new; end if;
+  select a.trial_ends_at into v_old from public.account_access a
+    where a.user_id = new.id and a.trial_ends_at = a.trial_started_at + interval '7 days' and a.trial_started_at < v_conf;
+  if v_old is null then return new; end if;
+  update public.account_access a set trial_started_at = v_conf, trial_ends_at = v_conf + interval '7 days', updated_at = now()
+    where a.user_id = new.id;
+  v_hash := public._access_email_hash(new.email);
+  if v_hash is not null then
+    update public.trial_ledger l set first_trial_ends_at = v_conf + interval '7 days'
+      where l.email_hash = v_hash and l.first_trial_ends_at = v_old;
+  end if;
+  return new;
+exception when others then
+  raise warning 'access confirm hook failed for %: %', new.id, sqlerrm;
+  return new;
+end;
+$$;
+revoke all on function public._access_after_confirm() from public, anon, authenticated;
+drop trigger if exists access_after_confirm on auth.users;
+create trigger access_after_confirm after update on auth.users
+  for each row execute function public._access_after_confirm();
 
 -- Backfill existing users: fresh trial = greatest(created_at + 7 days, now() + 7 days) (access_go_live re-bases it).
 do $$ declare u record; begin
@@ -260,6 +290,19 @@ returns uuid language sql stable security definer set search_path = '' as $$
 $$;
 revoke all on function public._access_licensed_school(uuid) from public, anon, authenticated;
 
+-- Is p_uid linked (as student or staff) to a school that HAS licence rows but none valid today? → expired_reason 'licence_ended'.
+create or replace function public._access_licence_ended(p_uid uuid)
+returns boolean language sql stable security definer set search_path = '' as $$
+  select exists (select 1 from (
+    select c.school_id from public.class_members m join public.classes c on c.id = m.class_id where m.student_id = p_uid and c.school_id is not null
+    union select a.school_id from public.school_admins a where a.user_id = p_uid
+    union select t.school_id from public.school_teachers t where t.user_id = p_uid
+    union select c.school_id from public.classes c where c.teacher_id = p_uid and c.school_id is not null
+    union select c.school_id from public.class_teachers t join public.classes c on c.id = t.class_id where t.teacher_id = p_uid and c.school_id is not null
+  ) x where exists (select 1 from public.school_licences l where l.school_id = x.school_id) and not public._access_school_valid(x.school_id));
+$$;
+revoke all on function public._access_licence_ended(uuid) from public, anon, authenticated;
+
 
 -- AccessInfo (lib/access/types.ts) of p_uid. Internal: service role / definer callers only (my_access() for the user).
 create or replace function public.app_access(p_uid uuid)
@@ -274,7 +317,7 @@ declare
   v_family uuid; v_fam_plan boolean := false;
   v_blocked boolean; v_enforced boolean; v_staff boolean;
   v_state text; v_reason text; v_trial_end timestamptz; v_grace timestamptz; v_grant timestamptz; v_real boolean;
-  v_interval text;
+  v_interval text; v_family_role text; v_family_pending boolean := false; v_expired_reason text;
 begin
   if p_uid is null then return null; end if;
   select s.enforce_mode into mode from public.access_settings s where s.id = 1;
@@ -318,7 +361,7 @@ begin
     order by (public._access_sub_state(s, now_ts) = 'active') desc, (public._access_sub_state(s, now_ts) = 'grace') desc,
       s.updated_at desc, s.id limit 1;
 
-  select m.family_id into v_family from public.family_members m where m.user_id = p_uid and m.status = 'active' limit 1;
+  select m.family_id, m.role into v_family, v_family_role from public.family_members m where m.user_id = p_uid and m.status = 'active' limit 1;
   if v_family is not null then
     select * into fam from public.billing_subscriptions s where s.family_id = v_family
       order by (public._access_sub_state(s, now_ts) = 'active') desc, (public._access_sub_state(s, now_ts) = 'grace') desc,
@@ -343,6 +386,20 @@ begin
   else v_state := 'expired'; v_reason := 'none';
   end if;
   v_real := v_state in ('active', 'trial', 'grace');
+
+  -- A child in a family that is not (yet) paid waits for the parent: the paywall says so instead of offering prices (G14).
+  v_family_pending := coalesce(v_family_role = 'child' and v_reason <> 'family_subscription'
+    and public._access_sub_state(fam, now_ts) = 'none' and not v_fam_plan, false);
+  -- Why there is no access (G12): only for expired / licence_required.
+  if v_state in ('expired', 'licence_required') then
+    v_expired_reason := case
+      when coalesce(solo.status, fam.status) in ('past_due', 'unpaid') then 'payment_failed'
+      when v_state = 'expired' and v_family_pending then 'family_pending'
+      when coalesce(solo.id, fam.id) is not null and v_state = 'expired' then 'subscription_ended'
+      when public._access_licence_ended(p_uid) then 'licence_ended'
+      when v_state = 'expired' then 'trial_ended'
+    end;
+  end if;
 
   -- No trial for teachers / school admins and for school-licensed users.
   v_trial_end := case when v_staff or v_reason = 'school_licence' then null else aa.trial_ends_at end;
@@ -369,7 +426,9 @@ begin
       'cancel_at_period_end', shown.cancel_at_period_end) end,
     'school', v_school_json,
     'blocked', v_blocked,
-    'enforced', v_enforced);
+    'enforced', v_enforced,
+    'expired_reason', v_expired_reason,
+    'family_pending', v_family_pending);
 end;
 $$;
 revoke all on function public.app_access(uuid) from public, anon, authenticated;

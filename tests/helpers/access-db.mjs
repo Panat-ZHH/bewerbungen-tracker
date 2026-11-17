@@ -11,7 +11,7 @@ export async function setupAccessDb() {
   await database.exec(`
     create role authenticated; create role anon; create role service_role bypassrls;
     create schema auth; create schema storage;
-    create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb, created_at timestamptz not null default now());
+    create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb, created_at timestamptz not null default now(), email_confirmed_at timestamptz);
     create function auth.uid() returns uuid language sql stable as $auth$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $auth$;
     create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
     create table storage.objects (bucket_id text, name text, owner uuid);
