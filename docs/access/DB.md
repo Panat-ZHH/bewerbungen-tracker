@@ -48,6 +48,8 @@ independent_student + birth year from `raw_user_meta_data` into `profiles`, not 
    (`pilot`/`active`, source ≠ stripe; the old 30-day family `trial` row does NOT count) → **grace** (solo or family `past_due`) →
    **trial** → **expired**.
    Trial ledger: the e-mail is normalised before hashing (lowercase, `+tag` removed, Gmail dots removed, googlemail → gmail).
+   Ledger rows written with the old hash (live users from before 20261118300000) still count: 20261118310000 (security
+   review #2, R1) adds a new-hash row for every existing user, and `_access_ensure` also checks the legacy hash.
 3. A subscription counts as active only while `current_period_end` is not more than 2 days past (missed webhook safety net).
    `cancel_at_period_end` keeps Stripe status `active` until the period end → access until then. `canceled`, `unpaid`,
    `incomplete`, `incomplete_expired`, `paused` → no access.
