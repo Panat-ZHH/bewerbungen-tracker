@@ -9,9 +9,10 @@ import { Field, Input, Select } from "@/components/ui/input";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import type { AdminSchoolRow, AdminUserRow, Paged } from "@/lib/admin/types";
 import { adminFetch, errorText, qs } from "./api";
+import { FreeAccessBadge } from "./free-access";
 import { AccessBadge, Pager, RoleBadge, StripeLink, fmtDate, fmtDateTime, useDebounced, type OpenDetail } from "./shared";
 
-type StateFilter = "all" | "blocked" | "grant" | "trial" | "trial_over";
+type StateFilter = "all" | "blocked" | "grant" | "grant_forever" | "trial" | "trial_over";
 type RoleFilter = "all" | "student" | "teacher" | "school_admin" | "parent";
 type SubFilter = "all" | "active" | "none";
 
@@ -64,6 +65,7 @@ export function UsersTab({ onOpen, version }: { onOpen: OpenDetail; version: num
             <option value="trial">In der Testphase</option>
             <option value="trial_over">Testphase vorbei</option>
             <option value="grant">Gratis-Zugang</option>
+            <option value="grant_forever">Gratis (unbefristet)</option>
             <option value="blocked">Gesperrt</option>
           </Select>
         </Field>
@@ -138,11 +140,11 @@ export function UserList({ rows, onOpen }: { rows: AdminUserRow[]; onOpen: OpenD
               {u.name && <span className="mr-1 text-sm">{u.name}</span>}
               <RoleBadge role={u.role} accountType={u.account_type} />
               <AccessBadge state={u.access_state} />
+              <FreeAccessBadge grant={{ forever: u.free_access_forever, until: u.free_access_until }} />
               {u.schools.length > 0 && <span className="text-small text-muted">{u.schools.map((s) => s.name).join(", ")}</span>}
             </span>
             <span className="text-small text-muted">
               Testphase bis {fmtDate(u.trial_ends_at)}
-              {u.free_access_until && <> · Gratis bis {fmtDate(u.free_access_until)}</>}
               {" "}· Erstellt {fmtDate(u.created_at)} · Zuletzt da {fmtDateTime(u.last_sign_in_at)}
             </span>
           </button>

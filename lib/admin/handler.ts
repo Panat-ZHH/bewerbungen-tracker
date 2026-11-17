@@ -5,7 +5,7 @@
 // BEFORE they are applied (an unaudited change can never happen; a failed change gets a second "<action>.failed" row).
 import { guard, fail, json, type AdminContext, type GuardDeps } from "./guard.ts";
 import type { AdminStore, AuditFilter, LicenceInput, LicencePatch, UserListFilter } from "./store.ts";
-import type { AccountAccessRow } from "./types.ts";
+import type { AccountAccessRow, SchoolFreeAccess } from "./types.ts";
 import {
   COUNTRIES, DAY_MS, InvalidInput, PACKAGES, SCHOOL_ACTIONS, USER_ACTIONS, date, email, instant, int, isUuid, onlyKeys, oneOf,
   page, query, readBody, text, uuid, type SchoolAction, type UserAction,
@@ -94,14 +94,18 @@ async function userAction(store: AdminStore, ctx: AdminContext, userId: string, 
       break;
     }
     case "grant_access": {
-      onlyKeys(body, ["until", "note"]);
-      const until = instant(body.until, "until", now, { pastDays: 0, futureDays: 3650 });
-      patch = { free_access_until: until, free_access_note: text(body.note, "note", { max: 500, optional: true }) };
+      // Unlimited ({ forever: true }) or until a date ({ until }) – exactly one of them.
+      onlyKeys(body, ["until", "note", "forever"]);
+      const g = freeAccessInput(body, now);
+      patch = {
+        free_access_forever: g.forever, free_access_until: g.until, free_access_note: g.note,
+        free_access_granted_at: nowIso, free_access_granted_by: ctx.admin.id,
+      };
       break;
     }
     case "revoke_access": {
       onlyKeys(body, []);
-      patch = { free_access_until: null, free_access_note: null };
+      patch = { free_access_forever: false, free_access_until: null, free_access_note: null, free_access_granted_at: null, free_access_granted_by: null };
       break;
     }
     case "block": {
@@ -147,6 +151,17 @@ async function userAction(store: AdminStore, ctx: AdminContext, userId: string, 
   return json(200, { ok: true, account_access: after });
 }
 
+/** grant_access body (person or school): { forever: true } or { until } (future, ≤ 10 years), optional note ≤ 500. */
+function freeAccessInput(body: Record<string, unknown>, now: Date): { forever: boolean; until: string | null; note: string | null } {
+  if (body.forever !== undefined && typeof body.forever !== "boolean") throw new InvalidInput("forever");
+  const forever = body.forever === true;
+  if (forever && body.until !== undefined && body.until !== null) throw new InvalidInput("until");
+  const until = forever ? null : instant(body.until, "until", now, { pastDays: 0, futureDays: 3650 });
+  return { forever, until, note: text(body.note, "note", { max: 500, optional: true }) };
+}
+
+const grantView = (g: SchoolFreeAccess | null) => (g ? { forever: g.forever, until: g.until, note: g.note } : null);
+
 // ---------------------------------------------------------------- school mutations
 
 function licenceInput(body: Record<string, unknown>): LicenceInput {
@@ -165,13 +180,30 @@ function licenceInput(body: Record<string, unknown>): LicenceInput {
   };
 }
 
-async function schoolAction(store: AdminStore, ctx: AdminContext, schoolId: string, body: Record<string, unknown>): Promise<Response> {
+async function schoolAction(store: AdminStore, ctx: AdminContext, schoolId: string, body: Record<string, unknown>, now: Date): Promise<Response> {
   const action = oneOf(body.action, SCHOOL_ACTIONS, "action") as SchoolAction;
   const school = await store.getSchool(schoolId);
   if (!school) throw new NotFound();
   const base = { target_school: schoolId };
 
   switch (action) {
+    case "grant_access": {
+      // Free access for everybody the school licence model covers (students, school admins, teachers), no seat limit.
+      onlyKeys(body, ["until", "note", "forever"]);
+      const g = freeAccessInput(body, now);
+      const before = await store.getSchoolGrant(schoolId);
+      const after = await audited(store, ctx, { ...base, action: "school.grant_access", details: { before: grantView(before), after: g } },
+        () => store.setSchoolGrant(schoolId, g, ctx.admin.id));
+      return json(200, { ok: true, free_access: after });
+    }
+    case "revoke_access": {
+      onlyKeys(body, []);
+      const before = await store.getSchoolGrant(schoolId);
+      if (!before) throw new Conflict("not_granted");
+      await audited(store, ctx, { ...base, action: "school.revoke_access", details: { before: grantView(before), after: null } },
+        () => store.clearSchoolGrant(schoolId));
+      return json(200, { ok: true, free_access: null });
+    }
     case "assign_licence": {
       const input = licenceInput(body);
       const id = await audited(store, ctx, { ...base, action: "school.assign_licence", details: { before: school.licence ? { id: school.licence.id, package: school.licence.package, state: school.licence.state, valid_until: school.licence.valid_until } : null, after: input } },
@@ -251,7 +283,7 @@ export function createAdminApi(deps: AdminApiDeps) {
       const p = params(request);
       const filter: UserListFilter = {
         q: query(p.get("q")), page: page(p.get("page")), pageSize: PAGE_SIZE,
-        state: oneOf(p.get("state") ?? "all", ["all", "blocked", "grant", "trial", "trial_over"] as const, "state"),
+        state: oneOf(p.get("state") ?? "all", ["all", "blocked", "grant", "grant_forever", "trial", "trial_over"] as const, "state"),
         role: oneOf(p.get("role") ?? "all", ["all", "student", "teacher", "school_admin", "parent"] as const, "role"),
         sub: oneOf(p.get("sub") ?? "all", ["all", "active", "none"] as const, "sub"),
         school: ["all", "none"].includes(p.get("school") ?? "all") ? (p.get("school") ?? "all") : uuid(p.get("school"), "school"),
@@ -321,7 +353,7 @@ export function createAdminApi(deps: AdminApiDeps) {
     /** POST /api/admin/schools/:id { action, confirm: true, … } */
     schoolAction: (request: Request, id: string) => run(request, deps, true, "school action", async (ctx) => {
       const schoolId = uuid(id, "id");
-      return schoolAction(store, ctx, schoolId, await mutationBody(request));
+      return schoolAction(store, ctx, schoolId, await mutationBody(request), now());
     }),
 
     /** GET /api/admin/audit?page=&action=&admin_id=&target_user=&target_school=&since= */

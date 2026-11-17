@@ -4,6 +4,8 @@ Migrations (in order, all additive + idempotent):
 1. `20261118010000_access_core.sql` – tables, decision functions, signup hooks, go-live switch.
 2. `20261118020000_access_guards.sql` – the paywall: restrictive RLS, storage, wrapped RPCs (list: [GUARDS.md](GUARDS.md)).
 3. `20261118030000_billing_solo.sql` – solo plan webhook / status functions (billing builder, see docs/billing/).
+4. `20261118300000` / `20261118310000` – security reviews #1 / #2.
+5. `20261118400000_free_access_forever.sql` – free access without end date for persons and whole schools (section "Free access").
 
 Tests (PGlite, replay ALL migrations): `tests/access-core-db.test.mjs`, `tests/access-guards-db.test.mjs`;
 pure mirror: `lib/access/core.ts` + `tests/access-core.test.mjs` (a parity test compares mirror and SQL).
@@ -14,6 +16,8 @@ pure mirror: `lib/access/core.ts` + `tests/access-core.test.mjs` (a parity test 
 |---|---|---|
 | `access_settings` (id = 1) | `enforce_mode` 'off' / 'test_users' (default) / 'on', `went_live_at` | none |
 | `account_access` | per user: `trial_started_at`, `trial_ends_at`, `free_access_until` + note, `blocked_at` + reason, `enforce_test`, `updated_by` | select own row |
+| `account_access.free_access_forever` (+ `free_access_granted_at/_by`) | unlimited person grant; check: never together with `free_access_until` | select own `free_access_forever` |
+| `school_access_grants` | per school: `forever` XOR `until`, note, granted_by / granted_at; revoke = delete (history in admin_audit_log) | none |
 | `trial_ledger` | `email_hash` = sha256(lower(trim(email))) → `first_trial_ends_at`; survives account deletion | none |
 | `platform_admins` | WendApply admins (added by `scripts/admin/add-admin.mjs`) | none (`am_i_platform_admin()`) |
 | `admin_audit_log` | append-only (trigger refuses update/delete/truncate unless service_role); no FKs so it survives deletions | none |
@@ -68,3 +72,18 @@ independent_student + birth year from `raw_user_meta_data` into `profiles`, not 
 - `has_app_access(other uid)` by a signed-in user raises `FORBIDDEN` (no probing of other users' billing state).
 - `profiles` / `cvs` UPDATE are gated by triggers (not restrictive policies) so "Meine Daten löschen" keeps working (G2).
 - API paywall body: `402 {"error":"paywall","message":"…"}`; ai-review error code `paywall` (402).
+
+## Free access (20261118400000)
+
+- **Person**: grant active = `free_access_forever` OR `free_access_until > now()`. A separate flag instead of "until null = unlimited"
+  because null already means "no grant" in every existing row and reader (and `'infinity'` breaks JSON / JS dates).
+- **School**: `school_access_grants` (one row per school). `_access_school_valid(school)` = valid licence OR active grant, so the
+  whole licence coverage (students in not archived classes, school admins, school teachers with teacher role, class owners /
+  co-teachers) applies unchanged, and `_access_licence_ended` stops reporting a granted school. `_school_assert_capacity` skips the
+  seat / licence check while the school has an active grant (class join works without a licence row).
+- **app_access()** adds `"grant": { scope: "user" | "school", forever, until } | null` (school only when the school has no valid
+  licence, i.e. the grant is what gives access) and `school.free`. Reasons stay `grant` / `school_licence`, so every guard
+  (`has_app_access`, RLS access gate, RPC wrappers, ai-review edge function) accepts it without change. Order unchanged:
+  blocked > person grant > school (licence or grant) > staff licence_required > subscriptions > grace > trial.
+- **Writes**: service role only (admin API after the platform-admin guard; audit row before every change). Clients cannot read
+  `school_access_grants` and cannot write any grant column (tests/free-access-db.test.mjs, with Supabase default privileges).

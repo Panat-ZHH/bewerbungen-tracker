@@ -43,16 +43,25 @@ Person actions (all need a confirmation dialog; the API needs `confirm: true`):
 |---|---|
 | `set_trial` | `account_access.trial_ends_at` = given day (end of day, UTC). Range: 1 year back … 2 years ahead. |
 | `extend_trial` | + 1 … 365 days from the later of now / current trial end. |
-| `grant_access` / `revoke_access` | `free_access_until` (future date, ≤ 10 years) + optional note (≤ 500) / clears both. Works for every role, also teachers. |
+| `grant_access` / `revoke_access` | `{ forever: true }` = "Gratis (unbefristet)" (`free_access_forever`) **or** `{ until }` (future date, ≤ 10 years) – exactly one – + optional note (≤ 500); records who / when. Revoke clears all of it. Works for every role, also teachers. Blocked wins over a grant. |
 | `block` / `unblock` | `blocked_at` + reason (1 … 500). Blocked people can still log in and see "Konto gesperrt". You cannot block yourself. |
 | `soft_delete` | Step 1 of deleting: type the person's e-mail → the account is blocked with reason "Zur Löschung vorgemerkt". |
 | `delete_account` | Step 2, only for a blocked account, e-mail typed again: runs the existing deletion path (`lib/account-delete-server.ts`: files, rows by cascade, auth user). Refused (409 `subscription_active`) while the person is the last manager of a family / school subscription that still renews – cancel it in Stripe first. Platform admins cannot be deleted here. |
 
-School actions: `create` (name, canton, country CH/DE/AT), `assign_licence` (via `platform_assign_licence`: package
+School actions: `grant_access` (`{ forever: true }` or `{ until }`, optional note – free access for all students, teachers and school
+admins of the school, no seat limit, stored in `school_access_grants`), `revoke_access` (409 `not_granted` when none), `create` (name, canton, country CH/DE/AT), `assign_licence` (via `platform_assign_licence`: package
 pilot/starter/professional/enterprise/custom, status, student_limit – required for custom –, start, end, billing interval,
 notes), `update_licence` (valid_until for normal licences, pilot_end for pilots, student_limit, notes), `revoke_licence`
 (status → cancelled), `add_admin` (via `platform_add_school_admin`, by e-mail of an existing account), `remove_admin`,
 `add_teacher` / `remove_teacher` (`school_teachers`, by e-mail of an existing account).
+
+### Gratis-Zugang (free access) – click path
+
+- **Person**: `/admin` → tab **Personen** → search the e-mail → open the row → **Gratis-Zugang geben** → choose **Unbefristet**
+  (or **Bis Datum** + date) → optional note → **Bestätigen**. The row and the header show the badge "Gratis (unbefristet)" /
+  "Gratis bis …"; filter **Zugang → Gratis (unbefristet)**. Remove: **Gratis-Zugang entfernen** → **Bestätigen**.
+- **School**: tab **Schulen** → open the school → card **Gratis-Zugang** → **Gratis-Zugang geben** → **Unbefristet** / **Bis Datum** →
+  **Bestätigen**. Remove: **Entziehen**. The person sees "Gratis (unbefristet)" on `/abo` and in Settings → Abo, no trial banner, no prices.
 
 ## 3. API (`/api/admin/*`)
 
@@ -62,7 +71,7 @@ All requests: `Authorization: Bearer <Supabase access token>` – no cookies are
 | Method + path | Body / query | Answer |
 |---|---|---|
 | `GET /api/admin/me` | | `{ user_id, email, aal: "aal1"\|"aal2", auth: "totp"\|"google", mfa_enrolled }` |
-| `GET /api/admin/users` | `q, page, state=all\|blocked\|grant\|trial\|trial_over, role=all\|student\|teacher\|school_admin\|parent, sub=all\|active\|none, school=all\|none\|<uuid>` | `Paged<AdminUserRow>` (50 per page) |
+| `GET /api/admin/users` | `q, page, state=all\|blocked\|grant\|grant_forever\|trial\|trial_over, role=all\|student\|teacher\|school_admin\|parent, sub=all\|active\|none, school=all\|none\|<uuid>` | `Paged<AdminUserRow>` (50 per page) |
 | `GET /api/admin/users/:id` | | `AdminUserDetail` |
 | `POST /api/admin/users/:id` | `{ action, confirm: true, … }` (see above) | `{ ok, account_access }` / `{ ok, deleted }` |
 | `GET /api/admin/signups` | `days=7\|30` | `{ days, total, by_day[], users[] }` |
@@ -74,7 +83,7 @@ All requests: `Authorization: Bearer <Supabase access token>` – no cookies are
 
 Types: `lib/admin/types.ts`. Errors (generic on purpose, never DB messages): `401 unauthenticated`, `404 not_found`,
 `403 mfa_required`, `429 rate_limited` (+ `Retry-After`), `400 invalid_input` + `field`, `409 conflict` + `reason`
-(`self`, `not_blocked`, `platform_admin`, `user_not_found`, `already_member`, `licence_closed`, `already_cancelled`),
+(`self`, `not_blocked`, `not_granted`, `platform_admin`, `user_not_found`, `already_member`, `licence_closed`, `already_cancelled`),
 `409 subscription_active`, `500 failed`, `503 not_configured`.
 
 ## 4. Security design

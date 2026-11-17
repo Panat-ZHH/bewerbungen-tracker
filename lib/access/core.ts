@@ -1,7 +1,7 @@
 // Pure access logic (no I/O): typed parse of public.my_access() / app_access() jsonb into AccessInfo, and a TS mirror of the
 // SQL decision in supabase/migrations/20261118010000_access_core.sql (public.app_access). The SQL is the truth; this mirror
 // exists for unit tests, docs and UI previews – keep both in sync (tests/access-core.test.mjs replays the same cases).
-import type { AccessExpiredReason, AccessInfo, AccessReason, AccessRole, AccessState, AccessSubscription } from "./types.ts";
+import type { AccessExpiredReason, AccessGrant, AccessInfo, AccessReason, AccessRole, AccessState, AccessSubscription } from "./types.ts";
 
 export const TRIAL_DAYS = 7;
 export const GRACE_DAYS = 7;
@@ -27,11 +27,15 @@ export interface AccessInput {
   enforceTest: boolean;
   blockedAt: string | null;
   grantUntil: string | null; // account_access.free_access_until
+  /** account_access.free_access_forever: unlimited free access ("Gratis (unbefristet)"). */
+  grantForever?: boolean;
   trialEndsAt: string; // account_access.trial_ends_at
   role: AccessRole;
   accountType: AccessInfo["account_type"];
   /** Licensed school the user is linked to (student via class, staff via school_admins / school_teachers / classes). */
-  licensedSchool: { id: string; name: string; valid_until: string | null } | null;
+  licensedSchool: { id: string; name: string; valid_until: string | null; free?: boolean } | null;
+  /** Active free grant of licensedSchool when that school has NO valid licence (the grant is what gives access). */
+  schoolGrant?: { forever: boolean; until: string | null } | null;
   /** Linked to a school that has licence rows but none valid today. */
   licenceEnded: boolean;
   solo: SubLike | null;
@@ -73,14 +77,15 @@ export function decideAccess(i: AccessInput): AccessInfo {
   const staff = i.role === "teacher" || i.role === "school_admin";
   const blocked = i.blockedAt !== null;
   const enforced = i.mode === "on" || (i.mode === "test_users" && i.enforceTest) || (blocked && i.mode !== "off");
-  const grant = i.grantUntil && ms(i.grantUntil) > now.getTime() ? i.grantUntil : null;
+  const forever = i.grantForever === true;
+  const grant = !forever && i.grantUntil && ms(i.grantUntil) > now.getTime() ? i.grantUntil : null;
   const fam = i.family;
   const famSub = fam?.sub ?? null;
   const famPlan = Boolean(fam?.adminPlan);
 
   let state: AccessState, reason: AccessReason, grace: string | null = null;
   if (blocked && i.mode !== "off") { state = "blocked"; reason = "none"; }
-  else if (grant) { state = "active"; reason = "grant"; }
+  else if (forever || grant) { state = "active"; reason = "grant"; }
   else if (i.licensedSchool) { state = "active"; reason = "school_licence"; }
   // Teachers / school admins only via licence or grant, never via a subscription (security review S1, 20261118300000).
   else if (staff) { state = "licence_required"; reason = "none"; }
@@ -91,6 +96,9 @@ export function decideAccess(i: AccessInput): AccessInfo {
   else if (ms(i.trialEndsAt) > now.getTime()) { state = "trial"; reason = "trial"; }
   else { state = "expired"; reason = "none"; }
   const real = state === "active" || state === "trial" || state === "grace";
+  const grantInfo: AccessGrant | null = reason === "grant" ? { scope: "user", forever, until: grant }
+    : reason === "school_licence" && i.schoolGrant ? { scope: "school", forever: i.schoolGrant.forever, until: i.schoolGrant.forever ? null : i.schoolGrant.until }
+    : null;
 
   const familyPending = fam?.role === "child" && reason !== "family_subscription" && subState(famSub, now) === "none" && !famPlan;
   let expired: AccessExpiredReason | null = null;
@@ -118,6 +126,7 @@ export function decideAccess(i: AccessInput): AccessInfo {
     trial_days_left: trialDaysLeft(trialEnd, now),
     grace_until: grace,
     grant_until: grant,
+    grant: grantInfo,
     subscription,
     school: i.licensedSchool,
     blocked,
@@ -162,7 +171,10 @@ export function parseAccessInfo(raw: unknown): AccessInfo | null {
   let school: AccessInfo["school"] = null;
   if (r.school && typeof r.school === "object") {
     const s = r.school as Record<string, unknown>;
-    if (str(s.id) && typeof s.name === "string") school = { id: s.id as string, name: s.name.slice(0, 200), valid_until: str(s.valid_until) };
+    if (str(s.id) && typeof s.name === "string") {
+      school = { id: s.id as string, name: s.name.slice(0, 200), valid_until: str(s.valid_until) };
+      if (s.free === true) school.free = true;
+    }
   }
   const days = typeof r.trial_days_left === "number" && Number.isFinite(r.trial_days_left) ? Math.max(0, Math.floor(r.trial_days_left)) : null;
   return {
@@ -173,6 +185,7 @@ export function parseAccessInfo(raw: unknown): AccessInfo | null {
     trial_days_left: days,
     grace_until: iso(r.grace_until),
     grant_until: iso(r.grant_until),
+    grant: parseGrant(r.grant),
     subscription,
     school,
     blocked: r.blocked === true,
@@ -182,10 +195,21 @@ export function parseAccessInfo(raw: unknown): AccessInfo | null {
   };
 }
 
+/** The "grant" key of my_access(): null for anything malformed (older databases do not send it). */
+export function parseGrant(v: unknown): AccessGrant | null {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return null;
+  const g = v as Record<string, unknown>;
+  const scope = oneOf(g.scope, ["user", "school"] as const);
+  if (!scope || typeof g.forever !== "boolean") return null;
+  const until = iso(g.until);
+  if (!g.forever && !until) return null;
+  return { scope, forever: g.forever, until: g.forever ? null : until };
+}
+
 /** What the app assumes when the database does not know my_access yet (PGRST202) – the feature is simply off. */
 export const FULL_ACCESS: AccessInfo = Object.freeze({
   has_access: true, state: "active", reason: "none", role: "student", account_type: null, trial_ends_at: null,
-  trial_days_left: null, grace_until: null, grant_until: null, subscription: null, school: null, blocked: false,
+  trial_days_left: null, grace_until: null, grant_until: null, grant: null, subscription: null, school: null, blocked: false,
   enforced: false, expired_reason: null, family_pending: false,
 }) as AccessInfo;
 

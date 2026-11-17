@@ -28,6 +28,8 @@ export interface AdminUserRow {
   last_sign_in_at: string | null;
   trial_ends_at: string | null;
   free_access_until: string | null;
+  /** Unlimited free access ("Gratis (unbefristet)"). */
+  free_access_forever: boolean;
   blocked: boolean;
   access_state: AccessInfo["state"] | null; // null = app_access() unavailable
   access_reason: AccessInfo["reason"] | null;
@@ -41,6 +43,9 @@ export interface AccountAccessRow {
   trial_ends_at: string | null;
   free_access_until: string | null;
   free_access_note: string | null;
+  free_access_forever?: boolean;
+  free_access_granted_at?: string | null;
+  free_access_granted_by?: string | null;
   blocked_at: string | null;
   blocked_reason: string | null;
   enforce_test?: boolean;
@@ -85,6 +90,15 @@ export interface SchoolLicence {
   created_at: string;
 }
 
+/** Free access for a whole school (public.school_access_grants): forever, or until a point in time. */
+export interface SchoolFreeAccess {
+  forever: boolean;
+  until: string | null;
+  note: string | null;
+  granted_by: string | null;
+  granted_at: string | null;
+}
+
 export interface AdminSchoolRow {
   id: string;
   name: string;
@@ -92,6 +106,8 @@ export interface AdminSchoolRow {
   country: string;
   created_at: string;
   licence: SchoolLicence | null; // current licence (usable first, else newest)
+  /** Free access grant of the school (may be expired: check until), null = none. */
+  free_access?: SchoolFreeAccess | null;
   students: number;
   admins: number;
   teachers: number;

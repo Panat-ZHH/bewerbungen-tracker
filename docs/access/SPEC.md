@@ -15,7 +15,8 @@ UI language: Swiss German, "Du", no ß ("ss"), CHF with apostrophe thousands (CH
 | Payment failed (`past_due`) | **Grace**: access until `current_period_end + 7 days`, banner "Zahlung fehlgeschlagen". `unpaid`/`canceled`/`incomplete_expired`/`paused` = no access. `cancel_at_period_end` = access until period end. |
 | Student in a class of a school with a **valid school licence** | Access through the school. No trial text, no paywall, no prices. |
 | Teacher / school admin | **No access at all, no trial**, unless linked to a school with a valid licence (school_admins, school_teachers, or teacher of a class whose school is licensed). Otherwise page `/schullizenz`: "Zugang nur mit Schullizenz" + contact support@wendapply.ch + /kontakt. |
-| Admin grant | `account_access.free_access_until > now()` → full access (any role, also teachers). |
+| Admin grant | `account_access.free_access_forever` ("Gratis (unbefristet)") or `free_access_until > now()` → full access (any role, also teachers). |
+| School grant | `school_access_grants` row of the school (forever or until a date) → everybody the licence model covers gets access like with a valid licence, no seat limit (20261118400000). |
 | Blocked by admin | `account_access.blocked_at is not null` → no access at all (page "Konto gesperrt", contact). Login still works so they can read the message. |
 
 Trial is per **user id**, enforced server-side, never reset by deleting/re-adding data. Re-signup after deleting the account with the

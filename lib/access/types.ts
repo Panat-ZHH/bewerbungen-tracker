@@ -5,7 +5,7 @@ export type AccessReason =
   | "school_licence" // student in a class of a licensed school, or teacher/school admin of a licensed school
   | "subscription" // own paid "solo" subscription (active, trialing, cancel_at_period_end until period end)
   | "family_subscription" // member of a family with a paid / admin-assigned family plan
-  | "grant" // admin granted free access (account_access.free_access_until)
+  | "grant" // admin granted free access to the person (account_access.free_access_forever / free_access_until)
   | "trial" // 7-day free trial from signup
   | "grace" // payment failed (past_due): access until current_period_end + 7 days
   | "none";
@@ -37,9 +37,13 @@ export interface AccessInfo {
   trial_ends_at: string | null; // ISO; null for teachers / school-licensed users
   trial_days_left: number | null; // ceil(days), 0 when over
   grace_until: string | null;
-  grant_until: string | null;
+  grant_until: string | null; // end of a dated person grant (null when unlimited or none)
+  /** Free access granted by a WendApply admin that applies now: person grant (reason "grant") or the grant of the school
+   *  that gives access (reason "school_licence", only when that school has no valid licence). null = none. */
+  grant: AccessGrant | null;
   subscription: AccessSubscription | null;
-  school: { id: string; name: string; valid_until: string | null } | null;
+  /** free = the school has an active free grant from WendApply (school_access_grants). */
+  school: { id: string; name: string; valid_until: string | null; free?: boolean } | null;
   blocked: boolean;
   enforced: boolean; // false = rules not active for this user yet (access_settings.enforce_mode) → UI shows no banner/paywall
   // SPEC §8 (G12, G14): why there is no access (only for state expired / licence_required, else null) …
@@ -54,3 +58,10 @@ export type AccessExpiredReason =
   | "payment_failed" // past_due after the grace, or unpaid
   | "licence_ended" // linked to a school whose licence is no longer valid (students and teachers)
   | "family_pending"; // child in an unpaid family: waiting for the parent
+
+/** "Gratis (unbefristet)" (forever) or "Gratis bis <until>". */
+export interface AccessGrant {
+  scope: "user" | "school";
+  forever: boolean;
+  until: string | null; // ISO; null when forever
+}

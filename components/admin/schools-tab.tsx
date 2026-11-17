@@ -12,6 +12,7 @@ import type { AdminSchoolRow, SchoolLicence } from "@/lib/admin/types";
 import { adminFetch, errorText, fieldOf, qs } from "./api";
 import { ConfirmModal, fmtDate, useDebounced, type OpenDetail } from "./shared";
 import { ListSkeleton } from "./users-tab";
+import { FreeAccessBadge } from "./free-access";
 
 const LICENCE_STATE: Record<string, { label: string; tone: BadgeTone }> = {
   pilot: { label: "Pilot", tone: "info" },
@@ -96,6 +97,7 @@ export function SchoolsTab({ onOpen, version }: { onOpen: OpenDetail; version: n
                     <span className="text-small text-muted">{[s.canton_or_state, s.country].filter(Boolean).join(" · ")}</span>
                   </span>
                   <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                    <FreeAccessBadge grant={s.free_access} />
                     <LicenceBadge licence={s.licence} />
                     {s.licence && <span className="text-small text-muted">bis {fmtDate(licenceEnd(s.licence))} · max. {s.licence.student_limit}</span>}
                     <span className="text-small tabular">{s.students} Lernende · {s.teachers} Lehrpersonen · {s.admins} Admins</span>

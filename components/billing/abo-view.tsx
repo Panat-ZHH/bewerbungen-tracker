@@ -7,7 +7,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { useAccess } from "@/components/access/access-provider";
-import { daysLeftText, isEnforced, LICENCE_PATH } from "@/lib/access/gate";
+import { daysLeftText, freeGrantLabel, isEnforced, LICENCE_PATH } from "@/lib/access/gate";
 import { aboMode, paysTwice, RENEWING } from "./abo-logic";
 import { formatDateCh } from "@/lib/family-core";
 import { bothPricesText, openSoloPortal, soloPlan, startSoloCheckout, type SoloInterval } from "./solo";
@@ -94,10 +94,23 @@ export function AboView() {
         </section>
       )}
 
+      {mode === "free" && (
+        <section className="panel space-y-3 p-6" data-testid="abo-free">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Gratis-Zugang</h2>
+            <Badge tone="success" data-testid="abo-free-badge">{freeGrantLabel(access?.grant ?? { forever: false, until: access?.grant_until ?? null }, formatDateCh) ?? "Gratis"}</Badge>
+          </div>
+          <p className="text-body">
+            WendApply hat deinen Zugang gratis freigeschaltet. Du musst nichts bezahlen{access?.grant?.forever ? "." : access?.grant?.until || access?.grant_until ? ` – bis ${formatDateCh((access?.grant?.until ?? access?.grant_until)!)}.` : "."}
+          </p>
+        </section>
+      )}
+
       {mode === "licensed" && (
         <section className="panel space-y-3 p-6" data-testid="abo-licensed">
           <h2 className="text-heading"><School size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Zugang über deine Schule</h2>
           <p className="text-body">Dein Zugang läuft über {access?.school ? <strong>{access.school.name}</strong> : "deine Schule"}. Du musst nichts bezahlen.</p>
+          {access?.grant?.scope === "school" && <Badge tone="success" data-testid="abo-school-free-badge">{freeGrantLabel(access.grant, formatDateCh)}</Badge>}
         </section>
       )}
 
