@@ -69,7 +69,7 @@ test("UI: hasCustomer is read from the status; the family card shows a note inst
   assert.equal(readBillingStatus({ hasCustomer: true }).hasCustomer, true);
   assert.equal(readBillingStatus({}).hasCustomer, null, "older payloads: unknown, button stays");
   const src = readFileSync(new URL("../components/billing/billing-card.tsx", import.meta.url), "utf8");
-  assert.match(src, /status\?\.hasCustomer === false\s*\?\s*<p[^>]*data-billing-manage="other-parent">\{FAMILY_COPY\.manage\.otherParent\}/);
+  assert.match(src, /manage === "other-parent"\s*\?\s*<p[^>]*data-billing-manage="other-parent">\{FAMILY_COPY\.manage\.otherParent\}/);
 });
 
 test("L invoice checkout: Stripe's idempotency conflict (parallel twin request) answers 409 already_subscribed, not 500", async () => {

@@ -12,7 +12,7 @@ import { FAMILY_COPY, fill } from "@/lib/family-copy";
 import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
-  FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
+  FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyManageMode, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
   inAppPaymentEnabled, onlinePaymentEnabled, payPageHref, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
   type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
@@ -435,10 +435,23 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
     );
   }
   const fix = p === "past_due" || p === "unpaid";
+  const manage = familyManageMode(status ?? null);
+  if (manage === "manual") {
+    // Trial / pilot / manual plan from WendApply: no portal, no "other parent"; a trial can be upgraded right away.
+    return (
+      <div className="space-y-3" data-billing-state={p} data-billing-manage="manual">
+        {text && <p className="text-body">{text}</p>}
+        <p className="text-small text-muted">{FAMILY_COPY.manage.manual}</p>
+        {p === "trialing" && (rebuy || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
+          <Button variant="secondary" onClick={() => setRebuy(true)} icon={<Sparkles size={16} aria-hidden />}>{FAMILY_COPY.manage.buyNow}</Button>
+        ))}
+      </div>
+    );
+  }
   return (
     <div className="space-y-3" data-billing-state={p}>
       {text && <p className={fix ? "text-body font-semibold" : "text-body"}>{text}</p>}
-      {status?.hasCustomer === false
+      {manage === "other-parent"
         ? <p className="text-small text-muted" data-billing-manage="other-parent">{FAMILY_COPY.manage.otherParent}</p>
         : <FamilyPortalButton familyId={familyId} phase={p} primary={fix && current} label={fix ? FAMILY_COPY.cta.updateCard : p === "canceling" ? FAMILY_COPY.cta.renew : FAMILY_COPY.cta.manage} />}
     </div>

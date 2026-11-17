@@ -186,6 +186,19 @@ export function hasSubscription(s: BillingStatus | null): boolean {
   return !!s.subscriptionStatus;
 }
 
+/**
+ * What the family card offers next to an existing plan (re-audit 2 2026-11-17):
+ * - "manual": a plan WendApply assigned by hand (trial / pilot / manual active, no Stripe subscription). There is no Stripe
+ *   customer to manage and no other parent who bought it; a trial can be upgraded to the paid package.
+ * - "other-parent": a Stripe subscription whose customer the caller may not open (bought by another parent).
+ * - "portal": the caller manages it in the Stripe customer portal.
+ */
+export function familyManageMode(s: BillingStatus | null): "manual" | "other-parent" | "portal" {
+  if (s && !s.subscriptionStatus && s.source !== "stripe") return "manual";
+  if (s?.hasCustomer === false) return "other-parent";
+  return "portal";
+}
+
 /** Status badge for the subscription details (schools and families). Same words as the family badges (§4.3). */
 export function billingStatusLabel(s: BillingStatus | null): { label: string; tone: Tone } {
   if (!s || (!s.subscriptionStatus && !s.status)) return { label: "Kein Abo", tone: "neutral" };

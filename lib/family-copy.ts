@@ -94,6 +94,10 @@ export const FAMILY_COPY = {
     note: "Zahlungsmethode, Quittungen und Kündigung findest du im Kundenportal von Stripe.",
     /** Status says the caller can't reach the Stripe customer (another parent bought the plan, re-audit 2). */
     otherParent: "Das Familienpaket hat ein anderer Elternteil abgeschlossen. Nur diese Person kann es im Kundenportal verwalten.",
+    /** Plan assigned by WendApply (trial / pilot / manual), no Stripe subscription (re-audit 2). */
+    manual: "Dieses Paket hat WendApply für eure Familie freigeschaltet. Es läuft ohne Abo und ohne Zahlung.",
+    /** Button on a hand-assigned trial: buy the paid package now. */
+    buyNow: "Familienpaket jetzt buchen",
   },
   banner: {
     pastDueTitle: "Zahlung fürs Familienpaket offen",
