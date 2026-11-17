@@ -470,8 +470,8 @@ begin
   end if;
 end;
 $$;
-revoke all on function public._assert_app_access() from public, anon;
-grant execute on function public._assert_app_access() to authenticated;
+-- Internal: only called inside security-definer functions (they run as the owner), never by clients directly.
+revoke all on function public._assert_app_access() from public, anon, authenticated;
 
 create or replace function public.am_i_platform_admin()
 returns boolean language sql stable security definer set search_path = '' as $$

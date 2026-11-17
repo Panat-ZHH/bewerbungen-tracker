@@ -146,8 +146,12 @@ begin
 end;
 $w$$f$, p_name, pr.args_def, pr.result, case pr.provolatile when 's' then 'stable' when 'i' then 'stable' else 'volatile' end,
     impl_name, guard, body);
+  -- New functions get Supabase's default privileges (anon too): reset, then grant only signed-in roles that had it before.
   execute format('revoke all on function public.%I(%s) from public', p_name, p_args);
-  foreach r in array grants loop execute format('grant execute on function public.%I(%s) to %I', p_name, p_args, r); end loop;
+  if exists (select 1 from pg_roles where rolname = 'anon') then execute format('revoke all on function public.%I(%s) from anon', p_name, p_args); end if;
+  foreach r in array grants loop
+    if r <> 'anon' then execute format('grant execute on function public.%I(%s) to %I', p_name, p_args, r); end if;
+  end loop;
 end;
 $wrap$;
 revoke all on function public._acc_wrap(text, text, text) from public, anon, authenticated;

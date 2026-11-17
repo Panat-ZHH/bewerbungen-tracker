@@ -84,7 +84,8 @@ test("trial expired → expired, no access, has_app_access false, _assert raises
   await as(u);
   assert.equal((await q("select public.has_app_access() as h"))[0].h, false);
   assert.equal((await q("select public.my_access() as a"))[0].a.state, "expired");
-  assert.match(await code(q("select public._assert_app_access()")), /PAYWALL/);
+  assert.ok(await code(q("select public._assert_app_access()")), "internal: not callable by clients");
+  assert.match(await code(q("select * from public.map_shop_buy(null, null)")), /PAYWALL/); // raised inside a definer RPC
 });
 
 test("enforce modes: off / test_users (+ enforce_test) / on", async () => {
