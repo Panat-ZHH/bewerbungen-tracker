@@ -23,7 +23,7 @@ test("catalogue keeps the six original items unchanged", () => {
 
 test("eight sports-car brands with 2x1 footprint, tiered prices and rarity", () => {
   assert.equal(cars.length, 8);
-  for (const brand of ["Ferrari", "Lamborghini", "Porsche", "McLaren", "Aston-Martin", "Bugatti", "Mercedes-AMG", "Audi-R8"]) assert.ok(cars.some((type) => shopCatalog[type].name.startsWith(brand)), brand);
+  for (const brand of ["Ferraro", "Lamborgino", "Porscha", "McLarin", "Aston-Marlin", "Bugotti", "Mercedo-AMX", "Auda-R9"]) assert.ok(cars.some((type) => shopCatalog[type].name.startsWith(brand)), brand);
   for (const type of cars) {
     const item = shopCatalog[type];
     assert.equal(item.category, "Autos");
@@ -162,4 +162,9 @@ test("PostgreSQL: buying a car fails cleanly before the migration and works afte
   } finally {
     await db.close();
   }
+});
+
+test("shop: no real car brand or model names in user-visible item names (trademark risk)", () => {
+  const banned = /porsche|ferrari|lamborghini|mclaren|aston.?martin|bugatti|mercedes|\bamg\b|\baudi\b|\br8\b|bmw|tesla|volkswagen|\bvw\b|maserati|bentley|rolls.?royce|jaguar|lotus|koenigsegg|pagani|corvette|mustang|vespa/i;
+  for (const [type, entry] of Object.entries(shopCatalog)) assert.doesNotMatch(entry.name, banned, type);
 });

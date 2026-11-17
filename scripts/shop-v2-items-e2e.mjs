@@ -67,16 +67,16 @@ async function run(name, vp) {
         check(`${name}: category chips`, /Alle[\s\S]*Deko[\s\S]*Park[\s\S]*Autos[\s\S]*E-Roller/.test(await tabs.innerText()), (await tabs.innerText()).replace(/\s+/g, " "));
         await tabs.getByRole("button", { name: /Autos/ }).click(); await page.waitForTimeout(800);
         const names = await page.locator("[data-item] h3").allInnerTexts();
-        check(`${name}: Autos tab lists 8 cars sorted by price`, names.length === 8 && names[0].startsWith("Porsche") && names[7].startsWith("Bugatti"), names.join(", "));
+        check(`${name}: Autos tab lists 8 cars sorted by price`, names.length === 8 && names[0].startsWith("Porscha") && names[7].startsWith("Bugotti"), names.join(", "));
         check(`${name}: car previews rendered`, await page.locator('[data-item^="car_"] img').count() === 8);
         check(`${name}: rarity badges`, /Legendär/i.test(await page.locator('[data-item="car_bugatti"]').innerText()));
         await shot(page, "1-shop-autos");
-        await page.getByRole("button", { name: /Ferrari-Sportwagen kaufen/ }).click(); await page.waitForTimeout(1000);
-        check(`${name}: Ferrari bought, server price deducted`, st.balance === 1900 && st.items[0]?.itemType === "car_ferrari", `balance=${st.balance}`);
+        await page.getByRole("button", { name: /Ferraro-Sportwagen kaufen/ }).click(); await page.waitForTimeout(1000);
+        check(`${name}: Ferraro bought, server price deducted`, st.balance === 1900 && st.items[0]?.itemType === "car_ferrari", `balance=${st.balance}`);
         await page.getByLabel("Position X").fill("20"); await page.getByLabel("Position Z").fill("0"); await page.waitForTimeout(300);
         await page.getByRole("button", { name: "Um 90 Grad drehen" }).click(); await page.waitForTimeout(300);
-        check(`${name}: Ferrari placed rotated`, await confirm(page) && st.items[0].x === 20 && st.items[0].rotation === 1, JSON.stringify(st.items[0]));
-        await shot(page, "2-ferrari-placed");
+        check(`${name}: Ferraro placed rotated`, await confirm(page) && st.items[0].x === 20 && st.items[0].rotation === 1, JSON.stringify(st.items[0]));
+        await shot(page, "2-ferraro-placed");
         if (!(await tabs.isVisible())) await openShop();
         await tabs.getByRole("button", { name: /E-Roller/ }).click(); await page.waitForTimeout(500);
         await shot(page, "3-shop-e-roller");
@@ -84,7 +84,7 @@ async function run(name, vp) {
         await page.getByLabel("Position X").fill("22"); await page.getByLabel("Position Z").fill("0"); await page.waitForTimeout(300);
         check(`${name}: scooter placed`, await confirm(page) && st.items[1]?.x === 22, JSON.stringify(st.items[1]));
         // move the car (same flow as a drag drop: map_shop_place with a new position)
-        const item = page.getByRole("button", { name: /Ferrari-Sportwagen #1/ }).locator("visible=true");
+        const item = page.getByRole("button", { name: /Ferraro-Sportwagen #1/ }).locator("visible=true");
         if (!(await item.count())) await openShop();
         await item.first().click(); await page.waitForTimeout(300);
         await page.getByRole("button", { name: /Verschieben/ }).locator("visible=true").last().click(); await page.waitForTimeout(500);

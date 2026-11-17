@@ -78,7 +78,7 @@ export function createShopModel(type: ShopItemType, selected = false) {
     for (const z of [-1, 1]) { box(0.05, 0.27, z * 0.405, 1.3, 0.04, 0.02, "#f08a3c"); box(-0.78, 0.56, z * 0.25, 0.05, 0.2, 0.05, "#2e3134"); }
     box(-0.8, 0.67, 0, 0.2, 0.04, 0.82, "#f08a3c");
   } else if (type === "car_porsche") {
-    // Yellow, with the round "bubble" roof that flows straight down into a rounded tail (no notch like the R8).
+    // Yellow, with the round "bubble" roof that flows straight down into a rounded tail (no notch like the Auda R9).
     const arc = (cx: number, cy: number, rx: number, ry: number, from: number, to: number, steps = 10) => Array.from({ length: steps + 1 }, (_, i) => { const a = from + (to - from) * (i / steps); return [cx + Math.cos(a) * rx, cy + Math.sin(a) * ry] as [number, number]; });
     const glass = arc(-0.2, 0.4, 0.62, 0.3, 0.2, Math.PI - 0.12);
     const shellOuter = arc(-0.2, 0.4, 0.64, 0.32, 0.95, Math.PI - 0.12);

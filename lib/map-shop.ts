@@ -17,7 +17,8 @@ export type ShopRarity = keyof typeof shopRarities;
 type CatalogEntry = { name: string; price: number; width: number; depth: number; category: ShopCategory; rarity: ShopRarity };
 
 // Prices and footprints must match public.map_shop_catalog (server is authoritative for price and size).
-// Brand names are plain German text labels only; the 3D models are original stylised designs without logos.
+// Car names are fantasy names (deliberately NOT real brands/models: trademark risk); the internal item ids (car_*) stay stable because
+// users' inventories (public.map_items.item_type) reference them. The 3D models are original stylised designs without logos.
 export const shopCatalog = {
   road: { name: "Strasse", price: 20, width: 1, depth: 1, category: "Deko", rarity: "gewoehnlich" },
   flowers: { name: "Blumenbeet", price: 30, width: 1, depth: 1, category: "Deko", rarity: "gewoehnlich" },
@@ -32,14 +33,14 @@ export const shopCatalog = {
   scooter_retro_cream: { name: "Retro-E-Moped Creme", price: 220, width: 1, depth: 1, category: "E-Roller", rarity: "selten" },
   scooter_retro_sky: { name: "Retro-E-Moped Himmelblau", price: 220, width: 1, depth: 1, category: "E-Roller", rarity: "selten" },
   scooter_retro_coral: { name: "Retro-E-Moped Koralle", price: 240, width: 1, depth: 1, category: "E-Roller", rarity: "selten" },
-  car_porsche: { name: "Porsche-Sportwagen", price: 400, width: 2, depth: 1, category: "Autos", rarity: "selten" },
-  car_audi_r8: { name: "Audi-R8-Sportwagen", price: 450, width: 2, depth: 1, category: "Autos", rarity: "selten" },
-  car_amg: { name: "Mercedes-AMG-Sportwagen", price: 550, width: 2, depth: 1, category: "Autos", rarity: "selten" },
-  car_mclaren: { name: "McLaren-Sportwagen", price: 900, width: 2, depth: 1, category: "Autos", rarity: "episch" },
-  car_aston_martin: { name: "Aston-Martin-Sportwagen", price: 1100, width: 2, depth: 1, category: "Autos", rarity: "episch" },
-  car_ferrari: { name: "Ferrari-Sportwagen", price: 1600, width: 2, depth: 1, category: "Autos", rarity: "episch" },
-  car_lamborghini: { name: "Lamborghini-Sportwagen", price: 1900, width: 2, depth: 1, category: "Autos", rarity: "legendaer" },
-  car_bugatti: { name: "Bugatti-Hypersportwagen", price: 2800, width: 2, depth: 1, category: "Autos", rarity: "legendaer" },
+  car_porsche: { name: "Porscha-Sportwagen", price: 400, width: 2, depth: 1, category: "Autos", rarity: "selten" },
+  car_audi_r8: { name: "Auda-R9-Sportwagen", price: 450, width: 2, depth: 1, category: "Autos", rarity: "selten" },
+  car_amg: { name: "Mercedo-AMX-Sportwagen", price: 550, width: 2, depth: 1, category: "Autos", rarity: "selten" },
+  car_mclaren: { name: "McLarin-Sportwagen", price: 900, width: 2, depth: 1, category: "Autos", rarity: "episch" },
+  car_aston_martin: { name: "Aston-Marlin-Sportwagen", price: 1100, width: 2, depth: 1, category: "Autos", rarity: "episch" },
+  car_ferrari: { name: "Ferraro-Sportwagen", price: 1600, width: 2, depth: 1, category: "Autos", rarity: "episch" },
+  car_lamborghini: { name: "Lamborgino-Sportwagen", price: 1900, width: 2, depth: 1, category: "Autos", rarity: "legendaer" },
+  car_bugatti: { name: "Bugotti-Hypersportwagen", price: 2800, width: 2, depth: 1, category: "Autos", rarity: "legendaer" },
 } as const satisfies Record<string, CatalogEntry>;
 
 export type ShopItemType = keyof typeof shopCatalog;

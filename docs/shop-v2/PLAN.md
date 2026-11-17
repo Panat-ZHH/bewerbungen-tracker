@@ -11,7 +11,7 @@ Base: `origin/main` @ a8ceb66 (production). Integration branch: `feature/shop-ca
 
 ## Part A – `shop-items` (branch `shop-items`, worktree `~/Projects/bewerbungen-tracker-wt/shop-items`)
 Owns: `lib/map-shop.ts` (catalogue entries + optional category/rarity metadata), `lib/map-shop-models.ts` (car + scooter models), `components/applications/map-shop.tsx` (category tabs/filters, rarity badges, «erst nach Freischaltung kaufbar» handling), shop-related CSS appended in a clearly marked block of `app/map/map.module.css`, new migration `supabase/migrations/20261115000000_shop_cars_scooters.sql`, tests `tests/map-shop-v2.test.mjs`.
-- 6–8 sports-car brands (text labels only, no logos), tiered prices 400–2800 (Porsche 400 … Bugatti 2800), rarity (gewöhnlich/selten/episch/legendär); several e-scooter models/colours 60–240 (Stadt 60, Sport 120, Retro-E-Moped 220/240). Prices as shipped in `lib/map-shop.ts` and the migration.
+- 6–8 sports-car brands (text labels only, no logos), tiered prices 400–2800 (Porscha 400 … Bugotti 2800), rarity (gewöhnlich/selten/episch/legendär); several e-scooter models/colours 60–240 (Stadt 60, Sport 120, Retro-E-Moped 220/240). Prices as shipped in `lib/map-shop.ts` and the migration.
 - Migration: `insert into public.map_shop_catalog … on conflict (item_type) do nothing` only. No DROP/ALTER/UPDATE.
 - If the shop loads a catalogue item that is not yet in the DB, show it as «bald verfügbar» instead of failing.
 
