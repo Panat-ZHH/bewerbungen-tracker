@@ -92,9 +92,9 @@ function ApplicationMap() {
 
   return (
     <>
-      <h1 className="sr-only">Dein Bewerbungsdorf</h1>
+      <h1 className="sr-only">Dein Dorf</h1>
       <MapFullscreen
-        label="Bewerbungsmap"
+        label="Dein Dorf"
         busy={loading}
         map={loading && !applications.length ? <div className={styles.loading} role="status">Dein Dorf wird geladen ...</div> : (
           <Suspense fallback={<div className={styles.loading} role="status">Dein Dorf wird aufgebaut ...</div>}>
@@ -112,7 +112,7 @@ function ApplicationMap() {
                   <label><span className="sr-only">Status filtern</span><select className={layout.searchSelect} value={status} onChange={(event) => setStatus(event.target.value as ApplicationStatus | "all")}><option value="all">Alle Status</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
                 </div>
                 <div className={layout.summaryRow} aria-live="polite">
-                  <span><strong>{applications.length}</strong> Gebäude</span>
+                  <span><strong>{applications.length}</strong> {applications.length === 1 ? "Haus" : "Häuser"}</span>
                   <span><Hammer size={14} aria-hidden /><strong>{construction}</strong> im Bau</span>
                   <span><Trophy size={14} aria-hidden /><strong>{offers}</strong> {offers === 1 ? "Zusage" : "Zusagen"}</span>
                 </div>
@@ -125,7 +125,7 @@ function ApplicationMap() {
           right={<>
             <MapBadge label={`Punktestand: ${balance ?? "unbekannt"}`}><Coins size={16} aria-hidden /><strong>{balance ?? "–"}</strong></MapBadge>
             <button type="button" className={`${layout.chip} ${overlayClasses.sticker}`} aria-expanded={shopSheetOpen} onClick={() => { setSelectedId(null); setShopOpen(!shopOpen); }}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
-            <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Neue Bewerbung" title="Neue Bewerbung"><Plus size={18} aria-hidden /></Link>
+            <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Bewerbung eintragen" title="Bewerbung eintragen"><Plus size={18} aria-hidden /></Link>
           </>}
         />
         <PalaceCelebration application={palace.application} onDismiss={palace.dismiss} paused={shopSheetOpen || Boolean(selected) || Boolean(shop.placement)} />
@@ -133,7 +133,7 @@ function ApplicationMap() {
         <MapDock>
           <MapPlacementTools shop={shop} />
           {error && <div className={`${layout.notice} ${layout.noticeDanger} ${overlayClasses.sticker}`} role="alert"><p>Deine Bewerbungen konnten nicht geladen werden.</p><button type="button" onClick={() => setRefresh(refresh + 1)}>Erneut versuchen</button></div>}
-          {emptyNotice && <div className={`${layout.notice} ${overlayClasses.sticker}`} role="status"><p>Noch keine Gebäude – du hast noch keine Bewerbungen.</p><Link href="/applications/new">Bewerbung hinzufügen</Link></div>}
+          {emptyNotice && <div className={`${layout.notice} ${overlayClasses.sticker}`} role="status"><p><strong>Dein Dorf ist noch leer.</strong> Jede Bewerbung wird hier zu einem Haus.</p><Link href="/applications/new">Bewerbung eintragen</Link></div>}
           {noMatch && <div className={`${layout.notice} ${overlayClasses.sticker}`} role="status"><p>Keine Bewerbungen für diese Auswahl.</p><button type="button" onClick={() => { setQuery(""); setStatus("all"); }}>Filter zurücksetzen</button></div>}
           <MapSheet id="shop" open={shopSheetOpen} onClose={() => setShopOpen(false)} title="Laden" subtitle={shop.state ? `${shop.state.balance} Punkte` : undefined} icon={<ShoppingBag size={18} />} tall>
             <MapShop shop={shop} compact />

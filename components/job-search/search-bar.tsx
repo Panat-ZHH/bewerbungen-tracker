@@ -10,6 +10,8 @@ export type SearchTab = "apprenticeship" | "praktikum" | "job";
 export type SearchBarHandle = { focus: () => void };
 
 const KEYBOARD_QUERY = "(hover: hover) and (pointer: fine)";
+/** English synonyms help matching, but pupils should only see German/Swiss words in the hint line. */
+const ENGLISH_HINT = /\b(developer|engineer|software|apprentice(ship)?|intern(ship)?|trainee|mechanic|electrician|cook|sales|nurse)\b/i;
 /** True on devices with a mouse/keyboard; false on touch-only phones (no "/" hint there). */
 export function useHasKeyboard(): boolean {
   return useSyncExternalStore(
@@ -33,7 +35,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
       const items = (query.trim().length < 2 ? recent.map((value) => ({ value, recent: true })) : typed.map((value) => ({ value, recent: false })));
       return items;
     }, [query, recent]);
-    const hints = useMemo(() => synonymHints(query), [query]);
+    const hints = useMemo(() => synonymHints(query).filter((hint) => !ENGLISH_HINT.test(hint)), [query]);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => setActive(-1), [suggestions.length]);
 
@@ -58,7 +60,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
               autoComplete="off"
               maxLength={80}
               value={query}
-              placeholder={hasKeyboard ? "Beruf und Ort, z. B. Informatiker Zürich  (Taste „/“)" : "Beruf und Ort, z. B. Informatiker Zürich"}
+              placeholder={hasKeyboard ? "Beruf und Ort, z. B. Informatiker Zürich  (Taste «/»)" : "Beruf und Ort, z. B. Informatiker Zürich"}
               className="min-h-14 min-w-0 flex-1 bg-transparent px-3 text-base font-medium text-[var(--ink)] !outline-none placeholder:font-normal placeholder:text-[var(--placeholder)]"
               onChange={(e) => { onQueryChange(e.target.value); setOpen(true); }}
               onFocus={() => setOpen(true)}
@@ -86,7 +88,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
           </div>
           <Button type="submit" size="lg" loading={loading} icon={<Search size={17} />} className="sm:min-h-14 sm:px-7">{loading ? "Sucht …" : "Suchen"}</Button>
         </form>
-        {hints.length > 0 && <p className="text-small text-muted">Wir suchen auch nach: {hints.join(", ")}</p>}
+        {hints.length > 0 && <p className="text-small text-muted">Auch gesucht: {hints.join(", ")}</p>}
       </div>
     );
   },
