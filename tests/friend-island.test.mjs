@@ -102,7 +102,9 @@ test("database: only accepted friends who share can read; data is sanitized; tab
     assert.deepEqual(ok.layouts, [{ id: "house:h0001", x: 7, z: 9, rotation: 0 }]);
     assert.deepEqual(Object.keys(ok.applications[0]).sort(), ["company", "createdAt", "id", "status"]);
     const text = JSON.stringify(ok);
-    for (const secret of ["Chefin", "private Notiz", "Zürich", "acme-secret", "777"]) assert.ok(!text.includes(secret), secret);
+    for (const secret of ["Chefin", "private Notiz", "Zürich", "acme-secret"]) assert.ok(!text.includes(secret), secret);
+    // Wallet balance (777) must not leak as a JSON number; a bare substring check was flaky (random UUIDs/timestamps).
+    assert.ok(!/[:\[,]\s*777\s*[,}\]]/.test(text) && !/"(balance|earned|coins)"/.test(text), "wallet leaked");
     // the friend can see mine too (symmetric), but pending/strangers/self cannot be viewed
     assert.ok((await call(friend, me)).rows[0].r);
     for (const target of [pending, stranger, me]) await assert.rejects(call(me, target), /NOT_FRIENDS/);
