@@ -37,3 +37,22 @@ test("calendar feed: over-limit IP is refused before the token lookup, also for 
   assert.ok([...mem.counts.keys()].every((k) => !k.includes(good)));
   rl.setRateLimitRpc(null);
 });
+
+test("migration 20261117161000: anon/authenticated lose TRUNCATE/REFERENCES/TRIGGER on public tables, CRUD grants unchanged, idempotent", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const { setupTeacherDb } = await import("./helpers/teacher-db.mjs");
+  const ctx = await setupTeacherDb({ seed: false });
+  // Simulate Supabase's default privileges (ALL to authenticated) on a table, then re-run the migration.
+  await ctx.admin("grant all on table public.applications to authenticated");
+  await ctx.admin("grant truncate on table public.cvs to anon");
+  const sql = await readFile(new URL("../supabase/migrations/20261117161000_revoke_truncate_references_trigger.sql", import.meta.url), "utf8");
+  await ctx.admin(sql);
+  await ctx.admin(sql);
+  const priv = async (role, table, p) => (await ctx.admin(`select has_table_privilege('${role}', 'public.${table}', '${p}') as ok`))[0].ok;
+  for (const p of ["TRUNCATE", "REFERENCES", "TRIGGER"]) assert.equal(await priv("authenticated", "applications", p), false, p);
+  assert.equal(await priv("anon", "cvs", "TRUNCATE"), false);
+  for (const p of ["SELECT", "INSERT", "UPDATE", "DELETE"]) assert.equal(await priv("authenticated", "applications", p), true, p);
+  const left = await ctx.admin(`select count(*)::int n from information_schema.role_table_grants
+    where table_schema = 'public' and grantee in ('anon','authenticated') and privilege_type in ('TRUNCATE','REFERENCES','TRIGGER')`);
+  assert.equal(left[0].n, 0);
+});
