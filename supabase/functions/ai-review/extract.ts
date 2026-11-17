@@ -10,20 +10,20 @@ export const MAX_COMPANY = 200;
 export const MAX_BERUF = 200;
 export const MAX_JOB_AD = 8000;
 /**
- * Largest word/document.xml we inflate. A 5 MB upload can declare (and deflate to) gigabytes: without this cap a zip
- * bomb makes the edge function allocate the declared size and crash. Real CVs have a document.xml of well under 5 MB
- * (the text itself is capped at MAX_TEXT_CHARS anyway).
+ * Max inflated size of word/document.xml. 20'000 characters of text plus Word's XML markup stay far below 8 MB. Checked
+ * against the size the ZIP DECLARES before inflating (fflate allocates exactly that many bytes up front, so a 1 KB file
+ * declaring 3 GB would exhaust the function's memory) and again on the inflated bytes.
  */
-export const MAX_DOCX_XML_BYTES = 30 * 1024 * 1024;
+export const MAX_DOCX_XML_BYTES = 8 * 1024 * 1024;
 
 export type FileKind = "pdf" | "docx";
 
 export interface ExtractDeps {
   /**
-   * Returns the files of a ZIP archive. `only` restricts which entries are inflated; it gets the entry name and the
-   * uncompressed size declared in the ZIP header (fflate allocates exactly that much and never more).
+   * Returns the files of a ZIP archive. `only` restricts which entries are inflated; pass the entry's DECLARED
+   * uncompressed size as the second argument (fflate: file.originalSize) so oversized entries are never allocated.
    */
-  unzip: (bytes: Uint8Array, only?: (name: string, originalSize: number) => boolean) => Record<string, Uint8Array>;
+  unzip: (bytes: Uint8Array, only?: (name: string, originalSize?: number) => boolean) => Record<string, Uint8Array>;
   /** Returns the text of a PDF (all pages merged). */
   pdfText: (bytes: Uint8Array) => Promise<string>;
 }
@@ -115,13 +115,20 @@ export async function extractApplicationText(bytes: Uint8Array, deps: ExtractDep
     }
   } else {
     let files: Record<string, Uint8Array>;
+    let oversized = false;
     try {
-      files = deps.unzip(bytes, (name, originalSize) => name === DOCX_MAIN && Number.isFinite(originalSize) && originalSize >= 0 && originalSize <= MAX_DOCX_XML_BYTES);
+      files = deps.unzip(bytes, (name, originalSize) => {
+        if (name !== DOCX_MAIN) return false;
+        if (originalSize !== undefined && !(originalSize >= 0 && originalSize <= MAX_DOCX_XML_BYTES)) { oversized = true; return false; }
+        return true;
+      });
     } catch {
       throw new ReviewFailure("unsupported_file", undefined, "zip parse failed");
     }
+    if (oversized) throw new ReviewFailure("too_long", undefined, "document.xml declared too large");
     const main = files[DOCX_MAIN];
     if (!main) throw new ReviewFailure("unsupported_file", undefined, "zip without word/document.xml");
+    if (main.length > MAX_DOCX_XML_BYTES) throw new ReviewFailure("too_long", undefined, "document.xml too large");
     kind = "docx";
     raw = docxXmlToText(new TextDecoder("utf-8").decode(main));
   }

@@ -83,10 +83,10 @@ export function withSupport(message: string): string {
 export { MIN_PASSWORD_LENGTH };
 
 /** German validation message for the "Passwort ändern" form, or null when the input is fine. */
-export function passwordChangeProblem(current: string, next: string, repeat: string): string | null {
+export function passwordChangeProblem(current: string, next: string, repeat: string, email?: string | null): string | null {
   if (!current) return "Bitte gib dein aktuelles Passwort ein.";
   if (next.length < MIN_PASSWORD_LENGTH) return `Das neue Passwort braucht mindestens ${MIN_PASSWORD_LENGTH} Zeichen.`;
   if (next === current) return "Das neue Passwort muss sich vom aktuellen unterscheiden.";
   if (next !== repeat) return "Die beiden neuen Passwörter stimmen nicht überein.";
-  return newPasswordProblem(next);
+  return newPasswordProblem(next, email);
 }

@@ -16,6 +16,7 @@ const deps = {
 const xml = (text) => `<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>${text}</w:t></w:r></w:p></w:body></w:document>`;
 const docx = (documentXml) => zipSync({ "[Content_Types].xml": strToU8("<Types/>"), "word/document.xml": strToU8(documentXml) });
 const isCode = (code) => (e) => e instanceof ReviewFailure && e.code === code;
+const isRefusal = (e) => e instanceof ReviewFailure && (e.code === "unsupported_file" || e.code === "too_long");
 
 test("AI review: a DOCX zip bomb is not inflated (declared size capped), normal DOCX still works", async () => {
   const cv = "Sehr geehrte Damen und Herren, hiermit bewerbe ich mich um eine Lehrstelle als Informatiker EFZ. ".repeat(4);
@@ -26,7 +27,7 @@ test("AI review: a DOCX zip bomb is not inflated (declared size capped), normal 
   // Real bomb: 40 MB of padding deflates to a few KB, far below the 5 MB upload limit.
   const bomb = docx(xml(cv) + " ".repeat(40 * 1024 * 1024));
   assert.ok(bomb.length < extract.MAX_FILE_BYTES);
-  await assert.rejects(extract.extractApplicationText(bomb, deps), isCode("unsupported_file"));
+  await assert.rejects(extract.extractApplicationText(bomb, deps), isRefusal);
 
   // Forged header: tiny entry whose central-directory "uncompressed size" claims 4 GB (fflate would allocate it).
   const forged = docx(xml(cv));
@@ -39,7 +40,7 @@ test("AI review: a DOCX zip bomb is not inflated (declared size capped), normal 
     if (name === "word/document.xml") { view.setUint32(i + 24, 0xfffffff0, true); patched++; }
   }
   assert.equal(patched, 1);
-  await assert.rejects(extract.extractApplicationText(forged, deps), isCode("unsupported_file"));
+  await assert.rejects(extract.extractApplicationText(forged, deps), isRefusal);
 
   // The edge function passes the declared size to the filter.
   const index = await readFile(new URL(`${fn}index.ts`, import.meta.url), "utf8");

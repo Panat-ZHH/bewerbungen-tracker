@@ -2,7 +2,7 @@
 // edge-function instances). Pure module (imports only ../_shared/rate-limit-core.ts): runs in Deno and Node.
 //
 // Env (Supabase function secrets) – every value has a safe default, "0" switches the respective thing off:
-//   AI_REVIEW_DISABLED=1               kill switch: no AI calls at all (503 "unavailable")
+//   AI_REVIEW_DISABLED=1               kill switch: no AI calls at all (503 "unavailable"); also true / yes / on
 //   AI_REVIEW_IP_LIMIT                 requests per IP per 10 min (default 60 – school classes share one IP)
 //   AI_REVIEW_BURST_LIMIT              checks per user per 10 min (default 5)
 //   AI_REVIEW_DEFAULT_DAILY_LIMIT      checks per user per day (default 10; a per-user ai_review_user_settings.daily_limit wins)
@@ -34,7 +34,8 @@ export interface LimitConfig {
 
 export function limitConfig(env: (name: string) => string | undefined): LimitConfig {
   return {
-    disabled: env("AI_REVIEW_DISABLED")?.trim() === "1",
+    // An emergency switch must not silently stay off because someone typed "true" instead of "1".
+    disabled: /^(1|true|yes|on)$/i.test(env("AI_REVIEW_DISABLED")?.trim() ?? ""),
     ipPer10Min: envInt(env("AI_REVIEW_IP_LIMIT"), DEFAULTS.ipPer10Min),
     burstPer10Min: envInt(env("AI_REVIEW_BURST_LIMIT"), DEFAULTS.burstPer10Min),
     defaultDailyChecks: envInt(env("AI_REVIEW_DEFAULT_DAILY_LIMIT"), DEFAULTS.dailyChecks),
