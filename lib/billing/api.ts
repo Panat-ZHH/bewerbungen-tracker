@@ -218,12 +218,16 @@ export async function checkoutSession(input: { token: string | null; query: URLS
   const id = input.query.get("id") ?? "";
   if (!SESSION_ID.test(id)) return err(400, "invalid_session");
   if (!input.token) return err(401, "unauthenticated");
+  // Verify the token BEFORE asking Stripe: forged / expired tokens must not trigger Stripe API calls (amplification of
+  // our Stripe rate limit, the route is public).
+  const user = await deps.auth.getUser(input.token);
+  if (!user) return err(401, "unauthenticated");
   const session = await deps.stripe.retrieveCheckoutSession(id);
   if (!session || session.metadata.app !== "wendapply") return err(404, "session_not_found");
   const owner = parseOwner({ schoolId: session.metadata.school_id, familyId: session.metadata.family_id });
   if (!owner) return err(404, "session_not_found");
-  const auth = await authorizeOwner(input.token, owner, deps.auth);
-  if (!auth.ok) return err(auth.status === 401 ? 401 : 404, auth.status === 401 ? auth.error : "session_not_found"); // never confirm foreign sessions
+  const allowed = owner.kind === "school" ? await deps.auth.isSchoolAdmin(input.token, owner.id) : await deps.auth.isFamilyParent(input.token, owner.id);
+  if (!allowed) return err(404, "session_not_found"); // never confirm foreign sessions
   const plan = purchasablePlan(session.metadata.plan_id);
   const interval = session.metadata.interval === "month" ? "month" : "year";
   return {

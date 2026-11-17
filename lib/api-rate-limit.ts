@@ -30,6 +30,8 @@ export const ROUTE_LIMITS = {
   portal: { ip: { limit: 60, windowSeconds: H }, user: { limit: 20, windowSeconds: H }, message: "Du hast das Kundenportal gerade sehr oft geöffnet." },
   // Polled after returning from Stripe.
   "billing-status": { ip: { limit: 300, windowSeconds: 600 }, user: { limit: 120, windowSeconds: 600 } },
+  // Return page of the in-app payment (one Stripe API read per call).
+  "billing-session": { ip: { limit: 120, windowSeconds: 600 }, user: { limit: 60, windowSeconds: 600 } },
   // Only requests with a missing / invalid signature are counted – a valid Stripe event is never limited.
   "stripe-webhook-invalid": { ip: { limit: 30, windowSeconds: 600 } },
   // Scraping three job portals per search is expensive.
