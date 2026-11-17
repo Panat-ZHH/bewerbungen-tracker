@@ -47,8 +47,8 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, files: result.files, classesTransferred: result.classesTransferred, classesDeleted: result.classesDeleted }, { headers });
   } catch (reason) {
     if (reason instanceof BillingActiveError) {
-      if (reason.blockers.some((b) => b.kind === "solo") && !reason.blockers.some((b) => b.kind !== "solo")) {
-        return reply(409, "SUBSCRIPTION_ACTIVE", "Dein Einzelabo läuft noch. Kündige es zuerst unter „Abo verwalten“ (Seite Abo), dann kannst du dein Konto löschen.");
+      if (reason.blockers.length && reason.blockers.every((b) => b.kind === "solo")) {
+        return reply(409, "SUBSCRIPTION_ACTIVE", "Dein Einzelabo läuft noch. Kündige es zuerst unter „Abo verwalten“ (/abo), dann kannst du dein Konto löschen.");
       }
       const what = reason.blockers.some((b) => b.kind === "school") ? "das Schul-Abo" : "das Familien-Abo";
       return reply(409, "SUBSCRIPTION_ACTIVE", `Du bist die letzte Person, die ${what} verwalten kann, und es läuft noch. Kündige es zuerst unter „Abo verwalten“ (oder gib die Verwaltung an eine andere Person weiter), dann kannst du dein Konto löschen.`);
