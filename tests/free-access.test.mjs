@@ -141,7 +141,10 @@ const SCHOOL = "55555555-5555-4555-8555-555555555555";
 const NOSCHOOL = "55555555-5555-4555-8555-555555555599";
 const b64 = (o) => Buffer.from(JSON.stringify(o)).toString("base64url");
 const jwt = (claims) => `${b64({ alg: "HS256", typ: "JWT" })}.${b64(claims)}.c2ln`;
-const T = { admin: jwt({ sub: ADMIN, aal: "aal2" }), user: jwt({ sub: USER, aal: "aal2" }), adminAal1: jwt({ sub: ADMIN, aal: "aal1" }) };
+// Fresh login (amr timestamp within 12 h), required by the admin guard since security review #3.
+const FRESH = Math.floor(ANOW.getTime() / 1000) - 600;
+const AMR2 = [{ method: "totp", timestamp: FRESH }, { method: "password", timestamp: FRESH - 30 }];
+const T = { admin: jwt({ sub: ADMIN, aal: "aal2", amr: AMR2 }), user: jwt({ sub: USER, aal: "aal2", amr: AMR2 }), adminAal1: jwt({ sub: ADMIN, aal: "aal1", amr: [{ method: "password", timestamp: FRESH }] }) };
 
 function mockStore() {
   const calls = [];
