@@ -253,12 +253,14 @@ export async function checkout(input: { token: string | null; body: unknown }, d
 /**
  * Solo checkout gate (after the token is verified): only students (account_type school_student / independent_student; not
  * parents, teachers or school admins) and only when nothing covers them yet. Returns the error answer, or null = may buy.
+ *   403 account_blocked – blocked by a WendApply admin (SPEC §8 G11: export / delete only; the portal stays open to cancel).
  *   403 solo_parent_use_family – parents buy the family package; 403 solo_students_only – teachers / school admins.
  *   409 already_subscribed + coveredBy 'solo' | 'family' | 'school' – own open solo subscription (renew / change it in the
  *   portal), covered by a family subscription or a valid school licence (would pay twice).
  */
 async function soloBlocker(userId: string, deps: BillingApiDeps): Promise<ApiResult | null> {
   const e = await deps.db.soloEligibility(userId);
+  if (e.blocked) return err(403, "account_blocked");
   if (e.role === "parent") return err(403, "solo_parent_use_family");
   if (e.role !== "student") return err(403, "solo_students_only");
   if (e.covered_by) return { status: 409, body: { error: "already_subscribed", coveredBy: e.covered_by } };

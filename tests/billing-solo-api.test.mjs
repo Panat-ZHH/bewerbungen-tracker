@@ -51,7 +51,7 @@ function makeDeps(over = {}) {
       async userStatus(userId, token) { calls.push(["userStatus", userId, token]); return this.userStatusRow?.(userId) ?? null; },
       async soloEligibility(userId) {
         calls.push(["eligibility", userId]);
-        return { role: roles[userId] ?? "staff", account_type: roles[userId] === "student" ? "independent_student" : null, covered_by: this.covered[userId] ?? null };
+        return { role: roles[userId] ?? "staff", account_type: roles[userId] === "student" ? "independent_student" : null, blocked: Boolean(this.blocked?.[userId]), covered_by: this.covered[userId] ?? null };
       },
     },
     ...over,
@@ -144,6 +144,15 @@ test("solo checkout: only students – parent 403 solo_parent_use_family, teache
   assert.deepEqual(await checkout({ token: "tok-parent", body: { plan: "solo", interval: "month" } }, deps), { status: 403, body: { error: "solo_parent_use_family" } });
   assert.deepEqual(await checkout({ token: "tok-teacher", body: { plan: "solo", interval: "month" } }, deps), { status: 403, body: { error: "solo_students_only" } });
   assert.equal(calls.filter((c) => ["price", "customer", "checkout", "elements"].includes(c[0])).length, 0);
+});
+
+test("solo checkout: blocked account → 403 account_blocked (G11), portal still opens to cancel", async () => {
+  const { deps, calls } = makeDeps();
+  deps.db.blocked = { [STUDENT.id]: true };
+  deps.db.customers[STUDENT.id] = "cus_solo_own";
+  assert.deepEqual(await checkout({ token: "tok-student", body: { plan: "solo", interval: "month" } }, deps), { status: 403, body: { error: "account_blocked" } });
+  assert.equal(calls.filter((c) => ["price", "customer", "checkout"].includes(c[0])).length, 0);
+  assert.equal((await portal({ token: "tok-student", body: { owner: "me" } }, deps)).status, 200);
 });
 
 test("solo checkout: 409 already_subscribed with coveredBy solo / family / school", async () => {

@@ -154,7 +154,8 @@ end;
 $$;
 
 -- ---------------------------------------------------------------- 4. who may buy 'solo' (service role only)
--- jsonb { role: 'student' | 'parent' | 'staff', account_type, covered_by: null | 'solo' | 'family' | 'school' }.
+-- jsonb { role: 'student' | 'parent' | 'staff', account_type, blocked: boolean, covered_by: null | 'solo' | 'family' | 'school' }.
+--   blocked: account blocked by a WendApply admin (account_access.blocked_at) – may export / delete data, never buy (SPEC §8 G11).
 --   role: 'staff' = user_roles.role teacher / school_admin, or a school admin row without class membership (same rule as
 --         app_access); 'parent' = profiles.account_type parent; else 'student' (school_student / independent_student).
 --   covered_by: 'solo' = an open solo subscription (trialing/active/past_due/unpaid/paused/incomplete; also when set to cancel
@@ -186,7 +187,9 @@ begin
       when v_info ->> 'reason' = 'grace' and v_info -> 'subscription' ->> 'plan' = 'family' then 'family'
       end;
   end if;
-  return jsonb_build_object('role', v_role, 'account_type', case when v_role = 'staff' then null else v_type end, 'covered_by', v_cov);
+  return jsonb_build_object('role', v_role, 'account_type', case when v_role = 'staff' then null else v_type end,
+    'blocked', exists (select 1 from public.account_access a where a.user_id = p_user_id and a.blocked_at is not null),
+    'covered_by', v_cov);
 end;
 $$;
 

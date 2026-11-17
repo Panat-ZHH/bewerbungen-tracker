@@ -119,13 +119,14 @@ Parents buy the family package, teachers / school admins get access only through
 | `400 invalid_owner` | `schoolId` / `familyId` sent, or `owner` other than `"me"`. |
 | `400 invoice_not_allowed` / `invalid_interval` / `invalid_ui` | as for the family plan. |
 | `401 unauthenticated` | no / invalid token. |
+| `403 account_blocked` | account blocked by a WendApply admin (SPEC §8 G11). The portal (`owner: "me"`) stays open so they can cancel. |
 | `403 solo_parent_use_family` | caller is a parent (→ family package). |
 | `403 solo_students_only` | teacher / school admin (or anything that is not a student account). |
 | `409 { error: "already_subscribed", coveredBy: "solo" \| "family" \| "school" }` | own open solo subscription (trialing / active / past_due / unpaid / paused / incomplete, also when set to cancel at period end → renew in the portal), covered by a family subscription / admin family plan, or a valid school licence. |
 | `409 { error: "already_subscribed" }` | Stripe already has an open subscription on the customer (paid seconds ago, webhook lag). |
 
 Stripe metadata (customer, session, subscription): `app=wendapply`, `plan_id=solo`, `interval`, **`owner_type=user`**, `user_id=<caller>`.
-The rules live in `public.billing_solo_eligibility(uid)` (service role) → `{ role: student|parent|staff, account_type, covered_by }`.
+The rules live in `public.billing_solo_eligibility(uid)` (service role) → `{ role: student|parent|staff, account_type, blocked, covered_by }`.
 
 ### `GET /api/billing/status?owner=me` – the caller's own solo subscription
 

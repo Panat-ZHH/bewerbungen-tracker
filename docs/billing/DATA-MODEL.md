@@ -100,7 +100,7 @@ Checked against the migration text and run on PGlite with all earlier migrations
   deleted) → `owner_not_found`, acknowledged. Deliberately a NEW name, not an overload of `billing_apply_subscription`
   (named-arg calls from supabase-js would become ambiguous).
 - `billing_status_for_user(p_user_id)` – authenticated (own uid only, else FORBIDDEN) + service role. Shape: README "Solo plan".
-- `billing_solo_eligibility(p_user_id)` – service role only: `{ role, account_type, covered_by }` for the checkout gate.
+- `billing_solo_eligibility(p_user_id)` – service role only: `{ role, account_type, blocked, covered_by }` for the checkout gate.
 - `account_billing_blockers(uid)` – now also `kind: 'solo'` for the user's own renewing solo subscription.
 - RLS: policies "solo owner reads own customer" / "solo owner reads own subscriptions" (`user_id = auth.uid()`), OR-ed with
   the school admin / parent policies. No direct writes for users (unchanged grants).

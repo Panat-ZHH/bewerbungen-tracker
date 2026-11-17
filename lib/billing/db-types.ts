@@ -195,6 +195,8 @@ export interface BillingStatusForUser {
 export interface SoloEligibility {
   role: 'student' | 'parent' | 'staff';
   account_type: 'school_student' | 'independent_student' | 'parent' | null;
+  /** Blocked by a WendApply admin: may export / delete data, never buy (SPEC §8 G11). */
+  blocked: boolean;
   /** Already covered: own open solo subscription, family subscription / plan, or valid school licence. */
   covered_by: 'solo' | 'family' | 'school' | null;
 }

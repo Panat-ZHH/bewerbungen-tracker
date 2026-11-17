@@ -180,11 +180,14 @@ test("billing_status_for_user: own status (active / grace / expired / none), FOR
 test("billing_solo_eligibility: student / parent / teacher; covered by own solo, family subscription, school licence", async () => {
   const elig = async (u) => { await asService(); const [r] = await q("select public.billing_solo_eligibility($1) e", [u]); await ctx.reset(); return r.e; };
   const student = await user(next());
-  assert.deepEqual(await elig(student), { role: "student", account_type: "independent_student", covered_by: null });
+  assert.deepEqual(await elig(student), { role: "student", account_type: "independent_student", blocked: false, covered_by: null });
+  await admin("update public.account_access set blocked_at = now() where user_id = $1", [student]);
+  assert.equal((await elig(student)).blocked, true);
+  await admin("update public.account_access set blocked_at = null where user_id = $1", [student]);
   const parent = await user(next(), { meta: { account_type: "parent" } });
   assert.equal((await elig(parent)).role, "parent");
   const teacher = await user(next(), { meta: { role: "teacher" } });
-  assert.deepEqual(await elig(teacher), { role: "staff", account_type: null, covered_by: null });
+  assert.deepEqual(await elig(teacher), { role: "staff", account_type: null, blocked: false, covered_by: null });
   // own open solo (incomplete counts: first payment in progress)
   const s2 = await user(next());
   await apply({ p_stripe_customer_id: "cus_E1", p_stripe_subscription_id: "sub_E1", p_user_id: s2, p_status: "incomplete" });
