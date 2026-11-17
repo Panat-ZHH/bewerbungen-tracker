@@ -10,14 +10,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, CreditCard, Lock, RefreshCw } from "lucide-react";
-import { loadStripe, type Stripe, type StripeCheckoutElementsSdk, type StripeCheckoutLoadActionsSuccess } from "@stripe/stripe-js";
+// "/pure": Stripe.js is only fetched when loadStripe() runs (flag on), never as a side effect of importing this page.
+import { loadStripe } from "@stripe/stripe-js/pure";
+import type { Stripe, StripeCheckoutElementsSdk, StripeCheckoutLoadActionsSuccess } from "@stripe/stripe-js";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/ui/page-header";
 import { fetchBillingStatus, startInAppCheckout } from "./api";
 import { IntervalChoice } from "./interval-choice";
 import {
-  PAY_DONE_PATH, PER_INTERVAL, billingIntervals, familyPlan, hasSubscription, inAppPaymentEnabled, payAmountText, paymentErrorMessage,
+  PAY_DONE_PATH, PER_INTERVAL, billingIntervals, familyPlan, hasSubscription, inAppPaymentEnabled, onlinePaymentEnabled, payAmountText, paymentErrorMessage,
   readPayParams, seatsText, termText, type BillingInterval,
 } from "./logic";
 import { cssTokenReader, stripeAppearance, stripeFonts } from "./stripe-appearance";
@@ -139,7 +141,11 @@ export function InAppCheckout() {
   const header = <PageHeader title="Familienpaket bezahlen" description="Sicher bezahlen, direkt hier in WendApply." actions={back} />;
 
   if (!enabled) {
-    return (<>{header}<StatusMessage tone="info">Die Bezahlung in der App ist gerade ausgeschaltet. Du kannst das Familienpaket auf der Seite «Familie» buchen.</StatusMessage></>);
+    // Billing completely off (launch default): don't promise a booking that the Familie page can't offer either.
+    const text = onlinePaymentEnabled()
+      ? "Die Bezahlung in der App ist gerade ausgeschaltet. Du kannst das Familienpaket auf der Seite «Familie» buchen."
+      : "Die Online-Bezahlung ist noch nicht freigeschaltet. Auf der Seite «Familie» kannst du Zugang anfragen.";
+    return (<>{header}<StatusMessage tone="info">{text}</StatusMessage></>);
   }
   if (!familyId) {
     return (<>{header}<div className="space-y-3"><StatusMessage tone="warning">Dieser Link ist unvollständig. Starte die Bezahlung bitte auf deiner Familienseite.</StatusMessage><ButtonLink href="/familie#abo" variant="secondary">Zur Familie</ButtonLink></div></>);

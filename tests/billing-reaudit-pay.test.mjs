@@ -175,3 +175,11 @@ test("M3 api: checkout and portal look the customer up for the calling user", as
   assert.deepEqual(lookups, [["findCustomerId", "family", PARENT.id], ["findCustomerId", "family", PARENT.id]]);
   assert.ok(!calls.some((c) => c[0] === "portal"), "no portal for someone else's customer");
 });
+
+// ---------------------------------------------------------------- L: flag off
+test("L flag off: the pay page never loads Stripe.js on import and doesn't promise a booking", async () => {
+  const src = (await import("node:fs")).readFileSync(new URL("../components/billing/in-app-checkout.tsx", import.meta.url), "utf8");
+  assert.match(src, /import \{ loadStripe \} from "@stripe\/stripe-js\/pure"/);
+  assert.doesNotMatch(src, /import \{[^}]*loadStripe[^}]*\} from "@stripe\/stripe-js";/, "the default entry injects js.stripe.com as an import side effect");
+  assert.match(src, /noch nicht freigeschaltet/);
+});
