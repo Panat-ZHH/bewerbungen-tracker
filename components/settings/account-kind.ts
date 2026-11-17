@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAccess } from "@/components/access/access-provider";
-import { isParentAccount, isSchoolAdmin } from "@/lib/access/gate";
+import { isParentAccount, isSchoolAdmin, isServerAccess, isStaff } from "@/lib/access/gate";
 import { loadMyRole } from "@/lib/role";
 import { supabase } from "@/lib/supabase";
 
@@ -18,9 +18,13 @@ export function accountKindOf(role: "student" | "teacher" | null, parent: boolea
   return "student";
 }
 
-/** Kind of the signed-in account, null while unknown. Must be rendered inside the WorkspaceShell (AccessProvider). */
-export function useAccountKind(): AccountKind | null {
-  const { access } = useAccess();
+/**
+ * Kind of the signed-in account, null while unknown. Must be rendered inside the WorkspaceShell (AccessProvider).
+ * Unknown = the role or my_access() is still loading: the client-writable metadata alone must not decide (QA M1).
+ * `confirmed`: the kind comes from the server (my_access().account_type or a staff role), not only from the metadata fallback.
+ */
+export function useAccountKindInfo(): { kind: AccountKind | null; confirmed: boolean } {
+  const { access, loading } = useAccess();
   const [role, setRole] = useState<"student" | "teacher" | null>(null);
   const [meta, setMeta] = useState<Record<string, unknown> | null>(null);
   useEffect(() => {
@@ -33,5 +37,13 @@ export function useAccountKind(): AccountKind | null {
     }).catch(() => {});
     return () => { alive = false; };
   }, []);
-  return accountKindOf(role, isParentAccount(meta, access), isSchoolAdmin(access));
+  if (loading || !access) return { kind: null, confirmed: false };
+  const kind = accountKindOf(role, isParentAccount(meta, access), isSchoolAdmin(access));
+  const confirmed = kind !== null && isServerAccess(access) && (!!access.account_type || isStaff(access));
+  return { kind, confirmed };
+}
+
+/** Kind of the signed-in account, null while unknown (see useAccountKindInfo). Presentation only. */
+export function useAccountKind(): AccountKind | null {
+  return useAccountKindInfo().kind;
 }

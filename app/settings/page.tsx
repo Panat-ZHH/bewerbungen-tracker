@@ -19,6 +19,7 @@ import { SettingsSection } from "@/components/settings/section";
 import { AboSection } from "@/components/settings/abo-section";
 import { TourReplaySection } from "@/components/settings/tour-replay";
 import { useAccountKind, type AccountKind } from "@/components/settings/account-kind";
+import { Skeleton } from "@/components/ui/skeleton";
 import { withSupport } from "@/lib/account-deletion";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { SchoolAdminLink } from "@/components/b2b/school-admin-link";
@@ -128,7 +129,7 @@ function SettingsBody() {
 
           <PasswordChangeCard />
 
-          {student && <NotificationSettings />}
+          {kind === null ? <Skeleton className="h-28 rounded-[var(--radius-lg)]" /> : student && <NotificationSettings />}
 
           <SettingsSection title="Darstellung" description="Hell, dunkel oder wie dein Gerät. Wir merken uns deine Wahl.">
             <div className="flex items-center gap-3">
