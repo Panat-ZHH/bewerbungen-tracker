@@ -97,7 +97,9 @@ export function AboView() {
         <section className="panel space-y-3 p-6" data-testid="abo-staff">
           <h2 className="text-heading"><School size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Schullizenz</h2>
           <p className="text-body">Lehrpersonen und Schulen nutzen WendApply mit einer Schullizenz. Ein Abo brauchst du nicht.</p>
-          <ButtonLink href={LICENCE_PATH} variant="secondary">Zur Schullizenz</ButtonLink>
+          {access?.role === "school_admin"
+            ? <ButtonLink href="/schul-admin#abo" variant="secondary">Zur Schuladministration</ButtonLink>
+            : <ButtonLink href={LICENCE_PATH} variant="secondary">Zur Schullizenz</ButtonLink>}
         </section>
       )}
 

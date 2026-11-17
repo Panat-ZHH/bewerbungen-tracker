@@ -136,11 +136,11 @@ test("/preise: flag off keeps offer + Zugang-anfragen flows and the honest note;
   assert.doesNotMatch(p, /Mehrwertsteuer dazukommt/);
 });
 
-test("/schul-admin: 'Abo & Rechnung' per school; contact flow when off", () => {
+test("/schul-admin: 'Lizenz & Rechnung' per school; contact flow when off", () => {
   const a = read("components/b2b/school-admin.tsx");
-  assert.match(a, /<BillingCard schoolId=\{school\.id\} anchor=\{first\} \/>/);
+  assert.match(a, /<BillingCard schoolId=\{school\.id\} anchor=\{first\} currentPackage=/);
   const c = read("components/billing/billing-card.tsx");
-  assert.match(c, /Abo &amp; Rechnung/);
+  assert.match(c, /Lizenz &amp; Rechnung/);
   assert.match(c, /!enabled \? \(\s*<BillingOffNotice>[\s\S]*?href="\/kontakt"/, "off: honest note + contact, no buy button");
   assert.match(c, /id=\{anchor \? "abo" : undefined\}/);
   assert.match(c, /<BillingReturnNotice onSuccess=\{reload\} \/>/);
