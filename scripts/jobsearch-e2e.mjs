@@ -167,7 +167,7 @@ export function registerJobsearchFlows(flow, student) {
     const closeFilters = async (scope) => { if (t.mobile) { await scope.getByRole("button", { name: /Fertig/ }).click(); await scope.waitFor({ state: "hidden" }); } };
     const chipCount = async (scope, name) => Number((await scope.getByRole("button", { name: new RegExp(`^${name}\\b`) }).first().innerText()).replace(/\D+/g, "") || "0");
 
-    await t.visit("/search?q=Informatiker&k=a", { waitFor: () => cards().first().waitFor() });
+    await t.visit("/search?q=Stelle&k=a", { waitFor: () => cards().first().waitFor() });
     t.check("old link without land= means Schweiz: only the 20 Swiss listings", (await count()) === 20, String(await count()));
     t.check("hidden listings are mentioned with a way to show them", await t.text(/4 Anzeigen liegen ausserhalb der Schweiz oder haben keinen erkennbaren Ort/) && await page.getByRole("button", { name: "Alle zeigen" }).isVisible());
     let scope = await openFilters();
@@ -186,7 +186,10 @@ export function registerJobsearchFlows(flow, student) {
     await t.shot("land-alle");
     await closeFilters(scope);
     t.check("Alle shows all 24 listings, hit line says Schweiz und Ausland", (await count()) === 24 && /Schweiz und Ausland/.test(await hitLine()), `${await count()} ${await hitLine()}`);
-    t.check("cards abroad name the country", await page.locator('section[aria-label="Suchergebnisse"]').getByText("Liechtenstein").first().isVisible());
+    await page.getByLabel("Sortieren").selectOption("company"); // the listings abroad (Bodensee, Grenz) land among the first 20 cards
+    await page.waitForTimeout(300);
+    t.check("cards abroad name the country", await page.locator('section[aria-label="Suchergebnisse"]').getByText("Deutschland").first().isVisible());
+    await page.getByLabel("Sortieren").selectOption("relevance");
     t.check("no hint once everything is shown", !(await page.getByRole("button", { name: "Alle zeigen" }).count()));
     await page.waitForURL(/[?&]land=alle/, { timeout: 4000 }).catch(() => undefined);
     t.check("URL has land=alle", /[?&]land=alle/.test(page.url()), page.url());

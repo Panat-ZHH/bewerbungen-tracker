@@ -217,7 +217,11 @@ export function JobSearchView() {
   const facets = useMemo(() => computeFacets(results, state.filters, saved), [results, state.filters, saved]);
   const companies = useMemo(() => companyOptions(results), [results]);
   // "Schweiz" (default) hides listings abroad or without a recognisable place: say how many, with a one-click way to see them
-  const hiddenAbroad = state.filters.country === "all" ? 0 : facets.country.all - facets.country.ch;
+  // (counted after the text query, so "Alle zeigen" adds exactly that many hits)
+  const hiddenAbroad = useMemo(() => {
+    if (state.filters.country === "all" || facets.country.all === facets.country.ch) return 0;
+    return rankJobs(applyFilters(results, { ...state.filters, country: "all" }, saved), state.query).length - ranked.length;
+  }, [results, state.filters, state.query, saved, ranked.length, facets.country]);
   const shown = ranked.slice(0, visible);
   const hasMoreLocal = ranked.length > visible;
 
