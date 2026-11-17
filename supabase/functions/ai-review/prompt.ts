@@ -118,7 +118,8 @@ const TAGS = ["bewerbung", "beruf", "firma", "stelleninserat"];
 /** Neutralises our own wrapper tags inside user data so a document cannot "close" its tag and inject text. */
 function escapeTags(value: string): string {
   let out = value.replace(/\r\n?/g, "\n").replaceAll("\u0000", "");
-  for (const tag of TAGS) out = out.replace(new RegExp(`<\\s*(/?)\\s*${tag}\\b[^>]*>`, "gi"), "[$1" + tag + "]");
+  // `<(\s*\/)?\s*tag`: no two adjacent `\s*` around an optional "/" (that was quadratic on "<" + thousands of spaces).
+  for (const tag of TAGS) out = out.replace(new RegExp(`<(\\s*/)?\\s*${tag}\\b[^>]*>`, "gi"), (_m, slash?: string) => `[${slash ? "/" : ""}${tag}]`);
   return out.trim();
 }
 
