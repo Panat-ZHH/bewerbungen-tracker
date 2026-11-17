@@ -26,6 +26,13 @@ export async function listUserObjects(admin: SupabaseClient, bucket: string, use
   return out;
 }
 
+/** `<userId>/…` with no empty, "." or ".." segments and no backslashes / control characters. */
+export function isOwnObjectPath(path: unknown, userId: string): path is string {
+  if (typeof path !== "string" || !userId || path.length > 1024 || /[\\\u0000-\u001f\u007f]/.test(path)) return false;
+  const parts = path.split("/");
+  return parts.length >= 2 && parts[0] === userId && parts.slice(1).every((p) => p !== "" && p !== "." && p !== "..");
+}
+
 export async function deleteUserFiles(admin: SupabaseClient, userId: string): Promise<number> {
   let removed = 0;
   for (const bucket of USER_BUCKETS) {
@@ -33,7 +40,9 @@ export async function deleteUserFiles(admin: SupabaseClient, userId: string): Pr
     if (bucket === "cvs") {
       // Fallback: files that are recorded in the database but not found under the user's folder.
       const { data } = await admin.from("cvs").select("storage_path").eq("user_id", userId);
-      for (const row of (data ?? []) as { storage_path: string | null }[]) if (row.storage_path) paths.add(row.storage_path);
+      // storage_path is written by the user (RLS lets them update their own cvs rows to any text), so only paths inside
+      // the user's own folder are trusted here: the service role must never delete another user's file.
+      for (const row of (data ?? []) as { storage_path: string | null }[]) if (isOwnObjectPath(row.storage_path, userId)) paths.add(row.storage_path);
     }
     const list = [...paths];
     for (let i = 0; i < list.length; i += 100) {
