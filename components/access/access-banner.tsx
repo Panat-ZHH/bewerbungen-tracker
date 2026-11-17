@@ -19,7 +19,7 @@ export function TrialBanner({ daysLeft, endsAt, parent = false, schoolStudent = 
         Danach brauchst du {parent ? "das Familienpaket" : "ein Abo"}, um weiterzumachen. Deine Daten bleiben gespeichert.
         {schoolStudent && <> Hast du einen Klassencode? <Link href="/classes" className="font-semibold underline underline-offset-4">Damit zahlt deine Schule.</Link></>}
       </div>
-      <ButtonLink href={ABO_PATH} size="sm" variant="secondary" className="min-h-11 shrink-0">Abo wählen</ButtonLink>
+      <ButtonLink href={parent ? "/familie#abo" : ABO_PATH} size="sm" variant="secondary" className="min-h-11 shrink-0">Abo wählen</ButtonLink>
     </div>
   );
 }

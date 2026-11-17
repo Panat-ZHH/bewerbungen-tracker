@@ -13,10 +13,11 @@ import { LicenceGate } from "./access-pages";
 export function SchoolLicenceView() {
   const { access } = useAccess();
   const [metaTeacher, setMetaTeacher] = useState(false);
-  useEffect(() => { supabase.auth.getUser().then(({ data }) => setMetaTeacher(data.user?.user_metadata?.role === "teacher")); }, []);
+  const [email, setEmail] = useState<string | null>(null);
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => { setMetaTeacher(data.user?.user_metadata?.role === "teacher"); setEmail(data.user?.email ?? null); }); }, []);
   const staff = isStaff(access) || metaTeacher;
 
-  if (staff && isEnforced(access) && !access.has_access) return <LicenceGate />;
+  if (staff && isEnforced(access) && !access.has_access) return <LicenceGate access={access} email={email} />;
   if (staff) {
     return (
       <section data-testid="licence-active" className="mx-auto max-w-[640px] py-4 sm:py-8">
