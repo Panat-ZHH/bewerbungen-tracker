@@ -12,6 +12,7 @@ export const ERROR_STATUS: Record<AiReviewErrorCode, number> = {
   too_long: 413,
   rate_limited: 429,
   ai_failed: 502,
+  unavailable: 503,
 };
 
 export const ERROR_MESSAGES: Record<AiReviewErrorCode, string> = {
@@ -27,21 +28,25 @@ export const ERROR_MESSAGES: Record<AiReviewErrorCode, string> = {
     "Deine Datei ist sehr lang (mehr als 20'000 Zeichen). Lade nur dein Bewerbungsschreiben hoch, ohne Lebenslauf, Zeugnisse und Anhänge.",
   rate_limited: "Für heute hast du alle Checks gebraucht. Morgen kannst du deine Bewerbung wieder prüfen lassen.",
   ai_failed: "Die KI antwortet gerade nicht. Bitte versuche es in ein paar Minuten nochmals.",
+  unavailable: "Der Bewerbungs-Check macht gerade eine Pause. Bitte versuche es später nochmals.",
 };
 
 export class ReviewFailure extends Error {
   readonly code: AiReviewErrorCode;
   readonly status: number;
   readonly userMessage: string;
-  constructor(code: AiReviewErrorCode, userMessage?: string, detail?: string) {
+  /** Seconds for the Retry-After header (429 / 503). */
+  readonly retryAfter?: number;
+  constructor(code: AiReviewErrorCode, userMessage?: string, detail?: string, retryAfter?: number) {
     super(detail ?? code);
     this.name = "ReviewFailure";
     this.code = code;
     this.status = ERROR_STATUS[code];
     this.userMessage = userMessage ?? ERROR_MESSAGES[code];
+    if (retryAfter !== undefined && Number.isFinite(retryAfter)) this.retryAfter = Math.max(1, Math.ceil(retryAfter));
   }
   toBody(): AiReviewError {
-    return { error: this.code, message: this.userMessage };
+    return this.retryAfter ? { error: this.code, message: this.userMessage, retryAfter: this.retryAfter } : { error: this.code, message: this.userMessage };
   }
 }
 

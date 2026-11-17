@@ -58,9 +58,11 @@ export type AiReviewErrorCode =
   | "no_text" // 422 (e.g. scanned PDF without text layer, or < ~150 characters)
   | "too_long" // 413 (extracted text > 20'000 characters)
   | "rate_limited" // 429
-  | "ai_failed"; // 502
+  | "ai_failed" // 502
+  | "unavailable"; // 503 (switched off, global daily budget used up, or the limiter is unreachable)
 
 export interface AiReviewError {
   error: AiReviewErrorCode;
   message: string; // friendly German (Swiss spelling, no ß), safe to show to a 14-year-old
+  retryAfter?: number; // seconds (429 / 503 only), same value as the Retry-After header
 }

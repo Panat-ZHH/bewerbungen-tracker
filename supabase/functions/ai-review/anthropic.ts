@@ -7,8 +7,36 @@ import type { AiReviewResult } from "./types.ts";
 export const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
 export const ANTHROPIC_VERSION = "2026-10-21";
 export const DEFAULT_MODEL = "claude-haiku-5-5";
-export const TIMEOUT_MS = 60_000;
+/** Per attempt. */
+export const TIMEOUT_MS = 50_000;
+/** All attempts together: must stay below the browser timeout (lib/ai-review.ts, 90 s) and the edge limit (150 s). */
+export const TOTAL_DEADLINE_MS = 80_000;
+/** A retry only starts if at least this much of the deadline is left. */
+export const MIN_RETRY_MS = 20_000;
+/** Hard cap on output tokens per call (the JSON review is ~1.5–3k tokens). */
 export const MAX_TOKENS = 8000;
+
+export interface TokenUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
+/**
+ * Budget units ("input-token equivalents") of one response: output tokens weigh 5×, cache writes 1.25×, cache reads
+ * 0.1× – roughly the price ratios of the Claude models, so one budget works for any model.
+ */
+export function budgetUnits(usage: TokenUsage | undefined | null): number {
+  if (!usage || typeof usage !== "object") return 0;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0);
+  return Math.ceil(n(usage.input_tokens) + 1.25 * n(usage.cache_creation_input_tokens) + 0.1 * n(usage.cache_read_input_tokens) + 5 * n(usage.output_tokens));
+}
+
+/** Worst case of one call before we know the usage: input chars/3 + system prompt + full output. Used for budget checks. */
+export function estimateBudgetUnits(inputChars: number): number {
+  return Math.ceil(inputChars / 3) + 4000 + 5 * MAX_TOKENS;
+}
 
 export interface AnthropicOptions {
   apiKey: string;
@@ -17,6 +45,10 @@ export interface AnthropicOptions {
   timeoutMs?: number;
   /** Waits between the first attempt and the retry (injectable for tests). */
   sleep?: (ms: number) => Promise<void>;
+  /** Called with the token usage of every response the API billed (also failed attempts). */
+  onUsage?: (usage: TokenUsage) => void;
+  totalDeadlineMs?: number;
+  now?: () => number;
 }
 
 export function buildRequestBody(input: ReviewInput, model: string): Record<string, unknown> {
@@ -72,7 +104,9 @@ export function parseMessageResponse(body: unknown): unknown {
   }
 }
 
-async function attempt(input: ReviewInput, opts: Required<Omit<AnthropicOptions, "sleep">>): Promise<{ result: AiReviewResult; model: string }> {
+type AttemptOptions = { apiKey: string; model: string; fetch: typeof fetch; timeoutMs: number; onUsage: (u: TokenUsage) => void };
+
+async function attempt(input: ReviewInput, opts: AttemptOptions): Promise<{ result: AiReviewResult; model: string }> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs);
   let res: Response;
@@ -101,6 +135,8 @@ async function attempt(input: ReviewInput, opts: Required<Omit<AnthropicOptions,
   } catch {
     throw new AttemptError("invalid_body", true);
   }
+  const usage = (body as { usage?: TokenUsage } | null)?.usage;
+  if (usage && typeof usage === "object") opts.onUsage(usage);
   const raw = parseMessageResponse(body);
   let result: AiReviewResult;
   try {
@@ -114,19 +150,25 @@ async function attempt(input: ReviewInput, opts: Required<Omit<AnthropicOptions,
 
 /** Calls the model, one retry on 429 / 5xx / network / unusable JSON. Throws ReviewFailure("ai_failed"). */
 export async function reviewWithAnthropic(input: ReviewInput, options: AnthropicOptions): Promise<{ result: AiReviewResult; model: string; attempts: number }> {
-  const opts = {
+  const now = options.now ?? (() => Date.now());
+  const timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
+  const deadline = now() + (options.totalDeadlineMs ?? TOTAL_DEADLINE_MS);
+  const base = {
     apiKey: options.apiKey,
     model: options.model || DEFAULT_MODEL,
     fetch: options.fetch ?? fetch,
-    timeoutMs: options.timeoutMs ?? TIMEOUT_MS,
+    onUsage: (u: TokenUsage) => { try { options.onUsage?.(u); } catch { /* accounting must not break the review */ } },
   };
   const sleep = options.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   for (let n = 1; ; n++) {
     try {
-      return { ...(await attempt(input, opts)), attempts: n };
+      const left = Math.max(1, deadline - now());
+      return { ...(await attempt(input, { ...base, timeoutMs: Math.min(timeoutMs, left) })), attempts: n };
     } catch (e) {
       const err = e instanceof AttemptError ? e : new AttemptError("unexpected", false);
-      if (!err.retry || n >= 2) throw new ReviewFailure("ai_failed", undefined, `anthropic ${err.reason} after ${n} attempt(s)`);
+      const leftAfterWait = deadline - now() - err.waitMs;
+      const retry = err.retry && n < 2 && leftAfterWait >= Math.min(MIN_RETRY_MS, timeoutMs);
+      if (!retry) throw new ReviewFailure("ai_failed", undefined, `anthropic ${err.reason} after ${n} attempt(s)`);
       await sleep(err.waitMs);
     }
   }

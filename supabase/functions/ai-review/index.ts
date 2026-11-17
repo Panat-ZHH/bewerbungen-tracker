@@ -1,6 +1,9 @@
 // Supabase Edge Function "ai-review" (Deno). Wires the real dependencies into handler.ts.
 // Env (Supabase secrets, never in code): SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (provided by
-// Supabase), ANTHROPIC_API_KEY (missing → mock mode), AI_REVIEW_MODEL, AI_REVIEW_MOCK, AI_REVIEW_DEFAULT_DAILY_LIMIT.
+// Supabase), ANTHROPIC_API_KEY (missing → mock mode), AI_REVIEW_MODEL, AI_REVIEW_MOCK, and the limits / budgets / kill
+// switch documented in limits.ts (AI_REVIEW_DISABLED, AI_REVIEW_IP_LIMIT, AI_REVIEW_BURST_LIMIT,
+// AI_REVIEW_DEFAULT_DAILY_LIMIT, AI_DAILY_BUDGET_USER_TOKENS, AI_DAILY_BUDGET_GLOBAL_TOKENS).
+// Requires migration 20261117010000_rate_limits.sql (rpc rate_limit_hit); without it every check fails closed (503).
 import { createClient } from "@supabase/supabase-js";
 import { unzipSync } from "fflate";
 import { extractText } from "unpdf";
@@ -27,10 +30,12 @@ const handler = createHandler({
     if (error) throw new Error(`settings: ${error.code}`);
     return (data?.daily_limit as number | null | undefined) ?? null;
   },
-  async countReviewsSince(userId, sinceIso) {
-    const { count, error } = await admin.from("ai_reviews").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", sinceIso);
-    if (error) throw new Error(`count: ${error.code}`);
-    return count ?? 0;
+  async rateLimit(key, limit, windowSeconds, cost) {
+    const { data, error } = await admin.rpc("rate_limit_hit", { p_key: key, p_limit: limit, p_window_seconds: windowSeconds, p_cost: cost });
+    if (error) throw new Error(`rate_limit_hit: ${error.code}`);
+    const row = (Array.isArray(data) ? data[0] : data) as { allowed?: boolean; retry_after?: number } | null;
+    if (!row || typeof row.allowed !== "boolean") throw new Error("rate_limit_hit: empty result");
+    return { allowed: row.allowed, retryAfter: Number(row.retry_after) || 0 };
   },
   async insertReview(row: ReviewRow) {
     const { data, error } = await admin.from("ai_reviews").insert(row).select("id, created_at").single();

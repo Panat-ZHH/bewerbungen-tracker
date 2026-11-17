@@ -26,7 +26,12 @@ detail page (pre-filled via `?application=<id>`) and `/hilfe`.
 | `ANTHROPIC_API_KEY` | Supabase secret | Anthropic key. Missing → server mock mode (`mock: true`). |
 | `AI_REVIEW_MODEL` | Supabase secret | Optional, default `claude-haiku-5-5`. |
 | `AI_REVIEW_MOCK` | Supabase secret | `1` forces mock mode even with a key. |
-| `AI_REVIEW_DEFAULT_DAILY_LIMIT` | Supabase secret | Optional checks per user per 24 h. Unset = no limit (default). Per-user override: `ai_review_user_settings.daily_limit` (admin SQL). |
+| `AI_REVIEW_DEFAULT_DAILY_LIMIT` | Supabase secret | Checks per user per UTC day. **Default 10** (since 2026-11-17). Per-user override: `ai_review_user_settings.daily_limit` (admin SQL, 0 = disabled for that user). Counted in `public.rate_limits`, so deleting reviews does not reset it. |
+| `AI_REVIEW_DISABLED` | Supabase secret | `1` = kill switch, every request gets 503 "unavailable" without an AI call. |
+| `AI_REVIEW_IP_LIMIT` | Supabase secret | Requests per IP per 10 min, default 60 (school classes share one IP). Counted before auth. |
+| `AI_REVIEW_BURST_LIMIT` | Supabase secret | Checks per user per 10 min, default 5. |
+| `AI_DAILY_BUDGET_USER_TOKENS` | Supabase secret | Budget units per user per UTC day, default 300000 (about 25 checks). Units = input tokens + 1.25 × cache writes + 0.1 × cache reads + 5 × output tokens. |
+| `AI_DAILY_BUDGET_GLOBAL_TOKENS` | Supabase secret | Budget units for all users per UTC day, default 20000000. When used up (or set to 0), everybody gets 503 until 00:00 UTC. This is the cost kill switch. |
 | `NEXT_PUBLIC_AI_REVIEW_MOCK` | Netlify / `.env.local` | `1` = the browser returns a built-in sample, no network (previews). |
 
 ## Go-live (each step needs Panat's approval – not done yet)
@@ -59,3 +64,7 @@ node --experimental-strip-types scripts/ai-review-eval.mjs                  # al
 node --experimental-strip-types scripts/ai-review-eval.mjs 08 --runs 3      # one sample, 3 runs
 node --experimental-strip-types scripts/ai-review-eval.mjs --model claude-sonnet-5-5
 ```
+
+
+## Limits (2026-11-17)
+All counters are persistent in `public.rate_limits` (migration `20261117010000_rate_limits.sql`, rpc `rate_limit_hit`, service role only), see `supabase/functions/ai-review/limits.ts`. If that migration is missing, the limiter is unreachable and the function **fails closed** (503), so apply the migration before deploying the function. The order is: kill switch, IP limit, auth, form checks, burst, file parsing, daily check (refunded if the AI fails), budget pre-check (worst-case estimate), AI call (50 s per attempt, 80 s in total, max 8000 output tokens), then the billed usage is recorded. Every 429 and 503 carries `Retry-After` and a friendly German message.
