@@ -136,7 +136,7 @@ async function flow(tag, vp) {
   // 6. student joins via the personal link, sets consent
   const St = await actor(be, { me: "u1", role: "student", vp }); const sp = St.page;
   await sp.goto(BASE + `/classes/join/${mailInvite.token}`, { waitUntil: "domcontentloaded" }); await wait(sp, "Informatik 4a"); await shot(sp, "11-student-join");
-  await sp.getByRole("radio", { name: "16 oder älter" }).check({ force: true }); await sp.getByRole("switch", { name: /Fortschritt teilen/ }).check({ force: true }); await sp.getByRole("button", { name: "Beitreten", exact: true }).click(); await wait(sp, "Du bist beigetreten"); await shot(sp, "12-student-joined"); // join page redesign: age choice + consent switches
+  await sp.getByRole("radio", { name: "16 oder älter" }).check({ force: true }); await sp.getByRole("switch", { name: /Fortschritt teilen/ }).check({ force: true }); await sp.getByRole("button", { name: "Klasse beitreten", exact: true }).click(); await wait(sp, "Du bist beigetreten"); await shot(sp, "12-student-joined"); // join page redesign: age choice + consent switches
   check(S.members.some((m) => m.student_id === "u1" && m.share), "student joined with the personal invite link");
   check(S.invites.find((i) => i.id === mailInvite.id).uses === 1, "invite use counted");
   await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Informatik 4a"); await shot(sp, "13-student-classes");

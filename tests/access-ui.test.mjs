@@ -149,7 +149,8 @@ test("knownSignupChoice: pending wins; family invite ?fuer= presets the role; ot
   const pending = { choice: "teacher", birthYear: null, at: 1 };
   assert.deepEqual(fam.knownSignupChoice(pending, "/familie/einladung/ABCD1234"), { choice: "teacher", birthYear: null });
   assert.deepEqual(fam.knownSignupChoice(null, "/familie/einladung/ABCD1234?fuer=kind"), { choice: "independent", birthYear: null });
-  assert.deepEqual(fam.knownSignupChoice(null, "/familie/einladung/ABCD1234"), { choice: "parent", birthYear: null });
+  assert.deepEqual(fam.knownSignupChoice(null, "/familie/einladung/ABCD1234?fuer=eltern"), { choice: "parent", birthYear: null });
+  assert.equal(fam.knownSignupChoice(null, "/familie/einladung/ABCD1234"), null, "invite without ?fuer=: the picker asks (schueler-39)");
   assert.equal(fam.knownSignupChoice(null, "/dashboard"), null);
   assert.equal(fam.knownSignupChoice(null, null), null);
 });

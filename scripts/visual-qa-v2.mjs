@@ -89,7 +89,7 @@ async function shootMap(w, h, dark, label) {
     const chips = page.locator("button[data-open]");
     await chips.nth(0).click(); await page.waitForTimeout(400); await shot("2-island-panel"); await page.keyboard.press("Escape");
     await chips.nth(1).click(); await page.waitForTimeout(400); await shot("3-search"); await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: /Firma 1: .*Gebäudedetails/ }).click({ force: true, timeout: 20000 }).catch(() => page.evaluate(() => document.querySelector("[data-building]")?.click()));
+    await page.getByRole("button", { name: /Firma 1: .*Haus öffnen/ }).click({ force: true, timeout: 20000 }).catch(() => page.evaluate(() => document.querySelector("[data-building]")?.click()));
     if (await page.locator('[data-sheet="application"]').waitFor({ timeout: 8000 }).then(() => true, () => false)) { await page.waitForTimeout(500); await shot("4-selected-sheet"); await page.keyboard.press("Escape"); }
     await page.getByRole("button", { name: "Shop" }).click(); await page.locator('[data-sheet="shop"]').waitFor(); await page.waitForTimeout(400); await shot("5-shop");
     await page.getByRole("button", { name: /Dein Inventar|Baum/ }).first().click().catch(() => {});

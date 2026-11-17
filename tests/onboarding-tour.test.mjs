@@ -9,28 +9,31 @@ const ux = await loadLib("ux");
 const safe = ux.safeNextPath;
 
 // ---------------------------------------------------------------- step logic
-test("steps: 5 steps, clamped navigation", () => {
-  assert.equal(tour.TOUR_STEP_COUNT, 5);
-  assert.deepEqual([...tour.TOUR_STEPS], ["Willkommen", "Profil & Ziele", "Erste Bewerbung", "KI-Check", "Fertig"]);
+test("steps: 3 steps + done screen, clamped navigation", () => {
+  assert.equal(tour.TOUR_STEP_COUNT, 4);
+  assert.equal(tour.VISIBLE_STEPS, 3);
+  assert.deepEqual([...tour.TOUR_STEPS], ["Wer bist du?", "Was möchtest du werden?", "Erste Bewerbung", "Fertig"]);
   assert.equal(tour.nextStep(0), 1);
-  assert.equal(tour.nextStep(4), 4);
+  assert.equal(tour.nextStep(3), 3);
   assert.equal(tour.prevStep(0), 0);
   assert.equal(tour.prevStep(3), 2);
-  for (const [raw, want] of [[-3, 0], [9, 4], ["2", 2], [2.7, 2], ["x", 0], [null, 0], [undefined, 0], [NaN, 0], ["", 0]]) assert.equal(tour.clampStep(raw), want, String(raw));
+  for (const [raw, want] of [[-3, 0], [9, 3], ["2", 2], [2.7, 2], ["x", 0], [null, 0], [undefined, 0], [NaN, 0], ["", 0]]) assert.equal(tour.clampStep(raw), want, String(raw));
 });
 
-test("progress: 'Schritt x von 5' and a growing bar", () => {
-  assert.deepEqual(tour.tourProgress(0), { current: 1, total: 5, label: "Schritt 1 von 5", percent: 20 });
-  assert.equal(tour.tourProgress(4).label, "Schritt 5 von 5");
-  assert.equal(tour.tourProgress(4).percent, 100);
-  assert.equal(tour.tourProgress(99).current, 5);
-  const widths = [0, 1, 2, 3, 4].map((s) => tour.tourProgress(s).percent);
+test("progress: one counter 'Schritt x von 3', 'Fertig' on the last screen, growing bar", () => {
+  assert.deepEqual(tour.tourProgress(0), { current: 1, total: 3, label: "Schritt 1 von 3", percent: 33 });
+  assert.equal(tour.tourProgress(2).label, "Schritt 3 von 3");
+  assert.equal(tour.tourProgress(3).label, "Fertig");
+  assert.equal(tour.tourProgress(3).percent, 100);
+  assert.equal(tour.tourProgress(99).label, "Fertig");
+  const widths = [0, 1, 2, 3].map((s) => tour.tourProgress(s).percent);
   assert.deepEqual(widths, [...widths].sort((a, b) => a - b));
 });
 
 test("resume never lands on 'Fertig' and starts at 0 without data", () => {
   assert.equal(tour.resumeStep({ available: true, completed: false, step: 2 }), 2);
-  assert.equal(tour.resumeStep({ available: true, completed: false, step: 4 }), 3);
+  assert.equal(tour.resumeStep({ available: true, completed: false, step: 4 }), 2, "old 5-step value: never the done screen");
+  assert.equal(tour.resumeStep({ available: true, completed: false, step: 3 }), 2);
   assert.equal(tour.resumeStep({ available: true, completed: false, step: null }), 0);
   assert.equal(tour.resumeStep(tour.UNKNOWN_TOUR), 0);
   assert.equal(tour.resumeStep({ available: true, completed: true, step: 3 }), 0);
@@ -38,7 +41,7 @@ test("resume never lands on 'Fertig' and starts at 0 without data", () => {
 
 // ---------------------------------------------------------------- gating
 const OPEN = { available: true, completed: false, step: null };
-const DONE = { available: true, completed: true, step: 4 };
+const DONE = { available: true, completed: true, step: 3 };
 test("needsTour: students only, flags and DB state", () => {
   assert.equal(tour.needsTour("teacher", {}, OPEN), false, "teachers keep their own onboarding");
   assert.equal(tour.needsTour("student", {}, OPEN), true);
@@ -60,8 +63,8 @@ test("missing-column fallback: errors never throw and never count as 'done'", ()
   assert.equal(tour.isMissingSchemaError(null), false);
   assert.deepEqual(tour.interpretTourRow(null, { code: "500", message: "network" }), tour.UNKNOWN_TOUR);
   assert.deepEqual(tour.interpretTourRow(null, null), OPEN, "no profile row = brand-new account");
-  assert.deepEqual(tour.interpretTourRow({ onboarding_tour_completed_at: "2026-11-14T10:00:00Z", onboarding_tour_step: 4 }), DONE);
-  assert.deepEqual(tour.interpretTourRow({ onboarding_tour_completed_at: null, onboarding_tour_step: 7 }), { available: true, completed: false, step: 4 });
+  assert.deepEqual(tour.interpretTourRow({ onboarding_tour_completed_at: "2026-11-14T10:00:00Z", onboarding_tour_step: 3 }), DONE);
+  assert.deepEqual(tour.interpretTourRow({ onboarding_tour_completed_at: null, onboarding_tour_step: 7 }), { available: true, completed: false, step: 3 });
 });
 
 test("tour URLs keep a safe ?next= and the replay flag", () => {
@@ -197,11 +200,12 @@ test("tour UI: one flow, skip on every step, replay entry in the settings, Germa
   const settings = await readFile(new URL("../app/settings/page.tsx", import.meta.url), "utf8");
   const replay = await readFile(new URL("../components/settings/tour-replay.tsx", import.meta.url), "utf8");
   for (const source of [ui, progress, replay]) assert.doesNotMatch(source, /ß/);
-  assert.match(ui, /Einführung überspringen/);
-  assert.match(ui, /step < LAST_STEP && \(/, "skip button rendered on steps 1-4");
+  assert.match(ui, /"Überspringen"/);
+  assert.equal((ui.match(/\{skipLink\(/g) ?? []).length, 3, "one «Überspringen» link on each of the 3 steps");
   assert.match(ui, /headingRef\.current\?\.focus\(\)/, "focus moves to the new title");
   assert.match(ui, /saveFirstApplication/);
-  assert.match(ui, /\/bewerbung-check/);
+  assert.doesNotMatch(ui, /\/bewerbung-check|KI-Check|Insel|Münzen/, "no KI-Check step, glossary terms Dorf/Punkte");
+  assert.match(ui, /"Fertig"/);
   assert.match(progress, /role="progressbar"/);
   assert.match(progress, /motion-safe:transition/);
   assert.match(settings, /<TourReplaySection \/>/);

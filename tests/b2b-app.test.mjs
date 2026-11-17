@@ -174,10 +174,10 @@ test("B2B UI: Swiss spelling (no Eszett), no payment code, no application conten
 
 test("settings: 'Meine Daten' export + existing deletion flows are kept", async () => {
   const page = await readFile(new URL("../app/settings/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /Daten exportieren \(JSON\)/);
+  assert.match(page, />Daten exportieren</);
   assert.match(page, /exportMyDataFromServer/);
   assert.match(page, /scrubExport/);
-  assert.match(page, /<DeleteAccountCard \/>/);
+  assert.match(page, /<DeleteAccountCard kind={kind} \/>/);
   assert.match(page, /Meine Daten löschen/);
 });
 

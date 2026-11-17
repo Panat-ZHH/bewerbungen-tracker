@@ -146,7 +146,7 @@ for (const flag of flags) {
         check(await visible(page, "Deine Eltern verbinden", 120000), "AC-S1 card 'Deine Eltern verbinden'");
         check(await page.locator("[data-student-step=connect]").count() === 1, "AC-S1 data-student-step=connect");
         check(await primaries(page) === 1, "AC-G3 exactly one primary action", String(await primaries(page)));
-        check(await page.getByRole("button", { name: "Link für meine Eltern erstellen" }).isVisible(), "AC-S1 primary 'Link für meine Eltern erstellen'");
+        check(await page.getByRole("button", { name: "Eltern einladen" }).isVisible(), "AC-S1 primary 'Eltern einladen'");
         const toggle = page.getByRole("button", { name: "Du hast schon einen Code von deinen Eltern?" });
         check(await toggle.isVisible() && (await toggle.getAttribute("aria-expanded")) === "false", "AC-S1 join form collapsed");
         check(!(await page.getByLabel("Code von deinen Eltern").count()), "AC-S1 code input hidden");
@@ -155,7 +155,7 @@ for (const flag of flags) {
         if (key === "mobile-dark") await axe(page, "[data-testid=student-connect]");
         await shot(page, `${flag}-${key}-1-connect`);
 
-        await page.getByRole("button", { name: "Link für meine Eltern erstellen" }).click();
+        await page.getByRole("button", { name: "Eltern einladen" }).click();
         check(await visible(page, "ELTE 6789"), "AC-S2 code shown");
         const link = await page.getByTestId("invite-link").innerText();
         check(/\/familie\/einladung\/ELTE6789\?fuer=eltern$/.test(link), "AC-S2 link carries ?fuer=eltern", link);
@@ -202,7 +202,7 @@ for (const flag of flags) {
         const { ctx, page, state } = await actor(browser, { meta: { ...META, account_type: undefined, birth_year: undefined }, rpc: be.rpc, vp });
         await page.goto(`${BASE}/familie`, { waitUntil: "domcontentloaded" });
         check(await visible(page, "Deine Eltern verbinden", 120000), "card shown");
-        await page.getByRole("button", { name: "Link für meine Eltern erstellen" }).click();
+        await page.getByRole("button", { name: "Eltern einladen" }).click();
         check(await page.locator("[data-birth-gate]").waitFor({ timeout: 20000 }).then(() => true, () => false), "AC-S3 birth gate shown on BIRTH_YEAR_REQUIRED");
         check(await primaries(page) === 1, "AC-G3 one primary in the gate");
         if (key === "mobile-dark") await axe(page, "[data-birth-gate]");

@@ -116,7 +116,7 @@ try {
   const STATUSES = ["saved", "preparing", "applied", "schnupper_planned", "schnupper_done", "aptitude_test", "interview", "final_interview", "offer", "contract_signed", "rejected", "withdrawn"];
   for (const status of STATUSES) {
     await edit();
-    await page.getByLabel(/^Was ist der Stand/).selectOption(status);
+    await page.getByLabel(/^Status$/).selectOption(status);
     if (status === "schnupper_planned" || status === "schnupper_done") { await page.getByLabel(/^Schnupperdatum/).fill("2026-12-01"); await page.getByLabel(/^Notizen zum Schnuppern/).fill("Sehr nett"); }
     if (status === "schnupper_done") await page.getByLabel(/^Wie war es/).selectOption("positive");
     if (status === "aptitude_test") { await page.getByLabel(/^Testdatum/).fill("2026-12-10"); await page.getByLabel(/^Ergebnis/).selectOption("passed"); }

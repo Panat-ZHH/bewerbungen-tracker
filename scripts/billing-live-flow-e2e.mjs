@@ -333,7 +333,7 @@ try {
   // ---- 4. Student joins with code ----
   await gotoFamilie(S);
   await shot(S, "student-familie-start");
-  ok("AC-S1", "Student start: data-student-step=connect, primary 'Link für meine Eltern erstellen'", await S.locator("[data-student-step=connect]").count() > 0 && /Link für meine Eltern erstellen/.test(await S.locator("[data-primary-action]").first().innerText().catch(() => "")));
+  ok("AC-S1", "Student start: data-student-step=connect, primary 'Eltern einladen'", await S.locator("[data-student-step=connect]").count() > 0 && /Eltern einladen/.test(await S.locator("[data-primary-action]").first().innerText().catch(() => "")));
   ok("AC-S1", "Student start: no price / plan card", !/CHF/.test(await S.evaluate(() => document.body.innerText)));
   await S.getByTestId("join-toggle").click();
   const joinForm = S.getByTestId("join-form");

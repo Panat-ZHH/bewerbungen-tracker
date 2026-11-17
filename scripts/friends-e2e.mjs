@@ -47,9 +47,11 @@ async function run(name, vp, dark) {
   // no ranking / points; defaults off
   const body = await page.locator("main").innerText();
   assert.doesNotMatch(body, /Platz \d|Map-Punkte|Punkte/);
-  assert.equal(await page.getByRole("switch", { name: "Firmennamen auf der Karte zeigen" }).getAttribute("aria-checked"), "false");
+  assert.equal(await page.getByRole("switch", { name: "Firmennamen im Dorf zeigen" }).getAttribute("aria-checked"), "false");
   assert.equal(await page.getByRole("switch", { name: "Zusagen und Absagen zeigen" }).getAttribute("aria-checked"), "false");
-  // sharing options
+  // sharing options: one primary «Freunde einladen», the rest behind «Mehr Möglichkeiten» (schueler-30)
+  await page.getByRole("button", { name: "Freunde einladen" }).waitFor();
+  await page.getByText("Mehr Möglichkeiten").click();
   await page.getByRole("link", { name: "WhatsApp" }).waitFor();
   assert.match(await page.getByRole("link", { name: "WhatsApp" }).getAttribute("href"), /^https:\/\/wa\.me\/\?text=.*invite%2FABC12345/);
   await page.getByRole("button", { name: "QR-Code" }).click();

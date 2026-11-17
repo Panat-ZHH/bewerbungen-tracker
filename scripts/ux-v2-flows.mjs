@@ -22,11 +22,9 @@ async function scenario(name, fn) { try { await fn(); } catch (e) { check(false,
 await scenario("first-run", async () => {
   for (const [w, h, dark] of [[375, 812, false], [375, 812, true], [1280, 800, false]]) {
     const { ctx, page } = await session({ apps: [], social: "empty" }, { w, h, dark });
-    await page.goto(BASE + "/dashboard"); await page.getByRole("heading", { name: /Willkommen/ }).waitFor();
-    const cta = page.getByRole("link", { name: /Erste Bewerbung eintragen/ });
-    check(await cta.isVisible(), `first-run ${w}${dark ? " dark" : ""}: CTA visible`);
-    const color = await cta.evaluate((el) => getComputedStyle(el).color);
-    check(color === "rgb(255, 255, 255)", `first-run ${w}${dark ? " dark" : ""}: CTA text is white (${color})`);
+    await page.goto(BASE + "/dashboard"); await page.getByRole("heading", { name: /So startest du/ }).waitFor();
+    const cta = page.getByRole("link", { name: /Bewerbung eintragen/ }).first();
+    check(await cta.isVisible(), `first-run ${w}${dark ? " dark" : ""}: step «Bewerbung eintragen» visible`);
     await shot(page, `01-first-run-${w}${dark ? "-dark" : ""}`); await ctx.close();
   }
 });
@@ -35,14 +33,14 @@ await scenario("add", async () => {
   const { ctx, page, state, errors } = await session({}, { w: 375, h: 812 });
   await page.goto(BASE + "/applications/new");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
-  await page.getByText(/Bitte gib die Firma an/).waitFor();
+  await page.getByText(/Gib einen Firmennamen ein/).waitFor();
   await page.waitForTimeout(100);
   check(await page.evaluate(() => document.activeElement?.getAttribute("aria-invalid") === "true"), "validation: focus moved to first invalid field");
   check(await page.getByRole("alert").first().isVisible(), "validation: summary alert visible");
   await shot(page, "02-validation-375");
   await page.getByLabel(/^Firma/).fill("Novartis"); await page.getByLabel(/^Welche Stelle/).fill("Laborant:in EFZ");
-  await page.getByLabel("Was ist der Stand?").selectOption("applied");
-  check(await page.getByText("Deine Unterlagen sind unterwegs.").isVisible(), "form: status hint shown");
+  await page.getByLabel("Status", { exact: true }).selectOption("applied");
+  check(await page.getByText("Deine Bewerbung ist unterwegs.").isVisible(), "form: status hint shown");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   await page.waitForURL(/\/applications\/(?!new)/);
   await page.getByText(/Bewerbung gespeichert/).waitFor();
@@ -64,8 +62,8 @@ await scenario("save-error", async () => {
 await scenario("status-delete", async () => {
   const { ctx, page, state } = await session({}, { w: 375, h: 812 });
   await page.goto(BASE + "/applications/a2"); await page.getByRole("heading", { name: "Praktikum Finanzen" }).waitFor();
-  await page.getByLabel("Stand der Bewerbung").selectOption("interview");
-  await page.getByText("Stand geändert: Gespräch").waitFor(); check(true, "status: toast shown");
+  await page.getByLabel("Status der Bewerbung").selectOption("interview");
+  await page.getByText("Status geändert: Gespräch").waitFor(); check(true, "status: toast shown");
   await shot(page, "05-status-toast-375");
   await page.getByRole("button", { name: "Rückgängig" }).click();
   await page.getByText(/Wieder auf/).waitFor(); check(state.apps.find((a) => a.id === "a2").status === "applied", "status: undo restores previous status");

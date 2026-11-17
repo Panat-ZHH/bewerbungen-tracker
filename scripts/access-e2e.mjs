@@ -147,7 +147,7 @@ const scenarios = {
   },
   async A4() {
     const { ctx, page } = await open({ authed: false, meta: {}, access: TRIAL() , extra: async (_c, mock) => { mock.state.memberships = []; } });
-    const seen = await googleSignup(page, "Schule");
+    const seen = await googleSignup(page, "Schüler:in mit Klasse");
     await page.waitForURL(/\/onboarding\/klasse/, { timeout: 60000 }).catch(() => {});
     check(page.url().includes("/onboarding/klasse"), `Google school student → class code step (${page.url()})`);
     check(!seen.includes("/auth/role"), "no role picker");

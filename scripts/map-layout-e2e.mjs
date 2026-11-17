@@ -31,6 +31,7 @@ async function newPage(w, h, dark) {
   const mobile = w < 768 || h < 500;
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, hasTouch: mobile, isMobile: mobile, colorScheme: dark ? "dark" : "light" });
   await ctx.addInitScript(([s, theme]) => {
+    localStorage.getItem("wendapply.map.overlay.controls.collapsed") ?? localStorage.setItem("wendapply.map.overlay.controls.collapsed", "0"); // zoom controls are collapsed behind «Ansicht» by default
     localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s));
     localStorage.setItem("wendapply-theme", theme);
     // Fake visual viewport so a keyboard can be simulated in desktop Chrome.
@@ -148,7 +149,7 @@ async function runMap(w, h, dark) {
   await page.getByRole("button", { name: "Zoom zurücksetzen, aktuell 120 Prozent" }).click();
 
   // selected-item sheet
-  await page.getByRole("button", { name: /Firma 0: .*Gebäudedetails/ }).click({ force: true, timeout: 20000 }).catch(async () => { await page.evaluate(() => document.querySelector("[data-building]")?.click()); });
+  await page.getByRole("button", { name: /Firma 0: .*Haus öffnen/ }).click({ force: true, timeout: 20000 }).catch(async () => { await page.evaluate(() => document.querySelector("[data-building]")?.click()); });
   const sheet = page.locator('[data-sheet="application"]');
   await sheet.waitFor({ timeout: 10000 });
   await page.waitForTimeout(500);
