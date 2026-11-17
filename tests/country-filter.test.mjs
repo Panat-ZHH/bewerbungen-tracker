@@ -22,6 +22,8 @@ test("country in a place text: country names, foreign address prefixes, Swiss-wi
   assert.equal(countryInText("Wien, Österreich"), "AT");
   assert.equal(countryInText("Schweizweit"), "CH");
   assert.equal(countryInText("ganze Schweiz"), "CH");
+  assert.equal(countryInText("Winterthour"), "CH"); // jobup.ch writes French names of Swiss towns
+  assert.equal(countryInText("Bâle"), "CH");
   assert.equal(countryInText("Homeoffice"), undefined);
   assert.equal(countryInText("Darmstadt"), undefined);
   assert.equal(countryInText(""), undefined);

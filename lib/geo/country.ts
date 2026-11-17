@@ -21,6 +21,9 @@ const FOREIGN_WORDS: [RegExp, string][] = [
 // Swiss-wide wording that names no single place ("Schweizweit", "ganze Schweiz", "Suisse romande").
 const SWISS_WORDS = /\b(?:schweiz|schweizweit|switzerland|suisse|svizzera|svizra|deutschschweiz|romandie|ostschweiz|westschweiz|zentralschweiz|nordwestschweiz)\b/;
 
+// French / Italian names of Swiss towns that jobup.ch and others use and the (German) localities directory does not know.
+const SWISS_EXONYMS = /\b(?:winterthour|bale|berne|lucerne|soleure|coire|schaffhouse|saint gall|st gall|san gallo|bienne|morat|thoune|berthoud|zoug|zugo|glaris|frauenfeld|aarau|argovie|thurgovie|grisons|lucerna|basilea|berna|zurigo|ginevra|losanna|friburgo|neuchatel|soletta|sciaffusa|coira|bellinzone|lugano|locarno|sion|sierre|martigny|monthey|brigue|viege|loeche|olten|baden|zofingue|bulle|yverdon|nyon|vevey|montreux)\b/;
+
 /** Country named in a free text place, by country name or a foreign address prefix ("D-78462 Konstanz", "FL-9490 Vaduz", "A-6800 Feldkirch"). */
 export function countryInText(text: string | undefined): string | undefined {
   if (!text?.trim()) return undefined;
@@ -28,7 +31,7 @@ export function countryInText(text: string | undefined): string | undefined {
   if (prefix) return ({ D: "DE", A: "AT", F: "FR", I: "IT", FL: "LI" } as Record<string, string>)[prefix] ?? prefix;
   const folded = fold(text);
   for (const [pattern, code] of FOREIGN_WORDS) if (pattern.test(folded)) return code;
-  if (SWISS_WORDS.test(folded)) return SWITZERLAND;
+  if (SWISS_WORDS.test(folded) || SWISS_EXONYMS.test(folded)) return SWITZERLAND;
   return undefined;
 }
 
