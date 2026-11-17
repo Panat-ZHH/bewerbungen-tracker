@@ -56,17 +56,50 @@ export function decodeXmlEntities(s: string): string {
   });
 }
 
-/** Text of word/document.xml: w:t runs, w:tab, w:br / w:cr, one line per w:p. Deleted text (w:delText) is ignored. */
+/**
+ * Text of word/document.xml: w:t runs, w:tab, w:br / w:cr, one line per w:p. Deleted text (w:delText) and field codes
+ * (w:instrText) are ignored.
+ *
+ * LINEAR single pass (re-audit 3): the former lazy regexes (`<w:t>([\s\S]*?)</w:t>`, same for w:instrText) rescanned to
+ * the end of the document for every unclosed opening tag – O(n²). A ~10 KB DOCX that inflates to 8 MB of "<w:t>" kept
+ * the edge function's CPU busy for hours (killed by the platform, the daily check not even counted). Every closing tag
+ * is now searched at most once per position (results are cached), so the work is proportional to the XML size.
+ */
 export function docxXmlToText(xml: string): string {
-  const body = xml.replace(/<w:instrText\b[^>]*>[\s\S]*?<\/w:instrText>/g, "");
   const out: string[] = [];
-  const token = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>|<w:t(?:\s[^>]*)?\/>|<w:tab\b[^>]*\/>|<w:(?:br|cr)\b[^>]*\/>|<\/w:p>/g;
-  for (let m = token.exec(body); m; m = token.exec(body)) {
-    const tag = m[0];
-    if (m[1] !== undefined) out.push(decodeXmlEntities(m[1]));
-    else if (tag.startsWith("<w:tab")) out.push("\t");
-    else if (tag.startsWith("<w:br") || tag.startsWith("<w:cr")) out.push("\n");
-    else if (tag === "</w:p>") out.push("\n");
+  // Next occurrence of a closing tag at or after `from` – cached, so unclosed openings never rescan the document.
+  const closers = new Map<string, number>();
+  const nextClose = (close: string, from: number): number => {
+    const known = closers.get(close);
+    if (known !== undefined && (known === -1 || known >= from)) return known;
+    const found = xml.indexOf(close, from);
+    closers.set(close, found);
+    return found;
+  };
+  let i = 0;
+  while (i < xml.length) {
+    const lt = xml.indexOf("<", i);
+    if (lt < 0) break;
+    const gt = xml.indexOf(">", lt + 1);
+    if (gt < 0) break;
+    const inner = xml.slice(lt + 1, gt);
+    const name = /^\/?[A-Za-z_][\w:.-]*/.exec(inner)?.[0] ?? "";
+    const selfClosing = inner.endsWith("/");
+    // Attributes must be separated by whitespace (same as the former regex `<w:t(?:\s[^>]*)?>`).
+    const plain = inner.length === name.length || /\s/.test(inner[name.length]) || (selfClosing && inner.length === name.length + 1);
+    i = gt + 1;
+    if (!plain) continue;
+    if (name === "w:t" && !selfClosing) {
+      const end = nextClose("</w:t>", i);
+      if (end < 0) continue;
+      out.push(decodeXmlEntities(xml.slice(i, end)));
+      i = end + "</w:t>".length;
+    } else if (name === "w:instrText" && !selfClosing) {
+      const end = nextClose("</w:instrText>", i);
+      if (end >= 0) i = end + "</w:instrText>".length;
+    } else if (name === "w:tab" && selfClosing) out.push("\t");
+    else if ((name === "w:br" || name === "w:cr") && selfClosing) out.push("\n");
+    else if (name === "/w:p" && inner === "/w:p") out.push("\n");
   }
   return out.join("");
 }

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { confirmationMatches, isFreshSignIn } from "@/lib/account-deletion";
+import { confirmationMatches, isFreshReauth } from "@/lib/account-deletion";
 import { BillingActiveError, deleteAccount } from "@/lib/account-delete-server";
 import { limitIp, limitUser } from "@/lib/api-rate-limit";
 
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   const limitedUser = await limitUser("account-delete", user.id);
   if (limitedUser) return limitedUser;
 
-  if (!isFreshSignIn(token)) return reply(403, "REAUTH_REQUIRED", "Bitte bestätige zuerst mit deinem Passwort oder mit Google, dass du es bist.");
+  if (!isFreshReauth(token, user)) return reply(403, "REAUTH_REQUIRED", "Bitte bestätige zuerst mit deinem Passwort oder mit Google, dass du es bist.");
   if (typeof body.confirm !== "string" || !confirmationMatches(body.confirm, user.email)) return reply(400, "CONFIRMATION_MISMATCH", "Die Bestätigung stimmt nicht. Tippe LÖSCHEN oder deine E-Mail-Adresse.");
 
   try {

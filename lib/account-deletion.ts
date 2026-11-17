@@ -51,6 +51,44 @@ export function isFreshSignIn(token: string, nowMs = Date.now()): boolean {
   return age !== null && age <= REAUTH_MAX_AGE_SECONDS;
 }
 
+/** Sign-in methods (`amr[].method`) of the token that are not older than REAUTH_MAX_AGE_SECONDS. */
+export function freshSignInMethods(token: string, nowMs = Date.now()): string[] {
+  const amr = claims(token)?.amr;
+  if (!Array.isArray(amr)) return [];
+  const now = nowMs / 1000;
+  return amr.flatMap((e) => {
+    if (!e || typeof e !== "object") return [];
+    const { method, timestamp } = e as { method?: unknown; timestamp?: unknown };
+    const t = Number(timestamp);
+    return typeof method === "string" && Number.isFinite(t) && t > 0 && now - t <= REAUTH_MAX_AGE_SECONDS ? [method] : [];
+  });
+}
+
+type IdentityInfo = { identities?: { provider?: string | null }[] | null; app_metadata?: Record<string, unknown> | null };
+
+/** true when the account was created with / linked to e-mail + password (not only Google). Server-side data only. */
+export function hasEmailLogin(user: IdentityInfo | null | undefined): boolean {
+  if (!user) return false;
+  const providers = new Set<string>();
+  for (const i of user.identities ?? []) if (typeof i?.provider === "string") providers.add(i.provider);
+  const meta = user.app_metadata ?? {};
+  if (typeof meta.provider === "string") providers.add(meta.provider);
+  if (Array.isArray(meta.providers)) for (const p of meta.providers) if (typeof p === "string") providers.add(p);
+  return providers.has("email");
+}
+
+/**
+ * Re-authentication check of the account deletion (server side, with the VERIFIED user).
+ * A fresh "password" sign-in only counts for accounts that really log in with e-mail + password. Supabase lets anyone
+ * holding a session ADD a password to a Google-only account without proving anything (no current password exists),
+ * then sign in with it – that must not unlock the irreversible deletion. Google accounts re-authenticate with Google
+ * (amr "oauth") or an e-mail link (otp / recovery / magiclink).
+ */
+export function isFreshReauth(token: string, user: IdentityInfo | null | undefined, nowMs = Date.now()): boolean {
+  const emailLogin = hasEmailLogin(user);
+  return freshSignInMethods(token, nowMs).some((method) => method !== "password" || emailLogin);
+}
+
 /** German bullet list of what is deleted, tailored to the counts of this account. */
 export function deletionItems(s: AccountSummary | null): string[] {
   const n = (count: number | undefined, one: string, many: string) => (count === undefined ? many : count === 1 ? `1 ${one}` : `${count} ${many}`);
