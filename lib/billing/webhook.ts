@@ -95,7 +95,7 @@ export interface OwnerHint { schoolId?: string | null; familyId?: string | null;
 export function subscriptionParams(
   sub: Stripe.Subscription,
   event: Pick<Stripe.Event, "id" | "type" | "created">,
-  extra: { latestInvoiceStatus?: InvoiceStatus | null; owner?: OwnerHint; fresh?: boolean } = {},
+  extra: { latestInvoiceStatus?: InvoiceStatus | null; owner?: OwnerHint } = {},
 ): BillingApplySubscriptionParams | { error: string } {
   const plan = planOfSubscription(sub);
   if (!plan) return { error: "unknown_plan" };
@@ -107,6 +107,10 @@ export function subscriptionParams(
   const familyId = uuidOrNull(extra.owner?.familyId) ?? uuidOrNull(meta.family_id);
   const createdBy = uuidOrNull(extra.owner?.userId) ?? uuidOrNull(meta.user_id);
   const period = periodOf(sub);
+  // Canceled before the period end (immediate cancel in the Dashboard, refund, dunning "cancel after failed retries"):
+  // access ends at ended_at, not at the end of a period that was never paid / was refunded.
+  const endedAt = isoFromUnix((sub as unknown as { ended_at?: number | null }).ended_at);
+  if (sub.status === "canceled" && endedAt && (!period.end || endedAt < period.end)) period.end = endedAt;
   const latestInvoice = typeof sub.latest_invoice === "object" && sub.latest_invoice ? (sub.latest_invoice as Stripe.Invoice).status : null;
   const invoiceStatus = extra.latestInvoiceStatus ?? (latestInvoice && INVOICE_STATUSES.includes(latestInvoice as InvoiceStatus) ? (latestInvoice as InvoiceStatus) : null);
   const limit = Number(meta.student_limit);
@@ -129,11 +133,11 @@ export function subscriptionParams(
     p_student_limit: plan === "individual" && Number.isInteger(limit) && limit > 0 ? limit : null,
     p_event_id: event.id,
     p_event_type: event.type,
-    // Out-of-order guard: snapshots in the payload (customer.subscription.*) carry their event time. A subscription we just
-    // retrieved (checkout / invoice events) IS the current state, so it must never be dropped as stale (an invoice.paid
-    // created a second before subscription.updated would lose 'paid'); null = no stale check, guard time unchanged.
-    // (Using the local clock instead is wrong: seen live, delivery delay/clock skew then rejected a newer cancel.)
-    p_event_created: extra.fresh ? null : isoFromUnix(event.created),
+    // Out-of-order guard: Stripe's event.created (never the local clock: delivery delay / skew rejected a newer cancel).
+    // handleStripeEvent retrieves the CURRENT subscription for every event, so the state applied for event N is at least
+    // as new as event N; rejecting an event older than the last applied one therefore never loses information, and a
+    // late, older snapshot can no longer overwrite a newer state (payments audit 2026-11-17).
+    p_event_created: isoFromUnix(event.created),
   };
   return params;
 }
@@ -157,12 +161,7 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
   let sub: Stripe.Subscription | null = null;
   let owner: OwnerHint | undefined;
   let latestInvoiceStatus: InvoiceStatus | null | undefined;
-  let fresh = false;
-  const retrieve = async (id: string) => {
-    const current = await deps.stripe.retrieveSubscription(id);
-    fresh = true;
-    return current;
-  };
+  const retrieve = (id: string) => deps.stripe.retrieveSubscription(id);
 
   switch (event.type as HandledEventType) {
     case "checkout.session.completed": {
@@ -180,8 +179,17 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
     case "customer.subscription.created":
     case "customer.subscription.updated":
     case "customer.subscription.deleted":
-      sub = event.data.object as Stripe.Subscription; // the snapshot at event time; out-of-order events are rejected by the DB
+    {
+      // Current state from Stripe (with latest_invoice); the payload snapshot only if the subscription is gone (404).
+      const snapshot = event.data.object as Stripe.Subscription;
+      try {
+        sub = await retrieve(snapshot.id);
+      } catch (error) {
+        if ((error as { statusCode?: number }).statusCode !== 404) throw error;
+        sub = snapshot;
+      }
       break;
+    }
     case "invoice.paid":
     case "invoice.payment_failed": {
       const invoice = event.data.object as Stripe.Invoice;
@@ -196,7 +204,7 @@ export async function handleStripeEvent(event: Stripe.Event, deps: WebhookDeps):
     }
   }
 
-  const params = subscriptionParams(sub!, event, { owner, latestInvoiceStatus, fresh });
+  const params = subscriptionParams(sub!, event, { owner, latestInvoiceStatus });
   if ("error" in params) {
     // Not a WendApply subscription (e.g. a `stripe trigger` fixture without plan metadata): acknowledge, never retry.
     log("stripe webhook: skipped", { event: event.id, type: event.type, reason: params.error, subscription: sub!.id });

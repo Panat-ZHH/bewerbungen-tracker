@@ -30,7 +30,8 @@ function deps({ subscriptions = {}, db = createMemoryBillingDb() } = {}) {
   const logs = [];
   return {
     db, logs,
-    stripe: { async retrieveSubscription(id) { const s = subscriptions[id]; if (!s) throw new Error(`no such subscription ${id}`); return s; } },
+    // Unknown ids answer like Stripe (404 resource_missing): subscription events then fall back to the payload snapshot.
+    stripe: { async retrieveSubscription(id) { const s = subscriptions[id]; if (!s) throw Object.assign(new Error(`No such subscription: '${id}'`), { statusCode: 404, code: "resource_missing" }); return s; } },
     log: (m, x) => logs.push([m, x]),
   };
 }
@@ -129,18 +130,38 @@ test("duplicate event: second delivery is not applied again", async () => {
   assert.equal(d.db.state.calls.length, 1);
 });
 
-test("ordering: retrieved state is never stale (no event time), older snapshots still are", async () => {
-  const d = deps({ subscriptions: { sub_test1: sub({ cancel_at_period_end: true }) } });
-  const newer = event("customer.subscription.updated", sub(), { created: NOW + 100 });
-  assert.equal((await run(newer, d)).body.kind, "applied");
-  const paid = event("invoice.paid", { id: "in_o", status: "paid", parent: { subscription_details: { subscription: "sub_test1" } } }, { created: NOW + 50 });
-  const r = await run(paid, d);
-  assert.equal(r.body.kind, "applied", "invoice.paid created before subscription.updated must not be lost");
-  assert.equal(d.db.state.calls.at(-1).p_event_created, null);
-  assert.equal(d.db.state.calls.at(-1).p_latest_invoice_status, "paid");
+test("ordering: every event applies the CURRENT subscription; older events are stale and never overwrite newer state", async () => {
+  const current = sub({ status: "active", latest_invoice: { id: "in_o", object: "invoice", status: "paid" } });
+  const d = deps({ subscriptions: { sub_test1: current } });
+  // invoice.paid (fresh retrieve) is applied first ...
+  const paid = event("invoice.paid", { id: "in_o", status: "paid", parent: { subscription_details: { subscription: "sub_test1" } } }, { created: NOW + 100 });
+  assert.equal((await run(paid, d)).body.kind, "applied");
+  assert.equal(d.db.state.calls.at(-1).p_event_created, new Date((NOW + 100) * 1000).toISOString());
+  // ... then an OLDER subscription.updated (past_due snapshot from before the payment) arrives late: rejected, not applied.
   const older = event("customer.subscription.updated", sub({ status: "past_due" }), { created: NOW + 20 });
   const o = await run(older, d);
   assert.deepEqual([o.status, o.body.kind, o.body.reason], [200, "skipped", "stale_event"]);
+  assert.equal(d.db.state.subscriptions.get("sub_test1").p_status, "active", "late past_due snapshot must not win");
+  // A newer subscription.updated applies the retrieved state (not its payload), incl. the expanded invoice status.
+  const newer = event("customer.subscription.updated", sub({ status: "past_due" }), { created: NOW + 200 });
+  assert.equal((await run(newer, d)).body.kind, "applied");
+  assert.deepEqual([d.db.state.calls.at(-1).p_status, d.db.state.calls.at(-1).p_latest_invoice_status], ["active", "paid"]);
+  // Retrieval errors other than 404 are transient (500, Stripe retries); 404 falls back to the snapshot.
+  const broken = deps({ subscriptions: {} });
+  broken.stripe.retrieveSubscription = async () => { throw Object.assign(new Error("rate limited"), { statusCode: 429 }); };
+  assert.equal((await run(event("customer.subscription.updated", sub()), broken)).status, 500);
+});
+
+test("canceled with ended_at before the period end (immediate cancel / refund) ends access at ended_at", () => {
+  const ended = NOW + 5 * 86400;
+  const p = subscriptionParams(sub({ status: "canceled", ended_at: ended }), { id: "evt_C1", type: "customer.subscription.deleted", created: NOW });
+  assert.equal(p.p_current_period_end, new Date(ended * 1000).toISOString());
+  // cancel at period end: ended_at == period end, unchanged
+  const q = subscriptionParams(sub({ status: "canceled", ended_at: NOW + 365 * 86400 }), { id: "evt_C2", type: "customer.subscription.deleted", created: NOW });
+  assert.equal(q.p_current_period_end, new Date((NOW + 365 * 86400) * 1000).toISOString());
+  // ended_at is ignored for non-canceled states
+  const r = subscriptionParams(sub({ status: "active", ended_at: ended }), { id: "evt_C3", type: "customer.subscription.updated", created: NOW });
+  assert.equal(r.p_current_period_end, new Date((NOW + 365 * 86400) * 1000).toISOString());
 });
 
 test("unhandled event types and foreign subscriptions are acknowledged (200) and recorded", async () => {
@@ -207,6 +228,7 @@ before(async () => {
   ctx = await setupTeacherDb({ seed: false });
   await ctx.admin("create role service_role");
   await ctx.apply("20261116200000_billing_stripe.sql");
+  await ctx.apply("20261117100000_billing_hardening.sql");
   await ctx.admin(`insert into auth.users values ('${USER}','admin@webhook.ch','{"full_name":"Admin"}')`);
   schoolId = (await ctx.admin("select public.platform_create_school('Webhook Schule') as id"))[0].id;
 });
@@ -241,8 +263,9 @@ test("end to end on PGlite: checkout -> licence active, invoice failed, cancel, 
   assert.equal(failed.body.kind, "applied");
   const row = (await ctx.admin("select status, latest_invoice_status from public.billing_subscriptions where stripe_subscription_id='sub_e2e'"))[0];
   assert.deepEqual(row, { status: "past_due", latest_invoice_status: "open" });
-  assert.equal((await lic()).status, "active", "past_due keeps access until the period end");
+  assert.equal((await lic()).status, "active", "past_due keeps access during the grace period");
 
+  d.stripe = { async retrieveSubscription() { return { ...s, status: "canceled" }; } };
   const del = await run(event("customer.subscription.deleted", { ...s, status: "canceled" }), d);
   assert.equal(del.body.kind, "applied");
   assert.equal((await ctx.admin("select status from public.billing_subscriptions where stripe_subscription_id='sub_e2e'"))[0].status, "canceled");

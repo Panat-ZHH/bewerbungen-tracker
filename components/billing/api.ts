@@ -45,3 +45,21 @@ export function startCheckout(owner: BillingOwner, plan: PlanId, payment: Paymen
 export function openPortal(owner: BillingOwner) {
   return call<{ url: string }>("/api/billing/portal", { method: "POST", body: JSON.stringify(owner.kind === "school" ? { schoolId: owner.id } : { familyId: owner.id }) });
 }
+
+/** In-app payment: creates a Checkout Session (ui_mode "elements") for the family package → client secret for Stripe.js. */
+export function startInAppCheckout(familyId: string, interval: BillingInterval) {
+  return call<{ clientSecret: string }>("/api/billing/checkout", { method: "POST", body: JSON.stringify({ ...checkoutBody({ kind: "family", id: familyId }, "family", "card", interval), ui: "elements" }) });
+}
+
+export interface CheckoutSessionState {
+  status: "open" | "complete" | "expired" | null;
+  paymentStatus: "paid" | "unpaid" | "no_payment_required" | null;
+  plan: PlanId | null;
+  interval: BillingInterval;
+  familyId?: string;
+  schoolId?: string;
+}
+/** State of an in-app Checkout Session (return page). */
+export function fetchCheckoutSession(id: string) {
+  return call<CheckoutSessionState>(`/api/billing/session?id=${encodeURIComponent(id)}`);
+}
