@@ -95,3 +95,17 @@ created_at, last_sign_in_at, blocked), user detail; extend/set trial; grant/revo
   `<Blocked>` instead of the page, except allow-listed paths: /settings (export + delete), /abo, /familie (parents: create/invite/pay),
   /schullizenz, /kontakt, /hilfe, legal pages, /auth/*, /login.
 - New pages: `/abo` (plan choice: Einzelabo for students, Familienpaket for parents; reuses components/billing), `/schullizenz`.
+
+## 7. Enforcement switch (preview uses the LIVE database!)
+Netlify previews talk to the same Supabase project as production, so migrations must be harmless for live users until Panat says yes.
+- `public.access_settings` (single row id=1, `enforce_mode text not null default 'test_users' check (enforce_mode in ('off','test_users','on'))`,
+  `went_live_at timestamptz null`). No client access.
+- `account_access.enforce_test boolean not null default false` – set only by service role for throwaway e2e users (preview tests).
+- `has_app_access(uid)` = true whenever enforcement does not apply to uid (mode 'off', or 'test_users' and not enforce_test);
+  otherwise the real decision. Blocked users are blocked in every mode except 'off'.
+- `my_access()` adds `"enforced": boolean`. UI shows banners / paywall / licence gate ONLY when `enforced` is true.
+- `public.access_go_live()` (service_role only, idempotent): sets every pre-existing user's trial to
+  `greatest(trial_ends_at, now() + 7 days)` (users created before went_live_at), writes went_live_at, sets mode 'on', logs to admin_audit_log.
+  Run only after Panat's yes, right after the production deploy (docs/access/GO-LIVE.md).
+- The migration's own backfill creates account_access rows for existing users with `trial_ends_at = greatest(created_at + 7 days, now() + 7 days)`;
+  go-live re-bases them to the go-live date.

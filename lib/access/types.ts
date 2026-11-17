@@ -41,4 +41,5 @@ export interface AccessInfo {
   subscription: AccessSubscription | null;
   school: { id: string; name: string; valid_until: string | null } | null;
   blocked: boolean;
+  enforced: boolean; // false = rules not active for this user yet (access_settings.enforce_mode) → UI shows no banner/paywall
 }
