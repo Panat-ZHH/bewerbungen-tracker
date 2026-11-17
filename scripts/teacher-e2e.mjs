@@ -115,7 +115,7 @@ async function flow(tag, vp) {
   // 4. class detail, invites: link, code, email list
   await tp.locator('a[href*="/teacher/classes/"]', { hasText: "Informatik 4a" }).first().click(); await tp.waitForURL("**/teacher/classes/**"); await wait(tp, "Ben Huber"); await shot(tp, "07-class-students");
   await tp.getByRole("tab", { name: /Einladen/ }).click(); await wait(tp, "KLAS-7Q2"); await shot(tp, "08-invite");
-  await tp.getByRole("button", { name: "Offenen Link erstellen" }).click(); await tp.waitForTimeout(600);
+  await tp.getByRole("button", { name: "Zeitlich begrenzten Link erstellen" }).click(); await tp.waitForTimeout(600);
   const open = S.invites.find((i) => !i.email); check(!!open, "open invite link created (class_invite_create)");
   await tp.getByLabel("Adressen oder Klassenliste").fill("lena@beispiel.ch\nanna@schule.ch\nkaputt");
   await tp.getByRole("button", { name: /Einladungen? erstellen$/ }).click(); await tp.getByRole("status").filter({ hasText: "anna@schule.ch" }).first().waitFor({ timeout: 15000 }).catch(() => undefined); await shot(tp, "09-invite-created");
@@ -151,7 +151,7 @@ async function flow(tag, vp) {
   const inactiveTab = tp.getByRole("tab", { name: /^Inaktiv/ });
   if (await inactiveTab.count()) { await inactiveTab.click(); await tp.waitForTimeout(300); check(await tp.getByText("Ben Huber").count() > 0 && await tp.getByText("Lena Müller").count() === 0, "filter 'Inaktiv' lists only inactive students"); await shot(tp, "16-filter-inactive"); await tp.getByRole("tab", { name: /^Alle/ }).click(); }
   await tp.getByLabel(/Schüler.*suchen/).fill("lena"); await tp.waitForTimeout(300); check(await tp.getByText("Ben Huber").count() === 0 && await tp.getByText("Lena Müller").count() > 0, "search narrows the list"); await tp.getByLabel(/Schüler.*suchen/).fill("");
-  const [dl] = await Promise.all([tp.waitForEvent("download"), tp.getByRole("button", { name: "CSV Übersicht" }).click()]);
+  const [dl] = await Promise.all([tp.waitForEvent("download"), (async () => { await tp.getByText("Exportieren").click(); await tp.getByRole("button", { name: "Übersicht (CSV)" }).click(); })()]);
   const csv = fs.readFileSync(await dl.path(), "utf8"); check(csv.includes("Lena Müller") && csv.includes("Ben Huber") && !csv.includes("Notiz") && !csv.includes("Rückruf"), "CSV export has the students and no private fields");
   // nudge Ben (inactive)
   const ben = tp.locator("tbody tr, ul[aria-label=\"Schüler:innen als Karten\"] > li", { hasText: "Ben Huber" }).filter({ visible: true }).first();
@@ -166,7 +166,7 @@ async function flow(tag, vp) {
   check(await tp.getByText("Swisscom").count() > 0, "student detail shows company names when allowed");
   // announcement
   await tp.goto(BASE + "/teacher/classes/" + Object.keys(S.classes)[0], { waitUntil: "domcontentloaded" }); await wait(tp, "Lena Müller");
-  await tp.getByRole("tab", { name: /Mitteilungen/ }).click(); await tp.getByLabel("Nachricht").fill("Bis Freitag drei Bewerbungen."); await tp.getByRole("button", { name: "Veröffentlichen" }).click(); await wait(tp, "Bis Freitag drei Bewerbungen."); await shot(tp, "19-announcement");
+  await tp.getByRole("tab", { name: /^Mehr/ }).click(); await tp.getByRole("tab", { name: /Mitteilungen/ }).click(); await tp.getByLabel("Nachricht").fill("Bis Freitag drei Bewerbungen."); await tp.getByRole("button", { name: "Mitteilung senden" }).click(); await wait(tp, "Bis Freitag drei Bewerbungen."); await shot(tp, "19-announcement");
 
   // 8. consent changes reach the teacher view
   await sp.goto(BASE + "/classes", { waitUntil: "domcontentloaded" }); await wait(sp, "Firmen zeigen");

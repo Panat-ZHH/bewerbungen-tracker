@@ -95,12 +95,13 @@ export function LicenceGate({ access = null, email }: { access?: AccessInfo | nu
   return (
     <GateFrame testId="licence-gate" icon={<School />} title={<>Zugang nur mit <span className="marker">Schullizenz</span></>}>
       <p className="text-body">
-        {ended ? "Die Lizenz deiner Schule ist abgelaufen. Sobald die Schule verlängert, kannst du WendApply wieder nutzen." : "Lehrpersonen und Schulen nutzen WendApply mit einer Schullizenz. Für dein Konto ist noch keine gültige Lizenz hinterlegt."}
+        {ended ? "Die Lizenz deiner Schule ist abgelaufen. Deine Klassen und Daten bleiben gespeichert. Bitte deine Schuladministration, die Lizenz zu verlängern." : "Lehrpersonen und Schulen nutzen WendApply mit einer Schullizenz. Für dein Konto ist noch keine gültige Lizenz hinterlegt."}
       </p>
-      {email && <p className="text-body">Hat deine Schule schon eine Lizenz? Gib deiner Schuladministration diese Adresse:<strong className="mt-1 block [overflow-wrap:anywhere]">{email}</strong></p>}
-      <p className="text-body">
+      {/* lehrperson-06: an expired licence needs no «has your school a licence?» questions. */}
+      {email && !ended && <p className="text-body">Hat deine Schule schon eine Lizenz? Gib deiner Schuladministration diese Adresse:<strong className="mt-1 block [overflow-wrap:anywhere]">{email}</strong></p>}
+      {!ended && <p className="text-body">
         Möchte deine Schule WendApply nutzen, oder hat sie schon eine Lizenz? Schreib uns an <a href={`mailto:${SUPPORT_EMAIL}`} className={linkClass}>{SUPPORT_EMAIL}</a>. Wir schalten dich frei.
-      </p>
+      </p>}
       <div className="flex flex-wrap gap-2">
         <ButtonLink href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Schullizenz WendApply")}`} size="lg" icon={<Mail size={16} aria-hidden />} data-primary-action="">Support schreiben</ButtonLink>
         <ButtonLink href="/schulen" size="lg" variant="ghost">Für Schulen</ButtonLink>

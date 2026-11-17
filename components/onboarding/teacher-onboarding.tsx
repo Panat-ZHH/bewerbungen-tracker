@@ -74,7 +74,7 @@ export function TeacherOnboarding() {
               <AuthTitle title={<>«{created.name}» ist <span className="marker">bereit</span></>}>Lade jetzt deine Schülerinnen und Schüler ein: per Klassencode, Einladungslink oder QR-Code. Sie entscheiden selbst, was sie mit dir teilen.</AuthTitle>
               <div className="flex"><CodeActions code={created.joinCode} name={created.name} /></div>
               <Button full size="lg" loading={busy} onClick={() => void run(() => finish(`/teacher/classes/${created.id}?tab=invite`))}>Schüler:innen einladen</Button>
-              <button type="button" onClick={() => void run(() => finish())} className="mx-auto flex min-h-11 items-center px-3 text-sm font-medium text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)]">Zur Übersicht</button>
+              <button type="button" onClick={() => void run(() => finish())} className="mx-auto flex min-h-11 items-center px-3 text-sm font-medium text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)]">Zu meinen Klassen</button>
             </div>
           )}
         </div>

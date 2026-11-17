@@ -36,7 +36,7 @@ export function AnnouncementsPanel({ classId }: { classId: string }) {
         <div><h2 className="text-heading">Neue Mitteilung</h2><p className="text-small mt-1 text-muted">Alle Schülerinnen und Schüler der Klasse sehen die Nachricht in ihrer Klassenansicht.</p></div>
         <form onSubmit={submit} className="space-y-3">
           <Field label="Nachricht" htmlFor="ann-text" error={formError} hint={`${text.length}/${MAX} Zeichen`}><Textarea id="ann-text" rows={5} maxLength={MAX} className="text-base! sm:text-base!" value={text} onChange={(e) => setText(e.target.value)} placeholder="z. B. Bitte bis Freitag mindestens 3 Bewerbungen abschicken." aria-invalid={!!formError} /></Field>
-          <Button type="submit" className="min-h-11 sm:min-h-11" icon={<Send size={15} />} loading={busy}>Veröffentlichen</Button>
+          <Button type="submit" className="min-h-11 sm:min-h-11" icon={<Send size={15} />} loading={busy}>Mitteilung senden</Button>
         </form>
       </Card>
       <section aria-label="Bisherige Mitteilungen">
