@@ -11,7 +11,8 @@ import { daysLeftText, isEnforced, LICENCE_PATH } from "@/lib/access/gate";
 import { aboMode, paysTwice, RENEWING } from "./abo-logic";
 import { formatDateCh } from "@/lib/family-core";
 import { bothPricesText, openSoloPortal, soloPlan, startSoloCheckout, type SoloInterval } from "./solo";
-import { familyPlan, intervalPriceText, savingText } from "./logic";
+import { familyPlan, inAppPaymentEnabled, intervalPriceText, savingText } from "./logic";
+import { SoloPayForm } from "./solo-pay-form";
 
 type Return = "success" | "cancel" | "portal" | null;
 
@@ -26,6 +27,7 @@ export function AboView() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [ret, setRet] = useState<Return>(null);
+  const [payInApp, setPayInApp] = useState(false);
 
   // Back from Stripe: re-read my_access (the webhook may need a few seconds) and clean the URL.
   useEffect(() => {
@@ -47,6 +49,8 @@ export function AboView() {
   }, [refresh]);
 
   async function buy() {
+    // In-app Payment Element when the publishable key is there (like the family package); else hosted Stripe Checkout.
+    if (inAppPaymentEnabled()) { setError(""); setPayInApp(true); return; }
     setBusy(true); setError("");
     const r = await startSoloCheckout(period);
     if (r.ok && r.data.url) { window.location.assign(r.data.url); return; }
@@ -147,15 +151,21 @@ export function AboView() {
                 const checked = period === o;
                 return (
                   <label key={o} className={`flex cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border-2 p-3 transition-colors ${checked ? "border-[var(--brand)] bg-[var(--brand-soft)]" : "border-[var(--line)] hover:border-[var(--outline)]"}`}>
-                    <input type="radio" name="solo-interval" value={o} checked={checked} onChange={() => setPeriod(o)} className="size-4 shrink-0 accent-[var(--brand)]" />
+                    <input type="radio" name="solo-interval" value={o} checked={checked} disabled={payInApp} onChange={() => setPeriod(o)} className="size-4 shrink-0 accent-[var(--brand)]" />
                     <span className="text-sm"><span className="font-bold">{o === "month" ? "Monatlich" : "Jährlich"}</span> · <span className="tabular">{intervalPriceText(soloPlan(), o)}</span></span>
                     {o === "year" && savingText(soloPlan()) && <span className="ml-auto rounded-full bg-[var(--sun)] px-2 py-0.5 text-xs font-bold text-[var(--on-sun)]">Spare {savingText(soloPlan())!.replace(/ günstiger.*$/, "")}</span>}
                   </label>
                 );
               })}
             </fieldset>
-            <Button size="lg" full loading={busy} onClick={buy} icon={<CreditCard size={16} aria-hidden />} data-primary-action="">Einzelabo buchen</Button>
-            <p className="text-small text-muted">Bezahlung mit Karte über Stripe. Endpreise in CHF.</p>
+            {payInApp ? (
+              <SoloPayForm interval={period} onCancel={() => setPayInApp(false)} />
+            ) : (
+              <>
+                <Button size="lg" full loading={busy} onClick={buy} icon={<CreditCard size={16} aria-hidden />} data-primary-action="">Einzelabo buchen</Button>
+                <p className="text-small text-muted">Bezahlung mit Karte über Stripe. Endpreise in CHF.</p>
+              </>
+            )}
           </section>
           <div className="space-y-4">
             <section className="panel-flat space-y-2 p-6" data-testid="abo-plan-family">

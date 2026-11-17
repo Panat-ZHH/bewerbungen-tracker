@@ -99,3 +99,16 @@ test("Swiss spelling in the new files (no sharp s)", () => {
     assert.doesNotMatch(read(f), /ß/, f);
   }
 });
+
+test("Einzelabo pays in the app: Payment Element on /abo when the publishable key is set, hosted page only as fallback", () => {
+  const v = read("components/billing/abo-view.tsx");
+  assert.match(v, /if \(inAppPaymentEnabled\(\)\) \{[^}]*setPayInApp\(true\)/, "buy() opens the in-app form first");
+  assert.match(v, /<SoloPayForm interval=\{period\}/);
+  const s = read("components/billing/solo.ts");
+  assert.match(s, /startSoloInAppCheckout[\s\S]*plan: "solo"[\s\S]*owner: "me", ui: "elements"/, "in-app session asks for ui 'elements'");
+  assert.match(s, /\/abo\?billing=success&session_id=/, "after paying back to /abo?billing=success (AboView polls my_access)");
+  const f = read("components/billing/solo-pay-form.tsx");
+  assert.match(f, /createPaymentElement/);
+  assert.match(f, /confirm\(\{ redirect: "if_required" \}\)/, "no returnUrl passed to confirm() (it hangs)");
+  assert.doesNotMatch(f, /checkout\.stripe\.com|window\.location\.assign\(r\.data\.url\)/, "never the hosted page");
+});

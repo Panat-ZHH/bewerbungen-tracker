@@ -45,6 +45,14 @@ async function call<T>(path: string, init: RequestInit = {}): Promise<SoloOutcom
 export function startSoloCheckout(interval: SoloInterval) {
   return call<{ url: string | null }>("/api/billing/checkout", { method: "POST", body: JSON.stringify({ plan: "solo", interval, payment: "card", owner: "me" }) });
 }
+/** In-app Einzelabo payment (Checkout Session ui_mode "elements") → { clientSecret } for the Payment Element on /abo. */
+export function startSoloInAppCheckout(interval: SoloInterval) {
+  return call<{ clientSecret: string }>("/api/billing/checkout", { method: "POST", body: JSON.stringify({ plan: "solo", interval, payment: "card", owner: "me", ui: "elements" }) });
+}
+/** Where the solo in-app payment goes after a successful confirm (AboView polls my_access on ?billing=success). */
+export function soloDoneHref(clientSecret: string): string {
+  return `/abo?billing=success&session_id=${encodeURIComponent(clientSecret.split("_secret_")[0])}`;
+}
 /** Stripe customer portal for the caller's own Einzelabo (returns to /abo?billing=portal). */
 export function openSoloPortal() {
   return call<{ url: string }>("/api/billing/portal", { method: "POST", body: JSON.stringify({ owner: "me" }) });
