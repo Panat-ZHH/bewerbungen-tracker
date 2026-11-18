@@ -180,7 +180,8 @@ for (const { key, vp } of VIEWPORTS) {
     check(await visible(page, "von 300 im Paket"), "student count vs limit");
     check(await visible(page, "Über 90 % der Plätze sind belegt (noch 24 frei)"), "warning at >= 90 %");
     check(await visible(page, "Noch 12 Tage Pilotphase"), "pilot days remaining for the pilot school");
-    check(await visible(page, "Paketwechsel über Kontakt"), "package change only via contact");
+    // UX 6b85db4 replaced the «Paketwechsel über Kontakt» line by an «Offerte anfragen» / contact link to /kontakt (no payment UI).
+    check(await page.locator('a[href="/kontakt"]', { hasText: /Offerte anfragen|Kontakt aufnehmen/ }).locator("visible=true").first().waitFor({ timeout: 30000 }).then(() => true, () => false), "package change only via contact (Offerte anfragen → /kontakt)");
     check(await visible(page, "15 mit Bewerbung"), "class aggregate shown when not suppressed");
     check(!(await page.getByText(/Sek 3b.*mit Bewerbung/).count()), "suppressed class shows no aggregates");
     check(await visible(page, "Herr Bachmann"), "teachers listed");
