@@ -19,6 +19,8 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const navigating = useRef(false);
   const pathname = usePathname();
   const lastPath = useRef(pathname);
 
@@ -29,22 +31,29 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
     if (!open && d.open) d.close();
     if (!open) return;
     const root = document.documentElement;
+    const trigger = triggerRef.current;
     const prev = root.style.overflow;
     root.style.overflow = "hidden";
     root.classList.add("public-menu-open");
-    return () => { root.style.overflow = prev; root.classList.remove("public-menu-open"); };
+    return () => {
+      root.style.overflow = prev; root.classList.remove("public-menu-open");
+      // Safari does not hand focus back to the opener of a modal dialog; do it here (not after a link tap: the new page owns focus).
+      if (!navigating.current) trigger?.focus();
+      navigating.current = false;
+    };
   }, [open]);
 
   // Close when the route changes (e.g. browser back while the sheet is open).
   useEffect(() => {
     if (lastPath.current === pathname) return;
     lastPath.current = pathname;
+    navigating.current = true;
     ref.current?.close();
   }, [pathname]);
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] text-[var(--ink)] lg:hidden">
+      <button ref={triggerRef} type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] text-[var(--ink)] lg:hidden">
         <Menu size={20} strokeWidth={2.4} aria-hidden />
         <span className="sr-only">Menü öffnen</span>
       </button>
@@ -64,7 +73,7 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
             <ul className="public-menu-list">
               {items.map((n) => (
                 <li key={n.href}>
-                  <Link href={n.href} onClick={() => setOpen(false)} aria-current={pathname === n.href ? "page" : undefined} className="public-menu-link">
+                  <Link href={n.href} onClick={() => { navigating.current = true; setOpen(false); }} aria-current={pathname === n.href ? "page" : undefined} className="public-menu-link">
                     {n.label}
                     <ArrowRight size={18} strokeWidth={2.4} aria-hidden className="shrink-0 text-[var(--muted)]" />
                   </Link>
@@ -72,7 +81,7 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
               ))}
             </ul>
           </nav>
-          <ButtonLink href="/login" size="lg" full className="mt-4" onClick={() => setOpen(false)} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
+          <ButtonLink href="/login" size="lg" full className="mt-4" onClick={() => { navigating.current = true; setOpen(false); }} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
         </div>
       </dialog>
     </>

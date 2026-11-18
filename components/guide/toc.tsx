@@ -2,7 +2,7 @@ import { ChevronDown } from "lucide-react";
 
 export type TocItem = { id: string; title: string };
 
-const itemCls = "flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-1.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--hover)] lg:min-h-9";
+const itemCls = "flex min-h-11 items-center gap-3 rounded-[var(--radius-md)] px-2.5 py-1.5 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--hover)] lg:min-h-9 lg:pointer-coarse:min-h-11";
 const numCls = "font-display w-6 shrink-0 text-right text-base font-extrabold tabular-nums text-[var(--muted)]";
 
 function List({ items }: { items: TocItem[] }) {

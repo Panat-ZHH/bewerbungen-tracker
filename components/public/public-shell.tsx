@@ -46,16 +46,16 @@ export function PublicShell({ children }: { children: ReactNode }) {
     <div className="public-site workspace-bg flex min-h-[100dvh] flex-col text-[var(--ink)]">
       <a href="#inhalt" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:border-[length:var(--border-w)] focus:border-[var(--outline)] focus:shadow-[var(--shadow-md)]">Zum Inhalt springen</a>
       <header className="app-bar app-bar-top public-header sticky top-0 z-40">
-        <div className="public-header-row mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 py-2.5">
-          <Link href="/" className="mr-auto flex min-h-11 min-w-0 items-center gap-2.5 rounded-full" aria-label="WendApply, zur Startseite">
+        <div className="public-header-row mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 py-2.5 max-[359px]:gap-x-1.5">
+          <Link href="/" className="mr-auto flex min-h-11 min-w-0 items-center gap-2.5 rounded-full max-[359px]:gap-2" aria-label="WendApply, zur Startseite">
             <BrandMark size={34} priority />
-            <span className="font-display text-xl font-extrabold tracking-[-.03em]">WendApply</span>
+            <span className="font-display text-xl font-extrabold tracking-[-.03em] max-[359px]:text-lg">WendApply</span>
           </Link>
           <nav aria-label="Hauptnavigation" className="hidden items-center gap-0.5 lg:flex">
             {nav.map((n) => <Link key={n.href} href={n.href} className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
           </nav>
           <div className="hidden lg:block"><ThemeSwitch /></div>
-          <ButtonLink href="/login" size="sm" className="min-h-11">Loslegen</ButtonLink>
+          <ButtonLink href="/login" size="sm" className="min-h-11 max-[359px]:px-3">Loslegen</ButtonLink>
           <PublicMobileMenu items={nav} />
         </div>
       </header>
