@@ -47,9 +47,9 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
           const act = activity.find((a) => a.userId === friend.otherUserId);
           const counts = act?.shared ? order.filter((s) => (act.statusCounts?.[s] ?? 0) > 0) : [];
           return (
-            <li key={friend.id} className="flex min-w-0 items-start gap-3 py-4 sm:gap-4">
+            <li key={friend.id} className="flex min-w-0 flex-wrap items-start gap-3 py-4 sm:flex-nowrap sm:gap-4">
               <Avatar name={friend.displayName} src={avatars[friend.otherUserId]} size="lg" />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 basis-[min(8rem,100%)]">
                 <Link href={`/friends/${encodeURIComponent(friend.otherUserId)}`} className="group -my-3 flex min-w-0 items-center gap-1.5 py-3" title={`Insel von ${friend.displayName} ansehen`}>
                   <span className="font-display truncate text-lg font-bold leading-tight tracking-[-.02em] group-hover:underline group-hover:decoration-[var(--sun)] group-hover:decoration-4 group-hover:underline-offset-4 group-focus-visible:underline">{friend.displayName}</span>
                   <ArrowRight size={16} strokeWidth={2.4} aria-hidden className="shrink-0 text-muted transition-transform duration-200 group-hover:translate-x-1" />
@@ -62,7 +62,7 @@ export function FriendList({ friends, activity, onChanged }: { friends: SocialCo
                   </div>
                 )}
               </div>
-              <button type="button" aria-label={`${friend.displayName} entfernen`} title="Freundschaft beenden" onClick={() => { setError(""); setTarget(friend); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)] hover:text-[var(--danger-fg)] active:translate-y-px"><UserMinus size={17} /></button>
+              <button type="button" aria-label={`${friend.displayName} entfernen`} title="Freundschaft beenden" onClick={() => { setError(""); setTarget(friend); }} className="flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-full text-muted hover:bg-[var(--hover)] hover:text-[var(--danger-fg)] active:translate-y-px"><UserMinus size={17} /></button>
             </li>
           );
         })}

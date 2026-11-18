@@ -329,7 +329,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
             const { label, href, icon: Icon } = item;
             const selected = isSelected(item);
             return (
-              <li key={href} className="min-w-11 flex-auto">
+              <li key={href} className="min-w-[44px] flex-auto">
                 <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
                   <span className={`relative flex h-[28px] w-[min(48px,100%)] items-center justify-center rounded-full transition-colors duration-150 ${selected ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={20} strokeWidth={2} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
                   <span className="max-w-full truncate max-[340px]:text-[10px]">{label}</span>
@@ -337,7 +337,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
               </li>
             );
           })}
-          <li className="min-w-11 flex-auto">
+          <li className="min-w-[44px] flex-auto">
             <button type="button" onClick={() => setMoreOpen("mobile")} aria-haspopup="dialog" aria-expanded={moreOpen === "mobile"} className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
               <span className={`relative flex h-[28px] w-[min(48px,100%)] items-center justify-center rounded-full transition-colors duration-150 ${moreActive ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={20} strokeWidth={2} /><NoticeBadge enabled={!compact && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
               <span className="max-w-full truncate">Mehr</span>

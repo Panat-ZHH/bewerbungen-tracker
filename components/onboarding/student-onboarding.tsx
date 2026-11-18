@@ -203,7 +203,7 @@ export function StudentOnboarding() {
                 <p className="mb-2 text-small font-semibold">Vorschläge</p>
                 <div className="flex flex-wrap gap-2">
                   {PROFESSION_SUGGESTIONS.filter((s) => !a.professions.some((p) => p.toLowerCase() === s.toLowerCase())).map((s) => (
-                    <button key={s} type="button" onClick={() => addChip(s)} disabled={a.professions.length >= MAX_PROFESSIONS} className="min-h-9 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-3.5 text-sm font-medium transition-colors hover:bg-[var(--surface-2)] active:translate-y-px disabled:opacity-50 pointer-coarse:min-h-11">+ {s}</button>
+                    <button key={s} type="button" onClick={() => addChip(s)} disabled={a.professions.length >= MAX_PROFESSIONS} className="min-h-9 max-w-full rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-3.5 py-1 text-sm font-medium hyphens-auto [overflow-wrap:anywhere] transition-colors hover:bg-[var(--surface-2)] active:translate-y-px disabled:opacity-50 pointer-coarse:min-h-11">+ {s}</button>
                   ))}
                 </div>
               </div>
