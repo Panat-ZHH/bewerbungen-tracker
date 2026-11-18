@@ -182,6 +182,8 @@ function FirstSteps() {
             </li>
           ))}
         </ol>
+        {/* One clear next step for new pupils, on mobile and desktop alike (QA M5, schueler solo-d-076). */}
+        <ButtonLink href="/search" variant="sun" className="mt-5 w-fit" data-primary-action="" icon={<ArrowRight size={16} strokeWidth={2.4} />}>Erste Stelle suchen</ButtonLink>
       </div>
       <div aria-hidden className="relative mx-auto hidden h-64 w-full max-w-xs lg:block">
         <DoodlePlane className="absolute right-2 top-10 h-20 w-24 rotate-[-8deg] text-[var(--brand)]" />
