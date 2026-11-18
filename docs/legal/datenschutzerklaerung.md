@@ -8,8 +8,12 @@
 
 Verantwortlich für die Datenbearbeitung in WendApply ist:
 
-**Panat Ruangsri, [Rechtsform, Strasse, PLZ Ort, Schweiz – vor Veröffentlichung ergänzen]**
-E-Mail: info.wendico@gmail.com
+**Wendico KLG (Kollektivgesellschaft)**  
+Im Hofacker 3, 8478 Gütighausen, Schweiz  
+UID: CHE-298.049.775  
+Vertreten durch Panat Ruangsri und Tim Biedermann  
+E-Mail: info.wendico@gmail.com  
+Telefon: +41 79 504 10 05
 
 WendApply ist eine Web-App, mit der Jugendliche und Erwachsene ihre Bewerbungen (z. B. Lehrstellen, Praktika, Stellen) verwalten. Lehrpersonen können eine Klasse anlegen und – soweit die Schülerinnen und Schüler zustimmen – den Stand der Bewerbungen sehen.
 

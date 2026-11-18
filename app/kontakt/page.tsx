@@ -17,6 +17,9 @@ export default function KontaktPage() {
         <p className="mt-2"><a className="font-semibold text-[var(--brand)] underline underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
         <ButtonLink href={`mailto:${CONTACT_EMAIL}`} className="mt-4" icon={<Mail size={16} aria-hidden />}>E-Mail schreiben</ButtonLink>
       </div>
+      <section aria-labelledby="telefon-adresse"><h2 id="telefon-adresse" className="text-heading">Telefon und Adresse</h2>
+        <p className="mt-2">Telefon: <a className="text-[var(--brand)] underline underline-offset-4" href="tel:+41795041005">+41 79 504 10 05</a></p>
+        <address className="mt-2 not-italic text-muted">Wendico KLG<br />Im Hofacker 3<br />8478 Gütighausen<br />Schweiz</address></section>
       <section aria-labelledby="anliegen"><h2 id="anliegen" className="text-heading">Wofür Sie uns schreiben können</h2>
         <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted marker:text-[var(--brand)]">
           <li>Pilot für Ihre Schule: <Link className="underline underline-offset-4" href="/schulen">Für Schulen</Link></li>

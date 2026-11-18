@@ -65,7 +65,7 @@ export const PAGE_SEO = {
   },
   "/impressum": {
     title: "Impressum",
-    description: "Impressum von WendApply, dem Bewerbungs-Tracker für die Lehrstellensuche. Ein Angebot von Wendico aus Kleinandelfingen, Schweiz, mit Kontaktangaben.",
+    description: "Impressum von WendApply, dem Bewerbungs-Tracker für die Lehrstellensuche. Ein Angebot der Wendico KLG aus Gütighausen, Schweiz, mit Kontaktangaben.",
     crumb: "Impressum",
   },
   "/datenschutz-uebersicht": {

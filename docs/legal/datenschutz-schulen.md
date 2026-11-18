@@ -20,7 +20,7 @@ WendApply ist ein Werkzeug für die Berufswahl- und Bewerbungsbegleitung. Schül
 | Rolle | Wer | Aufgabe |
 |---|---|---|
 | Verantwortlich | Die Schule (bzw. Trägerschaft) | entscheidet, ob und wie WendApply im Unterricht eingesetzt wird; informiert Lernende und Eltern |
-| Auftragsbearbeiter | Betreiber WendApply (Panat Ruangsri) | bearbeitet Daten nur auf Weisung der Schule im vereinbarten Rahmen |
+| Auftragsbearbeiter | Betreiber WendApply (Wendico KLG, Gütighausen) | bearbeitet Daten nur auf Weisung der Schule im vereinbarten Rahmen |
 | Unterauftragsbearbeiter | siehe «Hosting» | Rechenzentrum, Auslieferung, E-Mail |
 | Betroffene | Lernende, Lehrpersonen | haben Rechte auf Auskunft, Berichtigung, Löschung |
 

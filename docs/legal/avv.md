@@ -8,7 +8,7 @@
 
 **Verantwortliche (Schule):** [Name der Schule / Trägerschaft, Adresse, vertreten durch …]
 
-**Auftragsbearbeiter (Betreiber WendApply):** Panat Ruangsri, [Rechtsform, Adresse], E-Mail: info.wendico@gmail.com
+**Auftragsbearbeiter (Betreiber WendApply):** Wendico KLG (Kollektivgesellschaft), Im Hofacker 3, 8478 Gütighausen, Schweiz, UID CHE-298.049.775, vertreten durch Panat Ruangsri, E-Mail: info.wendico@gmail.com, Telefon: +41 79 504 10 05
 
 ## 1. Gegenstand und Dauer
 

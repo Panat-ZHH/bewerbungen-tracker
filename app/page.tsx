@@ -23,7 +23,7 @@ const trust = [
   { icon: Eye, title: "Du bestimmst, was geteilt wird", text: "Beim Klassenbeitritt siehst du mit Haken und Kreuz genau, was deine Lehrperson sieht und was nicht." },
   { icon: Lock, title: "Nur mit Anmeldung", text: "Deine Bewerbungen sind privat. Ohne deine Freigabe sieht sie niemand." },
   { icon: Trash2, title: "Konto jederzeit löschen", text: "In den Einstellungen löschst du dein Konto samt allen Daten selbst, ohne Umweg." },
-  { icon: ShieldCheck, title: "Entwickelt in der Schweiz", text: "WendApply stammt von Wendico aus Kleinandelfingen. Details stehen in unserer Datenschutzerklärung." },
+  { icon: ShieldCheck, title: "Entwickelt in der Schweiz", text: "WendApply stammt von der Wendico KLG aus Gütighausen ZH. Details stehen in unserer Datenschutzerklärung." },
 ];
 
 const stepTone = ["text-[var(--brand)]", "text-[var(--coral)]", "text-[var(--success-line)]"];

@@ -67,7 +67,10 @@ export function homeJsonLd() {
         url: SITE_URL,
         logo: { "@type": "ImageObject", url: `${SITE_URL}/icons/icon-512.png`, width: 512, height: 512 },
         email: CONTACT_EMAIL,
-        address: { "@type": "PostalAddress", addressLocality: "Kleinandelfingen", addressCountry: "CH" },
+        legalName: "Wendico KLG",
+        telephone: "+41795041005",
+        taxID: "CHE-298.049.775",
+        address: { "@type": "PostalAddress", streetAddress: "Im Hofacker 3", postalCode: "8478", addressLocality: "Gütighausen", addressCountry: "CH" },
         brand: { "@type": "Brand", name: SITE_NAME },
       },
       {
