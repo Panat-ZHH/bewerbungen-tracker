@@ -1,10 +1,10 @@
 "use client";
 
+import { LoginLink } from "./login-link";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Menu, X } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
 import { ThemeSwitch } from "./theme-switch";
 import "./mobile-menu.css";
 
@@ -81,7 +81,7 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
               ))}
             </ul>
           </nav>
-          <ButtonLink href="/login" size="lg" full className="mt-4" onClick={() => { navigating.current = true; setOpen(false); }} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
+          <LoginLink size="lg" full className="mt-4" onClick={() => { navigating.current = true; setOpen(false); }} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</LoginLink>
         </div>
       </dialog>
     </>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LoginLink } from "@/components/public/login-link";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqJsonLd } from "@/lib/seo/site";
@@ -42,7 +43,7 @@ export default function PreisePage() {
       <JsonLd data={faqJsonLd(faq)} />
       <section aria-labelledby="preise-h" className="mx-auto w-full max-w-6xl px-4 pb-10 pt-10 sm:px-6 sm:pt-16">
         <p className="sticker sticker-paper tilt-l mb-5 text-sm">Preise für Schulen</p>
-        <h1 id="preise-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Schüler bezahlen nichts.</span></h1>
+        <h1 id="preise-h" className="animate-lift text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Schüler bezahlen nichts.</span></h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">Die Schule bezahlt eine Jahreslizenz nach Anzahl Schülerinnen und Schüler. Lehrpersonen sind immer inbegriffen. Im Paket Professional sind das bei {pro.maxStudents} Schülerinnen und Schülern rund CHF {chf(perStudentMonth(pro), 2)} pro Schüler und Monat.</p>
         <p role="note" data-billing-notice={online ? "on" : "off"} className={`status ${online ? "status-success" : "status-info"} mt-6 max-w-2xl text-[15px] font-semibold`}>
           {online ? `Online abschliessen: mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title}.` : `${FREE_NOTICE} Für eine Offerte schreiben Sie uns.`}
@@ -92,7 +93,7 @@ export default function PreisePage() {
           <ul className="space-y-2 text-[15px]">
             {["Alle Funktionen: Lehrstellensuche, Bewerbungen, KI-Check, Dorf", "7 Tage gratis testen, ohne Karte", "Monatlich kündbar"].map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
           </ul>
-          <ButtonLink href="/login?next=%2Fabo" variant="sun" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Gratis testen</ButtonLink>
+          <LoginLink href="/login?next=%2Fabo" variant="sun" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Gratis testen</LoginLink>
         </div>
         <div className="panel relative mt-6 grid gap-6 p-6 sm:p-7 md:grid-cols-[1fr_1.2fr_auto] md:items-center" aria-labelledby="pkg-family">
           <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{online ? "Online buchbar" : FAMILY.status}</span>

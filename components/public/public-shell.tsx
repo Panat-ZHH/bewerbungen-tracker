@@ -1,7 +1,7 @@
 import Link from "next/link";
+import { LoginLink } from "./login-link";
 import type { ReactNode } from "react";
 import { BrandMark } from "@/components/ui/brand-mark";
-import { ButtonLink } from "@/components/ui/button";
 import { ThemeSwitch } from "./theme-switch";
 import { PublicMobileMenu } from "./mobile-menu";
 import "./public.css";
@@ -55,7 +55,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
             {nav.map((n) => <Link key={n.href} href={n.href} className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
           </nav>
           <div className="hidden lg:block"><ThemeSwitch /></div>
-          <ButtonLink href="/login" size="sm" className="min-h-11 max-[359px]:px-3">Loslegen</ButtonLink>
+          <LoginLink size="sm" className="min-h-11 max-[359px]:px-3">Loslegen</LoginLink>
           <PublicMobileMenu items={nav} />
         </div>
       </header>

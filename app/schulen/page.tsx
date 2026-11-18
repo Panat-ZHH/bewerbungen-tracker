@@ -64,7 +64,7 @@ export default function SchulenPage() {
       <section aria-labelledby="schulen-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.15fr_.85fr]">
         <div className="min-w-0">
           <p className="sticker sticker-paper tilt-l mb-5 text-sm">Für Sekundarschulen</p>
-          <h1 id="schulen-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">{TAGLINE.replace(" machen.", "")} <span className="marker [box-decoration-break:clone]">machen.</span></h1>
+          <h1 id="schulen-h" className="animate-lift text-hero max-w-4xl hyphens-auto break-words">{TAGLINE.replace(" machen.", "")} <span className="marker [box-decoration-break:clone]">machen.</span></h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">{POSITIONING}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href={MAIL.demo} size="lg" icon={<Presentation size={18} strokeWidth={2.2} aria-hidden />}>Demo buchen</ButtonLink>

@@ -86,7 +86,7 @@ export default function FamilienPage() {
       <section aria-labelledby="familien-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.15fr_.85fr]">
         <div className="min-w-0">
           <p className="sticker sticker-paper tilt-l mb-5 text-sm">Für Familien · {FAMILY_STATUS}</p>
-          <h1 id="familien-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Gemeinsam durch die Lehrstellensuche. <span className="marker [box-decoration-break:clone]">Mit Privatsphäre.</span></h1>
+          <h1 id="familien-h" className="animate-lift text-hero max-w-4xl hyphens-auto break-words">Gemeinsam durch die Lehrstellensuche. <span className="marker [box-decoration-break:clone]">Mit Privatsphäre.</span></h1>
           <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">WendApply hilft Jugendlichen, Bewerbungen, Fristen und Fortschritt im Griff zu haben. Eltern sehen, wie es vorwärtsgeht, aber nur das, was ihr Kind teilen möchte.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             {online
