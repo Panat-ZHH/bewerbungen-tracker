@@ -34,6 +34,8 @@
 .legal-toc ol { margin: .5rem 0 0; padding-left: 1.3rem; list-style: decimal; columns: 2 16rem; }
 .legal-toc a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--line); text-decoration-thickness: 2px; }
 .legal-toc a:hover { color: var(--brand); text-decoration-color: var(--brand); }
+/* Touch: every TOC link is a 44×44 px target (WCAG 2.5.5 / AUDIT-C item 10); px, not rem, so 200% text does not double it. */
+@media (pointer: coarse) { .legal-toc li { break-inside: avoid; } .legal-toc a { display: inline-flex; align-items: center; min-height: 44px; min-width: 44px; } }
 .legal-table { overflow-x: auto; margin: 1rem 0; border: var(--border-w) solid var(--outline); border-radius: var(--radius-lg); background: var(--surface); }
 .legal-table table { border-collapse: collapse; width: 100%; min-width: 46rem; font-size: .875rem; line-height: 1.45; }
 .legal-table th, .legal-table td { overflow-wrap: break-word; word-break: normal; min-width: 7rem; text-align: left; vertical-align: top; padding: .6rem .75rem; border-bottom: 1.5px dashed var(--line); }
