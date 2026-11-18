@@ -100,6 +100,18 @@ async function open(device, orient, dark, { extraApps = [], viewport: forced, pa
     localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s));
     localStorage.setItem("wendapply-theme", theme);
   }, [session, dark ? "dark" : "light"]);
+  // Production CSP (next start) contains `upgrade-insecure-requests`; WebKit, unlike Chromium, also upgrades http://localhost,
+  // so every script/CSS request goes to https://localhost and fails (TLS) and the map never mounts. Strip it from documents only
+  // (same harness fix as mobile-responsive-e2e.mjs ca5dbec); every other request falls through to the Supabase stub / network.
+  if (device.engine === "webkit" && BASE.startsWith("http://")) await ctx.route("**/*", async (route) => {
+    if (route.request().resourceType() !== "document") return route.fallback();
+    try {
+      const resp = await route.fetch({ maxRedirects: 0 });
+      const headers = resp.headers();
+      for (const k of Object.keys(headers)) if (/^content-security-policy/i.test(k)) headers[k] = headers[k].replace(/upgrade-insecure-requests;?\s*/gi, "");
+      return route.fulfill({ response: resp, headers });
+    } catch { return route.fallback(); }
+  });
   const st = { balance: 600, earned: 600, rewardCount: 6, items: [], layouts: [] };
   await ctx.route("**://localhost:54321/**", async (route) => {
     const req = route.request(); const p = new URL(req.url()).pathname; const method = req.method();
