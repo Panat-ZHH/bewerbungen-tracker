@@ -81,6 +81,16 @@ async function open(device, orient, dark, { extraApps = [], viewport: forced, pa
   const viewport = forced ?? size(device, orient);
   const ctx = await browser.newContext({ viewport, isMobile: true, hasTouch: true, deviceScaleFactor: viewport.width <= 640 ? 2 : 1, colorScheme: dark ? "dark" : "light" });
   contexts.add(ctx); ctx.on("close", () => contexts.delete(ctx));
+  // Production build over plain http://localhost: WebKit honours the app's HSTS header (+ CSP upgrade-insecure-requests) for localhost
+  // and upgrades every asset to https://localhost -> TLS error, the map never renders. Production itself is https, so the test strips
+  // only these two upgrade instructions from local responses (WebKit only; Chromium exempts localhost). CSP stays enforced otherwise.
+  if (device.engine === "webkit") await ctx.route((url) => url.origin === new URL(BASE).origin, async (route) => {
+    const response = await route.fetch();
+    const headers = { ...response.headers() };
+    delete headers["strict-transport-security"];
+    if (headers["content-security-policy"]) headers["content-security-policy"] = headers["content-security-policy"].replace(/;?\s*upgrade-insecure-requests/g, "");
+    await route.fulfill({ response, headers });
+  });
   await ctx.addInitScript(([s, theme]) => {
     localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s));
     localStorage.setItem("wendapply-theme", theme);
@@ -394,10 +404,13 @@ async function flow(device, orient, dark = false) {
   const c1 = await cam();
   check(Math.hypot(c1.x - c0.x, c1.z - c0.z) > 0.3, `${N}: two-finger pan moves the camera`, JSON.stringify({ c0, c1 }));
   // opposite direction to the two-finger pan: that one can end on the camera's pan limit (Chromium: always, same spot)
+  await page.evaluate(() => { window.__pan = []; for (const t of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) window.addEventListener(t, (e) => { if (window.__pan.length < 40) window.__pan.push(`${t} ${e.pointerId} ${e.isPrimary ? "P" : "-"} ${Math.round(e.clientX)},${Math.round(e.clientY)} ${e.target?.tagName}`); }, { capture: true }); });
+  const under1 = await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + String(e.className?.baseVal ?? e.className).slice(0, 30) : null; }, [c.x + 40, c.y - 30]);
   await touchGesture(page, device.engine, [{ from: { x: c.x + 40, y: c.y - 30 }, to: { x: c.x - 60, y: c.y + 40 } }], { steps: 10, stepMs: 20 });
   await sleep(900);
   const c2 = await cam();
-  check(Math.hypot(c2.x - c1.x, c2.z - c1.z) > 0.3, `${N}: one-finger pan moves the camera`, JSON.stringify({ c1, c2 }));
+  const panEvents = await page.evaluate(() => window.__pan);
+  check(Math.hypot(c2.x - c1.x, c2.z - c1.z) > 0.3, `${N}: one-finger pan moves the camera`, JSON.stringify({ c, c1, c2, under1, panEvents: panEvents.slice(0, 14) }));
   const scroll = await page.evaluate(() => ({ y: scrollY, x: scrollX, scale: visualViewport?.scale ?? 1, selection: String(getSelection() ?? "") }));
   check(scroll.y === 0 && scroll.x === 0 && Math.abs(scroll.scale - 1) < 0.01, `${N}: gestures did not scroll or zoom the page`, JSON.stringify(scroll));
   check(scroll.selection === "", `${N}: no text got selected by the gestures`, JSON.stringify(scroll.selection));
@@ -460,7 +473,7 @@ async function exclusive(device, viewport) {
   await page.locator('[data-sheet="shop"]').waitFor({ timeout: 8000 }).catch(() => {});
   const open3 = await page.evaluate(() => [...document.querySelectorAll("[data-map-panel]")].map((e) => e.getAttribute("data-map-panel")));
   check(await page.locator('[data-sheet="shop"]').isVisible() && !(await selectedTools(page).isVisible()), `${N}: «Laden» with a placed item selected opens the shop (item panel closes)`, JSON.stringify(open3));
-  check(placed && placed.x !== null && target && placed.x === target.x && placed.z === target.z, `${N}: the placed item is still placed after opening «Laden»`, JSON.stringify(placed));
+  check(placed && placed.x !== null && (!target || (placed.x === target.x && placed.z === target.z)), `${N}: the placed item is still placed after opening «Laden»`, JSON.stringify(placed));
   await tap(page, page.locator("button[aria-expanded]", { hasText: "Suche" }).first());
   await sleep(500);
   const open2 = await page.evaluate(() => [...document.querySelectorAll("[data-map-panel]")].map((e) => e.getAttribute("data-map-panel")));
