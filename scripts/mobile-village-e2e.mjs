@@ -379,7 +379,8 @@ async function flow(device, orient, dark = false) {
   await sleep(900);
   const c1 = await cam();
   check(Math.hypot(c1.x - c0.x, c1.z - c0.z) > 0.3, `${N}: two-finger pan moves the camera`, JSON.stringify({ c0, c1 }));
-  await touchGesture(page, device.engine, [{ from: { x: c.x - 60, y: c.y + 40 }, to: { x: c.x + 40, y: c.y - 30 } }], { steps: 10, stepMs: 20 });
+  // opposite direction to the two-finger pan: that one can end on the camera's pan limit (Chromium: always, same spot)
+  await touchGesture(page, device.engine, [{ from: { x: c.x + 40, y: c.y - 30 }, to: { x: c.x - 60, y: c.y + 40 } }], { steps: 10, stepMs: 20 });
   await sleep(900);
   const c2 = await cam();
   check(Math.hypot(c2.x - c1.x, c2.z - c1.z) > 0.3, `${N}: one-finger pan moves the camera`, JSON.stringify({ c1, c2 }));
