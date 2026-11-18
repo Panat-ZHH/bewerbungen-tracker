@@ -97,7 +97,7 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
             <Input type="search" aria-label="Schüler:innen suchen" placeholder="Name suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold text-muted">Sortierung
-            <Select aria-label="Sortierung" value={sort} onChange={(e) => setSort(e.target.value as StudentSort)} className="w-auto min-w-60 flex-1 font-normal lg:flex-none">
+            <Select aria-label="Sortierung" value={sort} onChange={(e) => setSort(e.target.value as StudentSort)} className="w-auto min-w-0 flex-1 font-normal sm:min-w-60 lg:flex-none">
               <option value="activity">Am längsten inaktiv zuerst</option><option value="progress">Am weitesten gekommen</option><option value="name">Name A–Z</option><option value="joined">Zuletzt beigetreten</option>
             </Select>
           </label>
