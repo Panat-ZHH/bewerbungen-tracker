@@ -9,6 +9,7 @@ import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { toast } from "@/lib/toast";
 import type { AdminSchoolRow, AdminUserDetail } from "@/lib/admin/types";
 import { ACCESS_REASON_LABEL, subscriptionLabel } from "@/lib/admin/status";
+import { PLANS } from "@/lib/billing/plans";
 import { adminFetch, errorText, fieldOf, type AdminResult } from "./api";
 import { freeAccessActive, freeAccessBody, freeAccessLabel, type FreeAccessForm } from "@/lib/admin/free-access";
 import { FreeAccessFields, emptyFreeAccessForm } from "./free-access";
@@ -117,7 +118,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
     setError(null);
     setBadField(null);
     if (action === "assign_school") {
-      if (!["teacher", "school_admin", "unknown"].includes(res.data.role)) { setBusy(false); setError("Lernende und Eltern bekommen eine Lizenz über ihre Klasse, nicht hier."); return; }
+      if (!["teacher", "school_admin", "unknown"].includes(res.data.role)) { setBusy(false); setError("Schüler:innen und Eltern bekommen eine Lizenz über ihre Klasse, nicht hier."); return; }
       // Licences belong to schools: adding the person to a school (existing school action) gives them its licence.
       if (!form.school_id || !res.data.email) { setBusy(false); setError("Bitte wähle eine Schule."); return; }
       r = await adminFetch(`/api/admin/schools/${encodeURIComponent(form.school_id)}`, {
@@ -218,7 +219,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
           {u.blocked
             ? <ActionTile action="unblock" icon={<LockOpen />} label="Sperre aufheben" help="Die Person kann die App wieder nutzen." onClick={() => openAction("unblock")} />
             : !protectedAccount && <ActionTile action="block" tone="danger" icon={<Ban />} label="Sperren" help="Die Person sieht nur noch «Konto gesperrt»." onClick={() => openAction("block")} />}
-          <ActionTile action="assign_school" icon={<KeyRound />} label="Lizenz zuweisen" help={canJoinSchool ? "Zu einer Schule hinzufügen und deren Lizenz nutzen." : "Lernende und Eltern: über Klasse oder Familie."} onClick={() => openAction("assign_school")} />
+          <ActionTile action="assign_school" icon={<KeyRound />} label="Lizenz zuweisen" help={canJoinSchool ? "Zu einer Schule hinzufügen und deren Lizenz nutzen." : "Schüler:innen und Eltern: über Klasse oder Familie."} onClick={() => openAction("assign_school")} />
         </div>
 
         <details className="group rounded-[var(--radius-lg)] border-[length:var(--border-w)] border-dashed border-[var(--line)] px-3.5 py-2" data-testid="admin-more-actions">
@@ -255,7 +256,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
             {u.subscriptions.map((s) => (
               <li key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5">
                 <Badge tone={["active", "trialing"].includes(s.status) ? "success" : "warning"}>{subscriptionLabel(s.status)}</Badge>
-                <span className="text-small text-muted">{s.owner === "user" ? "Eigenes Abo" : s.owner === "family" ? "Familien-Abo" : "Schul-Abo"} · bis {fmtDate(s.current_period_end)}{s.cancel_at_period_end ? " · gekündigt" : ""}</span>
+                <span className="text-small text-muted">{s.owner === "user" ? "Eigenes Abo" : s.owner === "family" ? PLANS.family.name : "Schullizenz"} · bis {fmtDate(s.current_period_end)}{s.cancel_at_period_end ? " · gekündigt" : ""}</span>
                 <span className="flex gap-3"><StripeLink href={s.stripe_url} label="Abo in Stripe" /><StripeLink href={s.customer_url} label="Kunde" /></span>
               </li>
             ))}
@@ -270,10 +271,10 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
               <li key={`s-${s.id}-${s.via}`} className="flex flex-wrap items-center gap-2 py-2">
                 <School size={15} aria-hidden className="text-muted" />
                 <button type="button" onClick={() => onOpen({ kind: "school", id: s.id })} className="font-semibold text-[var(--brand)] underline underline-offset-4">{s.name}</button>
-                <span className="text-muted">als {s.via === "class" ? "Lernende:r" : s.via === "admin" ? "Schuladmin" : "Lehrperson"}</span>
+                <span className="text-muted">als {s.via === "class" ? "Schüler:in" : s.via === "admin" ? "Schuladmin" : "Lehrperson"}</span>
               </li>
             ))}
-            {u.classes.map((c) => <li key={`c-${c.id}-${c.as}`} className="py-2">Klasse {c.name} <span className="text-muted">· {c.as === "teacher" ? "als Lehrperson" : "als Lernende:r"}</span></li>)}
+            {u.classes.map((c) => <li key={`c-${c.id}-${c.as}`} className="py-2">Klasse {c.name} <span className="text-muted">· {c.as === "teacher" ? "als Lehrperson" : "als Schüler:in"}</span></li>)}
             {u.families.map((f) => <li key={`f-${f.id}`} className="py-2">{f.name} <span className="text-muted">· Familie</span></li>)}
           </ul>
         )}
@@ -341,11 +342,11 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
         {action === "unblock" && <p className="text-body">Die Sperre wird aufgehoben. Danach gelten wieder die normalen Regeln.</p>}
         {action === "assign_school" && (
           <>
-            <p className="text-small text-muted">Lizenzen gehören zu einer Schule. Die Person wird dort als Lehrperson oder Schuladmin eingetragen und hat dann den Zugang der Schule. Lernende kommen über eine Klasse dazu.</p>
+            <p className="text-small text-muted">Lizenzen gehören zu einer Schule. Die Person wird dort als Lehrperson oder Schuladmin eingetragen und hat dann den Zugang der Schule. Schüler:innen kommen über eine Klasse dazu.</p>
             {!u.email && <StatusMessage tone="warning">Diese Person hat keine E-Mail und kann nicht zugewiesen werden.</StatusMessage>}
             {schools === null && !error && <Skeleton className="h-11 w-full" />}
             {schools?.length === 0 && <StatusMessage tone="info">Noch keine Schule angelegt. Lege sie zuerst im Bereich «Schulen» an.</StatusMessage>}
-            {!canJoinSchool && <StatusMessage tone="info">{ROLE_LABEL[u.role] ?? "Diese Person"}: Der Zugang über eine Schule kommt automatisch, sobald die Person in einer Klasse der Schule ist. Für Lernende oder Eltern ohne Schule nimm «Gratis geben».</StatusMessage>}
+            {!canJoinSchool && <StatusMessage tone="info">{ROLE_LABEL[u.role] ?? "Diese Person"}: Der Zugang über eine Schule kommt automatisch, sobald die Person in einer Klasse der Schule ist. Für Schüler:innen oder Eltern ohne Schule nimm «Gratis geben».</StatusMessage>}
             {canJoinSchool && schools && schools.length > 0 && (
               <>
                 <Field label="Schule" htmlFor="f-school">

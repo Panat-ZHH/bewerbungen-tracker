@@ -100,7 +100,7 @@ export function SchoolsTab({ onOpen, version }: { onOpen: OpenDetail; version: n
                     <FreeAccessBadge grant={s.free_access} />
                     <LicenceBadge licence={s.licence} />
                     {s.licence && <span className="text-small text-muted">bis {fmtDate(licenceEnd(s.licence))} · max. {s.licence.student_limit}</span>}
-                    <span className="text-small tabular">{s.students} Lernende · {s.teachers} Lehrpersonen · {s.admins} Admins</span>
+                    <span className="text-small tabular">{s.students} Schüler:innen · {s.teachers} Lehrpersonen · {s.admins} Admins</span>
                     <ChevronRight size={18} aria-hidden className="hidden text-muted md:block" />
                   </span>
                 </button>

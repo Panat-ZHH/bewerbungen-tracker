@@ -104,7 +104,7 @@ export function UsersTab({ onOpen, version, chip, onChip, selectedId }: { onOpen
           <Field label="Rolle" htmlFor="admin-filter-role">
             <Select id="admin-filter-role" value={role} onChange={(e) => { setRole(e.target.value as RoleFilter); setPage(1); }}>
               <option value="all">Alle Rollen</option>
-              <option value="student">Lernende</option>
+              <option value="student">Schüler:innen</option>
               <option value="teacher">Lehrpersonen</option>
               <option value="school_admin">Schuladmins</option>
               <option value="parent">Eltern</option>

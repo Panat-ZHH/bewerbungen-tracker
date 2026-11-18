@@ -22,8 +22,8 @@ export function FreeAccessFields({ form, onChange, invalid, scope }: {
     <>
       <p className="text-small text-muted">
         {scope === "school"
-          ? "Gilt für alle Lernenden, Lehrpersonen und Schuladmins dieser Schule, ohne Platzbeschränkung. Keine Testphase, keine Preise."
-          : "Voller Zugang ohne Abo, auch für Lehrpersonen. Keine Testphase, keine Preise."}
+          ? "Gilt für alle Schüler:innen, Lehrpersonen und Schuladmins dieser Schule, ohne Platzbeschränkung. Kein Pilot, keine Preise."
+          : "Voller Zugang ohne Abo, auch für Lehrpersonen. Keine Testwoche, keine Preise."}
       </p>
       <div className="flex flex-wrap gap-2" role="group" aria-label="Dauer">
         <Button type="button" size="sm" variant={form.kind === "forever" ? "primary" : "secondary"} aria-pressed={form.kind === "forever"}
