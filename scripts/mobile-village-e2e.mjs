@@ -305,9 +305,12 @@ async function flow(device, orient, dark = false) {
 
   // 6. tap item -> Verschieben -> all five actions (Entfernen now enabled) -> simulated keyboard + rotation -> tap tile -> Platzieren
   const at = await project(page, item.x + 0.5, item.z + 0.5);
+  if (process.env.DEBUG) { await page.evaluate(([x, y]) => { const d = document.createElement("div"); d.id = "dbgdot"; d.style.cssText = `position:fixed;left:${x - 3}px;top:${y - 3}px;width:6px;height:6px;background:red;z-index:99999;pointer-events:none`; document.body.append(d); }, [at.x, at.y]); await page.screenshot({ type: "png", path: `${SHOTS}/debug-${device.id}-${orient}-pre-select.png` }); await page.evaluate(() => document.getElementById("dbgdot")?.remove()); }
   await page.touchscreen.tap(at.x, at.y);
   await selectedTools(page).waitFor({ timeout: 8000 }).catch(() => {});
-  check(await selectedTools(page).isVisible(), `${N}: tapping the item selects it`);
+  const selInfo = process.env.DEBUG || !(await selectedTools(page).isVisible()) ? { at, item: { x: item.x, z: item.z }, vp: page.viewportSize(), under: await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + String(e.className?.baseVal ?? e.className).slice(0, 40) + "[" + (e.getAttribute("aria-label") ?? e.textContent?.trim().slice(0, 20) ?? "") + "]" : null; }, [at.x, at.y]), movable: await host(page).evaluate((h, [x, y]) => h.__map.movableAt(x, y), [at.x, at.y]), hits: await host(page).evaluate((h, [x, y]) => h.__map.tapAt?.(x, y), [at.x, at.y]) } : null;
+  if (selInfo) { selInfo.dialogs = await page.evaluate(() => [...document.querySelectorAll("[role=dialog],[aria-label][data-sheet],section[aria-label]")].map((e) => e.getAttribute("aria-label") || e.dataset.sheet).slice(0, 6)); await page.screenshot({ type: "jpeg", quality: 70, path: `${SHOTS}/debug-${device.id}-${orient}-${dark ? "dark" : "light"}-select.jpg` }); }
+  check(await selectedTools(page).isVisible(), `${N}: tapping the item selects it`, JSON.stringify(selInfo));
   await tap(page, action(selectedTools(page), "Verschieben"));
   await tools(page).waitFor();
   await sleep(700);
