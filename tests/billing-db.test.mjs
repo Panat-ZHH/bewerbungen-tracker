@@ -11,6 +11,9 @@ const U = { adminA: id(1101), adminB: id(1102), parentA: id(1103), childA: id(11
 const day = (n) => new Date(Date.now() + n * 86400000);
 const iso = (n) => day(n).toISOString();
 const zurichDate = (n) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Zurich" }).format(day(n));
+/** Grace end as the app defines it: the Europe/Zurich calendar date of the period start (n days from now) plus `plus` calendar days.
+ *  Not zurichDate(n + plus): when a DST change lies between the start and now, (now - 31 × 24 h) can be the next Zurich day (23:00–24:00 CET). */
+const zurichDatePlus = (n, plus) => { const d = new Date(`${zurichDate(n)}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + plus); return d.toISOString().slice(0, 10); };
 
 let ctx, schoolA, schoolB, famA, famB, classes;
 
@@ -287,12 +290,12 @@ test("past_due grace: a failed renewal keeps access 14 days (card) / 44 days (in
     p_current_period_start: iso(-3), p_current_period_end: iso(362) };
   await apply({ ...sub, p_status: "past_due", p_latest_invoice_status: "open" });
   let lic = (await licences("stripe_subscription_id='sub_SchoolPd1'"))[0];
-  assert.deepEqual([lic.status, lic.valid_until], ["active", zurichDate(11)]);
+  assert.deepEqual([lic.status, lic.valid_until], ["active", zurichDatePlus(-3, 14)]);
   // Previously stored 'paid' (last year's invoice) must not lift the clamp when the snapshot carries no invoice status.
   await apply({ ...sub, p_status: "active", p_latest_invoice_status: "paid", p_current_period_start: iso(-368), p_current_period_end: iso(-3) });
   await apply({ ...sub, p_status: "past_due" });
   lic = (await licences("stripe_subscription_id='sub_SchoolPd1'"))[0];
-  assert.equal(lic.valid_until, zurichDate(11));
+  assert.equal(lic.valid_until, zurichDatePlus(-3, 14));
   // Grace over (renewal 20 days ago): access ends.
   await apply({ ...sub, p_status: "past_due", p_current_period_start: iso(-20), p_current_period_end: iso(345) });
   lic = (await licences("stripe_subscription_id='sub_SchoolPd1'"))[0];
@@ -303,7 +306,7 @@ test("past_due grace: a failed renewal keeps access 14 days (card) / 44 days (in
   // Invoice (send_invoice): 30 days payment term + 14 days.
   const inv = { ...sub, p_stripe_subscription_id: "sub_SchoolPd2", p_collection_method: "send_invoice", p_current_period_start: iso(-31), p_current_period_end: iso(334) };
   await apply({ ...inv, p_status: "past_due", p_latest_invoice_status: "open" });
-  assert.equal((await licences("stripe_subscription_id='sub_SchoolPd2'"))[0].valid_until, zurichDate(13));
+  assert.equal((await licences("stripe_subscription_id='sub_SchoolPd2'"))[0].valid_until, zurichDatePlus(-31, 44));
   // A non-past_due status is never clamped.
   await apply({ ...inv, p_status: "active" });
   assert.equal((await licences("stripe_subscription_id='sub_SchoolPd2'"))[0].valid_until, zurichDate(334));
