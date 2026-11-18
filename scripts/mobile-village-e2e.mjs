@@ -272,6 +272,8 @@ async function flow(device, orient, dark = false) {
   await tap(page, page.getByRole("button", { name: "Laden", exact: true }));
   await page.locator('[data-sheet="shop"]').waitFor();
   await sleep(500);
+  // the bar slides out with a CSS transition (visibility flips at its end); under heavy load that can take longer than 500 ms
+  if (phone && orient === "portrait") await page.waitForFunction(() => { const n = document.querySelector('nav[aria-label="Hauptmenü mobil"]'); return !n || getComputedStyle(n).visibility === "hidden" || n.getBoundingClientRect().top >= innerHeight - 1; }, null, { timeout: 3000 }).catch(() => {});
   const shop = await layout(page, '[data-sheet="shop"]');
   check(!intersects(shop.root, shop.nav), `${N}: shop sheet does not intersect the bottom nav`, JSON.stringify({ sheet: shop.root, nav: shop.nav }));
   check(shop.root.b <= shop.ih + 0.5, `${N}: shop sheet inside the viewport`, JSON.stringify(shop.root));
@@ -375,11 +377,15 @@ async function flow(device, orient, dark = false) {
   await page.reload(); await waitMap(page);
   await tap(page, page.getByRole("button", { name: "Laden", exact: true }));
   check(await page.locator('[data-sheet="shop"]').getByText("Im Inventar").first().isVisible(), `${N}: after reload the item is listed «Im Inventar»`);
+  const closeBox = await page.getByRole("button", { name: "Laden schliessen" }).boundingBox();
+  const closeUnder = closeBox && await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "[" + (e.closest("button")?.getAttribute("aria-label") ?? e.closest("button")?.textContent?.trim().slice(0, 20) ?? "-") + "]" : null; }, [closeBox.x + closeBox.width / 2, closeBox.y + closeBox.height / 2]);
   await tap(page, page.getByRole("button", { name: "Laden schliessen" }));
   await sleep(600);
   const closed = await layout(page, null);
-  check(closed.navShown === phone, `${N}: bottom nav back after closing the sheet`);
-  check(closed.hideFlag === null, `${N}: data-hide-bottom-nav removed after closing`);
+  const closeInfo = { closeBox, closeUnder, panels: await page.evaluate(() => [...document.querySelectorAll("[data-map-panel],[data-sheet]")].map((e) => (e.getAttribute("data-map-panel") ?? "sheet:" + e.getAttribute("data-sheet")) + (e.checkVisibility?.() ? "" : "(hidden)"))) };
+  if (closed.hideFlag !== null) await page.screenshot({ type: "jpeg", quality: 70, path: `${SHOTS}/debug-${device.id}-${orient}-${dark ? "dark" : "light"}-after-close.jpg` });
+  check(closed.navShown === phone, `${N}: bottom nav back after closing the sheet`, JSON.stringify(closeInfo));
+  check(closed.hideFlag === null, `${N}: data-hide-bottom-nav removed after closing`, JSON.stringify({ flag: closed.hideFlag }));
 
   // 8. camera: pinch zoom, two-finger pan, one-finger pan; the page itself never scrolls or zooms
   const hb = await host(page).boundingBox();
@@ -405,12 +411,15 @@ async function flow(device, orient, dark = false) {
   check(Math.hypot(c1.x - c0.x, c1.z - c0.z) > 0.3, `${N}: two-finger pan moves the camera`, JSON.stringify({ c0, c1 }));
   // opposite direction to the two-finger pan: that one can end on the camera's pan limit (Chromium: always, same spot)
   await page.evaluate(() => { window.__pan = []; for (const t of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) window.addEventListener(t, (e) => { if (window.__pan.length < 40) window.__pan.push(`${t} ${e.pointerId} ${e.isPrimary ? "P" : "-"} ${Math.round(e.clientX)},${Math.round(e.clientY)} ${e.target?.tagName}`); }, { capture: true }); });
+  await host(page).evaluate((h) => { window.__cams = []; const t0 = performance.now(); const tick = () => { const c = h.__map.camera(); window.__cams.push([Math.round(performance.now() - t0), +c.x.toFixed(3), +c.z.toFixed(3)]); if (performance.now() - t0 < 2500) requestAnimationFrame(tick); }; requestAnimationFrame(tick); });
   const under1 = await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + String(e.className?.baseVal ?? e.className).slice(0, 30) : null; }, [c.x + 40, c.y - 30]);
   await touchGesture(page, device.engine, [{ from: { x: c.x + 40, y: c.y - 30 }, to: { x: c.x - 60, y: c.y + 40 } }], { steps: 10, stepMs: 20 });
   await sleep(900);
   const c2 = await cam();
   const panEvents = await page.evaluate(() => window.__pan);
-  check(Math.hypot(c2.x - c1.x, c2.z - c1.z) > 0.3, `${N}: one-finger pan moves the camera`, JSON.stringify({ c, c1, c2, under1, panEvents: panEvents.slice(0, 14) }));
+  const camSamples = await page.evaluate(() => window.__cams.filter((_, i, a) => i % Math.max(1, Math.floor(a.length / 12)) === 0));
+  const bounds = await host(page).evaluate((h) => h.__map.bounds());
+  check(Math.hypot(c2.x - c1.x, c2.z - c1.z) > 0.3, `${N}: one-finger pan moves the camera`, JSON.stringify({ c, c1, c2, under1, camSamples, bounds, panEvents: panEvents.slice(0, 3) }));
   const scroll = await page.evaluate(() => ({ y: scrollY, x: scrollX, scale: visualViewport?.scale ?? 1, selection: String(getSelection() ?? "") }));
   check(scroll.y === 0 && scroll.x === 0 && Math.abs(scroll.scale - 1) < 0.01, `${N}: gestures did not scroll or zoom the page`, JSON.stringify(scroll));
   check(scroll.selection === "", `${N}: no text got selected by the gestures`, JSON.stringify(scroll.selection));
