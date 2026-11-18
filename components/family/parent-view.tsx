@@ -188,8 +188,8 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
                 <li key={k.userId} className={`rounded-[var(--radius-lg)] border-[length:var(--border-w)] p-3 ${current?.userId === k.userId ? "border-[var(--outline-fill)]" : "border-[var(--line)]"}`}>
                   <div className="flex flex-wrap items-center gap-3">
                     <Avatar name={k.displayName} size="sm" />
-                    <button type="button" onClick={() => setSelected(k.userId)} aria-pressed={current?.userId === k.userId} className="min-h-11 min-w-0 flex-1 text-left font-bold">{k.displayName}</button>
-                    <Badge tone={k.status === "pending" ? "neutral" : CONSENT_TONE[k.consentStatus]}>{k.status === "pending" ? "Einladung offen" : CONSENT_LABEL[k.consentStatus]}</Badge>
+                    <button type="button" onClick={() => setSelected(k.userId)} aria-pressed={current?.userId === k.userId} className="min-h-11 min-w-0 flex-1 basis-40 text-left font-bold [overflow-wrap:anywhere]">{k.displayName}</button>
+                    <Badge className="max-w-full whitespace-normal" tone={k.status === "pending" ? "neutral" : CONSENT_TONE[k.consentStatus]}>{k.status === "pending" ? "Einladung offen" : CONSENT_LABEL[k.consentStatus]}</Badge>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
                     {(k.consentStatus === "pending" || k.consentStatus === "withdrawn") && !(action === "consent" && consentChild?.userId === k.userId) && <Button size="sm" variant="secondary" onClick={() => setConfirm({ kind: "grant", child: k })} icon={<ShieldCheck size={14} />}>Zustimmung geben</Button>}
