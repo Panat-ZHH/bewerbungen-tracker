@@ -21,7 +21,13 @@ export function OnboardingRoute({ children }: { children: ReactNode }) {
     (async () => {
       const { data } = await supabase.auth.getUser();
       if (!alive) return;
-      if (!data.user) { router.replace("/login"); return; }
+      if (!data.user) {
+        // getUser needs the network: offline with a stored session, show the tour instead of bouncing to /login (QA m2).
+        const { data: stored } = await supabase.auth.getSession();
+        if (!alive) return;
+        if (stored.session) setOk(true); else router.replace("/login");
+        return;
+      }
       const [access, { role }] = await Promise.all([
         loadMyAccess({ userId: data.user.id }).catch(() => null),
         loadMyRole(data.user).catch(() => ({ role: "student" as const })),
@@ -31,7 +37,7 @@ export function OnboardingRoute({ children }: { children: ReactNode }) {
       if (isSchoolAdmin(access)) { router.replace("/schul-admin"); return; }
       if (isParentAccount(data.user.user_metadata, access)) { router.replace(FAMILY_PATH); return; }
       setOk(true);
-    })();
+    })().catch(() => { if (alive) setOk(true); }); // never an endless spinner: the access gate (AccessGuard, server) still applies
     return () => { alive = false; };
   }, [router]);
 
