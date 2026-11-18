@@ -7,7 +7,7 @@
 //   NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy npx next dev --webpack -p 3231
 //   PLAYWRIGHT=<playwright-core/index.mjs whose browsers are installed> BASE=http://localhost:3231 node scripts/mobile-village-e2e.mjs
 // Env:
-//   MODE=test|flow|panels|shots|all (default all)   flow = touch flow + layout assertions, panels = one-panel-at-a-time
+//   MODE=test|flow|panels|shots|views|all (default all; views = friend island, read-only map)   flow = touch flow + layout assertions, panels = one-panel-at-a-time
 //                                        + 44px select + palace card (320px and phones), test = flow + panels, shots = screenshots
 //   SHOTS=<dir>                          screenshot folder (default ../_mobile/shots/village/after next to this worktree)
 //   THEMES=light,dark                    flow themes (default both)
@@ -69,7 +69,7 @@ async function waitMap(page) {
   await sleep(2000);
 }
 
-async function open(device, orient, dark, { extraApps = [], viewport: forced } = {}) {
+async function open(device, orient, dark, { extraApps = [], viewport: forced, path = "/map" } = {}) {
   const browser = await browserFor(device.engine);
   const viewport = forced ?? size(device, orient);
   const ctx = await browser.newContext({ viewport, isMobile: true, hasTouch: true, deviceScaleFactor: viewport.width <= 640 ? 2 : 1, colorScheme: dark ? "dark" : "light" });
@@ -103,7 +103,7 @@ async function open(device, orient, dark, { extraApps = [], viewport: forced } =
   const page = await ctx.newPage();
   const logs = [];
   page.on("pageerror", (e) => logs.push("pageerror: " + e.message.slice(0, 200)));
-  await page.goto(BASE + "/map");
+  await page.goto(BASE + path);
   await waitMap(page);
   // hide the Next.js dev indicator so it does not cover the tab bar in screenshots / hit tests
   await page.addStyleTag({ content: "nextjs-portal{display:none!important}" });
@@ -450,16 +450,41 @@ async function exclusive(device, viewport) {
   await ctx.close();
 }
 
+/** Friend island (/friends/mock-*, read-only, dev mock data when Supabase is stubbed): same fullscreen map chrome, no placement. */
+async function friendIsland(device, orient, dark) {
+  const N = `${device.id} ${orient} ${dark ? "dark" : "light"} friend island`;
+  const phone = size(device, orient).width < 768;
+  const { ctx, page, logs } = await open(device, orient, dark, { path: "/friends/mock-1" });
+  await page.waitForSelector("text=Mia Muster", { timeout: 60000 }).catch(() => {});
+  const m = await layout(page, "[data-map-fullscreen]");
+  check(m.navShown === phone, `${N}: bottom nav ${phone ? "visible" : "absent"}`);
+  check(m.sw <= m.iw + 1, `${N}: no horizontal overflow (${m.sw} <= ${m.iw})`);
+  check(m.sh <= m.ih + 1 && m.scrollY === 0, `${N}: no page scroll`, JSON.stringify({ sh: m.sh, ih: m.ih, y: m.scrollY }));
+  if (m.navShown) check(Math.abs(m.stage.b - m.nav.t) <= 2, `${N}: map ends exactly at the nav (no strip)`, JSON.stringify({ stage: m.stage, nav: m.nav }));
+  const floor = m.navShown ? m.nav.t : m.ih;
+  const bad = m.controls.filter((c) => !c.grip && (c.w < 44 || c.h < 44 || c.b > floor + 0.5 || c.r > m.iw + 0.5 || c.l < -0.5 || c.covered));
+  check(m.controls.length > 0 && bad.length === 0, `${N}: every map control >= 44px, on screen and not under the nav (${m.controls.length})`, JSON.stringify(bad.slice(0, 4)));
+  const edit = await page.getByRole("button", { name: /^(Laden|Inventar|Platzieren)$/ }).count();
+  check(edit === 0, `${N}: read-only (no shop / inventory / placement buttons)`);
+  check(logs.length === 0, `${N}: no page errors`, JSON.stringify(logs.slice(0, 3)));
+  await page.screenshot({ type: "jpeg", quality: 80, path: `${SHOTS}/${device.id}-${orient}-${dark ? "dark" : "light"}-4-friend-island.jpg` });
+  await ctx.close();
+}
+
 try {
-  if (MODE !== "shots" && MODE !== "flow") {
+  const run = (part) => MODE === "all" || MODE === part || (MODE === "test" && (part === "flow" || part === "panels"));
+  if (run("panels")) {
     const small = [{ id: "w320", engine: "webkit" }, { id: "w320", engine: "chromium" }];
     for (const d of [...small.map((x) => ({ ...x, viewport: { width: 320, height: 568 } })), ...DEVICES.filter((d) => d.id !== "ipad").map((d) => ({ ...d, viewport: size(d, "portrait") }))]) {
       try { await exclusive(d, d.viewport); } catch (error) { check(false, `${d.id} ${d.engine} panels: crashed`, String(error).slice(0, 300)); }
     }
   }
-  if (MODE !== "test" && MODE !== "flow" && MODE !== "panels") for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of [false, true]) await shots(device, orient, dark);
-  if (MODE !== "shots" && MODE !== "panels") for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of THEMES) {
+  if (run("shots")) for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of [false, true]) await shots(device, orient, dark);
+  if (run("flow")) for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of THEMES) {
     try { await flow(device, orient, dark); } catch (error) { check(false, `${device.id} ${orient} ${dark ? "dark" : "light"}: flow crashed`, String(error).slice(0, 300)); }
+  }
+  if (run("views")) for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of THEMES) {
+    try { await friendIsland(device, orient, dark); } catch (error) { check(false, `${device.id} ${orient}: friend island crashed`, String(error).slice(0, 300)); }
   }
 } finally {
   for (const b of Object.values(browsers)) await b.close();
