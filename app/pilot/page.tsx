@@ -36,7 +36,7 @@ export default function PilotPage() {
       <JsonLd data={publicBreadcrumb("/pilot")} />
       <section aria-labelledby="pilot-h" className="mx-auto w-full max-w-6xl px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16">
         <p className="sticker sticker-mint tilt-l mb-5 text-sm">{PILOT.days} Tage · {PILOT.classes}</p>
-        <h1 id="pilot-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Testen Sie WendApply <span className="marker [box-decoration-break:clone]">im echten Unterricht.</span></h1>
+        <h1 id="pilot-h" className="animate-lift text-hero max-w-4xl hyphens-auto break-words">Testen Sie WendApply <span className="marker [box-decoration-break:clone]">im echten Unterricht.</span></h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">Der Pilot ist zeitlich begrenzt auf {PILOT.days} Tage, läuft mit {PILOT.classes} und endet mit einem vereinbarten Feedback- und Entscheidungsgespräch.{PILOT.free ? " Für den Pilot entstehen der Schule keine Lizenzkosten." : ""}</p>
         <div className="mt-8 flex flex-wrap gap-3">
           <ButtonLink href={MAIL.pilot} size="lg" icon={<Mail size={18} strokeWidth={2.2} aria-hidden />}>Pilot anfragen</ButtonLink>

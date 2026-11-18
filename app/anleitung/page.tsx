@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LoginLink } from "@/components/public/login-link";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqJsonLd } from "@/lib/seo/site";
@@ -22,12 +23,12 @@ export default function AnleitungPage() {
       <JsonLd data={faqJsonLd(faq)} />
 
       <section aria-labelledby="hero-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_.9fr] lg:gap-10">
-        <div className="animate-rise">
+        <div className="animate-lift">
           <p className="sticker sticker-paper tilt-l mb-5 text-sm">Anleitung</p>
           <h1 id="hero-h" className="text-hero">So funktioniert <span className="marker">WendApply</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Von der ersten Suche bis zur Zusage: Hier siehst du Schritt für Schritt, was WendApply kann und wie du es als App auf dein Handy oder deinen Computer holst.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>App öffnen</ButtonLink>
+            <LoginLink size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>App öffnen</LoginLink>
             <ButtonLink href="#installieren" size="lg" variant="secondary" icon={<Download size={18} strokeWidth={2.4} aria-hidden />}>Als App installieren</ButtonLink>
           </div>
           <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig.</p>
@@ -113,7 +114,7 @@ export default function AnleitungPage() {
           <h2 id="cta-h" className="text-display max-w-2xl">Bereit? Deine erste Bewerbung wartet.</h2>
           <p className="mt-4 max-w-xl text-base">Konto erstellen dauert eine Minute. Danach kannst du WendApply jederzeit als App installieren.</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>App öffnen</ButtonLink>
+            <LoginLink size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>App öffnen</LoginLink>
             <ButtonLink href="#installieren" size="lg" variant="secondary" className="!border-[var(--outline-fill)]">Als App installieren</ButtonLink>
           </div>
           <div className="pointer-events-none absolute bottom-6 right-8 hidden items-end gap-1 md:flex" aria-hidden>

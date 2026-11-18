@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { LoginLink } from "@/components/public/login-link";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqJsonLd } from "@/lib/seo/site";
@@ -42,7 +43,7 @@ export default function PreisePage() {
       <JsonLd data={faqJsonLd(faq)} />
       <section aria-labelledby="preise-h" className="mx-auto w-full max-w-6xl px-4 pb-10 pt-10 sm:px-6 sm:pt-16">
         <p className="sticker sticker-paper tilt-l mb-5 text-sm">Preise für Schulen</p>
-        <h1 id="preise-h" className="animate-rise text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Schüler bezahlen nichts.</span></h1>
+        <h1 id="preise-h" className="animate-lift text-hero max-w-4xl hyphens-auto break-words">Eine Lizenz für die ganze Schule. <span className="marker [box-decoration-break:clone]">Schüler bezahlen nichts.</span></h1>
         <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted">Die Schule bezahlt eine Jahreslizenz nach Anzahl Schülerinnen und Schüler. Lehrpersonen sind immer inbegriffen. Im Paket Professional sind das bei {pro.maxStudents} Schülerinnen und Schülern rund CHF {chf(perStudentMonth(pro), 2)} pro Schüler und Monat.</p>
         <p role="note" data-billing-notice={online ? "on" : "off"} className={`status ${online ? "status-success" : "status-info"} mt-6 max-w-2xl text-[15px] font-semibold`}>
           {online ? `Online abschliessen: mit ${PAYMENT_LABEL.card.title} oder auf ${PAYMENT_LABEL.invoice.title}.` : `${FREE_NOTICE} Für eine Offerte schreiben Sie uns.`}
@@ -56,7 +57,7 @@ export default function PreisePage() {
               {p.recommended && <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">Empfohlen</span>}
               <h2 id={`pkg-${p.id}`} className="text-title !text-[1.75rem]">{p.name}</h2>
               <p className="text-small mt-1 text-muted">{p.audience}</p>
-              <p className="mt-5 flex items-baseline gap-2"><span className="text-sm font-semibold">CHF</span><span className="num-big !text-5xl">{chf(p.pricePerYear)}</span><span className="text-sm text-muted">pro Jahr</span></p>
+              <p className="mt-5 flex flex-wrap items-baseline gap-x-2"><span className="text-sm font-semibold">CHF</span><span className="num-big !text-[clamp(2rem,13vw,3rem)]">{chf(p.pricePerYear)}</span><span className="text-sm text-muted">pro Jahr</span></p>
               <p className="mt-2 text-[15px] font-semibold">bis {p.maxStudents} Schülerinnen und Schüler</p>
               <p className="text-small mt-1 text-muted">entspricht ab CHF {chf(perStudentYear(p), 2)} pro Schüler und Jahr</p>
               <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
@@ -86,20 +87,20 @@ export default function PreisePage() {
           <div>
             <h3 id="pkg-solo" className="text-title flex items-center gap-2 !text-[1.75rem]"><Sparkles size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />Einzelabo</h3>
             <p className="text-small mt-1 text-muted">1 Schüleraccount</p>
-            <p className="mt-4 flex items-baseline gap-2" data-solo-price><span className="num-big !text-4xl">CHF 4.90</span><span className="text-sm text-muted">pro Monat</span></p>
+            <p className="mt-4 flex flex-wrap items-baseline gap-x-2" data-solo-price><span className="num-big !text-4xl">CHF 4.90</span><span className="text-sm text-muted">pro Monat</span></p>
             <p className="text-small mt-1 text-muted">oder CHF 49 pro Jahr (2 Monate gratis)</p>
           </div>
           <ul className="space-y-2 text-[15px]">
             {["Alle Funktionen: Lehrstellensuche, Bewerbungen, KI-Check, Dorf", "7 Tage gratis testen, ohne Karte", "Monatlich kündbar"].map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
           </ul>
-          <ButtonLink href="/login?next=%2Fabo" variant="sun" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Gratis testen</ButtonLink>
+          <LoginLink href="/login?next=%2Fabo" variant="sun" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Gratis testen</LoginLink>
         </div>
         <div className="panel relative mt-6 grid gap-6 p-6 sm:p-7 md:grid-cols-[1fr_1.2fr_auto] md:items-center" aria-labelledby="pkg-family">
           <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{online ? "Online buchbar" : FAMILY.status}</span>
           <div>
             <h3 id="pkg-family" className="text-title flex items-center gap-2 !text-[1.75rem]"><Heart size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />{FAMILY.name}</h3>
             <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
-            <p className="mt-4 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{intervalPriceText(fam, "month")}</span></p>
+            <p className="mt-4 flex flex-wrap items-baseline gap-x-2" data-family-price><span className="num-big !text-4xl">{intervalPriceText(fam, "month")}</span></p>
             <p className="text-small mt-1 text-muted">oder {intervalPriceText(fam, "year")} ({savingText(fam)})</p>
           </div>
           <ul className="space-y-2 text-[15px]">

@@ -58,11 +58,11 @@ export function WaitlistForm({ kind, mailFallback }: { kind: string; mailFallbac
 
   return (
     <form onSubmit={submit} noValidate className="panel space-y-5 p-6 sm:p-7" aria-describedby={`${id}-note`}>
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className="mb-2 block text-sm font-semibold">Ich bin</legend>
         <div className="flex flex-wrap gap-2">
           {(["Elternteil", "Jugendliche:r"] as const).map((w) => (
-            <label key={w} className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-4 text-sm font-semibold has-[:checked]:bg-[var(--sun)] has-[:checked]:text-[var(--on-sun)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--brand)]">
+            <label key={w} className="inline-flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-full [overflow-wrap:anywhere] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-4 text-sm font-semibold has-[:checked]:bg-[var(--sun)] has-[:checked]:text-[var(--on-sun)] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-[var(--brand)]">
               <input type="radio" name={`${id}-who`} value={w} checked={who === w} onChange={() => setWho(w)} className="sr-only" />
               {w}
             </label>
