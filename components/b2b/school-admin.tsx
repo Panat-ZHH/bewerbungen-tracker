@@ -233,7 +233,7 @@ function ClassRow({ schoolId, c, onDone }: { schoolId: string; c: SchoolClassInf
     <li className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <div className="min-w-0"><p className="truncate text-sm font-bold">{c.name}{c.archived && <Badge tone="info" className="ml-2">Archiviert</Badge>}</p><p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear}` : "Ohne Schuljahr"}{c.teacherName && ` · ${c.teacherName}`}{c.studentsWithApplication !== null && ` · ${c.studentsWithApplication} mit Bewerbung`}{c.studentsPlaced !== null && ` · ${c.studentsPlaced} mit Lehrstelle`}</p></div>
-        <span className="flex items-center gap-3"><span className="tabular text-sm font-semibold">{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}</span><Button type="button" size="sm" variant="ghost" onClick={() => setOpen(true)} aria-label={`${c.name} von der Schule entfernen`}>Entfernen</Button></span>
+        <span className="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1"><span className="tabular text-sm font-semibold">{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}</span><Button type="button" size="sm" variant="ghost" onClick={() => setOpen(true)} aria-label={`${c.name} von der Schule entfernen`}>Entfernen</Button></span>
       </div>
       {err && <p role="alert" className="status status-danger mt-2 text-sm">{err}</p>}
       <Modal open={open} onClose={() => setOpen(false)} title={`«${c.name}» von der Schule entfernen?`}
