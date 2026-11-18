@@ -20,9 +20,9 @@ export function Motivation({ activity, me }: { activity: FriendActivity[]; me: S
         <p className="mt-1.5 text-small text-muted">{me.displayName}, deine Freunde haben zusammen {total} Bewerbung{total === 1 ? "" : "en"} auf dem Weg. Jede zählt, jeder in seinem Tempo.</p>
         <ul className="mt-3 flex flex-wrap gap-2" aria-label="Freunde, die ihren Fortschritt teilen">
           {shared.map((a) => (
-            <li key={a.userId} className="flex items-center gap-2 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] py-0.5 pl-0.5 pr-3">
+            <li key={a.userId} className="flex min-w-0 max-w-full items-center gap-2 rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] py-0.5 pl-0.5 pr-3">
               <Avatar name={a.displayName} src={avatars[a.userId]} size="sm" />
-              <span className="max-w-[10rem] truncate text-small font-semibold">{a.displayName}</span>
+              <span className="min-w-0 max-w-[10rem] truncate text-small font-semibold">{a.displayName}</span>
             </li>
           ))}
         </ul>
