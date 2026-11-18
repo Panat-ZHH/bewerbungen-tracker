@@ -38,6 +38,17 @@ export function viewportInsets(stage: Rect, vv: VisualViewportLike) {
   };
 }
 
+/**
+ * Bottom lift (px) for the overlays of the fullscreen stage: the keyboard inset, or how far the stage reaches under the
+ * fixed bottom tab bar (`navTop` = its top edge, null when hidden), whichever is larger. Plus the visible stage height.
+ */
+export function stageBottomLift(stage: Rect, vv: VisualViewportLike, navTop: number | null) {
+  const insets = viewportInsets(stage, vv);
+  const underNav = navTop === null ? 0 : Math.max(0, Math.round(stage.bottom - navTop));
+  const visible = Math.max(0, Math.round(Math.min(stage.bottom, vv.offsetTop + vv.height, navTop ?? Infinity) - Math.max(stage.top, vv.offsetTop)));
+  return { top: insets.top, bottom: Math.max(insets.bottom, underNav), keyboard: insets.bottom > 0, visible };
+}
+
 /** Max height (px) a sheet may take: 45dvh of the visible viewport, but never more than what is visible above the keyboard minus a top margin. */
 export function sheetMaxHeight(visibleHeight: number, stageHeight: number, topMargin = 72) {
   const cap = Math.round((Math.min(visibleHeight, stageHeight) * SHEET_MAX_DVH) / 100);

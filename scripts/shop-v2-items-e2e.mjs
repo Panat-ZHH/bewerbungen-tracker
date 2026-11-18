@@ -74,7 +74,7 @@ async function run(name, vp) {
         await page.getByRole("button", { name: /Ferraro-Sportwagen kaufen/ }).click(); await page.waitForTimeout(1000);
         check(`${name}: Ferraro bought, server price deducted`, st.balance === 1900 && st.items[0]?.itemType === "car_ferrari", `balance=${st.balance}`);
         await page.getByLabel("Position X").fill("20"); await page.getByLabel("Position Z").fill("0"); await page.waitForTimeout(300);
-        await page.getByRole("button", { name: "Um 90 Grad drehen" }).click(); await page.waitForTimeout(300);
+        await page.getByRole("button", { name: /^Drehen/ }).click(); await page.waitForTimeout(300);
         check(`${name}: Ferraro placed rotated`, await confirm(page) && st.items[0].x === 20 && st.items[0].rotation === 1, JSON.stringify(st.items[0]));
         await shot(page, "2-ferraro-placed");
         if (!(await tabs.isVisible())) await openShop();
@@ -89,7 +89,7 @@ async function run(name, vp) {
         await item.first().click(); await page.waitForTimeout(300);
         await page.getByRole("button", { name: /Verschieben/ }).locator("visible=true").last().click(); await page.waitForTimeout(500);
         await page.getByLabel("Position X").fill("24"); await page.getByLabel("Position Z").fill("2"); await page.waitForTimeout(300);
-        await page.getByRole("button", { name: "Um 90 Grad drehen" }).click(); await page.waitForTimeout(300);
+        await page.getByRole("button", { name: /^Drehen/ }).click(); await page.waitForTimeout(300);
         check(`${name}: car moved + rotated back`, await confirm(page) && st.items[0].x === 24 && st.items[0].rotation === 2, JSON.stringify(st.items[0]));
         const real = logs.filter((l) => !/favicon|Failed to load resource.*(404|400)/.test(l));
         check(`${name}: no console errors (buy flow)`, real.length === 0, JSON.stringify(real.slice(0, 4)));

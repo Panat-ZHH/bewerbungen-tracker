@@ -76,7 +76,7 @@ async function run(name, vp) {
     // remove (Einlagern) tree
     await openItem();
     // on phones the same action also exists behind the shop sheet; the sheet copy is last in the DOM
-    await page.getByRole("button", { name: /Einlagern/ }).locator("visible=true").last().click(); await page.waitForTimeout(800);
+    await page.getByRole("button", { name: /Entfernen/ }).locator("visible=true").last().click(); await page.waitForTimeout(800);
     check(`${name}: item stored (removed from map)`, st.items[0].x === null);
     // unlock island 2
     if (mobile) { await page.keyboard.press("Escape"); await page.waitForTimeout(500); }
@@ -97,7 +97,7 @@ async function run(name, vp) {
     await page.getByLabel("Position X").fill("35"); await page.getByLabel("Position Z").fill("9"); await page.waitForTimeout(400);
     const bridgeBtn = tools().locator("button", { hasText: "Platzieren" });
     check(`${name}: bridge cell not placeable`, !(await bridgeBtn.isEnabled()));
-    await page.getByRole("button", { name: "Platzierung abbrechen" }).click();
+    await page.locator("[aria-label=\"Gegenstand platzieren\"]").getByRole("button", { name: /^Abbrechen/ }).click();
     // reload persistence
     await load(); await shot("6-after-reload");
     const prog = await page.locator("[data-testid=island-progress]").innerText();

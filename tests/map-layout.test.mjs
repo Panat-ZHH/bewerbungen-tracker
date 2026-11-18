@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { centreRegion, nextSheetSnap, overlapRatio, parseStoredFlag, sheetMaxHeight, viewportInsets } from "../lib/map-layout.ts";
+import { centreRegion, nextSheetSnap, overlapRatio, parseStoredFlag, sheetMaxHeight, stageBottomLift, viewportInsets } from "../lib/map-layout.ts";
 
 test("sheet snaps: small drags stay, long drags switch, far down closes", () => {
   assert.equal(nextSheetSnap("expanded", 10), "expanded");
@@ -46,4 +46,25 @@ test("parseStoredFlag", () => {
   assert.equal(parseStoredFlag("0", true), false);
   assert.equal(parseStoredFlag(null, true), true);
   assert.equal(parseStoredFlag("x", false), false);
+});
+
+test("stageBottomLift: stage that reaches under the bottom tab bar is lifted above it (iOS 100dvh mismatch)", () => {
+  // iPhone 15: 852 tall, tab bar 64 + 34 safe area => top at 754. Stage wrongly ends at the screen bottom.
+  const lift = stageBottomLift({ top: 0, bottom: 852 }, { height: 852, offsetTop: 0 }, 754);
+  assert.equal(lift.bottom, 98);
+  assert.equal(lift.visible, 754);
+  assert.equal(lift.keyboard, false);
+});
+
+test("stageBottomLift: correct layout (stage ends at the tab bar) or hidden tab bar needs no lift", () => {
+  assert.equal(stageBottomLift({ top: 0, bottom: 754 }, { height: 852, offsetTop: 0 }, 754).bottom, 0);
+  assert.equal(stageBottomLift({ top: 0, bottom: 852 }, { height: 852, offsetTop: 0 }, null).bottom, 0);
+  assert.equal(stageBottomLift({ top: 0, bottom: 852 }, { height: 852, offsetTop: 0 }, null).visible, 852);
+});
+
+test("stageBottomLift: keyboard wins when it covers more than the tab bar", () => {
+  const lift = stageBottomLift({ top: 0, bottom: 852 }, { height: 500, offsetTop: 0 }, null);
+  assert.equal(lift.bottom, 352);
+  assert.equal(lift.keyboard, true);
+  assert.equal(lift.visible, 500);
 });

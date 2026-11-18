@@ -5,14 +5,14 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Coins, Hammer, Plus, Search, ShoppingBag, Trophy } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { MapApplicationDialog } from "@/components/applications/map-application-dialog";
-import { MapChip, MapControls, MapDock, MapFullscreen, MapSheet, MapTopBar, MapBadge, overlayClasses } from "@/components/applications/map-fullscreen";
+import { MapChip, MapControls, MapDock, MapFullscreen, MapSheet, MapTopBar, MapBadge, overlayClasses, useHideBottomNav } from "@/components/applications/map-fullscreen";
 import { useCameraControls } from "@/components/applications/use-camera-controls";
 import { MapPlacementTools, MapShop, useMapShop } from "@/components/applications/map-shop";
 import { IslandPanel } from "@/components/applications/island-panel";
 import { PalaceCelebration, usePalaceCelebration } from "@/components/applications/palace-celebration";
 import { useIslands } from "@/components/applications/use-islands";
 import { buildingStages } from "@/lib/application-map";
-import type { MapLayout, OwnedMapItem } from "@/lib/map-shop";
+import { isLockedMapObject, type MapLayout, type OwnedMapItem } from "@/lib/map-shop";
 import { getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { statusLabels } from "@/lib/utils";
@@ -89,6 +89,10 @@ function ApplicationMap() {
   const emptyNotice = !loading && !applications.length && !error;
   const noMatch = applications.length > 0 && visible.length === 0;
   const shopSheetOpen = shopOpen && !shop.placement && !selected;
+  const selectedItem = shop.selectedId ? shop.allItems.find(({ id }) => id === shop.selectedId) : undefined;
+  const itemToolsOpen = Boolean(shop.placement) || Boolean(selectedItem && selectedItem.x !== null && !isLockedMapObject(selectedItem));
+  // Phones: a sheet or the placement tools replace the bottom tab bar (more map, actions never behind the bar).
+  useHideBottomNav(shopSheetOpen || Boolean(selected) || itemToolsOpen);
 
   return (
     <>

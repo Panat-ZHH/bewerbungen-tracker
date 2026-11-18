@@ -2,10 +2,45 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, LocateFixed, Minus, Moon, Plus, RefreshCw, SlidersHorizontal, Sun, X } from "lucide-react";
-import { nextSheetSnap, sheetMaxHeight, viewportInsets } from "@/lib/map-layout";
+import { nextSheetSnap, sheetMaxHeight, stageBottomLift } from "@/lib/map-layout";
 import { useStoredFlag, useStoredValue } from "./use-stored-flag";
 import type { CameraControls } from "./use-camera-controls";
 import styles from "@/app/map/fullscreen.module.css";
+// Global (attribute-scoped) rules for phones: hide the app's bottom tab bar while a map panel is open, touch hardening.
+import "@/app/map/village-mobile.css";
+
+/** The shell's fixed bottom tab bar on phones (components/layout/workspace-shell.tsx). */
+const BOTTOM_NAV = 'nav[aria-label="Hauptmenü mobil"]';
+
+/**
+ * Top edge (client px) of the visible bottom tab bar, or null when it is hidden (desktop, or a map panel replaced it).
+ * Measured instead of trusted: on some iOS Safari versions 100dvh and the fixed tab bar disagree and the stage ran
+ * under the bar (Panat's iPhone, 2026-11-17: the placement panel's buttons sat behind "Start … Mehr").
+ */
+function bottomNavTop() {
+  const nav = document.querySelector<HTMLElement>(BOTTOM_NAV);
+  if (!nav || getComputedStyle(nav).display === "none") return null;
+  const rect = nav.getBoundingClientRect();
+  return rect.height > 0 ? rect.top : null;
+}
+
+let hideNavUsers = 0;
+/**
+ * While `active`, the bottom tab bar is hidden on phones (html[data-hide-bottom-nav], CSS in app/map/village-mobile.css)
+ * so a bottom sheet / the placement tools get the whole lower edge of the screen. Ref-counted; removed on unmount.
+ */
+export function useHideBottomNav(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+    const html = document.documentElement;
+    hideNavUsers++;
+    html.dataset.hideBottomNav = "true";
+    return () => {
+      hideNavUsers = Math.max(0, hideNavUsers - 1);
+      if (!hideNavUsers) delete html.dataset.hideBottomNav;
+    };
+  }, [active]);
+}
 
 /*
  * Fullscreen map layout primitives. See docs/map-layout-v2.md.
@@ -29,13 +64,12 @@ function useViewportVars() {
       if (!element) return;
       const rect = element.getBoundingClientRect();
       const visual = vv ? { height: vv.height, offsetTop: vv.offsetTop } : { height: window.innerHeight, offsetTop: 0 };
-      const insets = viewportInsets(rect, visual);
-      const visible = Math.max(0, Math.round(Math.min(rect.bottom, visual.offsetTop + visual.height) - Math.max(rect.top, visual.offsetTop)));
-      element.style.setProperty("--fs-lift-top", `${insets.top}px`);
-      element.style.setProperty("--fs-lift-bottom", `${insets.bottom}px`);
-      element.style.setProperty("--fs-vh", `${visible}px`);
-      element.style.setProperty("--sheet-max", `${sheetMaxHeight(visible, rect.height)}px`);
-      element.dataset.keyboard = insets.bottom > 0 ? "open" : "closed";
+      const lift = stageBottomLift(rect, visual, bottomNavTop());
+      element.style.setProperty("--fs-lift-top", `${lift.top}px`);
+      element.style.setProperty("--fs-lift-bottom", `${lift.bottom}px`);
+      element.style.setProperty("--fs-vh", `${lift.visible}px`);
+      element.style.setProperty("--sheet-max", `${sheetMaxHeight(lift.visible, rect.height)}px`);
+      element.dataset.keyboard = lift.keyboard ? "open" : "closed";
     }
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
     update();
@@ -45,7 +79,13 @@ function useViewportVars() {
     window.addEventListener("orientationchange", schedule);
     const observer = new ResizeObserver(schedule);
     observer.observe(element);
+    const nav = document.querySelector(BOTTOM_NAV);
+    if (nav) observer.observe(nav);
+    // The tab bar appears / disappears with html[data-hide-bottom-nav]: re-measure after the style change.
+    const attributes = new MutationObserver(schedule);
+    attributes.observe(document.documentElement, { attributes: true, attributeFilter: ["data-hide-bottom-nav"] });
     return () => {
+      attributes.disconnect();
       if (frame) cancelAnimationFrame(frame);
       vv?.removeEventListener("resize", schedule);
       vv?.removeEventListener("scroll", schedule);
