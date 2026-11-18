@@ -18,6 +18,8 @@ import { InvitePanel } from "./invite-panel";
 import { AnnouncementsPanel } from "./announcements-panel";
 import { ClassSettingsPanel } from "./class-settings-panel";
 import { AttentionPanel } from "./attention-panel";
+import { getAttention } from "@/lib/teacher-more";
+import type { AttentionItem } from "@/lib/teacher-extras";
 import { ClassCalendar } from "./class-calendar";
 import { ClassOverviewPanel } from "@/components/b2b/class-overview";
 import { ClassGoalsPanel } from "@/components/b2b/class-goals";
@@ -38,6 +40,12 @@ export function TeacherClassView({ classId }: { classId: string }) {
       .catch((e) => setError(teacherError(e)));
   }, [classId]);
   useEffect(() => { load(); }, [load]);
+  // Perf: the attention list of the students tab starts together with the class data instead of after it.
+  const [attention, setAttention] = useState<{ classId: string; read: Promise<AttentionItem[]> } | null>(null);
+  const firstTab = useState(tab)[0];
+  useEffect(() => { if (firstTab !== "students") return; const read = getAttention(classId, 14); read.catch(() => undefined); setAttention({ classId, read }); }, [classId, firstTab]); // eslint-disable-line react-hooks/set-state-in-effect -- starts one read on mount
+  // One-shot: coming back to the students tab later reads the list again (as before).
+  useEffect(() => { if (tab !== "students") setAttention(null); }, [tab]); // eslint-disable-line react-hooks/set-state-in-effect -- drops the prefetched read
 
   const kpi = useMemo(() => {
     const visible = (students ?? []).filter((s) => !s.hidden);
@@ -67,7 +75,7 @@ export function TeacherClassView({ classId }: { classId: string }) {
           <div role="tabpanel" aria-label={{ students: "Schüler:innen", overview: "Überblick", goals: "Ziele", invite: "Einladen", calendar: "Kalender", news: "Mitteilungen", settings: "Einstellungen" }[tab]}>
             {tab === "students" && (students.length === 0
               ? <EmptyState icon={<Users size={26} />} title="Noch keine Schüler:innen" description="Lade deine Klasse per Link, Code oder QR-Code ein. Sobald jemand beitritt, erscheint die Person hier." action={<Button variant="sun" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
-              : <div className="space-y-10"><AttentionPanel classId={classId} /><StudentsPanel cls={cls} students={students} onChanged={load} /></div>)}
+              : <div className="space-y-10"><AttentionPanel classId={classId} prefetched={attention?.classId === classId ? attention.read : null} /><StudentsPanel cls={cls} students={students} onChanged={load} /></div>)}
             {tab === "overview" && (students.length === 0
               ? <EmptyState icon={<LayoutGrid size={26} />} title="Noch kein Überblick" description="Der Überblick erscheint, sobald Schülerinnen und Schüler der Klasse beigetreten sind." action={<Button variant="sun" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
               : <ClassOverviewPanel classId={classId} />)}

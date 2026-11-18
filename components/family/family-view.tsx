@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { onlinePaymentEnabled } from "@/components/billing/logic";
 import { FAMILY_COPY } from "@/lib/family-copy";
-import { supabase } from "@/lib/supabase";
+import { sessionUser } from "@/lib/session-user";
 import { getMyFamily, syncPendingAccountType } from "@/lib/family";
 import { familyError, isParentMeta, type MyFamily } from "@/lib/family-core";
 import { ChildView } from "./child-view";
@@ -32,10 +32,11 @@ export function FamilyView({ initialCode = "" }: { initialCode?: string }) {
   const load = useCallback(async () => {
     setError("");
     try {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-      await syncPendingAccountType(data.user);
-      setFamily(await getMyFamily(data.user?.id));
+      // Local session (no auth-server round trip before the family read); the shell verifies the session in the background.
+      const sessionUserNow = await sessionUser();
+      setUser(sessionUserNow);
+      await syncPendingAccountType(sessionUserNow);
+      setFamily(await getMyFamily(sessionUserNow?.id));
     } catch (e) { setError(familyError(e)); setFamily(null); }
   }, []);
   useEffect(() => { void load(); }, [load]); // eslint-disable-line react-hooks/set-state-in-effect -- loads server state once

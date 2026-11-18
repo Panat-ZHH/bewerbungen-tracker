@@ -11,3 +11,6 @@ supabase/.temp/
 
 # generated QA screenshots (public repo)
 docs/*/shots/
+
+# perf:slow output
+perf-out/

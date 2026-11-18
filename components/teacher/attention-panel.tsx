@@ -13,16 +13,16 @@ import { ErrorBanner, teacherError } from "./shared";
  * "Braucht Aufmerksamkeit": students without an application, with applications that got no reply for a while, and students who
  * voluntarily reported "noch keine Lehrstelle". Students who share nothing appear ONLY through that voluntary self-report.
  */
-export function AttentionPanel({ classId = null, days = 14 }: { classId?: string | null; days?: number }) {
+export function AttentionPanel({ classId = null, days = 14, prefetched = null }: { classId?: string | null; days?: number; /** Same read, started by the page in parallel with its own data (perf); a retry always reads again. */ prefetched?: Promise<AttentionItem[]> | null }) {
   const [items, setItems] = useState<AttentionItem[] | null>(null);
   const [error, setError] = useState("");
-  const load = useCallback(() => { getAttention(classId, days).then((l) => { setItems(l); setError(""); }).catch((e) => setError(teacherError(e))); }, [classId, days]);
-  useEffect(() => { load(); }, [load]);
+  const load = useCallback((source?: Promise<AttentionItem[]>) => { (source ?? getAttention(classId, days)).then((l) => { setItems(l); setError(""); }).catch((e) => setError(teacherError(e))); }, [classId, days]);
+  useEffect(() => { load(prefetched ?? undefined); }, [load, prefetched]);
 
   return (
     <section aria-label="Braucht Aufmerksamkeit">
       <h2 className="text-heading flex items-center gap-2"><TriangleAlert size={19} strokeWidth={2.2} className="text-[var(--warning-fg)]" aria-hidden /> Braucht Aufmerksamkeit {items && items.length > 0 && <Badge tone="warning">{items.length}</Badge>}</h2>
-      {error && <div className="mt-3"><ErrorBanner message={error} onRetry={load} /></div>}
+      {error && <div className="mt-3"><ErrorBanner message={error} onRetry={() => load()} /></div>}
       {!items && !error && <Skeleton className="mt-3 h-20 rounded-[var(--radius-lg)]" />}
       {items && items.length === 0 && <p className="text-small mt-2 flex items-center gap-2 text-muted"><CheckCircle2 size={17} className="shrink-0 text-[var(--success-fg)]" aria-hidden /> Im Moment gibt es niemanden, der Aufmerksamkeit braucht.</p>}
       {items && items.length > 0 && (

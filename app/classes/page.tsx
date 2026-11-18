@@ -7,7 +7,7 @@ import { ClassesPage } from "@/components/classes/classes-page";
 import { StudentClassExtras } from "@/components/teacher/student-class-extras";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TEACHER_HOME, loadMyRole } from "@/lib/role";
-import { supabase } from "@/lib/supabase";
+import { sessionUser } from "@/lib/session-user";
 import type { UserRole } from "@/types";
 
 /** /classes is the student page. Teachers have /teacher (overview, classes, students), so they are redirected there. */
@@ -17,9 +17,10 @@ export default function Page() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) { if (alive) setRole("student"); return; } // the shell sends logged-out users to /login
-      const resolved = (await loadMyRole(data.user)).role;
+      // Local session (no auth-server round trip): the shell verifies the session and sends logged-out users to /login.
+      const user = await sessionUser();
+      if (!user) { if (alive) setRole("student"); return; }
+      const resolved = (await loadMyRole(user)).role;
       if (resolved === "teacher") { router.replace(TEACHER_HOME); return; }
       if (alive) setRole(resolved);
     })().catch(() => { if (alive) setRole("student"); });
