@@ -234,7 +234,7 @@ export function sampleReviewResult(fields: ReviewFields = {}): AiReviewResult {
     { key: "aufbau", label: "Aufbau", score: 15, comment: "Anrede, Einleitung und Schluss sind da. Die Absätze könnten klarer getrennt sein." },
     { key: "sprache", label: "Sprache", score: 14, comment: "Du schreibst verständlich. Einige Sätze sind sehr lang." },
     { key: "motivation", label: "Motivation", score: 12, comment: "Man merkt, dass du willst. Ein konkretes Erlebnis würde das noch zeigen." },
-    { key: "passung", label: "Passung zur Firma", score: hasCompanyInfo ? 11 : 10, comment: hasCompanyInfo ? `Du nennst ${firm}, aber noch nicht, warum gerade dieser Betrieb.` : "Der Brief passt zu vielen Firmen. Ein Satz zum Betrieb macht ihn persönlicher." },
+    { key: "passung", label: "Passung zur Firma", score: hasCompanyInfo ? 11 : 10, comment: hasCompanyInfo ? `Du nennst ${firm}, aber noch nicht, warum gerade diese Firma.` : "Der Brief passt zu vielen Firmen. Ein Satz zur Firma macht ihn persönlicher." },
     { key: "rechtschreibung", label: "Rechtschreibung", score: 17, comment: "Fast fehlerfrei. Achte auf die Gross- und Kleinschreibung bei «Sie»." },
   ];
   const score = breakdown.reduce((sum, item) => sum + item.score, 0);
@@ -280,7 +280,7 @@ export function sampleReviewResult(fields: ReviewFields = {}): AiReviewResult {
             beispiel: {
               vorher: "fehlt",
               nachher: `Mir gefällt, dass ${firm} viele Lernende ausbildet und man in der Lehre verschiedene Abteilungen kennenlernt.`,
-              warum: "So merkt der Betrieb, dass du dich informiert hast.",
+              warum: "So merkt die Firma, dass du dich informiert hast.",
             },
           },
           { tipp: "Nimm ein Wort aus dem Inserat auf, zum Beispiel «exakt arbeiten», und zeig, wo du das schon machst." },

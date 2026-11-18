@@ -24,7 +24,8 @@ const SUPA = "http://localhost:54321";
 const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "*" };
 const axePath = process.env.AXE || join(ROOT, "node_modules/axe-core/axe.min.js");
 const axeSrc = existsSync(axePath) ? readFileSync(axePath, "utf8") : null;
-const FREE = "WendApply ist aktuell kostenlos. Online-Bezahlung folgt.";
+// FREE_NOTICE (components/billing/logic.ts) since 796823a (7-day trial copy); the old «aktuell kostenlos» line is gone on main too.
+const FREE = "Die Online-Bezahlung ist gerade nicht verfügbar";
 const day = (d) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
 
 const results = [];
@@ -63,9 +64,9 @@ const schoolRpc = {
     teachers: [{ teacher_id: "t1", display_name: "Frau Keller", classes: 1 }] },
 };
 const member = (user_id, display_name, role) => ({ user_id, display_name, role, status: "active", consent_status: "not_required", share_settings: { progress: true, applications: false, village: true, documents: false } });
-const familyRpc = (role) => ({
+const familyRpc = (role, planStatus = "trial") => ({
   class_my_classes: [],
-  family_get_my: { family: { id: FAMILY_ID, name: "Familie Meier" }, my_role: role, members: [member("u1", role === "parent" ? "Sandra Meier" : "Lina Meier", role), member("x2", role === "parent" ? "Lina Meier" : "Sandra Meier", role === "parent" ? "child" : "parent")], plan: { plan_type: "family", status: "trial", seats_parents: 1, seats_children: 1, trial_ends_at: day(14) } },
+  family_get_my: { family: { id: FAMILY_ID, name: "Familie Meier" }, my_role: role, members: [member("u1", role === "parent" ? "Sandra Meier" : "Lina Meier", role), member("x2", role === "parent" ? "Lina Meier" : "Sandra Meier", role === "parent" ? "child" : "parent")], plan: { plan_type: "family", status: planStatus, seats_parents: 1, seats_children: 1, trial_ends_at: day(14) } },
   family_child_overview: { child: { display_name: "Lina Meier" }, consent_status: "granted", progress: { total: 4, status_counts: { applied: 3, interview: 1 }, last_activity: day(-1) }, village: { islands: 2, items: 3, points_earned: 120 } },
   family_create_invite: { code: "KIND2345", expires_at: day(7) },
 });
@@ -144,7 +145,7 @@ async function runState(flag, base) {
         check(await page.getByRole("link", { name: "Jährlich buchen" }).getAttribute("href") === "/familie?plan=family&interval=year#abo", "family yearly button leads to /familie");
       } else {
         check(online === 0, "no online buttons while off");
-        check(await visible(page, FREE, 5000), "honest 'aktuell kostenlos' note");
+        check(await visible(page, FREE, 5000), "honest 'Online-Bezahlung nicht verfügbar' note");
         check(await page.getByRole("link", { name: "Zugang anfragen" }).first().getAttribute("href") === "/familien#warteliste", "family: Zugang anfragen flow");
         check(await page.locator("[data-price-placeholder]").count() === 0, "no 'Preis folgt' placeholder any more");
       }
@@ -161,7 +162,7 @@ async function runState(flag, base) {
       let lastCheckout = null;
       const { ctx, page, calls } = await actor(base, { role: "teacher", rpc: schoolRpc, vp, billing: { checkout: (body, json) => { lastCheckout = body; return json({ url: null, invoice: true }); } } });
       await page.goto(`${base}/schul-admin?plan=enterprise#abo`, { waitUntil: "domcontentloaded" });
-      check(await visible(page, "Abo & Rechnung", 90000), "'Abo & Rechnung' section is shown");
+      check(await visible(page, "Lizenz & Rechnung", 90000), "'Lizenz & Rechnung' section is shown");
       const section = page.locator("#abo");
       check(await section.getAttribute("data-billing-enabled") === flag, `section in state ${flag}`);
       if (on) {
@@ -177,11 +178,11 @@ async function runState(flag, base) {
         check(await visible(page, "Rechnung angefordert"), "invoice: confirmation shown");
         check(lastCheckout && lastCheckout.plan === "enterprise" && lastCheckout.payment === "invoice" && lastCheckout.schoolId === SCHOOL_ID, "invoice: POST /api/billing/checkout with plan, schoolId, payment=invoice", JSON.stringify(lastCheckout));
       } else {
-        check(await visible(page, FREE, 5000), "honest 'aktuell kostenlos' note");
+        check(await visible(page, FREE, 5000), "honest 'Online-Bezahlung nicht verfügbar' note");
         check(await section.getByRole("link", { name: "Kontakt aufnehmen" }).isVisible(), "contact flow instead of a buy button");
         check(await section.getByRole("button").count() === 0, "no buttons (no dead buy button)");
         check(calls.length === 0, "no billing API calls while off", JSON.stringify(calls));
-        check(await visible(page, "Paketwechsel über Kontakt", 5000), "licence card keeps 'Paketwechsel über Kontakt'");
+        // The licence card's own «Paketwechsel über Kontakt» line was dropped as a duplicate of this contact flow (819cbd6, schule UX).
         await elementShot(page, "#abo", `schul-admin-billing-${flag}-${key}`);
         if (key === "desktop-light") await axe(page, "#abo");
       }
@@ -214,7 +215,7 @@ async function runState(flag, base) {
         if (key === "desktop-light") await elementShot(page, "[data-billing-return]", `familie-plan-on-return-success`);
       } else {
         check(await visible(page, "Bezahlung bald verfügbar", 5000), "'Bezahlung bald verfügbar' stays");
-        check(await visible(page, FREE, 5000), "honest 'aktuell kostenlos' note");
+        check(await visible(page, FREE, 5000), "honest 'Online-Bezahlung nicht verfügbar' note");
         await card.getByRole("button", { name: "Zugang anfragen" }).click();
         check(await page.getByRole("dialog").getByText("Zugang anfragen").first().isVisible(), "Zugang anfragen opens the request form");
         await page.keyboard.press("Escape");
@@ -231,9 +232,9 @@ async function runState(flag, base) {
     // child: sees the plan, cannot buy, no status call
     scope = "familie on child";
     {
-      const { ctx, page, calls } = await actor(base, { role: "student", rpc: familyRpc("child"), vp: { w: 1280, h: 900 }, meta: { role: "student", account_type: "independent_student", account_type_synced: true } });
+      const { ctx, page, calls } = await actor(base, { role: "student", rpc: familyRpc("child", "active"), vp: { w: 1280, h: 900 }, meta: { role: "student", account_type: "independent_student", account_type_synced: true } });
       await page.goto(`${base}/familie`, { waitUntil: "domcontentloaded" });
-      check(await visible(page, "Familienpaket aktiv", 90000), "child (trial plan) sees the neutral 'Familienpaket aktiv' line instead of a buy button (S8)");
+      check(await visible(page, "Familienpaket aktiv", 90000), "child (active plan, SPEC §3) sees the neutral 'Familienpaket aktiv' line instead of a buy button (S8)");
       check(!(await page.evaluate(() => document.body.innerText)).includes("CHF"), "child sees no prices");
       check(await page.getByRole("button", { name: /Familienpaket buchen/ }).count() === 0, "no buy button for children");
       check(calls.length === 0, "no billing API calls for children");

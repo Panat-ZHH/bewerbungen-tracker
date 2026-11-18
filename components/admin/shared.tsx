@@ -60,7 +60,7 @@ export function useDebounced<T>(value: T, ms = 350): T {
 
 const ACCESS: Record<AccessState, { label: string; tone: BadgeTone }> = {
   active: { label: "Aktiv", tone: "success" },
-  trial: { label: "Testphase", tone: "info" },
+  trial: { label: "Testwoche", tone: "info" },
   grace: { label: "Zahlung offen", tone: "warning" },
   expired: { label: "Abgelaufen", tone: "coral" },
   licence_required: { label: "Lizenz fehlt", tone: "warning" },
@@ -79,7 +79,7 @@ export function StatusBadge({ row, className }: { row: StatusRowLike; className?
 }
 
 export const ROLE_LABEL: Record<AdminRole, string> = {
-  student: "Lernende:r", teacher: "Lehrperson", school_admin: "Schuladmin", parent: "Elternteil", unknown: "Unbekannt",
+  student: "Schüler:in", teacher: "Lehrperson", school_admin: "Schuladmin", parent: "Elternteil", unknown: "Unbekannt",
 };
 export const ACCOUNT_TYPE_LABEL: Record<string, string> = {
   school_student: "über Schule", independent_student: "selbstständig", parent: "Eltern",

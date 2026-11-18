@@ -4,7 +4,7 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, Heart, LayoutDashboard, LogOut, Map, MoreHorizontal, School, Search, Settings, UserRound, Users } from "lucide-react";
+import { BarChart3, BriefcaseBusiness, ChevronRight, FileText, GraduationCap, Heart, HelpCircle, LayoutDashboard, LogOut, Map, MoreHorizontal, School, Search, Settings, UserRound, Users } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/components/ui/avatar";
@@ -48,7 +48,6 @@ const navigation: NavItem[] = [
 const teacherNavigation: NavItem[] = [
   { label: "Klassen", href: "/teacher", icon: GraduationCap, keys: ["Übersicht", "Klassen", "Lehrer", "Teacher"], prefixes: ["/teacher"] },
 ];
-const teacherPrimaryHrefs = ["/teacher", "/profile", "/settings"];
 /** Family area: in "Mehr" for every student (school students connect their parents too). */
 const familyItem: NavItem = { label: "Familie", href: FAMILY_PATH, icon: Heart, keys: ["Familie", "Family"], prefixes: [FAMILY_PATH] };
 /** School admins (my_access().role school_admin): their school area. */
@@ -60,10 +59,18 @@ const parentNavigation: NavItem[] = [familyItem];
 const primaryHrefs = ["/dashboard", "/search", "/applications", "/map", "/friends"];
 /** Students who joined a class see "Klassen" in the tab bar instead of "Freunde" (friends then live in "Mehr"). */
 const primaryHrefsInClass = ["/dashboard", "/search", "/applications", "/map", "/classes"];
-const accountLinks = [
+const accountLinks: NavItem[] = [
   { label: "Mein Profil", href: "/profile", icon: UserRound, keys: ["Profile", "Profil"] },
   { label: "Einstellungen", href: "/settings", icon: Settings, keys: ["Settings", "Einstellungen"] },
 ];
+/** Desktop top bar for students (schueler-36: ≤ 7 items). The rest lives in the account menu behind the avatar. */
+const studentDesktopHrefs = ["/dashboard", "/search", "/applications", "/map", "/cvs", "/friends"];
+/** In-app help (schueler-07, lehrperson-08): every role finds «Hilfe» in «Mehr» / the account menu, at its own section. */
+function helpItem(section: "schueler" | "lehrperson" | "familien" | "schulen"): NavItem {
+  return { label: "Hilfe", href: `/hilfe#${section}`, icon: HelpCircle, keys: ["Hilfe"], prefixes: ["/hilfe"] };
+}
+/** Teachers: where the licence of their school is explained (lehrperson-08). */
+const licenceItem: NavItem = { label: "Schullizenz", href: "/schullizenz", icon: School, keys: ["Schullizenz"], prefixes: ["/schullizenz"] };
 
 /** `fullscreen`: the page owns the whole viewport (map). No page scroll, header hidden on phones (bottom tab bar stays), children fill the remaining space. */
 /**
@@ -101,7 +108,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(shellUser);
   const [checkingSession, setCheckingSession] = useState(!shellUser);
-  const [moreOpen, setMoreOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState<false | "mobile" | "desktop">(false);
   const myAvatar = useMyAvatar(Boolean(user));
   const [inClass, setInClass] = useState<boolean | null>(() => (shellUser && classCache?.userId === shellUser.id ? classCache.inClass : null));
   const [profileName, setProfileName] = useState(() => (shellUser ? cachedRole(shellUser.id)?.displayName ?? "" : ""));
@@ -217,7 +224,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
 
   if (checkingSession || !user || !role || accessLoading) {
     return (
-      <main className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
+      <main data-ui="app" className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
         <BrandMark size={56} className="animate-wiggle" priority />
         <div className="w-full max-w-[260px] space-y-2.5" role="status">
           <Skeleton className="h-3.5" />
@@ -228,27 +235,41 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
     );
   }
 
-  const displayName = (isPlaceholderName(profileName, user.email) ? undefined : profileName) ?? (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? user.email ?? "";
+  const placeholder = isPlaceholderName(profileName, user.email);
+  // Never show an e-mail (prefix) as a name (schueler-03): the avatar falls back to initials of a real name or a neutral «?».
+  const displayName = (placeholder ? undefined : profileName) ?? (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? "";
   const isTeacher = role === "teacher";
   const isParent = !isTeacher && parentAccount;
   const isAdminOnly = !isTeacher && !isParent && schoolAdmin;
-  // Parents get the compact menu (like teachers); every student finds "Familie" under "Mehr" (desktop: in the sidebar).
+  // Parents get the compact menu (like teachers); every student finds "Familie" under "Mehr" (desktop: in the account menu).
   const studentNav = [...navigation, familyItem];
   const compact = isTeacher || isParent || isAdminOnly;
   const compactNav = isTeacher ? (schoolAdmin ? [...teacherNavigation, schoolAdminItem] : teacherNavigation) : isAdminOnly ? [schoolAdminItem] : parentNavigation;
-  const items = compact ? compactNav : studentNav;
-  const accountItems: NavItem[] = compact ? [{ ...accountLinks[0], keys: [...accountLinks[0].keys] }, { ...accountLinks[1], keys: [...accountLinks[1].keys] }] : accountLinks;
-  const isSelected = (item: NavItem) => item.keys.includes(active) || ((compact || item.href === FAMILY_PATH) && (item.prefixes ?? [item.href]).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)));
-  const mobileAll = compact ? [...compactNav, ...accountItems] : studentNav;
+  const help = helpItem(isTeacher ? "lehrperson" : isParent ? "familien" : isAdminOnly ? "schulen" : "schueler");
+  // Desktop: students see the core pages (+ Klassen once they are in a class); the rest is in the account menu.
+  const desktopStudentHrefs = inClass ? [...studentDesktopHrefs, "/classes"] : studentDesktopHrefs;
+  const items = compact ? compactNav : studentNav.filter((item) => desktopStudentHrefs.includes(item.href));
+  const desktopMenu: NavItem[] = compact
+    ? [...accountLinks, ...(isTeacher ? [licenceItem] : []), help]
+    : [...studentNav.filter((item) => !desktopStudentHrefs.includes(item.href)), ...accountLinks, help];
+  const isSelected = (item: NavItem) => item.keys.includes(active) || ((compact || item.href === FAMILY_PATH || item.label === "Hilfe") && (item.prefixes ?? [item.href]).some((prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)));
   const studentPrimary = inClass ? primaryHrefsInClass : primaryHrefs;
-  const primary = compact ? mobileAll.filter((item) => [...teacherPrimaryHrefs, FAMILY_PATH, SCHOOL_ADMIN_PATH].includes(item.href)) : studentNav.filter((item) => studentPrimary.includes(item.href));
-  const more = compact ? [] : studentNav.filter((item) => !studentPrimary.includes(item.href));
-  const moreList = compact ? [] : [...more, ...accountLinks];
+  // Compact roles: their area + Profil + Einstellungen as tabs; school admins keep Profil in «Mehr» (schule-22).
+  // Behind the licence gate every other tab leads to the same gate page, so only Einstellungen stays (lehrperson-07).
+  const compactTabs = gate === "licence" ? [accountLinks[1]] : [...compactNav, ...(isAdminOnly ? [] : [accountLinks[0]]), accountLinks[1]];
+  const primary = compact ? compactTabs : studentNav.filter((item) => studentPrimary.includes(item.href));
+  const moreList: NavItem[] = compact
+    ? [...[...compactNav, ...accountLinks].filter((item) => !compactTabs.includes(item)), ...(isTeacher ? [licenceItem] : []), help]
+    : [...studentNav.filter((item) => !studentPrimary.includes(item.href)), ...accountLinks, help];
+  const [menuDesktop, setMenuDesktop] = [moreOpen === "desktop", (open: boolean) => setMoreOpen(open ? "desktop" : false)];
+  const sheetList = menuDesktop ? desktopMenu : moreList;
   const moreActive = moreList.some(isSelected);
   const home = isParent ? FAMILY_PATH : isAdminOnly ? SCHOOL_ADMIN_PATH : homeFor(role);
+  // Teachers are addressed by their full display name («Frau Keller»), everybody else by the first name (lehrperson-08).
+  const greeting = placeholder ? "Hoi!" : `Hoi ${isTeacher ? profileName : profileName.split(" ")[0]}!`;
 
   return (
-    <div className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
+    <div data-ui="app" className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-full focus:border-[length:var(--border-w)] focus:border-[var(--outline-fill)] focus:bg-[var(--sun)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[var(--on-sun)] focus:shadow-[var(--shadow-sm)]">Zum Inhalt springen</a>
 
       <header className={`app-bar app-bar-top sticky top-0 z-30 shrink-0 ${fullscreen ? "max-md:hidden" : ""}`}>
@@ -269,9 +290,9 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
                   title={label}
                   aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : label}
                   aria-current={selected ? "page" : undefined}
-                  className={`relative flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border-[length:var(--border-w)] px-3 xl:px-3.5 text-[13.5px] pointer-coarse:h-11 pointer-coarse:min-w-11 font-semibold transition-colors duration-150 active:translate-y-px ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent text-[var(--ink)] hover:bg-[var(--hover)]"}`}
+                  className={`relative flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border-[length:var(--border-w)] px-3 xl:px-3.5 text-[13.5px] pointer-coarse:h-11 pointer-coarse:min-w-11 transition-colors duration-150 active:translate-y-px ${selected ? "border-transparent bg-[var(--sun-soft)] font-bold text-[var(--ink)]" : "border-transparent font-medium text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"}`}
                 >
-                  <Icon size={17} strokeWidth={2.1} className="xl:hidden" />
+                  <Icon size={18} strokeWidth={2} className="xl:hidden" />
                   <span className="hidden xl:inline">{label}</span>
                   {href === "/friends" && <RequestBadge count={requestCount} className="-right-0.5 -top-0.5" />}
                   <NoticeBadge enabled={!isTeacher && href === "/classes"} className="-right-0.5 -top-0.5" />
@@ -283,14 +304,12 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
 
           <div className="flex shrink-0 items-center gap-1">
             {!compact && <NotificationsBell />}
-            <Link href="/settings" aria-label="Einstellungen" title="Einstellungen" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] md:flex">
-              <Settings size={18} strokeWidth={2} />
-            </Link>
-            <button onClick={logout} aria-label="Abmelden" title="Abmelden" className="hidden h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] md:flex">
-              <LogOut size={18} strokeWidth={2} />
+            <button type="button" onClick={() => setMenuDesktop(true)} aria-haspopup="dialog" aria-expanded={menuDesktop} aria-label="Konto und mehr" title="Konto und mehr" className="hidden h-11 items-center gap-1.5 rounded-full pl-1 pr-3 text-[13.5px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
+              <Avatar name={displayName || null} src={myAvatar} size="sm" />
+              <span>Mehr</span>
             </button>
-            <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:translate-y-0.5">
-              <Avatar name={displayName} src={myAvatar} size="sm" />
+            <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:translate-y-0.5 md:hidden">
+              <Avatar name={displayName || null} src={myAvatar} size="sm" />
             </Link>
           </div>
         </div>
@@ -301,7 +320,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
       ) : fullscreen ? (
         <main id="main" className="relative min-h-0 flex-1 max-md:mb-[calc(var(--tabbar-h)+var(--safe-bottom))]">{children}</main>
       ) : (
-        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{!/^\/(abo|familie\/bezahlen)(\/|$)/.test(pathname ?? "") && <AccessBanner access={access} parent={parentAccount} />}{children}</main>
+        <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{!/^\/(abo|familie\/bezahlen)(\/|$)/.test(pathname ?? "") && <AccessBanner access={access} parent={parentAccount} pathname={pathname} />}{children}</main>
       )}
 
       <nav aria-label="Hauptmenü mobil" className="app-bar app-bar-bottom fixed inset-x-0 bottom-0 z-30 md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
@@ -311,39 +330,39 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
             const selected = isSelected(item);
             return (
               <li key={href} className="flex-1">
-                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] max-[340px]:text-[9.5px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
-                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full border-[length:var(--border-w)] transition-colors duration-150 ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent group-active:bg-[var(--hover)]"}`}><Icon size={19} strokeWidth={selected ? 2.3 : 1.9} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
-                  <span className="max-w-full truncate max-[340px]:text-[9.5px]">{label}</span>
+                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[11px] max-[340px]:text-[10px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-150 ${selected ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={20} strokeWidth={2} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
+                  <span className="max-w-full truncate max-[340px]:text-[10px]">{label}</span>
                 </Link>
               </li>
             );
           })}
           <li className="min-w-0 flex-1">
-            <button type="button" onClick={() => setMoreOpen(true)} aria-haspopup="dialog" aria-expanded={moreOpen} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[10.5px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
-              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full border-[length:var(--border-w)] transition-colors duration-150 ${moreActive ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-xs)]" : "border-transparent group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={19} strokeWidth={1.9} /><NoticeBadge enabled={!compact && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
+            <button type="button" onClick={() => setMoreOpen("mobile")} aria-haspopup="dialog" aria-expanded={moreOpen === "mobile"} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] max-[340px]:text-[10px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-150 ${moreActive ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={20} strokeWidth={2} /><NoticeBadge enabled={!compact && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
               <span>Mehr</span>
             </button>
           </li>
         </ul>
       </nav>
 
-      <Modal open={moreOpen} onClose={() => setMoreOpen(false)} title="Mehr">
+      <Modal open={moreOpen !== false} onClose={() => setMoreOpen(false)} title="Mehr">
         <div className="flex items-center gap-3 pb-4">
-          <Avatar name={displayName} src={myAvatar} size="lg" className="tilt-l" />
+          <Avatar name={displayName || null} src={myAvatar} size="lg" />
           <div className="min-w-0">
-            <p className="font-display truncate text-lg font-bold leading-tight">{isPlaceholderName(profileName, user.email) ? "Hoi!" : `Hoi ${profileName.split(" ")[0]}!`}</p>
+            <p className="font-display truncate text-lg font-bold leading-tight">{greeting}</p>
             <p className="truncate text-small text-muted">{user.email}</p>
           </div>
         </div>
-        <ul className="rows border-y-[length:var(--border-w)] border-dashed border-[var(--line)]">
-          {moreList.map((item) => {
+        <ul className="rows border-y-[length:var(--border-w)] border-[var(--line)]">
+          {sheetList.map((item) => {
             const { label, href, icon: Icon } = item;
             const selected = isSelected(item);
             return (
               <li key={href}>
-                <Link href={href} onClick={() => setMoreOpen(false)} aria-current={selected ? "page" : undefined} className="row-link text-[15px] font-semibold">
+                <Link href={href} onClick={() => setMoreOpen(false)} aria-current={selected ? "page" : undefined} className={`row-link text-[15px] ${selected ? "bg-[var(--sun-soft)] px-2.5" : "font-medium"}`}>
                   <Icon size={20} strokeWidth={2} className={`shrink-0 ${selected ? "text-[var(--brand)]" : ""}`} />
-                  <span className={`truncate ${selected ? "marker" : ""}`}>{label}</span>
+                  <span className={`truncate ${selected ? "font-bold" : ""}`}>{label}</span>
                   <span className="relative ml-auto flex items-center"><NoticeBadge enabled={!isTeacher && href === "/classes"} className="-right-1 -top-1" /><ChevronRight size={18} aria-hidden className="text-[var(--muted)]" /></span>
                 </Link>
               </li>

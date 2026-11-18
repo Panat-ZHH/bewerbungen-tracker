@@ -5,7 +5,7 @@ import { test } from "node:test";
 import {
   isMissingFeature, licenceUsage, daysRemaining, pilotText, packageLabel, statusLabel, PACKAGE_INFO,
   goalProblem, goalProgress, goalStatus, goalCaption, metricLabel, metricUnit, houseStage, GOAL_TARGET_MAX,
-  supportText, supportList, progressStep, aggregate, aggregatesFromRow, overviewStudentFromRow, overviewFromTeacherStudents, share,
+  supportText, supportList, progressStep, PROGRESS_STEPS, PROGRESS_LAST_STEP, aggregate, aggregatesFromRow, overviewStudentFromRow, overviewFromTeacherStudents, share,
   exportFileName, scrubExport,
 } from "../components/b2b/logic.ts";
 import { progressRank, sortStudents } from "../components/teacher/logic.ts";
@@ -61,7 +61,7 @@ test("goal validation", () => {
   assert.equal(goalProblem({ ...ok, dueDate: "" }, TODAY), null);
   assert.match(goalProblem({ ...ok, target: "" }, TODAY), /pro Person/, "measured goals need a target");
   assert.equal(goalProblem({ ...ok, metric: "custom", target: "" }, TODAY), null, "custom goals may omit the target");
-  assert.equal(metricLabel("trial_days"), "Schnuppertage"); assert.equal(metricLabel("x"), "Ziel");
+  assert.equal(metricLabel("trial_days"), "Schnupperlehren"); assert.equal(metricLabel("x"), "Ziel");
 });
 
 test("goal status (target per person), caption and village house stage", () => {
@@ -75,8 +75,8 @@ test("goal status (target per person), caption and village house stage", () => {
   assert.equal(goalStatus(g({ reached: 12 })).done, true);
   assert.equal(goalStatus(g({ reached: 0, counted: 0, total: 0 })).done, false, "nobody counted is not 'done'");
   assert.equal(goalStatus(g({ reached: 15 })).reached, 12, "reached is clamped to counted");
-  assert.equal(goalCaption(goalStatus(g()), "trial_days", 10), "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnuppertage. Noch 10 Tage.");
-  assert.match(goalCaption(goalStatus(g({ total: 1 })), "trial_days", 0), /Zusammen: 1 Schnuppertag\. Heute ist der letzte Tag/);
+  assert.equal(goalCaption(goalStatus(g()), "trial_days", 10), "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnupperlehren. Noch 10 Tage.");
+  assert.match(goalCaption(goalStatus(g({ total: 1 })), "trial_days", 0), /Zusammen: 1 Schnupperlehre\. Heute ist der letzte Tag/);
   assert.match(goalCaption(goalStatus(g({ reached: 12 })), "trial_days", 3), /^Geschafft! Alle 12/);
   assert.match(goalCaption(goalStatus(g({ reached: 0, counted: 0, total: 0 })), "trial_days", null), /Noch teilt niemand/);
   assert.equal(metricUnit("interviews", 2), "Gespräche"); assert.equal(metricUnit("x", 2), "");
@@ -138,7 +138,11 @@ test("meaningful progress: one interview counts more than many applications", ()
   const many = { applications: 30, interviews: 0, trialDays: 0, offers: 0, placed: false };
   const one = { applications: 1, interviews: 1, trialDays: 0, offers: 0, placed: false };
   assert.ok(progressStep(one) > progressStep(many));
-  assert.equal(progressStep({ ...many, applications: 0 }), 0); assert.equal(progressStep({ ...one, placed: true }), 4);
+  assert.equal(progressStep({ ...many, applications: 0 }), 0); assert.equal(progressStep({ ...one, placed: true }), 3);
+  // Offer and signed contract share the last step and its label matches the «Zusage oder Lehrvertrag» count (placed = offer OR contract).
+  assert.equal(progressStep({ ...one, offers: 1 }), 3); assert.equal(progressStep({ ...one, offers: 1, placed: true }), 3);
+  assert.equal(PROGRESS_LAST_STEP, 3); assert.equal(PROGRESS_STEPS[PROGRESS_LAST_STEP], "Zusage oder Lehrvertrag");
+  assert.ok(!PROGRESS_STEPS.some((l) => /Lehrstelle gefunden|Zusage erhalten/.test(l)), "no unreachable or misleading step label");
   const t = (o) => ({ studentId: o.id, displayName: o.id, avatarSeed: "", joinedAt: "2026-09-01", hidden: false, total: 0, statusCounts: {}, interviews: 0, offers: 0, placed: false, schnupper: 0, lastActivity: null, inactive: false, lastNudgedAt: null, ...o });
   const list = [t({ id: "volume", total: 25, statusCounts: { applied: 25 } }), t({ id: "schnupper", total: 1, schnupper: 1, statusCounts: { schnupper_done: 1 } }), t({ id: "saved-only", total: 9, statusCounts: { saved: 9 } })];
   assert.deepEqual(sortStudents(list, "progress").map((s) => s.studentId), ["schnupper", "volume", "saved-only"]);
@@ -169,15 +173,15 @@ test("B2B UI: Swiss spelling (no Eszett), no payment code, no application conten
   const overview = await readFile(new URL("../components/b2b/class-overview.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(overview, /\.company|\.position|\.notes/);
   const admin = await readFile(new URL("../components/b2b/school-admin.tsx", import.meta.url), "utf8");
-  assert.match(admin, /Paketwechsel über Kontakt/);
+  assert.match(admin, /<BillingCard schoolId=\{school\.id\}/, "contact/offer path lives in the Lizenz & Rechnung card");
 });
 
 test("settings: 'Meine Daten' export + existing deletion flows are kept", async () => {
   const page = await readFile(new URL("../app/settings/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /Daten exportieren \(JSON\)/);
+  assert.match(page, />Daten exportieren</);
   assert.match(page, /exportMyDataFromServer/);
   assert.match(page, /scrubExport/);
-  assert.match(page, /<DeleteAccountCard \/>/);
+  assert.match(page, /<DeleteAccountCard kind={kind} \/>/);
   assert.match(page, /Meine Daten löschen/);
 });
 
@@ -186,4 +190,13 @@ test("teacher class view exposes overview and goals tabs; students tab stays the
   assert.match(view, /value: "overview", label: "Überblick"/);
   assert.match(view, /value: "goals", label: "Ziele"/);
   assert.match(view, /: "students"\);/);
+});
+
+test("glossary (REAUDIT-B F1): class overview tab, CSV header and goal metric use the same words as the KPI", async () => {
+  const overview = await readFile(new URL("../components/b2b/class-overview.tsx", import.meta.url), "utf8");
+  for (const word of ["Auswertung der Klasse", "Zusage oder Lehrvertrag", "Gespräch erhalten"]) assert.ok(overview.includes(word), word);
+  for (const word of ["Lehrstelle gefunden", "Klassenstatistik", "Vorstellungsgespräch"]) assert.ok(!overview.includes(word), word);
+  const csv = await readFile(new URL("../components/teacher/logic.ts", import.meta.url), "utf8");
+  assert.ok(csv.includes('header: "Zusage oder Lehrvertrag"') && !csv.includes("Lehrstelle gefunden"));
+  assert.equal(metricLabel("interviews"), "Gespräche");
 });

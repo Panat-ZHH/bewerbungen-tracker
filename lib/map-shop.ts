@@ -76,7 +76,7 @@ export const SHOP_ITEM_SOON = "Dieses Modell ist bald erhältlich.";
 
 export function shopBuyErrorMessage(reason: unknown) {
   if (isUnknownShopItemError(reason)) return SHOP_ITEM_SOON;
-  if (reason instanceof Error && reason.message.includes("INSUFFICIENT_POINTS")) return "Du hast nicht genügend Punkte. Bitte aktualisiere den Shop.";
+  if (reason instanceof Error && reason.message.includes("INSUFFICIENT_POINTS")) return "Du hast nicht genügend Punkte. Bitte aktualisiere den Laden.";
   return "Der Kauf konnte nicht bestätigt werden. Bitte versuche es erneut.";
 }
 

@@ -126,7 +126,7 @@ export function ReviewForm({ value, onChange, onSubmit, prefilledFrom }: { value
       </section>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Button type="submit" variant="sun" size="lg" className="w-full sm:w-auto">Bewerbung checken</Button>
+        <Button type="submit" variant="sun" size="lg" className="w-full sm:w-auto">Brief prüfen</Button>
         <p className="text-small text-muted">Dauert etwa 10 bis 30 Sekunden.</p>
       </div>
     </form>

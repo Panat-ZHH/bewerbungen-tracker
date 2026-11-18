@@ -41,7 +41,7 @@ test("plans and prices come from lib/billing/plans.ts", () => {
   assert.equal(priceText(PLANS.individual), "Preis auf Anfrage");
   assert.equal(priceText(PLANS.pilot), "Kostenlos");
   assert.equal(familyPlan(), PLANS.family);
-  assert.equal(seatsText(PLANS.family), "1 Schüleraccount + 1 Elternaccount");
+  assert.equal(seatsText(PLANS.family), "1 Kind + 1 Elternteil");
   // family: CHF 7.90 per month or CHF 79 per year, no VAT (decided 2026-11-16)
   assert.equal(priceText(PLANS.family), "CHF 7.90 pro Monat oder CHF 79 pro Jahr");
   assert.equal(intervalPriceText(PLANS.family, "month"), "CHF 7.90 pro Monat");
@@ -136,12 +136,12 @@ test("/preise: flag off keeps offer + Zugang-anfragen flows and the honest note;
   assert.doesNotMatch(p, /Mehrwertsteuer dazukommt/);
 });
 
-test("/schul-admin: 'Abo & Rechnung' per school; contact flow when off", () => {
+test("/schul-admin: 'Lizenz & Rechnung' per school; contact flow when off", () => {
   const a = read("components/b2b/school-admin.tsx");
-  assert.match(a, /<BillingCard schoolId=\{school\.id\} anchor=\{first\} \/>/);
+  assert.match(a, /<BillingCard schoolId=\{school\.id\} anchor=\{first\} currentPackage=/);
   const c = read("components/billing/billing-card.tsx");
-  assert.match(c, /Abo &amp; Rechnung/);
-  assert.match(c, /!enabled \? \(\s*<BillingOffNotice>[\s\S]*?href="\/kontakt"/, "off: honest note + contact, no buy button");
+  assert.match(c, /Lizenz &amp; Rechnung/);
+  assert.match(c, /!enabled \? \(\s*<BillingOffNotice[\s\S]*?href="\/kontakt"/, "off: honest note + contact, no buy button");
   assert.match(c, /id=\{anchor \? "abo" : undefined\}/);
   assert.match(c, /<BillingReturnNotice onSuccess=\{reload\} \/>/);
   assert.match(c, /Abo verwalten/);
@@ -153,7 +153,8 @@ test("/familie plan card: Zugang anfragen when off; phase-driven card for parent
   assert.match(pc, /<FamilyPlanBody familyId=\{familyId\} billing=\{billing\} current=\{current\} open=\{open\} \/>/);
   assert.match(pc, /if \(online && !isParent\)[\s\S]*?FAMILY_COPY\.child\.planActive : FAMILY_COPY\.child\.planNone/, "children: no prices, no payment problems (S8)");
   assert.match(pc, /Zugang anfragen/);
-  assert.match(pc, /\{FREE_NOTICE\}/);
+  assert.match(pc, /\{expired \? FAMILY_COPY\.parent\.expiredNoticeOffline : FREE_NOTICE\}/);
+  assert.match(pc, /: unlocked \? \([\s\S]*?FAMILY_COPY\.parent\.planUnlocked/, "active plan while off: no request box next to «Aktiv»");
   assert.match(pc, /\{!online && <RequestAccessModal/, "the waitlist modal only exists while off");
   assert.doesNotMatch(pc, /BillingReturnNotice/, "the family return notice lives at the top of the page, not in the card");
   const pv = read("components/family/parent-view.tsx");

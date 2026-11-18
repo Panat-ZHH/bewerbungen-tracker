@@ -41,13 +41,13 @@ export function StudentClasses() {
   async function lookup(event: FormEvent) {
     event.preventDefault();
     const trimmed = extractCode(code);
-    if (!trimmed) { setJoinError("Bitte gib den Klassencode ein."); return; }
+    if (!trimmed) { setJoinError("Gib den Klassencode ein."); return; }
     setJoining(true); setJoinError(""); setNotice("");
     try {
       const found: ClassPreview = isInviteToken(trimmed) ? await previewInvite(trimmed) : await previewClass(trimmed);
       const invite = found as Partial<Awaited<ReturnType<typeof previewInvite>>>;
       if (invite.valid === false && !found.alreadyMember) throw new Error(invite.reason ?? "INVALID");
-      if (found.alreadyMember) { setNotice(`Du bist schon in der Klasse "${found.name}".`); setCode(""); }
+      if (found.alreadyMember) { setNotice(`Du bist schon in der Klasse «${found.name}».`); setCode(""); }
       else {
         await consent.load();
         setResolved(trimmed); setPending(found);
@@ -63,7 +63,7 @@ export function StudentClasses() {
       const { membership: m, consent: final } = await consent.run(() => (isInviteToken(resolved) ? acceptInvite(resolved) : joinClass(resolved)));
       const full: ClassMembership = { ...m, shareApplications: final.share, shareCompanies: final.companies, shareStatus: final.status, announcementsCount: 0 };
       setItems((prev) => [full, ...(prev ?? []).filter((x) => x.classId !== m.classId)]);
-      setCode(""); setPending(null); setNotice(`Du bist der Klasse "${m.name}" beigetreten.`);
+      setCode(""); setPending(null); setNotice(`Du bist der Klasse «${m.name}» beigetreten.`);
     } catch (e) { setActionError(errorMessage(e)); } finally { setJoining(false); }
   }
 
@@ -84,18 +84,38 @@ export function StudentClasses() {
     catch (e) { setActionError(errorMessage(e)); } finally { setBusy(null); }
   }
 
+  const joinForm = (
+    <form onSubmit={lookup}>
+      <Field label="Klassencode" htmlFor="join-code" hint="Code oder Einladungslink bekommst du von deiner Lehrperson." error={joinError}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="z. B. AB12CD" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! sm:max-w-sm sm:text-base!" />
+          <Button type="submit" className="min-h-11 shrink-0 sm:min-h-11" loading={joining && !pending}>Klasse beitreten</Button>
+        </div>
+      </Field>
+    </form>
+  );
+
   return (
     <div>
       <PageHeader title="Meine Klassen" description="Tritt der Klasse deiner Lehrperson bei, damit sie deinen Bewerbungsfortschritt begleiten kann." />
 
       {(error || actionError) && !leaving && !pending && <div role="alert" className="status status-danger mb-6 flex items-center justify-between gap-3 text-sm"><span>{error || actionError}</span>{error && <Button size="sm" variant="secondary" className="min-h-11 shrink-0 sm:min-h-11" onClick={() => { setError(""); load(); }}>Erneut laden</Button>}</div>}
 
-      {/* Uneven columns: the classes (sticker) lead, joining another class stays calm on paper. With no class yet the join form comes first. */}
+      {/* schueler-16: with no class one calm column (empty state → code field → collapsed privacy list). With classes, the classes lead
+          and joining another class sits behind «Weitere Klasse beitreten». */}
+      {!items && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
+      {items && items.length === 0 && (
+        <div className="max-w-xl space-y-5">
+          <EmptyState icon={<GraduationCap size={26} />} title="Du bist in keiner Klasse" description="Gib den Klassencode deiner Lehrperson ein." />
+          {joinForm}
+          {notice && <p role="status" className="status status-success text-sm">{notice}</p>}
+          <PrivacyPanel variant="class" collapsed />
+        </div>
+      )}
+      {items && items.length > 0 && (
       <div className="grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-6">
-          {!items && !error && <div className="space-y-3">{[0, 1].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
-          {items && items.length === 0 && <EmptyState icon={<GraduationCap size={26} />} title="Du bist in keiner Klasse" description="Gib den Code deiner Lehrperson ein, um beizutreten." />}
-          {items && items.length > 0 && items.map((m) => (
+          {items.map((m) => (
             <Card key={m.classId} className="p-4 pb-2 sm:p-6 sm:pb-3">
               <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
                 <div className="min-w-0">
@@ -116,27 +136,24 @@ export function StudentClasses() {
           ))}
         </div>
 
-        <div className={`min-w-0 space-y-5 ${items && items.length > 0 ? "" : "max-lg:order-first"}`}>
-          <form onSubmit={lookup}>
-            <Field label="Klassencode" htmlFor="join-code" hint="Code oder Link bekommst du von deiner Lehrperson." error={joinError}>
-              <div className="flex flex-col gap-2 sm:flex-row lg:flex-col xl:flex-row">
-                <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="Code oder Einladungslink" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! sm:max-w-sm sm:text-base!" />
-                <Button type="submit" className="min-h-11 shrink-0 sm:min-h-11" loading={joining && !pending}>Weiter</Button>
-              </div>
-            </Field>
-          </form>
+        <div className="min-w-0 space-y-5">
           {notice && <p role="status" className="status status-success text-sm">{notice}</p>}
-          <PrivacyPanel variant="class" />
+          <PrivacyPanel variant="class" collapsed />
+          <details className="group" open={!!joinError || !!code}>
+            <summary className="flex min-h-11 cursor-pointer items-center text-sm font-semibold underline decoration-2 underline-offset-4">Weitere Klasse beitreten</summary>
+            <div className="mt-3">{joinForm}</div>
+          </details>
         </div>
       </div>
+      )}
 
-      <Modal open={!!pending} onClose={() => setPending(null)} title={pending ? `Klasse "${pending.name}" beitreten?` : ""} description={pending ? `${pending.teacherName}${pending.schoolYear ? ` · Schuljahr ${pending.schoolYear}` : ""} · ${pending.memberCount} Schüler:innen` : undefined}
-        footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} disabled={!consent.ready} onClick={confirmJoin}>Beitreten</Button></div>}>
+      <Modal open={!!pending} onClose={() => setPending(null)} title={pending ? `Klasse «${pending.name}» beitreten?` : ""} description={pending ? `${pending.teacherName}${pending.schoolYear ? ` · Schuljahr ${pending.schoolYear}` : ""} · ${pending.memberCount} Schüler:innen` : undefined}
+        footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setPending(null)}>Abbrechen</Button><Button loading={joining} disabled={!consent.ready} onClick={confirmJoin}>Klasse beitreten</Button></div>}>
         {consent.fields(pending?.teacherName)}
         {actionError && <p role="alert" className="text-small mt-3 text-[var(--danger-fg)]">{actionError}</p>}
       </Modal>
 
-      <Modal open={!!leaving} onClose={() => setLeaving(null)} title="Klasse verlassen?" description={leaving ? `Du verlässt "${leaving.name}". Deine Lehrperson sieht deine Bewerbungen danach nicht mehr. Mit dem Code kannst du jederzeit wieder beitreten.` : undefined}
+      <Modal open={!!leaving} onClose={() => setLeaving(null)} title="Klasse verlassen?" description={leaving ? `Du verlässt «${leaving.name}». Deine Lehrperson sieht deine Bewerbungen danach nicht mehr. Mit dem Code kannst du jederzeit wieder beitreten.` : undefined}
         footer={<div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" onClick={() => setLeaving(null)}>Abbrechen</Button><Button variant="danger" loading={!!leaving && busy === leaving.classId} onClick={confirmLeave}>Verlassen</Button></div>}>
         {actionError && <p role="alert" className="text-small text-[var(--danger-fg)]">{actionError}</p>}
       </Modal>

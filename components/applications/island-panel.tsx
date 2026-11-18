@@ -7,14 +7,14 @@ import { MapChip } from "./map-fullscreen";
 import type { IslandsController } from "./use-islands";
 import styles from "@/app/map/islands.module.css";
 
-/** Island switcher as a compact top chip ("Insel 1 · 40/80") that expands to the full panel. */
+/** Island switcher as a compact top chip ("Dein Dorf · 40/600", the page's visible title) that expands to the full panel. */
 export function IslandPanel({ islands, balance }: { islands: IslandsController; balance: number | null }) {
   const progress = unlockProgress(islands.unlocked, balance ?? 0);
   const affordable = islands.affordableWith(balance);
   const current = ISLANDS.find((island) => island.no === islands.current) ?? ISLANDS[0];
   return (
     <>
-      <MapChip id="islands" icon={<Anchor size={16} />} label={current.name} meta={progress && islands.available ? `${progress.points}/${progress.price}` : undefined} panelLabel="Inseln">
+      <MapChip id="islands" icon={<Anchor size={16} />} label={islands.unlocked > 1 ? `Dein Dorf · ${current.name}` : "Dein Dorf"} meta={progress && islands.available ? <span title={`Punkte für die nächste Insel: ${progress.points} von ${progress.price}`}><span aria-hidden>{progress.points}/{progress.price}</span><span className="sr-only">Nächste Insel: {progress.points} von {progress.price} Punkten</span></span> : undefined} panelLabel="Inseln in deinem Dorf">
         <div className={styles.panel}>
           <div className={styles.switcher} role="group" aria-label="Insel wählen">
             {ISLANDS.filter((island) => island.no <= islands.unlocked).map((island) => (
@@ -24,7 +24,7 @@ export function IslandPanel({ islands, balance }: { islands: IslandsController; 
             ))}
           </div>
           {!islands.available ? (
-            <p className={styles.hint} role="status">Weitere Inseln sind noch nicht eingerichtet (Datenbank-Update ausstehend).</p>
+            <p className={styles.hint} role="status">Weitere Inseln kommen bald.</p>
           ) : progress ? (
             <div className={styles.next}>
               <div className={styles.progressText}>
@@ -37,7 +37,7 @@ export function IslandPanel({ islands, balance }: { islands: IslandsController; 
               </button>
             </div>
           ) : (
-            <p className={styles.hint}>Alle Inseln freigeschaltet. Dein Archipel ist komplett.</p>
+            <p className={styles.hint}>Alle Inseln freigeschaltet. Dein Dorf ist komplett.</p>
           )}
           {islands.error && <p className={styles.error} role="alert">{islands.error}</p>}
         </div>

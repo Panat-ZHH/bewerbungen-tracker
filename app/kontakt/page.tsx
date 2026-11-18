@@ -23,7 +23,7 @@ export default function KontaktPage() {
       <section aria-labelledby="anliegen"><h2 id="anliegen" className="text-heading">Wofür Sie uns schreiben können</h2>
         <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted marker:text-[var(--brand)]">
           <li>Pilot für Ihre Schule: <Link className="underline underline-offset-4" href="/schulen">Für Schulen</Link></li>
-          <li>Probleme beim Login oder mit der App: zuerst <Link className="underline underline-offset-4" href="/hilfe">Hilfe</Link>, dann gerne per E-Mail</li>
+          <li>Probleme bei der Anmeldung oder mit der App: zuerst <Link className="underline underline-offset-4" href="/hilfe">Hilfe</Link>, dann gerne per E-Mail</li>
           <li>Fragen zum Datenschutz oder Löschung von Daten: <Link className="underline underline-offset-4" href="/datenschutz">Datenschutzerklärung</Link></li>
         </ul></section>
       <p className="text-small text-muted">Anbieterin: siehe <Link className="underline underline-offset-4" href="/impressum">Impressum</Link>.</p>

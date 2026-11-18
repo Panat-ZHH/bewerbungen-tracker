@@ -115,7 +115,8 @@ const scenarios = {
     check(meta.role === "student" && meta.account_type === "parent" && meta.role_confirmed === true, `role + account_type stored (${JSON.stringify(meta)})`);
     check(mock.rpcCalls("account_set_type").some((c) => c.body.p_type === "parent"), "account_set_type(parent) called");
     check(await vis(page, '[data-testid="trial-banner"]'), "trial banner on /familie");
-    check(await page.locator('[data-testid="trial-banner"] a').getAttribute("href") === "/familie#abo", "parent 'Abo wählen' → /familie#abo");
+    // eltern-02: on /familie the plan card (#abo) is on the same page, so the banner carries no action of its own.
+    check(await page.locator('[data-testid="trial-banner"] a').count() === 0, "parent banner on /familie: no own action (eltern-02)");
     check(await page.evaluate(() => localStorage.getItem("wa_pending_signup") === null && sessionStorage.getItem("wa_pending_signup") === null), "wa_pending_signup used once");
     await ctx.close();
   },
@@ -147,7 +148,7 @@ const scenarios = {
   },
   async A4() {
     const { ctx, page } = await open({ authed: false, meta: {}, access: TRIAL() , extra: async (_c, mock) => { mock.state.memberships = []; } });
-    const seen = await googleSignup(page, "Schule");
+    const seen = await googleSignup(page, "Schüler:in mit Klasse");
     await page.waitForURL(/\/onboarding\/klasse/, { timeout: 60000 }).catch(() => {});
     check(page.url().includes("/onboarding/klasse"), `Google school student → class code step (${page.url()})`);
     check(!seen.includes("/auth/role"), "no role picker");
@@ -284,7 +285,9 @@ const scenarios = {
     }
     check(await vis(page, '[data-testid="licence-gate"]'), "licence gate");
     check(await page.getByText("support@wendapply.ch").first().isVisible(), "support@wendapply.ch shown");
-    check(await page.locator('[data-testid="licence-gate"] a[href="/kontakt"]').count() > 0, "/kontakt link");
+    // lehrperson-07: «Support schreiben» (mailto) + «Für Schulen» replace the /kontakt link.
+    check(await page.locator('[data-testid="licence-gate"] a[href^="mailto:support@wendapply.ch"]', { hasText: "Support schreiben" }).count() > 0, "«Support schreiben» mailto link");
+    check(await page.locator('[data-testid="licence-gate"] a[href="/schulen"]', { hasText: "Für Schulen" }).count() > 0, "«Für Schulen» link");
     check(await page.getByText("lehrer@beispiel.ch").first().isVisible(), "own login e-mail shown for the school admin");
     check(await none(page, '[data-testid="trial-banner"]', 500), "teachers: no trial banner");
     await page.goto(`${BASE}/abo`);

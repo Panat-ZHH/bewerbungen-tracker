@@ -65,7 +65,7 @@ export function FamilyView({ initialCode = "" }: { initialCode?: string }) {
           ? <ParentView family={ready} email={email} onChanged={load} initialCode={initialCode} />
           : <ChildView family={ready} me={ready.members.find((m) => m.userId === user?.id) ?? null} email={email} onChanged={load} />
       )}
-      {ready && <p className="flex items-start gap-2 text-small text-muted"><Download size={15} className="mt-0.5 shrink-0" aria-hidden /><span>Deine Familiendaten sind im Export unter <Link href="/settings" className="font-semibold underline underline-offset-2">Einstellungen › Meine Daten</Link> enthalten.</span></p>}
+      {ready && <p className="flex items-start gap-2 text-small text-muted"><Download size={15} className="mt-0.5 shrink-0" aria-hidden /><span>Deine Familiendaten sind im Export unter <Link href="/settings" className="font-semibold underline underline-offset-2">Einstellungen › Daten &amp; Datenschutz</Link> enthalten.</span></p>}
     </div>
   );
 }

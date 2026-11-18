@@ -33,7 +33,7 @@ export const PACKAGE_INFO: Record<LicencePackage, { label: string; limit: number
   starter: info("starter", "Starter"),
   professional: info("professional", "Professional"),
   enterprise: info("enterprise", "Enterprise"),
-  custom: info("custom", "Individuelles Angebot"),
+  custom: info("custom", "Individuelle Offerte"),
 };
 export const STATUS_LABEL: Record<LicenceStatus, string> = { pilot: "Pilotphase", active: "Aktiv", expired: "Abgelaufen", cancelled: "Gekündigt" };
 export function packageLabel(p: string | null | undefined): string { return (PACKAGE_INFO as Record<string, { label: string }>)[p ?? ""]?.label ?? "Kein Paket"; }
@@ -66,8 +66,8 @@ export function pilotText(days: number | null): string {
 // ---------- class goals ----------
 export type GoalMetric = "applications_sent" | "interviews" | "trial_days" | "custom";
 export const GOAL_METRICS: { value: GoalMetric; label: string; unit: [string, string]; hint: string }[] = [
-  { value: "trial_days", label: "Schnuppertage", unit: ["Schnuppertag", "Schnuppertage"], hint: "Erledigte Schnupperlehren pro Person" },
-  { value: "interviews", label: "Vorstellungsgespräche", unit: ["Gespräch", "Gespräche"], hint: "Einladungen zu einem Gespräch pro Person (zählt nur bei «Status zeigen»)" },
+  { value: "trial_days", label: "Schnupperlehren", unit: ["Schnupperlehre", "Schnupperlehren"], hint: "Erledigte Schnupperlehren pro Person" },
+  { value: "interviews", label: "Gespräche", unit: ["Gespräch", "Gespräche"], hint: "Einladungen zu einem Gespräch pro Person (zählt nur bei «Status zeigen»)" },
   { value: "applications_sent", label: "Verschickte Bewerbungen", unit: ["Bewerbung", "Bewerbungen"], hint: "Sorgfältig vorbereitete und verschickte Bewerbungen pro Person" },
   { value: "custom", label: "Eigenes Ziel", unit: ["", ""], hint: "Ohne automatische Zählung: den Fortschritt besprecht ihr im Unterricht" },
 ];
@@ -174,13 +174,14 @@ export function aggregate(students: OverviewStudent[], now = Date.now()): ClassA
 export function share(part: number, whole: number): number { return whole > 0 ? Math.round((part / whole) * 100) : 0; }
 
 /**
- * Meaningful progress, not volume: the furthest step reached (0 = not started … 4 = Lehrstelle).
- * Ten applications without a reply count less than one interview.
+ * Meaningful progress, not volume: the furthest step reached (0 = not started … 3 = Zusage oder Lehrvertrag).
+ * Ten applications without a reply count less than one interview. Display only: an offer and a signed contract share the
+ * last step, so the label matches the «Zusage oder Lehrvertrag» count (`placed` = offer OR contract_signed) everywhere.
  */
-export const PROGRESS_STEPS = ["Noch nicht gestartet", "Bewerbung verschickt", "Gespräch oder Schnuppern", "Zusage erhalten", "Lehrstelle gefunden"] as const;
+export const PROGRESS_STEPS = ["Noch nicht gestartet", "Bewerbung abgeschickt", "Gespräch oder Schnupperlehre", "Zusage oder Lehrvertrag"] as const;
+export const PROGRESS_LAST_STEP = PROGRESS_STEPS.length - 1;
 export function progressStep(s: Pick<OverviewStudent, "applications" | "interviews" | "trialDays" | "offers" | "placed">): number {
-  if (s.placed) return 4;
-  if (s.offers > 0) return 3;
+  if (s.placed || s.offers > 0) return 3;
   if (s.interviews > 0 || s.trialDays > 0) return 2;
   if (s.applications > 0) return 1;
   return 0;

@@ -77,9 +77,9 @@ type Errors = Partial<Record<keyof FormValue, string>>;
 
 function validate(form: FormValue): Errors {
   const errors: Errors = {};
-  if (!form.company.trim()) errors.company = "Bitte gib die Firma an.";
-  if (!form.position.trim()) errors.position = "Bitte gib die Stelle an.";
-  if (form.jobUrl.trim() && !/^https?:\/\/\S+\.\S+/i.test(form.jobUrl.trim())) errors.jobUrl = "Der Link sollte mit https:// beginnen.";
+  if (!form.company.trim()) errors.company = "Gib einen Firmennamen ein.";
+  if (!form.position.trim()) errors.position = "Gib den Beruf oder die Stelle ein.";
+  if (form.jobUrl.trim() && !/^https?:\/\/\S+\.\S+/i.test(form.jobUrl.trim())) errors.jobUrl = "Der Link muss mit https:// beginnen. Kopiere ihn direkt aus dem Browser.";
   return errors;
 }
 
@@ -219,7 +219,7 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
         clearDraft();
         setRestored(false);
         setSaving(false);
-        toast({ message: stay ? "Zwischenstand gespeichert" : isEditing ? "Änderungen gespeichert" : "Bewerbung gespeichert – du findest sie jetzt unter „Bewerbungen“" });
+        toast({ message: stay ? "Zwischenstand gespeichert." : isEditing ? "Änderungen gespeichert." : "Bewerbung gespeichert." });
         if (onSaved) onSaved(result, { stay });
         else router.push(`/applications/${result.id}`);
       } else {
@@ -228,7 +228,7 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
       }
     } catch (cause) {
       console.error(cause);
-      setError(friendlyMessage(cause, "Die Bewerbung konnte nicht gespeichert werden."));
+      setError(friendlyMessage(cause, "Die Bewerbung konnte nicht gespeichert werden. Prüfe deine Verbindung und versuch es noch einmal."));
       setSaving(false);
     }
   }
@@ -246,8 +246,8 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
       <fieldset className="min-w-0 space-y-5 border-0 p-0">
         <legend className={legendClass}>Das Wichtigste</legend>
         <Field label="Firma" required {...bind("company")} placeholder="Zum Beispiel: Migros" autoFocus={!isEditing} autoComplete="organization" />
-        <Field label="Welche Stelle?" required {...bind("position")} placeholder="Zum Beispiel: Mediamatiker:in" />
-        <SelectField label="Was ist der Stand?" hint={statusHints[form.status]} value={form.status} onChange={(value) => update("status", value)} options={Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))} />
+        <Field label="Beruf / Stelle" required {...bind("position")} placeholder="Zum Beispiel: Mediamatiker:in" />
+        <SelectField label="Status" hint={statusHints[form.status]} value={form.status} onChange={(value) => update("status", value)} options={Object.entries(statusLabels).map(([value, label]) => ({ value: value as ApplicationStatus, label }))} />
       </fieldset>
 
       {isSchnupperStatus(form.status) && (
@@ -336,8 +336,8 @@ function Field({ label, value, onChange, onBlur, error, placeholder, type = "tex
   const id = useId();
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{label}{required && <span aria-hidden="true" className="text-muted"> *</span>}</label>
-      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[var(--danger-fg)] focus:border-[var(--danger-fg)] focus:shadow-[3px_3px_0_var(--danger-fg)]")} />
+      <label htmlFor={id} className="mb-1.5 block text-sm font-semibold">{label}</label>
+      <Input id={id} required={required} autoFocus={autoFocus} type={type} inputMode={inputMode} autoComplete={autoComplete} min={type === "number" ? 0 : undefined} value={value} placeholder={placeholder} onChange={(event) => onChange(event.target.value)} onBlur={onBlur} aria-invalid={error ? true : undefined} aria-describedby={error ? `${id}-error` : undefined} className={cn(error && "border-[var(--danger-fg)] focus:border-[var(--danger-fg)] focus:shadow-[0_0_0_1px_var(--danger-fg)]")} />
       {error && <p id={`${id}-error`} className="mt-1.5 text-xs font-medium text-[var(--danger-fg)]">{error}</p>}
     </div>
   );

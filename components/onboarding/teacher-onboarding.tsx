@@ -28,14 +28,20 @@ export function TeacherOnboarding() {
   const [created, setCreated] = useState<SchoolClass | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [nameError, setNameError] = useState("");
 
   useEffect(() => { getMySocialProfile().then((p) => setName((current) => current || (isPlaceholderName(p.displayName) ? "" : p.displayName))).catch(() => {}); }, []);
 
   async function finish(path = TEACHER_HOME) { await markTeacherOnboarded().catch(() => {}); clearRoleCache(); router.replace(path); }
   async function run(action: () => Promise<void>) { setBusy(true); setError(""); try { await action(); } catch (reason) { setError(errorMessage(reason)); } finally { setBusy(false); } }
 
-  const saveName = (event: FormEvent) => { event.preventDefault(); void run(async () => { if (name.trim()) await updateMySocialProfile({ displayName: name.trim() }); clearRoleCache(); setStep(1); }); };
-  const makeClass = (event: FormEvent) => { event.preventDefault(); if (!className.trim()) { setError("Bitte gib deiner Klasse einen Namen."); return; } void run(async () => { setCreated(await createClass(className.trim(), year.trim())); }); };
+  const saveName = (event: FormEvent) => {
+    event.preventDefault();
+    // lehrperson-03: the class sees this name, so it is required (never an e-mail-derived placeholder).
+    if (!name.trim()) { setNameError("Gib einen Namen ein, den deine Klasse sieht, z. B. «Frau Keller»."); document.getElementById("display-name")?.focus(); return; }
+    void run(async () => { await updateMySocialProfile({ displayName: name.trim() }); clearRoleCache(); setStep(1); });
+  };
+  const makeClass = (event: FormEvent) => { event.preventDefault(); if (!className.trim()) { setError("Gib deiner Klasse einen Namen, z. B. «Sek 3a»."); return; } void run(async () => { setCreated(await createClass(className.trim(), year.trim())); }); };
 
   return (
     <AuthFrame className="max-w-[560px]">
@@ -45,9 +51,9 @@ export function TeacherOnboarding() {
           {error && <StatusMessage tone="danger">{error}</StatusMessage>}
 
           {step === 0 && (
-            <form onSubmit={saveName} className="space-y-5">
-              <AuthTitle title={<>Wie sollen dich deine Klassen <span className="marker">nennen</span>?</>}>Dieser Name ist für deine Schülerinnen und Schüler sichtbar, zum Beispiel „Frau Keller“.</AuthTitle>
-              <Field label="Anzeigename" htmlFor="display-name"><Input id="display-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} autoComplete="name" data-autofocus /></Field>
+            <form onSubmit={saveName} className="space-y-5" noValidate>
+              <AuthTitle title={<>Wie sollen dich deine Klassen <span className="marker">nennen</span>?</>}>Dieser Name ist für deine Schülerinnen und Schüler sichtbar, zum Beispiel «Frau Keller».</AuthTitle>
+              <Field label="Anzeigename" htmlFor="display-name" error={nameError || undefined}><Input id="display-name" value={name} required onChange={(e) => { setName(e.target.value); if (nameError && e.target.value.trim()) setNameError(""); }} maxLength={60} autoComplete="name" data-autofocus /></Field>
               <Button type="submit" full size="lg" loading={busy}>Weiter <ArrowRight size={16} /></Button>
             </form>
           )}
@@ -65,10 +71,10 @@ export function TeacherOnboarding() {
           {step === 1 && created && (
             <div className="space-y-5">
               <span className="sticker sticker-mint animate-sticker"><Check size={14} strokeWidth={3} aria-hidden />Geschafft</span>
-              <AuthTitle title={<>„{created.name}“ ist <span className="marker">bereit</span></>}>Gib diesen Code an deine Schülerinnen und Schüler weiter. Sie entscheiden selbst, was sie mit dir teilen.</AuthTitle>
+              <AuthTitle title={<>«{created.name}» ist <span className="marker">bereit</span></>}>Lade jetzt deine Schülerinnen und Schüler ein: per Klassencode, Einladungslink oder QR-Code. Sie entscheiden selbst, was sie mit dir teilen.</AuthTitle>
               <div className="flex"><CodeActions code={created.joinCode} name={created.name} /></div>
-              <Button variant="sun" full size="lg" loading={busy} onClick={() => void run(() => finish(`/teacher/classes/${created.id}`))}>Zur Klasse</Button>
-              <button type="button" onClick={() => void run(() => finish())} className="mx-auto flex min-h-11 items-center px-3 text-sm font-medium text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)]">Zur Übersicht</button>
+              <Button full size="lg" loading={busy} onClick={() => void run(() => finish(`/teacher/classes/${created.id}?tab=invite`))}>Schüler:innen einladen</Button>
+              <button type="button" onClick={() => void run(() => finish())} className="mx-auto flex min-h-11 items-center px-3 text-sm font-medium text-muted underline decoration-[var(--line)] decoration-2 underline-offset-4 hover:text-[var(--ink)]">Zu meinen Klassen</button>
             </div>
           )}
         </div>

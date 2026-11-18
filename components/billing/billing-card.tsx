@@ -13,7 +13,7 @@ import { fetchBillingStatus, openPortal, startCheckout } from "./api";
 import { BillingReturnNotice } from "./billing-return";
 import {
   FREE_NOTICE, billingHint, billingIntervals, billingPhase, billingStatusLabel, familyBuyTarget, familyManageMode, familyPlan, hasSubscription, intervalPriceText, isPurchasable,
-  onlinePaymentEnabled, paymentOptions, priceText, schoolPlans, seatsText, termText, type BillingInterval, type BillingOwner,
+  onlinePaymentEnabled, paymentOptions, priceText, schoolPlans, termText, type BillingInterval, type BillingOwner,
   type BillingPhase, type BillingStatus, type PaymentMethod, type Tone,
 } from "./logic";
 import { IntervalChoice } from "./interval-choice";
@@ -114,23 +114,25 @@ function InvoiceSent({ url }: { url: string | null }) {
   );
 }
 
-function SchoolCheckout({ owner, onInvoice }: { owner: BillingOwner; onInvoice: (url: string | null) => void }) {
+function SchoolCheckout({ owner, onInvoice, currentPackage = null }: { owner: BillingOwner; onInvoice: (url: string | null) => void; currentPackage?: string | null }) {
   const plans = schoolPlans();
-  const [plan, setPlan] = useState<PlanId>(() => wantedPlan("school") ?? "professional");
+  const current = isPurchasable(currentPackage, "school") ? currentPackage : null;
+  const [plan, setPlan] = useState<PlanId>(() => wantedPlan("school") ?? current ?? "professional");
   const [payment, setPayment] = useState<PaymentMethod>("card");
   const options = paymentOptions(PLANS[plan]);
   const method = options.includes(payment) ? payment : options[0];
   const { busy, error, buy } = useCheckout(owner, onInvoice);
   return (
     <div className="space-y-4" data-billing-state="choose">
-      <PlanPicker plans={plans} value={plan} onChange={setPlan} name={`plan-${owner.id}`} />
+      {current && <p className="text-sm"><span className="text-muted">Aktuelles Paket:</span> <strong>{PLANS[current].name}</strong></p>}
+      <PlanPicker plans={plans} value={plan} onChange={setPlan} name={`plan-${owner.id}`} current={current} />
       <PaymentChoice options={options} value={method} onChange={setPayment} name={`payment-${owner.id}`} />
       {error && <StatusMessage tone="danger">{error}</StatusMessage>}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <Button loading={busy} onClick={() => buy(plan, method)} icon={method === "invoice" ? <FileText size={16} aria-hidden /> : <CreditCard size={16} aria-hidden />}>
           {method === "invoice" ? `${PLANS[plan].name} per Rechnung bestellen` : `${PLANS[plan].name} mit Karte bezahlen`}
         </Button>
-        <ButtonLink href="/kontakt" variant="ghost" icon={<Mail size={16} aria-hidden />}>Individuelles Angebot</ButtonLink>
+        <ButtonLink href="/kontakt" variant="ghost" icon={<Mail size={16} aria-hidden />}>Offerte anfragen</ButtonLink>
       </div>
       <p className="text-small text-muted">Alle Preise in CHF pro Jahr. Jahresabo, kündbar auf Ende der Laufzeit. Schülerinnen und Schüler bezahlen nie etwas.</p>
     </div>
@@ -138,20 +140,20 @@ function SchoolCheckout({ owner, onInvoice }: { owner: BillingOwner; onInvoice: 
 }
 
 /** Shown while the flag is off (or if a section needs the honest default). */
-export function BillingOffNotice({ children }: { children?: React.ReactNode }) {
+export function BillingOffNotice({ children, text = FREE_NOTICE }: { children?: React.ReactNode; text?: string }) {
   return (
     <div className="space-y-3" data-billing-state="off">
-      <p className="flex items-start gap-2 text-body"><ReceiptText size={18} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{FREE_NOTICE}</p>
+      <p className="flex items-start gap-2 text-body"><ReceiptText size={18} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{text}</p>
       {children}
     </div>
   );
 }
 
 /**
- * "Abo & Rechnung" for one school in /schul-admin. Flag off: honest "kostenlos" copy + contact. Flag on: current subscription
+ * "Lizenz & Rechnung" for one school in /schul-admin. Flag off: honest "kostenlos" copy + contact. Flag on: current subscription
  * (+ portal) or plan/payment choice (card or invoice). `anchor` gives the section id="abo" (links from /preise).
  */
-export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentEnabled() }: { schoolId: string; anchor?: boolean; enabled?: boolean }) {
+export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentEnabled(), currentPackage = null }: { schoolId: string; anchor?: boolean; enabled?: boolean; currentPackage?: string | null }) {
   const owner: BillingOwner = { kind: "school", id: schoolId };
   const { load, reload } = useBillingStatus(owner, enabled);
   // Invoice requested: keep the confirmation (send_invoice subscriptions are active right away; unpaid after the term => grace, then expired).
@@ -161,11 +163,10 @@ export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentE
   const headingId = `billing-${schoolId}`;
   return (
     <section ref={ref} id={anchor ? "abo" : undefined} aria-labelledby={headingId} className="panel-flat scroll-mt-24 space-y-4 p-5" data-billing-enabled={enabled ? "on" : "off"}>
-      <h3 id={headingId} className="text-heading flex items-center gap-2"><ReceiptText size={18} aria-hidden /> Abo &amp; Rechnung</h3>
+      <h3 id={headingId} className="text-heading flex items-center gap-2"><ReceiptText size={18} aria-hidden /> Lizenz &amp; Rechnung</h3>
       {anchor && <BillingReturnNotice onSuccess={reload} />}
       {!enabled ? (
-        <BillingOffNotice>
-          <p className="text-small text-muted">Eine Offerte, eine Rechnung oder ein anderes Paket bekommst du über die Kontaktseite.</p>
+        <BillingOffNotice text="Die Online-Bezahlung ist gerade nicht verfügbar. Eine Offerte, eine Rechnung oder ein anderes Paket bekommst du über die Kontaktseite.">
           <ButtonLink href="/kontakt" variant="secondary" size="sm" icon={<Mail size={14} aria-hidden />}>Kontakt aufnehmen</ButtonLink>
         </BillingOffNotice>
       ) : invoice ? (
@@ -180,7 +181,7 @@ export function BillingCard({ schoolId, anchor = false, enabled = onlinePaymentE
       ) : hasSubscription(load.status) ? (
         <SubscriptionDetails status={load.status!} owner={owner} canManage />
       ) : (
-        <SchoolCheckout owner={owner} onInvoice={(url) => setInvoice({ url })} />
+        <SchoolCheckout owner={owner} onInvoice={(url) => setInvoice({ url })} currentPackage={currentPackage} />
       )}
     </section>
   );
@@ -311,6 +312,12 @@ const PHASE_BADGE: Record<BillingPhase, { label: string; tone: Tone } | null> = 
   ended: { label: FAMILY_COPY.badge.ended, tone: "neutral" },
 };
 export const familyPhaseBadge = (p: BillingPhase | null) => (p ? PHASE_BADGE[p] : null);
+/** "Das Familienpaket gilt für dich und 1 Kind (2 Konten)." from the plan's seats (eltern-05). */
+function familySeatsLine(plan: ReturnType<typeof familyPlan>): string {
+  const children = plan.seats?.children ?? 1;
+  return fill(FAMILY_COPY.step3.text, { children, accounts: children + (plan.seats?.parents ?? 1) });
+}
+
 /** Body text of one phase (dates as dd.mm.yyyy). */
 export function familyPhaseText(p: BillingPhase, validUntil: string | null): string {
   const date = formatDate(validUntil);
@@ -371,7 +378,7 @@ function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: stri
   }
   return (
     <div className="space-y-4" data-billing-state={busy ? "redirecting" : "choose"}>
-      <p className="text-body">{fill(FAMILY_COPY.step3.text, { seats: seatsText(plan) })}</p>
+      <p className="text-body">{familySeatsLine(plan)}</p>
       <IntervalChoice plan={plan} options={intervals} value={billing.interval} onChange={billing.setInterval} name={`interval-${familyId}`}
         legend={FAMILY_COPY.step3.intervalLegend} yearBadge={saving > 0 ? fill(FAMILY_COPY.step3.yearBadge, { saving: formatChf(saving) }) : undefined} />
       {error && <div ref={errorRef} tabIndex={-1} className="outline-none"><StatusMessage tone="danger">{error}</StatusMessage></div>}
@@ -381,7 +388,7 @@ function FamilyChoose({ familyId, billing, primary, ctaLabel }: { familyId: stri
         </Button>
         {busy && <p role="status" className="text-small font-semibold">{FAMILY_COPY.step3.redirecting}</p>}
       </div>
-      <p className="text-small text-muted">{fill(FAMILY_COPY.step3.note, { term: termText(billing.interval) })} {FAMILY_COPY.step3.childFree}</p>
+      <p className="text-small text-muted">{fill(FAMILY_COPY.step3.note, { term: termText(billing.interval) })}</p>
     </div>
   );
 }
@@ -419,9 +426,8 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
   if (p === "none") {
     return current || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
       <div className="space-y-2" data-billing-state="choose-later">
-        <p className="text-body">{fill(FAMILY_COPY.step3.text, { seats: seatsText(familyPlan()) })}</p>
+        <p className="text-body">{familySeatsLine(familyPlan())}</p>
         <p className="tabular text-sm font-bold" data-family-price>{priceText(familyPlan())}</p>
-        <p className="text-small text-muted">{FAMILY_COPY.step3.childFree}</p>
       </div>
     );
   }
@@ -442,9 +448,12 @@ export function FamilyPlanBody({ familyId, billing, current, open }: { familyId:
   const manage = familyManageMode(status ?? null);
   if (manage === "manual") {
     // Trial / pilot / manual plan from WendApply: no portal, no "other parent"; a trial can be upgraded right away.
+    // It never renews, so "Verlängert sich am …" would contradict "läuft ohne Abo" (eltern-07).
+    const until = formatDate(status?.validUntil ?? null);
+    const manualText = p === "active" ? (until ? fill(FAMILY_COPY.phase.manualUntil, { date: until }) : "") : text;
     return (
       <div className="space-y-3" data-billing-state={p} data-billing-manage="manual">
-        {text && <p className="text-body">{text}</p>}
+        {manualText && <p className="text-body">{manualText}</p>}
         <p className="text-small text-muted">{FAMILY_COPY.manage.manual}</p>
         {p === "trialing" && (rebuy || open ? <FamilyChoose familyId={familyId} billing={billing} primary={current} /> : (
           <Button variant="secondary" onClick={() => setRebuy(true)} icon={<Sparkles size={16} aria-hidden />}>{FAMILY_COPY.manage.buyNow}</Button>

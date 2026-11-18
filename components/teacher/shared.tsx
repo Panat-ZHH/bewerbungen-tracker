@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, Copy } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Copy, SearchX } from "lucide-react";
+import { Button, ButtonLink } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { cn } from "@/lib/utils";
 import { generalCause } from "@/lib/ux";
 import { teacherErrorCode } from "./api";
@@ -27,6 +28,17 @@ export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: (
   return <div role="alert" className="status status-danger flex items-center justify-between gap-3 text-sm"><span>{message}</span>{onRetry && <Button size="sm" variant="secondary" className="min-h-11 shrink-0 sm:min-h-11" onClick={onRetry}>Erneut laden</Button>}</div>;
 }
 
+/** Unknown or foreign class/pupil: no retry (it can't help), one way back (lehrperson-23). */
+export function TeacherNotFound({ title, text }: { title: string; text: string }) {
+  return <EmptyState headingLevel={1} icon={<SearchX size={26} />} title={title} description={text} action={<ButtonLink href="/teacher" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
+}
+
+/** Errors where retrying cannot help (no permission, unknown id). */
+export function isPermanentTeacherError(reason: unknown): boolean {
+  const code = teacherErrorCode(reason);
+  return code === "FORBIDDEN" || code === "CLASS_NOT_FOUND" || code === "NOT_FOUND";
+}
+
 export function CopyButton({ text, label = "Kopieren", size = "sm", variant = "secondary" }: { text: string; label?: string; size?: "sm" | "md"; variant?: "secondary" | "ghost" }) {
   const [copied, setCopied] = useState(false);
   useEffect(() => { if (!copied) return; const t = setTimeout(() => setCopied(false), 2000); return () => clearTimeout(t); }, [copied]);
@@ -43,38 +55,38 @@ export function relativeDays(value: string | null | undefined, now = Date.now())
 }
 
 export type PathStage = { label: string; short?: string; value: number; fill: "brand" | "coral" | "mint" | "sun" };
-const STAGE_FILL: Record<PathStage["fill"], string> = {
-  brand: "bg-[var(--brand)] text-[var(--on-brand)]",
-  coral: "bg-[var(--coral)] text-[var(--on-coral)]",
-  mint: "bg-[var(--mint)] text-[var(--on-mint)]",
-  sun: "bg-[var(--sun)] text-[var(--on-sun)]",
+const STAGE_DOT: Record<PathStage["fill"], string> = {
+  brand: "bg-[var(--brand)]",
+  coral: "bg-[var(--coral)]",
+  mint: "bg-[var(--mint)]",
+  sun: "bg-[var(--sun)]",
 };
 
 /**
- * Key numbers of a class (or of all classes) without KPI boxes: the number of students stands large on paper,
- * the way to the apprenticeship follows as one ticket strip. Stages with a count are coloured in. `note` is a calm line below the number.
+ * Key numbers of a class (or of all classes): the number of students stands large on paper, the stages follow as one calm row
+ * (numbers in ink, only a small coloured dot per stage – no saturated blocks, lehrperson-11). `note` is a calm line below.
  */
 export function ClassPath({ label, students, studentsHint, stages, note, className }: { label: string; students: number; studentsHint?: string; stages: PathStage[]; note?: React.ReactNode; className?: string }) {
   return (
-    <section aria-label={label} className={cn("grid items-end gap-x-10 gap-y-5 lg:grid-cols-[auto_minmax(0,1fr)]", className)}>
-      <div>
-        <p className="flex items-end gap-3">
+    <section aria-label={label} className={cn("space-y-3", className)}>
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:gap-10">
+        <p className="flex shrink-0 items-end gap-3">
           <span className="num-display">{students}</span>
           <span className="pb-1">
             <span className="font-display block text-lg font-bold leading-tight"><span className="marker">Schüler:innen</span></span>
             {studentsHint && <span className="text-small mt-0.5 block text-muted">{studentsHint}</span>}
           </span>
         </p>
+        <dl className="flex flex-wrap gap-x-7 gap-y-3 sm:pb-1">
+          {stages.map((stage) => (
+            <div key={stage.label} className="flex min-w-0 flex-col-reverse">
+              <dt className="text-small inline-flex items-center gap-1.5 font-medium text-muted"><span className={cn("h-2 w-2 shrink-0 rounded-full", stage.value > 0 ? STAGE_DOT[stage.fill] : "bg-[var(--line)]")} aria-hidden />{stage.label}</dt>
+              <dd className="num-big tabular">{stage.value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
-      <dl className="ticket">
-        {stages.map((stage) => (
-          <div key={stage.label} className={cn("ticket-stub flex flex-col max-sm:px-1", stage.value > 0 ? STAGE_FILL[stage.fill] : "text-[var(--muted)]")}>
-            <dt className="order-2 mt-1.5 truncate text-[11px] font-bold min-[400px]:text-xs sm:text-sm">{stage.short ? <><span className="sm:hidden" aria-hidden>{stage.short}</span><span className="max-sm:sr-only">{stage.label}</span></> : stage.label}</dt>
-            <dd className="num-big tabular text-[2rem] sm:text-[2.75rem]">{stage.value}</dd>
-          </div>
-        ))}
-      </dl>
-      {note && <div className="text-small flex flex-wrap items-center gap-x-2 gap-y-1.5 text-muted lg:col-span-2">{note}</div>}
+      {note && <div className="text-small flex flex-wrap items-center gap-x-2 gap-y-1.5 text-muted">{note}</div>}
     </section>
   );
 }

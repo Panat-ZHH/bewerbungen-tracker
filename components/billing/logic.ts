@@ -39,7 +39,7 @@ export function paymentOptions(plan: Plan): PaymentMethod[] {
 
 export const PAYMENT_LABEL: Record<PaymentMethod, { title: string; text: string }> = {
   card: { title: "Kreditkarte", text: "Sofort freigeschaltet. Die Zahlung läuft sicher über unseren Zahlungsanbieter." },
-  invoice: { title: "Rechnung", text: `Sie erhalten eine Rechnung per E-Mail, zahlbar innert ${BILLING.invoiceDaysUntilDue} Tagen.` },
+  invoice: { title: "Rechnung", text: `Du bekommst eine Rechnung per E-Mail, zahlbar innert ${BILLING.invoiceDaysUntilDue} Tagen.` },
 };
 
 const PER: Record<BillingInterval, string> = { year: "pro Jahr", month: "pro Monat" };
@@ -69,7 +69,7 @@ export function termText(interval: BillingInterval): string {
   return interval === "month" ? "Monatsabo, kündbar auf Ende des Monats" : "Jahresabo, kündbar auf Ende der Laufzeit";
 }
 export function seatsText(plan: Plan): string {
-  if (plan.kind === "family") return `${plan.seats?.children ?? 1} Schüleraccount + ${plan.seats?.parents ?? 1} Elternaccount`;
+  if (plan.kind === "family") return `${plan.seats?.children ?? 1} Kind + ${plan.seats?.parents ?? 1} Elternteil`;
   return plan.studentLimit ? `bis ${plan.studentLimit} Schülerinnen und Schüler` : "Anzahl nach Absprache";
 }
 

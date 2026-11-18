@@ -23,7 +23,7 @@ const viewports = { 375: { w: 375, h: 812 }, 768: { w: 768, h: 1024 }, 1280: { w
 async function open(browser, vpKey, { dark = false, reduced = false, noTouch = false, items = [], db = { apps: [app(0, "applied"), app(1, "interview"), app(2, "saved")] } } = {}) {
   const vp = viewports[vpKey]; const mobile = vp.w < 700;
   const ctx = await browser.newContext({ viewport: { width: vp.w, height: vp.h }, hasTouch: !noTouch && vp.w < 1000, isMobile: !noTouch && mobile, colorScheme: dark ? "dark" : "light", reducedMotion: reduced ? "reduce" : "no-preference" });
-  await ctx.addInitScript(([s, d]) => { localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s)); if (d) localStorage.setItem("theme", "dark"); }, [session, dark]);
+  await ctx.addInitScript(([s, d]) => { localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s)); localStorage.getItem("wendapply.map.overlay.controls.collapsed") ?? localStorage.setItem("wendapply.map.overlay.controls.collapsed", "0"); if (d) localStorage.setItem("theme", "dark"); }, [session, dark]);
   const st = { balance: 6000, earned: 6000, rewardCount: 60, items: structuredClone(items), layouts: [] };
   await ctx.route("**://localhost:54321/**", async (route) => {
     const url = new URL(route.request().url()); const method = route.request().method(); const p = url.pathname;

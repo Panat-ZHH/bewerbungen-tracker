@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CalendarClock, Plus } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
@@ -11,7 +11,11 @@ import { deadlineInfo, friendlyMessage } from "@/lib/ux";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleSparkle, DoodleTrail } from "@/components/ui/doodles";
+import { DoodleBurst, DoodlePlane } from "@/components/ui/doodles";
+import { Field, Input } from "@/components/ui/input";
+import { isPlaceholderName, setMyDisplayName } from "@/lib/profile-names";
+import { clearRoleCache } from "@/lib/role";
+import { toast } from "@/lib/toast";
 import { isClosedStatus, isSentStatus, showsDeadline } from "@/lib/status";
 import { RemindersCard } from "@/components/reminders/reminders-card";
 import { WeeklyGoal } from "@/components/dashboard/weekly-goal";
@@ -28,6 +32,8 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [name, setName] = useState("");
+  // null = still loading; "" = no real name known → ask once on Start (schueler-03).
+  const [nameKnown, setNameKnown] = useState<boolean | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -45,8 +51,10 @@ export default function DashboardPage() {
       if (!user) return;
       const profile = await loadMyRole(user).catch(() => null);
       const meta = user.user_metadata ?? {};
-      const found = firstName(profile?.displayName) || firstName(meta.first_name as string) || firstName(meta.full_name as string) || firstName(meta.name as string);
-      if (active) setName(found);
+      // The default display name is the e-mail prefix (lib/social.ts): never greet with it (schueler-03).
+      const real = (value?: string | null) => (isPlaceholderName(value, user.email) ? "" : firstName(value));
+      const found = real(profile?.displayName) || real(meta.first_name as string) || real(meta.full_name as string) || real(meta.name as string);
+      if (active) { setName(found); setNameKnown(Boolean(found)); }
     }).catch(() => undefined);
     return () => { active = false; };
   }, []);
@@ -67,12 +75,14 @@ export default function DashboardPage() {
           <div className="skeleton mt-4 h-7 w-64 max-w-full" role="status" aria-label="Dein nächster Schritt wird geladen" />
         ) : !error && (
           <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
-            <p className="font-display max-w-xl text-xl font-semibold leading-snug tracking-[-.01em] sm:text-2xl" data-testid="next-step">{step.text}</p>
-            {!isNew && <ButtonLink href={step.href} variant="sun" className="w-fit shrink-0" icon={<ArrowRight size={16} strokeWidth={2.4} />}>{step.cta}</ButtonLink>}
+            {!isNew && <p className="font-display max-w-xl text-xl font-semibold leading-snug tracking-[-.01em] sm:text-2xl" data-testid="next-step">{step.text}</p>}
+            {!isNew && <ButtonLink href={step.href} variant="sun" className="w-fit shrink-0" data-primary-action="" icon={<ArrowRight size={16} strokeWidth={2.4} />}>{step.cta}</ButtonLink>}
           </div>
         )}
         {!isNew && <p className="mt-3 text-body text-muted">Ein guter nächster Schritt reicht für heute.</p>}
       </header>
+
+      {nameKnown === false && <NamePrompt onSaved={(saved) => { setName(saved); setNameKnown(true); }} />}
 
       <NoticesCard />
 
@@ -137,7 +147,7 @@ export default function DashboardPage() {
                 </ul>
               </section>
             )}
-            <ButtonLink href="/applications/new" full size="lg" icon={<Plus size={18} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>
+            <ButtonLink href="/applications/new" variant="ghost" icon={<Plus size={18} strokeWidth={2.4} />}>Bewerbung eintragen</ButtonLink>
           </div>
         </div>
       )}
@@ -147,7 +157,7 @@ export default function DashboardPage() {
 
 const FIRST_STEPS = [
   { href: "/search", title: "Stelle finden", text: "Durchsuche mehrere Stellenbörsen auf einmal und merke dir, was passt.", color: "text-[var(--brand)]" },
-  { href: "/applications/new", title: "Bewerbung eintragen", text: "Halte Firma, Stelle und deinen Stand fest.", color: "text-[var(--coral)]" },
+  { href: "/applications/new", title: "Bewerbung eintragen", text: "Halte Firma, Stelle und Status fest.", color: "text-[var(--coral)]" },
   { href: "/friends", title: "Freunde einladen", text: "Zu zweit bleibt man leichter dran.", color: "text-[var(--ink)]" },
 ];
 
@@ -156,7 +166,7 @@ function FirstSteps() {
   return (
     <section className="animate-rise mt-8 grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" aria-labelledby="first-steps-h">
       <div className="min-w-0">
-        <h2 id="first-steps-h" className="text-heading">Willkommen! So startest du in drei Schritten.</h2>
+        <h2 id="first-steps-h" className="text-heading">So startest du in drei Schritten</h2>
         <p className="mt-1 text-body text-muted">Du musst nicht alles auf einmal wissen – Firma und Stelle reichen.</p>
         <ol className="rows mt-4 border-y-[length:var(--border-w)] border-[var(--outline)]">
           {FIRST_STEPS.map(({ href, title, text, color }, index) => (
@@ -172,18 +182,45 @@ function FirstSteps() {
             </li>
           ))}
         </ol>
-        <div className="mt-6 flex items-center gap-3">
-          <ButtonLink href="/applications/new" size="lg" icon={<Plus size={18} strokeWidth={2.4} />}>Erste Bewerbung eintragen</ButtonLink>
-          <DoodleArrow className="hidden h-9 w-12 -scale-x-100 rotate-[200deg] text-[var(--ink)] min-[420px]:block" />
-        </div>
+        {/* One clear next step for new pupils, on mobile and desktop alike (QA M5, schueler solo-d-076). */}
+        <ButtonLink href="/search" variant="sun" className="mt-5 w-fit" data-primary-action="" icon={<ArrowRight size={16} strokeWidth={2.4} />}>Erste Stelle suchen</ButtonLink>
       </div>
       <div aria-hidden className="relative mx-auto hidden h-64 w-full max-w-xs lg:block">
-        <span className="sticker tilt-l3 absolute left-2 top-6 text-base">Los geht’s!</span>
-        <DoodleTrail className="absolute left-0 top-24 h-20 w-56 text-[var(--ink)]" />
         <DoodlePlane className="absolute right-2 top-10 h-20 w-24 rotate-[-8deg] text-[var(--brand)]" />
-        <DoodleSparkle className="absolute bottom-10 right-12 h-9 w-9 text-[var(--sun)]" />
         <span className="sticker sticker-coral tilt-r absolute bottom-4 left-10">Deine Lehrstelle wartet</span>
       </div>
     </section>
+  );
+}
+
+/** No real name yet (e.g. class signup without the tour): ask once, so nobody is greeted with an e-mail prefix (schueler-03). */
+function NamePrompt({ onSaved }: { onSaved: (name: string) => void }) {
+  const [value, setValue] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  async function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const name = value.trim();
+    if (!name) { setError("Gib deinen Vornamen ein. Ein Vorname reicht."); return; }
+    setSaving(true); setError("");
+    try {
+      await setMyDisplayName(name);
+      clearRoleCache();
+      toast({ message: "Änderungen gespeichert.", tone: "success" });
+      onSaved(name.split(/\s+/)[0]);
+    } catch (reason) {
+      setError(friendlyMessage(reason, "Dein Name konnte nicht gespeichert werden. Versuch es noch einmal."));
+    } finally { setSaving(false); }
+  }
+  return (
+    <form onSubmit={save} className="panel mt-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:p-5" aria-labelledby="name-prompt-h">
+      <div className="min-w-0 flex-1">
+        <h2 id="name-prompt-h" className="text-heading mb-2">Wie dürfen wir dich nennen?</h2>
+        <Field label="Vorname" htmlFor="name-prompt" error={error || undefined}>
+          <Input id="name-prompt" autoComplete="given-name" value={value} onChange={(e) => setValue(e.target.value)} />
+        </Field>
+      </div>
+      <Button type="submit" variant="secondary" loading={saving} className="min-h-11 w-fit">Speichern</Button>
+    </form>
   );
 }

@@ -8,7 +8,7 @@ import { TeacherClassView } from "@/components/teacher/class-view";
 export default function Page() {
   const { id } = useParams<{ id: string }>();
   return (
-    <WorkspaceShell active="Übersicht">
+    <WorkspaceShell active="Klassen">
       <Suspense fallback={null}>
         <TeacherClassView classId={id} />
       </Suspense>

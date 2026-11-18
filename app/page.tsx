@@ -40,7 +40,7 @@ export default function LandingPage() {
           <h1 id="hero-h" className="text-hero">Von der ersten Bewerbung bis zur <span className="marker">Zusage</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Stellen finden, Bewerbungen und Fristen verwalten und bei Bedarf mit deiner Lehrperson teilen. Alles an einem Ort. 7 Tage gratis testen, mit Schullizenz für dich gratis.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
+            <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Kostenlos testen</ButtonLink>
             <ButtonLink href="/schulen" size="lg" variant="secondary">Für Schulen</ButtonLink>
           </div>
           <p className="text-small mt-5 max-w-md text-muted">Anmeldung mit E-Mail oder Google. Dein Konto kannst du jederzeit selbst löschen. <Link className={link} href="/anleitung">So funktioniert’s</Link></p>
@@ -87,8 +87,8 @@ export default function LandingPage() {
           <div>
             <ul className="rows text-base font-medium">
               <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Klasse in unter einer Minute erstellen und per Link, Code oder QR-Code einladen</li>
-              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Sehen, wer Hilfe braucht, ohne dass Sie dafür zusätzliche Listen führen</li>
-              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Gemeinsame Klassenziele und Statistiken für die Begleitung</li>
+              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Sehen, wer Hilfe braucht, ohne zusätzliche Listen zu führen</li>
+              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Gemeinsame Klassenziele und Auswertungen für die Begleitung</li>
             </ul>
             <p className="text-body mt-6 text-muted">{POSITIONING}</p>
             <div className="mt-6 flex flex-wrap gap-3">
@@ -118,7 +118,7 @@ export default function LandingPage() {
           <h2 id="cta-h" className="text-display max-w-2xl">Bereit für die erste Bewerbung?</h2>
           <p className="mt-4 max-w-xl text-base">Konto erstellen dauert eine Minute. Schulen testen WendApply im {PILOT.days}-Tage-Pilot mit {PILOT.classes}.</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</ButtonLink>
+            <ButtonLink href="/login" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Kostenlos testen</ButtonLink>
             <ButtonLink href="/schulen" size="lg" variant="secondary" className="!border-[var(--outline-fill)]">Für Schulen</ButtonLink>
           </div>
           <div className="pointer-events-none absolute bottom-6 right-8 hidden items-end gap-1 md:flex" aria-hidden>

@@ -89,7 +89,7 @@ for (const { key, vp } of VIEWPORTS) {
     await page.goto(`${BASE}/teacher/classes/c1`, { waitUntil: "domcontentloaded" });
     check(await visible(page, "Anna Meier", 90000), "class page loads with the student list (students tab stays default)");
     await page.getByRole("tab", { name: /Überblick/ }).click();
-    check(await visible(page, "Klassenstatistik"), "overview tab shows the class statistics");
+    check(await visible(page, "Auswertung der Klasse"), "overview tab shows the class statistics");
     check(await visible(page, "Wer braucht Unterstützung"), "support list is shown");
     check(await visible(page, "Noch keine Bewerbung erfasst"), "reason text for Ben (no_application)");
     check(await visible(page, "Meldet selbst: noch keine Lehrstelle"), "hidden student appears only via self report");
@@ -102,7 +102,7 @@ for (const { key, vp } of VIEWPORTS) {
     check(await noOverflow(page), "no horizontal overflow");
     await shot(page, `${key}-teacher-overview`);
 
-    await page.getByRole("tab", { name: /Ziele/ }).click();
+    await page.getByRole("tab", { name: /^Mehr/ }).click(); await page.getByRole("tab", { name: /Ziele/ }).click();
     check(await visible(page, "Noch keine Klassenziele"), "goals tab: empty state");
     await page.getByRole("button", { name: "Ziel erstellen" }).first().click();
     await page.getByLabel("Titel").fill("Alle schnuppern zweimal bis zu den Sportferien");
@@ -111,8 +111,8 @@ for (const { key, vp } of VIEWPORTS) {
     check(await visible(page, "ganze Zahl zwischen 1 und 1000"), "invalid target is rejected with a message");
     await page.getByLabel("Zielwert pro Person").fill("2");
     await page.getByRole("button", { name: "Speichern" }).click();
-    check(await visible(page, "1 von 3 haben das Ziel erreicht. Zusammen: 5 Schnuppertage."), "created goal shows the class progress");
-    check(await visible(page, "Ziel: 2 Schnuppertage pro Person"), "target is shown per person");
+    check(await visible(page, "1 von 3 haben das Ziel erreicht. Zusammen: 5 Schnupperlehren."), "created goal shows the class progress");
+    check(await visible(page, "Ziel: 2 Schnupperlehren pro Person"), "target is shown per person");
     const post = state.calls.find((c) => c.goals === "POST");
     check(post && post.body.class_id === "c1" && post.body.metric === "trial_days" && post.body.target === 2, "insert sends class, metric and target", JSON.stringify(post));
     check(await page.getByRole("img", { name: /Alle schnuppern zweimal.*Mauern stehen/ }).count() === 1, "class village shows the goal house (33 % = walls)");
@@ -151,7 +151,7 @@ for (const { key, vp } of VIEWPORTS) {
     const { ctx, page } = await actor({ role: "student", rpc, vp });
     await page.goto(`${BASE}/classes`, { waitUntil: "domcontentloaded" });
     check(await visible(page, "Ziele deiner Klasse", 90000), "student class area shows the class goals");
-    check(await visible(page, "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnuppertage."), "aggregate progress is shown");
+    check(await visible(page, "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnupperlehren."), "aggregate progress is shown");
     check(await visible(page, "mindestens drei Personen"), "suppressed goal explains why no number is shown");
     check(!(await page.getByText("Anna Meier").count()), "no other student names on the page");
     check(await noOverflow(page), "no horizontal overflow");
@@ -219,14 +219,14 @@ scope = "not-deployed mobile";
   await page.goto(`${BASE}/teacher/classes/c1`, { waitUntil: "domcontentloaded" });
   await visible(page, "Anna Meier", 60000);
   await page.getByRole("tab", { name: /Überblick/ }).click();
-  check(await visible(page, "Klassenstatistik"), "overview falls back to the existing teacher RPCs");
+  check(await visible(page, "Auswertung der Klasse"), "overview falls back to the existing teacher RPCs");
   check(await visible(page, "Noch keine Bewerbung erfasst"), "fallback derives support reasons");
   check(await visible(page, "Meldet selbst: noch keine Lehrstelle"), "fallback keeps the self report of a hidden student");
-  await page.getByRole("tab", { name: /Ziele/ }).click();
+  await page.getByRole("tab", { name: /^Mehr/ }).click(); await page.getByRole("tab", { name: /Ziele/ }).click();
   check(await visible(page, "Klassenziele kommen bald"), "goals tab explains the feature is not ready");
   check(!(await page.getByRole("button", { name: "Ziel erstellen" }).count()), "no create button without the table");
   await page.goto(`${BASE}/schul-admin`, { waitUntil: "domcontentloaded" });
-  check(await visible(page, "Schulverwaltung wird eingerichtet", 60000), "school admin page degrades gracefully");
+  check(await visible(page, "Keine Schule zugeordnet", 60000), "school admin page degrades gracefully");
   await shot(page, "not-deployed-school-admin");
   await ctx.close();
 }
@@ -237,17 +237,17 @@ for (const deployed of [true, false]) {
   const rpc = deployed ? { export_my_data: { format: "wendapply-export-v1", account: { id: "u1", email: "student@beispiel.ch" }, classes: [{ class: "Sek 3a" }], tables: { user_roles: [{ role: "student", access_token: "geheim" }] } } } : { export_my_data: missing("export_my_data") };
   const { ctx, page } = await actor({ role: "student", rpc, vp: { w: 375, h: 812 } });
   await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
-  check(await visible(page, "Meine Daten", 90000), "settings show the 'Meine Daten' section");
-  const [download] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }), page.getByRole("button", { name: "Daten exportieren (JSON)" }).click()]);
+  check(await visible(page, "Daten & Datenschutz", 90000), "settings show the data section");
+  const [download] = await Promise.all([page.waitForEvent("download", { timeout: 30000 }), page.getByRole("button", { name: "Daten exportieren" }).click()]);
   const json = JSON.parse(fs.readFileSync(await download.path(), "utf8"));
   check(/^wendapply-meine-daten-\d{4}-\d{2}-\d{2}\.json$/.test(download.suggestedFilename()), "file name", download.suggestedFilename());
   check(Array.isArray(json.applications) && json.applications.length > 0 && json.profile, "export keeps the importable applications + profile");
   check(deployed ? json.account?.format === "wendapply-export-v1" && json.account.classes.length === 1 : json.account === undefined, deployed ? "server export is included" : "works without export_my_data");
   check(!JSON.stringify(json).includes("geheim"), "tokens are stripped from the export");
-  check(await visible(page, "Deine Daten wurden als Datei"), "success message");
+  check(await visible(page, "Daten exportiert."), "success message");
   check(await page.getByRole("heading", { name: "Meine Daten löschen" }).isVisible() && await page.getByRole("heading", { name: "Konto löschen" }).isVisible(), "deletion flows are still offered");
   await page.getByRole("button", { name: "Meine Daten löschen" }).click();
-  check(await page.getByRole("dialog").getByText("Alle Daten wirklich löschen?").isVisible(), "deleting asks for confirmation");
+  check(await page.getByRole("dialog").getByText("Bewerbungsdaten löschen?").isVisible(), "deleting asks for confirmation");
   await page.getByRole("dialog").getByRole("button", { name: "Abbrechen" }).click();
   if (deployed) await shot(page, "settings-my-data");
   await ctx.close();

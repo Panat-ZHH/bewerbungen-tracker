@@ -6,7 +6,7 @@ import { birthYearOptions, mayNeedParentalConsent, type SignupChoice } from "@/l
 
 /** The four ways to use WendApply. "school" is today's student flow (unchanged); "independent" and "parent" are private customers. */
 export const SIGNUP_OPTIONS: { value: SignupChoice; label: string; short: string; hint: string; icon: typeof UserRound }[] = [
-  { value: "school", label: "Schule", short: "Mit meiner Klasse", hint: "Ich bin Schüler:in und nutze WendApply mit meiner Schule oder Klasse.", icon: School },
+  { value: "school", label: "Schüler:in mit Klasse", short: "Über meine Schule", hint: "Ich bin Schüler:in, meine Lehrperson gibt mir einen Klassencode.", icon: School },
   { value: "independent", label: "Schüler:in privat", short: "Ohne Schule", hint: "Ich suche eine Lehrstelle auf eigene Faust, auf Wunsch mit meinen Eltern.", icon: UserRound },
   { value: "parent", label: "Elternteil", short: "Ich begleite mein Kind", hint: "Ich begleite mein Kind und sehe, was es mit mir teilt.", icon: Heart },
   { value: "teacher", label: "Lehrperson", short: "Ich begleite Klassen", hint: "Ich begleite Klassen und sehe, wo meine Schülerinnen und Schüler stehen.", icon: GraduationCap },

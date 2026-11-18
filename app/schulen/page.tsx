@@ -17,7 +17,7 @@ const teachers: Item[] = [
   { icon: LayoutList, title: "Klassenübersicht", text: "Sie sehen auf einen Blick, wo die Klasse steht: Bewerbungen, Schnupperlehren, Gespräche und Zusagen, soweit die Jugendlichen sie teilen." },
   { icon: LifeBuoy, title: "Wer braucht Unterstützung?", text: "WendApply zeigt, wer länger nichts eingetragen hat oder bei wem eine Frist ansteht. So können Sie gezielt nachfragen." },
   { icon: Flag, title: "Gemeinsame Klassenziele", text: "Setzen Sie Ziele und Fristen für die ganze Klasse und verfolgen Sie, wie sie sich entwickeln." },
-  { icon: BarChart3, title: "Statistiken", text: "Zusammengefasste Auswertungen für Lehrpersonen und Schulleitung, als Grundlage für Gespräche und Elternabende." },
+  { icon: BarChart3, title: "Auswertungen", text: "Zusammengefasste Zahlen für Lehrpersonen und Schulleitung, als Grundlage für Gespräche und Elternabende." },
   { icon: ListChecks, title: "Strukturierte Begleitung", text: "Mitteilungen, Fristen, kurze Erinnerungen und ein Verlauf pro Klasse. Ohne zusätzliche Excel-Listen." },
   { icon: Users, title: "Für das ganze Kollegium", text: "Klassen mit mehreren Lehrpersonen, Einladung per Link, Code, QR-Code oder CSV-Liste." },
 ];

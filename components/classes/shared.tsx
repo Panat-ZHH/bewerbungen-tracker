@@ -6,16 +6,14 @@ import { Button } from "@/components/ui/button";
 import { classErrorCode, classInviteLink } from "@/lib/classes";
 import { licenceError } from "@/lib/b2b/licence";
 import { statusLabels } from "@/lib/utils";
-import { STATUS_ORDER } from "@/lib/status";
+import { STATUS_ORDER, statusFill } from "@/lib/status";
 import { generalCause } from "@/lib/ux";
 import { rateLimitText } from "@/lib/rate-limit-text";
 import type { ApplicationStatus, StatusCounts } from "@/types";
 
-export { STATUS_ORDER } from "@/lib/status";
-// Flat token fills, same family as the status badges: open = paper/yellow, sent = blue, talk = coral, placed = green, closed = sand (never red).
-export const STATUS_COLORS: Record<ApplicationStatus, string> = {
-  saved: "var(--surface)", preparing: "var(--sun)", applied: "var(--brand)", schnupper_planned: "var(--info-line)", schnupper_done: "var(--info-line)", aptitude_test: "var(--brand-soft)", interview: "var(--coral)", final_interview: "var(--coral)", offer: "var(--mint)", contract_signed: "var(--success-line)", rejected: "var(--sand)", withdrawn: "var(--sand)",
-};
+export { STATUS_ORDER };
+// One colour per status family (lib/status.ts statusFill): todo = yellow, sent = blue, talk = coral, placed = green, closed = sand (never red).
+export const STATUS_COLORS = Object.fromEntries(STATUS_ORDER.map((status) => [status, statusFill(status)])) as Record<ApplicationStatus, string>;
 
 // Plain data table on paper: ink line under the head, dashed row dividers (shared by the class and teacher tables).
 export const TABLE_HEAD = "border-b-[length:var(--border-w)] border-[var(--outline)] text-small text-muted [&_th]:font-semibold";
@@ -56,9 +54,9 @@ export function formatDate(value?: string) {
 
 /** Stacked status bar: flat segments with ink dividers inside an ink contour, so it never relies on colour alone. `legend` adds a text key. */
 export function StatusBar({ counts, total, legend = false }: { counts: StatusCounts; total: number; legend?: boolean }) {
-  if (!total) return <div className="h-3 w-full rounded-full border-[length:var(--border-w)] border-dashed border-[var(--neutral-line)]" aria-label="Keine Bewerbungen" />;
+  if (!total) return <div role="img" className="h-3 w-full rounded-full border-[length:var(--border-w)] border-dashed border-[var(--neutral-line)]" aria-label="Keine Bewerbungen" />;
   const present = STATUS_ORDER.filter((s) => counts[s]);
-  const summary = present.map((s) => `${statusLabels[s]}: ${counts[s]}`).join(", ");
+  const summary = present.map((s) => `${statusLabels[s]}: ${counts[s]}`).join(", ") || `${total} ${total === 1 ? "Bewerbung" : "Bewerbungen"}`;
   return (
     <div>
       <div role="img" aria-label={summary} title={summary} className="flex h-3 w-full overflow-hidden rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface-2)] [&>*+*]:border-l-[length:var(--border-w)] [&>*+*]:border-[var(--outline)]">

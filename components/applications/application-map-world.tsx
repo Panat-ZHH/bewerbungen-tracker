@@ -127,7 +127,7 @@ function World({ applications, visibleIds, selectedId, night, zoom, center, onZo
                 <strong>{application.company}</strong><span>{statusLabels[application.status]}</span>
               </span>
             ) : (
-            <button type="button" data-building={application.id} key={application.id} className={`${styles.worldLabel} ${selectedId === application.id ? styles.selectedLabel : ""}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSelect(application.id)} aria-label={`${application.company}: ${statusLabels[application.status]}. Gebäudedetails öffnen`}>
+            <button type="button" data-building={application.id} key={application.id} className={`${styles.worldLabel} ${selectedId === application.id ? styles.selectedLabel : ""}`} onPointerDown={(event) => event.stopPropagation()} onClick={() => onSelect(application.id)} aria-label={`${application.company}: ${statusLabels[application.status]}. Haus öffnen`}>
               <strong>{application.company}</strong><span>{statusLabels[application.status]}</span>
             </button>
             )

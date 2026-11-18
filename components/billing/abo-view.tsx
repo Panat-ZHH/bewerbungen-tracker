@@ -54,26 +54,33 @@ export function AboView() {
     setBusy(true); setError("");
     const r = await startSoloCheckout(period);
     if (r.ok && r.data.url) { window.location.assign(r.data.url); return; }
-    setError(r.ok ? "Das hat nicht geklappt. Bitte versuche es in einem Moment nochmals." : r.message);
+    setError(r.ok ? "Das hat nicht geklappt. Warte einen Moment und versuch es noch einmal." : r.message);
     setBusy(false);
   }
   async function manage() {
     setBusy(true); setError("");
     const r = await openSoloPortal();
     if (r.ok && r.data.url) { window.location.assign(r.data.url); return; }
-    setError(r.ok ? "Das hat nicht geklappt. Bitte versuche es in einem Moment nochmals." : r.message);
+    setError(r.ok ? "Das hat nicht geklappt. Warte einen Moment und versuch es noch einmal." : r.message);
     setBusy(false);
   }
 
   const mode = aboMode(access);
   const enforced = isEnforced(access);
   const intro = !access || !enforced ? null
-    : access.state === "trial" ? `Gratis-Testwoche: ${daysLeftText(access.trial_days_left ?? 0)}. Danach brauchst du ein Abo.`
-    : !access.has_access ? "Deine Testwoche ist vorbei. Mit einem Abo geht es sofort weiter, deine Daten sind noch da." : null;
+    : access.state === "trial" ? `Gratis-Testwoche: ${daysLeftText(access.trial_days_left ?? 0)}. ${access.family_pending ? "Danach läuft WendApply über das Familienpaket deiner Eltern." : mode === "parent" ? "Danach brauchst du das Familienpaket." : "Danach brauchst du ein Abo."}`
+    : !access.has_access ? (mode === "parent" ? "Deine Gratis-Testwoche ist vorbei. Mit dem Familienpaket geht es für dich und dein Kind sofort weiter. Deine Daten sind noch da." : "Deine Gratis-Testwoche ist vorbei. Mit einem Abo geht es sofort weiter. Deine Daten sind noch da.") : null;
+  // Covered (school, family, free): nothing to choose (schueler-40).
+  const covered = mode === "licensed" ? "Dein Zugang läuft über deine Schule. Du musst nichts tun."
+    : mode === "family_covered" ? (access?.account_type === "parent" ? "Dein Familienpaket ist aktiv." : "Dein Zugang läuft über deine Familie. Du musst nichts tun.")
+    : mode === "free" ? "Dein Zugang ist gratis freigeschaltet. Du musst nichts tun."
+    : mode === "staff" ? "Lehrpersonen und Schulen nutzen WendApply mit einer Schullizenz."
+    : null;
+  const choosing = mode === "student" || mode === "parent";
 
   return (
     <div className="mx-auto max-w-[880px] space-y-6" data-testid="abo-page" data-abo-mode={mode}>
-      <PageHeader title={<>Dein <span className="marker">Abo</span></>} description={intro ?? "Wähle, wie du WendApply nutzen möchtest."} />
+      <PageHeader title={mode === "parent" ? <>Familienpaket <span className="marker">wählen</span></> : choosing ? <>Abo <span className="marker">wählen</span></> : <>Dein <span className="marker">Zugang</span></>} description={covered ?? intro ?? "Wähle, wie du WendApply nutzen möchtest."} />
       {ret === "success" && <StatusMessage tone="success" icon={<CheckCircle2 />}>Danke! Die Zahlung ist eingegangen. Die Freischaltung kann ein paar Sekunden dauern. Die Quittung kommt per E-Mail.</StatusMessage>}
       {ret === "cancel" && <StatusMessage tone="info">Es wurde nichts belastet. Du kannst jederzeit nochmals ein Abo wählen.</StatusMessage>}
       {error && <StatusMessage tone="danger">{error}</StatusMessage>}
@@ -90,7 +97,9 @@ export function AboView() {
         <section className="panel space-y-3 p-6" data-testid="abo-staff">
           <h2 className="text-heading"><School size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Schullizenz</h2>
           <p className="text-body">Lehrpersonen und Schulen nutzen WendApply mit einer Schullizenz. Ein Abo brauchst du nicht.</p>
-          <ButtonLink href={LICENCE_PATH} variant="secondary">Zur Schullizenz</ButtonLink>
+          {access?.role === "school_admin"
+            ? <ButtonLink href="/schul-admin#abo" variant="secondary">Zur Schuladministration</ButtonLink>
+            : <ButtonLink href={LICENCE_PATH} variant="secondary">Zur Schullizenz</ButtonLink>}
         </section>
       )}
 
@@ -109,7 +118,7 @@ export function AboView() {
       {mode === "licensed" && (
         <section className="panel space-y-3 p-6" data-testid="abo-licensed">
           <h2 className="text-heading"><School size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Zugang über deine Schule</h2>
-          <p className="text-body">Dein Zugang läuft über {access?.school ? <strong>{access.school.name}</strong> : "deine Schule"}. Du musst nichts bezahlen.</p>
+          <p className="text-body">{access?.school ? <><strong>{access.school.name}</strong> hat eine Schullizenz.</> : "Deine Schule hat eine Schullizenz."} Du musst nichts bezahlen.</p>
           {access?.grant?.scope === "school" && <Badge tone="success" data-testid="abo-school-free-badge">{freeGrantLabel(access.grant, formatDateCh)}</Badge>}
         </section>
       )}
@@ -125,7 +134,7 @@ export function AboView() {
       {mode === "family_covered" && (
         <section className="panel space-y-3 p-6" data-testid="abo-family-covered">
           <div className="flex flex-wrap items-center gap-2"><h2 className="text-heading"><Heart size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Familienpaket</h2><Badge tone="success">Aktiv</Badge></div>
-          <p className="text-body">Du bist über das Familienpaket deiner Familie abgedeckt. {access?.account_type === "parent" ? "Rechnungen und Zahlungsart verwaltest du auf der Familienseite." : "Du musst nichts tun."}</p>
+          <p className="text-body">{access?.account_type === "parent" ? "Rechnungen und Zahlungsart verwaltest du auf der Familienseite." : "Deine Eltern haben das Familienpaket gebucht. Es gilt auch für dich."}</p>
           <ButtonLink href="/familie#abo" variant="secondary">Zur Familie</ButtonLink>
         </section>
       )}
@@ -155,6 +164,18 @@ export function AboView() {
 
       {mode === "student" && (
         <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-4">
+            <section className="panel-flat space-y-2 p-6">
+              <h2 className="text-heading"><School size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Hat deine Schule eine Lizenz?</h2>
+              <p className="text-body text-muted">Dann tritt der Klasse mit dem Code deiner Lehrperson bei. Du musst nichts bezahlen.</p>
+              <ButtonLink href="/classes" variant="secondary">Klassencode eingeben</ButtonLink>
+            </section>
+            <section className="panel-flat space-y-2 p-6" data-testid="abo-plan-family">
+              <h2 className="text-heading"><Heart size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Lieber über deine Eltern?</h2>
+              <p className="text-body text-muted">Das Familienpaket ({bothPricesText(familyPlan())}) buchen deine Eltern. Es gilt für dich und ein Elternteil.</p>
+              <ButtonLink href="/familie" variant="secondary">Eltern einladen</ButtonLink>
+            </section>
+          </div>
           <section className="panel space-y-4 p-6" data-testid="abo-plan-solo">
             <h2 className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Einzelabo</h2>
             <p className="text-body text-muted">Alle Funktionen für dich: Lehrstellensuche, Bewerbungen, KI-Check, dein Dorf. Jederzeit kündbar.</p>
@@ -176,22 +197,10 @@ export function AboView() {
             ) : (
               <>
                 <Button size="lg" full loading={busy} onClick={buy} icon={<CreditCard size={16} aria-hidden />} data-primary-action="">Einzelabo buchen</Button>
-                <p className="text-small text-muted">Bezahlung mit Karte über Stripe. Endpreise in CHF.</p>
+                <p className="text-small text-muted">Du brauchst eine Karte. Frag sonst deine Eltern. Endpreise in CHF.</p>
               </>
             )}
           </section>
-          <div className="space-y-4">
-            <section className="panel-flat space-y-2 p-6" data-testid="abo-plan-family">
-              <h2 className="text-heading"><Heart size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Lieber über deine Eltern?</h2>
-              <p className="text-body text-muted">Das Familienpaket ({bothPricesText(familyPlan())}) buchen deine Eltern. Es gilt für dich und ein Elternteil.</p>
-              <ButtonLink href="/familie" variant="secondary">Eltern einladen</ButtonLink>
-            </section>
-            <section className="panel-flat space-y-2 p-6">
-              <h2 className="text-heading"><School size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Hat deine Schule eine Lizenz?</h2>
-              <p className="text-body text-muted">Dann tritt der Klasse mit dem Code deiner Lehrperson bei. Du musst nichts bezahlen.</p>
-              <ButtonLink href="/classes" variant="secondary">Klassencode eingeben</ButtonLink>
-            </section>
-          </div>
         </div>
       )}
     </div>

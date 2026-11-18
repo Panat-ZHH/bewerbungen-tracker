@@ -47,6 +47,10 @@ test("dialog texts mention everything that is deleted, teachers get a class warn
   assert.match(lib.teacherWarning(s), /2 Klassen mit 5 Schüler:innen/);
   assert.equal(lib.teacherWarning({ ...s, classes_owned: 0 }), null);
   assert.equal(lib.teacherWarning(null), null);
+  // Parents (eltern-09): family consequence instead of applications/village
+  const parent = lib.deletionItems(s, "parent").join(" | ");
+  assert.match(parent, /Elternkonto/); assert.match(parent, /Familie/); assert.match(parent, /Familienpaket/);
+  assert.doesNotMatch(parent, /Bewerbung|Dorf/);
 });
 
 // ---- server deletion order and storage walk against a fake client ----

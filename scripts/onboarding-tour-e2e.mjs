@@ -1,5 +1,5 @@
 // End-to-end check of the first-login onboarding tour against the in-memory Supabase stub (nothing real is touched).
-// Flows per viewport/theme: full path (login gate with ?next=, keyboard, all 5 steps), skip, replay from the settings,
+// Flows per viewport/theme: full path (login gate with ?next=, keyboard, 3 steps + Fertig), skip, replay from the settings,
 // plus an old database without the tour column (no loop) and a teacher (never sees the tour).
 //   PLAYWRIGHT=<playwright-core/index.mjs> CHROME=<chrome> BASE=http://localhost:3291 node scripts/onboarding-tour-e2e.mjs [--only=375-light]
 // The app must run with NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy.
@@ -22,7 +22,7 @@ async function actor(browser, vp, { meta = { role: "student" }, profile = null, 
   const t = { meta: { ...meta }, profile: profile ? { ...profile } : null, rpc: [] };
   const rpc = {
     student_onboarding_save: (b) => { t.rpc.push(["student_onboarding_save", b]); t.profile = { ...(t.profile ?? { id: "profile-u1", user_id: "u1", email: "lena@beispiel.ch" }), first_name: b.p_first_name || t.profile?.first_name || "", last_name: b.p_last_name ?? "", school_level: b.p_school_level, desired_professions: b.p_professions ?? [], canton: b.p_canton, location: b.p_place, desired_start_year: b.p_start_year, onboarding_completed_at: b.p_complete ? new Date().toISOString() : t.profile?.onboarding_completed_at ?? null }; return null; },
-    onboarding_tour_set: (b) => { t.rpc.push(["onboarding_tour_set", b]); t.profile = { ...(t.profile ?? { id: "profile-u1", user_id: "u1", first_name: "", last_name: "", email: "lena@beispiel.ch" }) }; if (b.p_step !== null) t.profile.onboarding_tour_step = Math.max(0, Math.min(4, b.p_step)); if (b.p_complete) t.profile.onboarding_tour_completed_at ??= new Date().toISOString(); return t.profile.onboarding_tour_completed_at ?? null; },
+    onboarding_tour_set: (b) => { t.rpc.push(["onboarding_tour_set", b]); t.profile = { ...(t.profile ?? { id: "profile-u1", user_id: "u1", first_name: "", last_name: "", email: "lena@beispiel.ch" }) }; if (b.p_step !== null) t.profile.onboarding_tour_step = Math.max(0, Math.min(3, b.p_step)); if (b.p_complete) t.profile.onboarding_tour_completed_at ??= new Date().toISOString(); return t.profile.onboarding_tour_completed_at ?? null; },
   };
   const state = await installStub(ctx, { role, rpc });
   const user = () => ({ ...makeUser(role).user, user_metadata: t.meta });
@@ -57,15 +57,15 @@ const focusedTag = (page) => page.evaluate(() => document.activeElement?.tagName
 const overflow = (page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
 const pathOf = (page) => { const u = new URL(page.url()); return u.pathname + u.search; };
 
-async function advanceToCheck(page) {
-  await page.getByRole("button", { name: /Los geht/ }).click();
+/** Replay: through both profile steps to the (optional) first application, then skip it to the done screen. */
+async function advanceToDone(page) {
   await page.getByLabel("Vorname").waitFor();
   if (!(await page.getByLabel("Vorname").inputValue())) await page.getByLabel("Vorname").fill("Lena");
   await page.getByRole("button", { name: "Weiter", exact: true }).click();
   await page.getByRole("button", { name: "Weiter", exact: true }).click();
-  await page.getByRole("button", { name: /Speichern & weiter/ }).click();
-  await page.getByRole("button", { name: "Mache ich später" }).click();
-  await page.getByRole("heading", { name: /KI-Check/ }).waitFor();
+  await page.getByLabel("Firma").waitFor();
+  await page.getByRole("button", { name: "Weiter", exact: true }).click(); // replay labels the skip link «Weiter»
+  await page.getByRole("heading", { name: /bereit/ }).waitFor();
 }
 
 async function run(browser, vp, tag) {
@@ -79,74 +79,67 @@ async function run(browser, vp, tag) {
     await page.goto(`${BASE}/auth/callback?next=${encodeURIComponent("/search?q=Koch")}`, { waitUntil: "domcontentloaded" });
     await page.waitForURL("**/onboarding**", { timeout: 60000 }).catch(() => {});
     check(pathOf(page) === "/onboarding?next=%2Fsearch%3Fq%3DKoch", `login gate routes a new student to the tour with ?next (${pathOf(page)})`);
-    await page.getByRole("heading", { name: /Das ist WendApply/ }).waitFor();
-    check((await step(page)) === "Schritt 1 von 5", "progress shows 'Schritt 1 von 5'");
-    check((await page.getByRole("progressbar").getAttribute("aria-valuenow")) === "1", "progressbar aria-valuenow = 1");
+    await page.getByRole("heading", { name: /Wer bist du/ }).waitFor();
+    check((await step(page)) === "Schritt 1 von 3", "progress shows 'Schritt 1 von 3'");
+    check(await page.getByText("Hoi! In zwei Minuten bist du startklar.").isVisible(), "welcome line in the step 1 header");
     check((await focusedTag(page)) === "H1", "focus starts on the step title");
-    check((await overflow(page)) <= 1, "no horizontal overflow (welcome)");
+    check((await overflow(page)) <= 1, "no horizontal overflow (step 1)");
     check(vp.dark ? (await page.evaluate(() => document.documentElement.dataset.theme)) === "dark" : true, "dark theme active when requested");
-    await shot(page, "01-welcome");
-    // keyboard: Tab from the title reaches "Los geht's", Enter starts
-    await page.keyboard.press("Tab");
-    check(/Los geht/.test(await page.evaluate(() => document.activeElement?.textContent ?? "")), "Tab reaches the primary button");
-    await page.keyboard.press("Enter");
-    await page.getByLabel("Vorname").waitFor();
-    check((await step(page)) === "Schritt 2 von 5" && (await focusedTag(page)) === "H1", "Enter goes to step 2, focus on the new title");
+    await shot(page, "01-who");
+    // first name is required: error next to the field, linked via aria-describedby
     await page.getByRole("button", { name: "Weiter", exact: true }).click();
-    check(await page.getByText("Wie dürfen wir dich nennen?").isVisible(), "first name is required");
-    await shot(page, "02a-profile-error");
+    check(await page.getByText("Gib deinen Vornamen ein. Ein Vorname reicht.").isVisible(), "first name is required (field error)");
+    check((await page.getByLabel("Vorname").getAttribute("aria-describedby")) === "ob-first-error", "error linked with aria-describedby");
+    await shot(page, "01a-who-error");
     await page.getByLabel("Vorname").fill("Mia");
     await page.getByLabel(/In welcher Klasse/).selectOption({ index: 3 });
-    await shot(page, "02b-profile-name");
-    await page.getByRole("button", { name: "Weiter", exact: true }).click();
+    // keyboard: Enter in the field submits the step
+    await page.getByLabel("Vorname").press("Enter");
+    await page.getByLabel("Wohnort").waitFor();
+    check((await step(page)) === "Schritt 2 von 3" && (await focusedTag(page)) === "H1", "Enter goes to step 2, focus on the new title");
     await page.getByRole("button", { name: "+ Koch / Köchin" }).click();
-    await shot(page, "02c-profile-professions");
     await page.getByRole("button", { name: "Zurück" }).click();
-    check((await page.getByLabel("Vorname").inputValue()) === "Mia", "Back inside the profile step keeps the answers");
-    await page.getByRole("button", { name: "Weiter", exact: true }).click();
+    check((await page.getByLabel("Vorname").inputValue()) === "Mia", "Back keeps the answers");
     await page.getByRole("button", { name: "Weiter", exact: true }).click();
     await page.getByLabel("Wohnort").fill("Uster");
     await page.getByLabel("Kanton").selectOption("ZH");
-    await shot(page, "02d-profile-place");
-    await page.getByRole("button", { name: /Speichern & weiter/ }).click();
+    await shot(page, "02-goals");
+    await page.getByRole("button", { name: "Weiter", exact: true }).click();
     await page.getByLabel("Firma").waitFor();
     const save = t.rpc.find((c) => c[0] === "student_onboarding_save")?.[1];
     check(save?.p_first_name === "Mia" && save?.p_complete === true && save?.p_place === "Uster" && save?.p_canton === "ZH" && save?.p_professions?.includes("Koch / Köchin"), "profile answers saved via student_onboarding_save");
     check(t.rpc.some((c) => c[0] === "onboarding_tour_set" && c[1].p_step === 2 && c[1].p_complete === false), "tour step 2 stored for resume");
-    check(t.meta.onboarding_tour_done !== true, "tour not marked done after the profile step");
-    check((await page.getByLabel("Beruf").inputValue()) === "Koch / Köchin", "first wish profession prefills the application");
-    check((await step(page)) === "Schritt 3 von 5", "progress shows 'Schritt 3 von 5'");
+    check(t.meta.onboarding_tour_done !== true, "tour not marked done after the profile steps");
+    check((await page.getByLabel("Beruf / Stelle").inputValue()) === "Koch / Köchin", "first wish profession prefills the application");
+    check((await step(page)) === "Schritt 3 von 3", "progress shows 'Schritt 3 von 3'");
     await page.getByRole("button", { name: "Bewerbung speichern" }).click();
-    check(await page.getByText(/Bei welcher Firma/).isVisible(), "company is required");
+    check(await page.getByText("Gib einen Firmennamen ein.").isVisible(), "company is required (field error)");
     await page.getByLabel("Firma").fill("Migros");
-    check(!(await page.getByText(/Bei welcher Firma/).isVisible()), "the error disappears once the field is filled");
+    check(!(await page.getByText("Gib einen Firmennamen ein.").isVisible()), "the error disappears once the field is filled");
     await page.getByText("Abgeschickt", { exact: true }).click();
     await shot(page, "03a-application");
     await page.getByRole("button", { name: "Bewerbung speichern" }).click();
-    await page.getByText("Gespeichert", { exact: true }).waitFor();
+    await page.getByText("Bewerbung gespeichert", { exact: true }).waitFor();
     const app = state.apps.find((a) => a.company === "Migros" && String(a.id).startsWith("u1-app-")); // the seed data has another Migros row
     check(app?.status === "applied" && app?.position === "Koch / Köchin" && app?.user_id === "u1" && !!app?.applied_at, "first application saved to applications (status applied, applied_at set)");
     await shot(page, "03b-application-saved", 2600);
     await page.getByRole("button", { name: "Weiter", exact: true }).click();
-    await page.getByRole("heading", { name: /KI-Check/ }).waitFor();
-    check((await step(page)) === "Schritt 4 von 5", "progress shows 'Schritt 4 von 5'");
-    await shot(page, "04-ai-check", 2600);
-    check((await page.getByRole("button", { name: "Bewerbung prüfen lassen" }).count()) === 0, "with ?next the KI-Check CTA is hidden (it would lose the next path)");
-    await page.getByRole("button", { name: /^Später/ }).click();
     await page.getByRole("heading", { name: /bereit/ }).waitFor();
-    check((await step(page)) === "Schritt 5 von 5", "progress shows 'Schritt 5 von 5'");
-    check((await page.getByRole("button", { name: /überspringen/ }).count()) === 0, "no skip on the final step");
+    check((await step(page)) === "Fertig", "progress shows 'Fertig' on the last screen");
+    check((await page.getByRole("button", { name: "Überspringen" }).count()) === 0, "no skip on the final screen");
+    check((await page.getByText(/KI-Check|Insel|Münzen/).count()) === 0, "no KI-Check step, glossary terms (Dorf, Punkte)");
     await page.getByRole("button", { name: "Zurück" }).click();
-    check((await step(page)) === "Schritt 4 von 5", "Back works across steps");
-    await page.getByRole("button", { name: /^Später/ }).click();
+    check((await step(page)) === "Schritt 3 von 3", "Back works across steps");
+    await page.getByRole("button", { name: "Weiter", exact: true }).click(); // the saved application screen
+
     await page.getByRole("heading", { name: /bereit/ }).waitFor();
     check((await overflow(page)) <= 1, "no horizontal overflow (done)");
-    await shot(page, "05-done");
-    await page.getByRole("button", { name: /^Weiter/ }).click();
+    await shot(page, "04-done");
+    await page.getByRole("button", { name: "Fertig", exact: true }).click();
     await page.waitForURL("**/search**", { timeout: 60000 }).catch(() => {});
     check(pathOf(page) === "/search?q=Koch", `done forwards to ?next (${pathOf(page)})`);
     check(t.meta.onboarding_tour_done === true && t.meta.student_onboarded === true, "auth flags set on completion");
-    check(t.rpc.some((c) => c[0] === "onboarding_tour_set" && c[1].p_complete === true && c[1].p_step === 4), "onboarding_tour_set(4, true) on completion");
+    check(t.rpc.some((c) => c[0] === "onboarding_tour_set" && c[1].p_complete === true && c[1].p_step === 3), "onboarding_tour_set(3, true) on completion");
     await page.goto(`${BASE}/auth/callback`, { waitUntil: "domcontentloaded" });
     await page.waitForURL("**/dashboard**", { timeout: 60000 }).catch(() => {});
     check(pathOf(page) === "/dashboard", "next login goes straight to the dashboard");
@@ -158,10 +151,9 @@ async function run(browser, vp, tag) {
     const { ctx, page, t } = await actor(browser, vp);
     await page.goto(`${BASE}/auth/callback`, { waitUntil: "domcontentloaded" });
     await page.waitForURL("**/onboarding**", { timeout: 60000 }).catch(() => {});
-    await page.getByRole("button", { name: /Los geht/ }).click();
     await page.getByLabel("Vorname").fill("Ben");
     await shot(page, "06-skip-from-profile");
-    await page.getByRole("button", { name: "Einführung überspringen" }).click();
+    await page.getByRole("button", { name: "Überspringen" }).click();
     await page.waitForURL("**/dashboard**", { timeout: 60000 }).catch(() => {});
     check(pathOf(page) === "/dashboard", "skip ends the tour on the dashboard");
     const save = t.rpc.find((c) => c[0] === "student_onboarding_save")?.[1];
@@ -175,7 +167,7 @@ async function run(browser, vp, tag) {
 
   // ---------------------------------------------------------------- 3. replay from the settings
   {
-    const profile = { id: "profile-u1", user_id: "u1", first_name: "Lena", last_name: "Müller", email: "lena@beispiel.ch", location: "Zürich", canton: "ZH", desired_professions: ["Mediamatiker:in"], school_level: "8. Klasse", desired_start_year: null, onboarding_completed_at: "2026-11-10T08:00:00Z", onboarding_tour_completed_at: "2026-11-10T08:00:00Z", onboarding_tour_step: 4 };
+    const profile = { id: "profile-u1", user_id: "u1", first_name: "Lena", last_name: "Müller", email: "lena@beispiel.ch", location: "Zürich", canton: "ZH", desired_professions: ["Mediamatiker:in"], school_level: "8. Klasse", desired_start_year: null, onboarding_completed_at: "2026-11-10T08:00:00Z", onboarding_tour_completed_at: "2026-11-10T08:00:00Z", onboarding_tour_step: 3 };
     const { ctx, page, t, state } = await actor(browser, vp, { meta: { role: "student", onboarding_tour_done: true }, profile });
     const appsBefore = state.apps.length;
     await page.goto(`${BASE}/settings`, { waitUntil: "domcontentloaded" });
@@ -185,30 +177,21 @@ async function run(browser, vp, tag) {
     await shot(page, "07-settings-entry");
     await link.click();
     await page.waitForURL("**/onboarding?replay=1", { timeout: 60000 }).catch(() => {});
-    await page.getByRole("heading", { name: /Das ist WendApply/ }).waitFor();
+    await page.getByRole("heading", { name: /Wer bist du/ }).waitFor();
     check(await page.getByText(/Nochmals ansehen/).isVisible(), "replay mode is labelled");
-    await shot(page, "08-replay-welcome");
-    await page.getByRole("button", { name: /Los geht/ }).click();
+    await shot(page, "08-replay-who");
     check((await page.getByLabel("Vorname").inputValue()) === "Lena", "replay prefills the stored profile (nothing reset)");
-    await page.getByRole("button", { name: "Einführung schliessen" }).click();
+    await page.getByRole("button", { name: "Schliessen" }).click();
     await page.waitForURL("**/settings", { timeout: 60000 }).catch(() => {});
     check(pathOf(page) === "/settings", "closing the replay returns to the settings");
     await link.click();
     await page.waitForURL("**/onboarding?replay=1", { timeout: 60000 }).catch(() => {});
-    await advanceToCheck(page);
-    await page.getByRole("button", { name: /^Später/ }).click();
+    await advanceToDone(page);
     await page.getByRole("button", { name: "Zurück zu den Einstellungen" }).click();
     await page.waitForURL("**/settings", { timeout: 60000 }).catch(() => {});
     check(pathOf(page) === "/settings", "'Fertig' in replay returns to the settings");
     check(!t.rpc.some((c) => c[0] === "onboarding_tour_set"), "replay never writes the tour state");
     check(state.apps.length === appsBefore && t.profile.first_name === "Lena" && t.profile.desired_professions.includes("Mediamatiker:in"), "replay keeps applications and profile data");
-    // the KI-Check CTA opens /bewerbung-check
-    await link.click();
-    await page.waitForURL("**/onboarding?replay=1", { timeout: 60000 }).catch(() => {});
-    await advanceToCheck(page);
-    await page.getByRole("button", { name: "Bewerbung prüfen lassen" }).click();
-    await page.waitForURL("**/bewerbung-check", { timeout: 60000 }).catch(() => {});
-    check(pathOf(page) === "/bewerbung-check", "KI-Check CTA opens /bewerbung-check");
     await ctx.close();
   }
 }
@@ -221,8 +204,8 @@ async function extras(browser) {
     await page.goto(`${BASE}/auth/callback?next=${encodeURIComponent("/classes/join/tok123_abcdefghijklmnopqrs")}`, { waitUntil: "domcontentloaded" });
     await page.waitForURL("**/onboarding**", { timeout: 60000 }).catch(() => {});
     check(pathOf(page).startsWith("/onboarding?next=%2Fclasses%2Fjoin%2F"), `old DB: tour shown once, invite next kept (${pathOf(page)})`);
-    await page.getByRole("heading", { name: /Das ist WendApply/ }).waitFor();
-    await page.getByRole("button", { name: "Einführung überspringen" }).click();
+    await page.getByRole("heading", { name: /Wer bist du/ }).waitFor();
+    await page.getByRole("button", { name: "Überspringen" }).click();
     await page.waitForURL("**/classes/join/**", { timeout: 60000 }).catch(() => {});
     check(pathOf(page).startsWith("/classes/join/"), `old DB: skip forwards to the invite (${pathOf(page)})`);
     check(t.meta.onboarding_tour_done === true, "old DB: flag set although the RPC is missing");
@@ -254,7 +237,7 @@ async function extras(browser) {
   {
     const { ctx, page } = await actor(browser, { w: 375, h: 812, reducedMotion: "reduce" });
     await page.goto(`${BASE}/onboarding`, { waitUntil: "domcontentloaded" });
-    await page.getByRole("heading", { name: /Das ist WendApply/ }).waitFor();
+    await page.getByRole("heading", { name: /Wer bist du/ }).waitFor();
     // app/globals.css switches motion off with a ~0s duration under prefers-reduced-motion.
     const motion = await page.evaluate(() => { const bar = document.querySelector('[role="progressbar"] > div'); const panel = document.querySelector(".animate-rise"); return { bar: getComputedStyle(bar).transitionDuration, anim: getComputedStyle(panel).animationDuration }; });
     const off = (d) => d.split(",").every((x) => parseFloat(x) < 0.01);

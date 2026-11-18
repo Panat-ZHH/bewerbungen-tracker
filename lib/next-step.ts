@@ -47,23 +47,23 @@ export function nextStep(applications: Pick<Application, "id" | "company" | "sta
   if (applications.length === 0) return { text: "Bereit für deine erste Bewerbung?", href: "/applications/new", cta: "Erste Bewerbung eintragen" };
   const by = (...list: ApplicationStatus[]) => applications.filter((a) => list.includes(a.status));
   const talks = by("interview", "final_interview");
-  if (talks.length) return { text: talks.length === 1 ? `Dein Gespräch bei ${talks[0].company} steht an. Bereite dich vor!` : `${talks.length} Gespräche stehen an. Bereite dich vor!`, href: talks.length === 1 ? `/applications/${talks[0].id}` : "/applications", cta: "Ansehen" };
+  if (talks.length) return { text: talks.length === 1 ? `Dein Gespräch bei ${talks[0].company} steht an. Bereite dich vor!` : `${talks.length} Gespräche stehen an. Bereite dich vor!`, href: talks.length === 1 ? `/applications/${talks[0].id}` : "/applications", cta: talks.length === 1 ? "Gespräch ansehen" : "Gespräche ansehen" };
   const now = dayNumber(today);
   const due = by("saved", "preparing")
     .map((a) => ({ a, days: a.deadline && now !== null ? (dayNumber(a.deadline) ?? Infinity) - now : Infinity }))
     .filter(({ days }) => days >= 0 && days <= 7)
     .sort((x, y) => x.days - y.days)[0];
-  if (due) return { text: `${due.a.company}: Bewerben bis ${due.days === 0 ? "heute" : due.days === 1 ? "morgen" : `in ${due.days} Tagen`}. Schick sie ab!`, href: `/applications/${due.a.id}`, cta: "Fertig machen" };
+  if (due) return { text: `${due.a.company}: Bewerben bis ${due.days === 0 ? "heute" : due.days === 1 ? "morgen" : `in ${due.days} Tagen`}. Schick sie ab!`, href: `/applications/${due.a.id}`, cta: "Bewerbung abschicken" };
   const offers = by("offer");
-  if (offers.length) return { text: `Du hast eine Zusage von ${offers[0].company}. Gratulation! Fehlt nur noch der Vertrag.`, href: `/applications/${offers[0].id}`, cta: "Ansehen" };
+  if (offers.length) return { text: `Du hast eine Zusage von ${offers[0].company}. Gratulation! Fehlt nur noch der Vertrag.`, href: `/applications/${offers[0].id}`, cta: "Zusage ansehen" };
   const schnupper = by("schnupper_planned");
-  if (schnupper.length) return { text: `Schnupperlehre bei ${schnupper[0].company} geplant. Viel Spass!`, href: `/applications/${schnupper[0].id}`, cta: "Ansehen" };
+  if (schnupper.length) return { text: `Schnupperlehre bei ${schnupper[0].company} geplant. Viel Spass!`, href: `/applications/${schnupper[0].id}`, cta: "Schnupperlehre ansehen" };
   const waiting = by("applied", "aptitude_test", "schnupper_done");
-  if (waiting.length) return { text: `${n(waiting.length, "Bewerbung wartet", "Bewerbungen warten")} auf Antwort.`, href: "/applications", cta: "Nachschauen" };
+  if (waiting.length) return { text: `${n(waiting.length, "Bewerbung wartet", "Bewerbungen warten")} auf Antwort.`, href: "/applications", cta: "Bewerbungen ansehen" };
   const preparing = by("preparing");
-  if (preparing.length) return { text: `${n(preparing.length, "Bewerbung ist", "Bewerbungen sind")} in Vorbereitung. Mach eine davon fertig!`, href: preparing.length === 1 ? `/applications/${preparing[0].id}` : "/applications", cta: "Weitermachen" };
+  if (preparing.length) return { text: `${n(preparing.length, "Bewerbung ist", "Bewerbungen sind")} in Vorbereitung. Mach eine davon fertig!`, href: preparing.length === 1 ? `/applications/${preparing[0].id}` : "/applications", cta: "Bewerbung vorbereiten" };
   const saved = by("saved");
-  if (saved.length) return { text: `${n(saved.length, "gemerkte Stelle wartet", "gemerkte Stellen warten")} auf dich.`, href: "/applications", cta: "Loslegen" };
-  if (by("contract_signed").length) return { text: "Vertrag unterschrieben. Du hast deine Lehrstelle!", href: "/applications", cta: "Ansehen" };
-  return { text: "Zeit für etwas Neues: Such dir die nächste Stelle.", href: "/search", cta: "Stellen suchen" };
+  if (saved.length) return { text: `${n(saved.length, "gemerkte Stelle wartet", "gemerkte Stellen warten")} auf dich.`, href: "/applications", cta: "Bewerbung vorbereiten" };
+  if (by("contract_signed").length) return { text: "Vertrag unterschrieben. Du hast deine Lehrstelle!", href: "/applications", cta: "Bewerbungen ansehen" };
+  return { text: "Zeit für etwas Neues: Such dir die nächste Stelle.", href: "/search", cta: "Stelle suchen" };
 }

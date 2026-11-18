@@ -19,6 +19,12 @@ export const FAMILY_COPY = {
   step1: {
     title: "Familie erstellen",
     done: "Familie «{name}» erstellt",
+    /** The parent joined the child's family instead of creating one (eltern-21). */
+    joined: "Mit der Familie von {child} verbunden",
+    /** Asked once when the account still has the e-mail prefix as name (eltern-04). */
+    firstNameLabel: "Dein Vorname",
+    firstNameHint: "So sieht dich dein Kind in WendApply.",
+    firstNameMissing: "Gib deinen Vornamen ein.",
     text: "Leg deine Familie an. Danach lädst du dein Kind mit einem Code ein. Das dauert eine Minute.",
     nameLabel: "Name der Familie (freiwillig)",
     nameHint: "Zum Beispiel «Familie Meier». Leer lassen geht auch.",
@@ -30,6 +36,8 @@ export const FAMILY_COPY = {
   },
   invite: {
     title: "Dein Kind hat dich eingeladen",
+    /** Stepper line before the code was checked (eltern-20). */
+    check: "Einladung prüfen",
     text: "Prüfe den Code und nimm die Einladung an. Danach seid ihr verbunden.",
     cta: "Einladung annehmen",
     createInstead: "Lieber eine eigene Familie erstellen",
@@ -44,22 +52,23 @@ export const FAMILY_COPY = {
     waiting: "Wir warten auf dein Kind. Sobald es den Code eingibt, geht es hier automatisch weiter.",
     noAccount: "Dein Kind hat noch kein Konto? Über den Link kann es sich gratis registrieren.",
     newCode: "Neuen Code erstellen",
-    payNow: "Paket schon jetzt buchen",
+    payNow: "Familienpaket jetzt buchen",
   },
   consent: {
     title: "{child} braucht deine Zustimmung",
     text: "{child} ist unter 16. Damit du etwas siehst, musst du als erziehungsberechtigte Person zustimmen.",
     cta: "Zustimmung geben",
+    dialog1: "Ich bin für {child} erziehungsberechtigt und einverstanden, dass {child} WendApply mit unserer Familie nutzt.",
+    dialog2: "{child} bestimmt selbst, was geteilt wird. Du kannst deine Zustimmung jederzeit zurückziehen.",
   },
   step3: {
     title: "Familienpaket wählen",
     done: "Familienpaket aktiv",
-    text: "Das Familienpaket gilt für dich und dein Kind ({seats}).",
+    text: "Das Familienpaket gilt für dich und {children} Kind ({accounts} Konten).",
     intervalLegend: "Abrechnung",
     yearBadge: "Spare {saving}",
     cta: "Familienpaket buchen · {price}",
     note: "{term}. Sichere Bezahlung mit Karte über Stripe.",
-    childFree: "Das Familienpaket gilt für dich und dein Kind.",
     redirecting: "Wir öffnen die sichere Bezahlseite …",
   },
   return: {
@@ -75,7 +84,9 @@ export const FAMILY_COPY = {
   },
   phase: {
     active: "Verlängert sich am {date}.",
-    trialing: "Testphase bis {date}.",
+    trialing: "Testwoche bis {date}.",
+    /** Plan assigned by WendApply (manual/pilot): no renewal (eltern-07). */
+    manualUntil: "Freigeschaltet bis {date}.",
     canceling: "Gekündigt. Das Familienpaket läuft noch bis {date} und endet dann.",
     pastDue: "Die letzte Zahlung hat nicht geklappt. Bitte aktualisiere deine Karte, damit das Familienpaket weiterläuft.",
     unpaid: "Mehrere Zahlungen haben nicht geklappt. Aktualisiere deine Karte, um das Familienpaket wieder zu aktivieren.",
@@ -104,14 +115,14 @@ export const FAMILY_COPY = {
     unpaidTitle: "Familienpaket unterbrochen",
   },
   status: {
-    error: "Wir konnten den Stand deines Familienpakets gerade nicht laden.",
+    error: "Wir konnten dein Familienpaket gerade nicht laden.",
     contact: "Kontakt",
   },
   /** Badge per billing phase; `none` has no badge (empty string). */
   badge: {
     none: "",
     incomplete: "Zahlung ausstehend",
-    trialing: "Testphase",
+    trialing: "Testwoche",
     active: "Aktiv",
     canceling: "Gekündigt",
     pastDue: "Zahlung offen",
@@ -125,8 +136,10 @@ export const FAMILY_COPY = {
   child: {
     connectTitle: "Deine Eltern verbinden",
     connectText: "Schick deinen Eltern einen Link. Sie sehen danach nur, was du freigibst. Mit dem Familienpaket deiner Eltern ist WendApply für dich inbegriffen.",
-    connectCta: "Link für meine Eltern erstellen",
-    check1: "Link für deine Eltern erstellen",
+    /** Pupils covered by a school licence: no Familienpaket pitch (schueler-13). */
+    connectTextSchool: "Zeig deinen Eltern, wie weit du bist. Du entscheidest, was sie sehen.",
+    connectCta: "Eltern einladen",
+    check1: "Link erstellen",
     check2: "Deine Eltern öffnen den Link",
     shareCta: "Link teilen",
     copyLink: "Link kopieren",
@@ -141,7 +154,9 @@ export const FAMILY_COPY = {
     birthText: "Damit wir wissen, ob deine Eltern zuerst zustimmen müssen, brauchen wir deinen Jahrgang.",
     birthLabel: "Jahrgang",
     birthCta: "Speichern und weiter",
-    under16: "Bist du unter 16? Dann muss ein Elternteil zuerst zustimmen, bevor deine Familie etwas sieht. WendApply kannst du trotzdem sofort nutzen.",
+    under16: "Bist du unter 16? Dann stimmt ein Elternteil zuerst zu. WendApply kannst du trotzdem sofort nutzen.",
+    /** Invite link open (schueler-38): the own-link path is only a collapsed alternative. */
+    ownLinkToggle: "Lieber selbst einen Link erstellen",
     planActive: "Familienpaket aktiv",
     planNone: "Das Familienpaket bucht ein Elternteil. Es gilt dann auch für dich.",
     tourLink: "Eltern verbinden (freiwillig)",
@@ -149,6 +164,29 @@ export const FAMILY_COPY = {
   },
   parent: {
     signupHint: "Dein Kind hat dich eingeladen. Erstelle dein Elternkonto.",
+    /** Trial over, no package yet (eltern-01). */
+    expiredTitle: "Deine Testwoche ist vorbei",
+    expiredText: "Mit dem Familienpaket geht es für dich und dein Kind sofort weiter. Deine Daten sind noch da.",
+    expiredCta: "Familienpaket wählen",
+    // Online payment flag off: nothing to buy yet, so the banner and the plan card point to «Zugang anfragen» (QA M5).
+    expiredTextOffline: "Das Familienpaket kannst du noch nicht online buchen. Frag unten Zugang an, dann melden wir uns. Deine Daten sind noch da.",
+    expiredPlanOffline: "Deine Testwoche ist vorbei. Frag hier Zugang an, dann melden wir uns bei dir.",
+    // Active/pilot plan while online payment is off: the plan card confirms it instead of offering a request (AUDIT-B P1).
+    planUnlocked: "Euer Familienpaket ist freigeschaltet. Ihr müsst nichts weiter tun.",
+    expiredNoticeOffline: "Die Online-Bezahlung ist gerade nicht verfügbar. Du kannst uns auch über die Kontaktseite schreiben.",
+    help: "Fragen? Hilfe für Eltern",
+    /** Placeholder names (e-mail prefixes) are never shown (eltern-04). */
+    childFallback: "Dein Kind",
+    parentFallback: "Elternteil",
+    childrenEmpty: "Sobald dein Kind verbunden ist, siehst du hier, was es mit dir teilt.",
+    contactLink: "Zur Kontaktseite",
+    childUnder16Hidden: "{child} ist unter 16. Sobald du zustimmst, siehst du hier, was {child} teilt.",
+    inviteOpen: "Die Einladung ist noch nicht angenommen.",
+    sharingPaused: "Teilen ist pausiert.",
+    villageTitle: "Dorf (Spiel in WendApply)",
+    villageLine: "{islands} · {houses} · {points} Punkte – für jede Bewerbung wächst das Dorf.",
+    villageLineNoPoints: "{islands} · {houses} – für jede Bewerbung wächst das Dorf.",
+    seatMore: "Ein weiteres Kind?",
   },
   join: {
     invalidFormat: "Der Code hat 8 Zeichen, zum Beispiel ABCD 1234.",
@@ -167,10 +205,27 @@ export const FAMILY_COPY = {
     fullParent: "In dieser Familie ist schon ein Elternteil verbunden. Für ein zweites Elternteil schreib uns über die Kontaktseite.",
   },
   wrongType: {
-    parent: "Dieser Code ist für ein Elternkonto. Du bist als Schüler/in angemeldet.",
+    parent: "Dieser Code ist für ein Elternkonto. Du bist als Schüler:in angemeldet.",
     child: "Dieser Code ist für ein Schülerkonto. Du bist als Elternteil angemeldet.",
   },
 } as const;
 
-/** Replaces `{key}` placeholders: fill("Schritt {n} von {total}", { n: 1, total: 3 }) -> "Schritt 1 von 3". Unknown keys become "". */
-export const fill = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(v[k] ?? ""));
+/**
+ * A child's name inside a sentence: real names stay as they are, the "Dein Kind" fallback (CHILD_FALLBACK in family-core)
+ * follows German grammar: "für dein Kind", "von deinem Kind"; at the start of a sentence "Dein Kind". `before` = text in front.
+ */
+export function childRef(name: string, before: string): string {
+  if (name !== "Dein Kind") return name;
+  if (!before.trim() || /[.!?:»«]\s*$/.test(before)) return name;
+  return /\bvon\s*$/i.test(before) ? "deinem Kind" : "dein Kind";
+}
+
+/**
+ * Replaces `{key}` placeholders: fill("Schritt {n} von {total}", { n: 1, total: 3 }) -> "Schritt 1 von 3". Unknown keys become "".
+ * The "Dein Kind" fallback for {child} is lowercased mid-sentence ("für dein Kind", "von deinem Kind"), see childRef.
+ */
+export const fill = (s: string, v: Record<string, string | number>) =>
+  s.replace(/\{(\w+)\}/g, (_, k: string, offset: number) => {
+    const value = String(v[k] ?? "");
+    return k === "child" ? childRef(value, s.slice(0, offset)) : value;
+  });

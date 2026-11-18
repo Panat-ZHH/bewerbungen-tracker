@@ -140,7 +140,7 @@ await session({ w: 1280, h: 800, dark: false }, async (page, stub) => {
   await page.getByRole("button", { name: /Einladung für lea@schule.ch widerrufen/ }).click(); await page.waitForTimeout(500);
   if (!stub.calls.some((c) => c.rpc === "class_invite_revoke")) problems.push("revoke not called");
   // announcement
-  await tabTo(page, /Mitteilungen/); await page.getByLabel("Nachricht").fill("Test-Mitteilung"); await page.getByRole("button", { name: "Veröffentlichen" }).click(); await page.waitForSelector("text=Test-Mitteilung");
+  await tabTo(page, /Mitteilungen/); await page.getByLabel("Nachricht").fill("Test-Mitteilung"); await page.getByRole("button", { name: "Mitteilung senden" }).click(); await page.waitForSelector("text=Test-Mitteilung");
   // settings: delete confirm
   await tabTo(page, /Einstellungen/); await page.getByRole("button", { name: "Klasse löschen" }).click(); await page.waitForTimeout(400); await shot(page, "dialog-delete-1280", false);
 });

@@ -40,7 +40,7 @@ const DONE: Record<Action, string> = {
   remove_teacher: "Lehrperson entfernt.",
 };
 const LABELS: Record<string, string> = {
-  package: "Paket", status: "Status", student_limit: "Max. Lernende", start: "Start", end: "Ende", billing_interval: "Abrechnung",
+  package: "Paket", status: "Status", student_limit: "Max. Schüler:innen", start: "Start", end: "Ende", billing_interval: "Abrechnung",
   notes: "Notizen", until: "Gratis bis", note: "Notiz", forever: "Unbefristet", valid_until: "Gültig bis", pilot_end: "Pilot bis", email: "E-Mail", licence_id: "Lizenz", user_id: "Person",
 };
 
@@ -167,7 +167,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
           <LicenceBadge licence={s.licence} />
           <span className="text-small text-muted">{[s.canton_or_state, s.country].filter(Boolean).join(" · ")} · erstellt {fmtDate(s.created_at)}</span>
         </div>
-        <p className="text-small tabular">{s.students} Lernende · {s.teachers} Lehrpersonen · {s.admins} Admins</p>
+        <p className="text-small tabular">{s.students} Schüler:innen · {s.teachers} Lehrpersonen · {s.admins} Admins</p>
       </header>
 
       <Card>
@@ -181,7 +181,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
           </div>
           <p className="text-small text-muted">
             {freeText
-              ? <>{freeText}{s.free_access?.note ? ` · ${s.free_access.note}` : ""}{s.free_access?.granted_at ? ` · seit ${fmtDate(s.free_access.granted_at)}` : ""}. Alle Lernenden, Lehrpersonen und Schuladmins dieser Schule haben Zugang, ohne Platzbeschränkung.</>
+              ? <>{freeText}{s.free_access?.note ? ` · ${s.free_access.note}` : ""}{s.free_access?.granted_at ? ` · seit ${fmtDate(s.free_access.granted_at)}` : ""}. Alle Schüler:innen, Lehrpersonen und Schuladmins dieser Schule haben Zugang, ohne Platzbeschränkung.</>
               : s.free_access && !freeAccessActive(s.free_access) ? `Abgelaufen am ${fmtDate(s.free_access.until)}.` : "Kein Gratis-Zugang. Zugang nur über eine gültige Lizenz."}
           </p>
         </CardContent>
@@ -203,7 +203,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
                       <LicenceBadge licence={l} />
                       <p className="text-small text-muted">
                         {l.status === "pilot" ? `Pilot ${fmtDate(l.pilot_start)} bis ${fmtDate(l.pilot_end)}` : `${fmtDate(l.valid_from)} bis ${fmtDate(l.valid_until)}`}
-                        {" "}· max. {l.student_limit} Lernende · {l.billing_interval === "monthly" ? "monatlich" : "jährlich"}
+                        {" "}· max. {l.student_limit} Schüler:innen · {l.billing_interval === "monthly" ? "monatlich" : "jährlich"}
                       </p>
                       {l.notes && <p className="text-small break-words">{l.notes}</p>}
                     </div>
@@ -236,7 +236,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
             {s.classes.map((c) => (
               <li key={c.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
                 <span className="font-semibold">{c.name}</span>
-                <span className="text-muted">· {c.students} Lernende</span>
+                <span className="text-muted">· {c.students} Schüler:innen</span>
                 {c.archived && <Badge tone="neutral">archiviert</Badge>}
                 <button type="button" onClick={() => onOpen({ kind: "user", id: c.teacher_id })} className="text-small font-semibold text-[var(--brand)] underline underline-offset-4">Lehrperson öffnen</button>
               </li>
@@ -285,7 +285,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
                 <option value="active">Aktiv</option>
               </Select>
             </Field>
-            <Field label={form.package === "custom" ? "Max. Lernende" : "Max. Lernende (optional)"} htmlFor="f-limit" hint={form.package === "custom" ? "Pflicht bei «Individuell»" : "Leer = Standard des Pakets"}>
+            <Field label={form.package === "custom" ? "Max. Schüler:innen" : "Max. Schüler:innen (optional)"} htmlFor="f-limit" hint={form.package === "custom" ? "Pflicht bei «Individuell»" : "Leer = Standard des Pakets"}>
               <Input id="f-limit" type="number" min={1} max={100000} inputMode="numeric" value={form.student_limit} onChange={set("student_limit")} aria-invalid={invalid("student_limit")} />
             </Field>
             <Field label="Abrechnung" htmlFor="f-interval">
@@ -317,7 +317,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
                 <Input id="f-valid-until" type="date" min={target.licence.valid_from ?? undefined} value={form.valid_until} onChange={set("valid_until")} aria-invalid={invalid("valid_until")} data-autofocus />
               </Field>
             )}
-            <Field label="Max. Lernende" htmlFor="f-u-limit">
+            <Field label="Max. Schüler:innen" htmlFor="f-u-limit">
               <Input id="f-u-limit" type="number" min={1} max={100000} inputMode="numeric" value={form.student_limit} onChange={set("student_limit")} aria-invalid={invalid("student_limit")} />
             </Field>
             <Field label="Notizen" htmlFor="f-u-notes">
@@ -326,7 +326,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
           </>
         )}
         {action === "revoke_licence" && target?.licence && (
-          <p className="text-body">Die Lizenz «{target.licence.package}» (bis {fmtDate(licenceEnd(target.licence))}) wird sofort beendet. Lernende und Lehrpersonen dieser Schule verlieren den Zugang über die Schule.</p>
+          <p className="text-body">Die Lizenz «{target.licence.package}» (bis {fmtDate(licenceEnd(target.licence))}) wird sofort beendet. Schüler:innen und Lehrpersonen dieser Schule verlieren den Zugang über die Schule.</p>
         )}
         {(action === "add_admin" || action === "add_teacher") && (
           <Field label="E-Mail" htmlFor="f-email" hint="Die Person braucht schon ein Konto.">

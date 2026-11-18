@@ -72,7 +72,7 @@ export function AdminApp() {
             <p className="text-body text-muted">
               {phase.reauth ? "Deine letzte Anmeldung ist zu lange her. Zum Schutz der Admin-Daten braucht es eine frische Anmeldung." : "Danach kannst du hier weitermachen."}
             </p>
-            <ButtonLink href="/login?next=%2Fadmin" icon={<LogIn size={18} strokeWidth={2.4} aria-hidden />}>Zum Login</ButtonLink>
+            <ButtonLink href="/login?next=%2Fadmin" icon={<LogIn size={18} strokeWidth={2.4} aria-hidden />}>Zur Anmeldung</ButtonLink>
           </CardContent>
         </Card>
       );

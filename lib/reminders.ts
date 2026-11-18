@@ -108,6 +108,6 @@ export function digestText(reminders: Reminder[], appUrl: string): { subject: st
   const lines = reminders.map((r) => `• ${r.title}: ${r.detail}`);
   return {
     subject: n === 1 ? "WendApply: 1 Erinnerung" : `WendApply: ${n} Erinnerungen`,
-    text: `Hallo\n\nDas steht heute bei dir an:\n\n${lines.join("\n")}\n\nÖffnen: ${appUrl}/dashboard\n\nDu kannst diese Mails in den Einstellungen unter «Benachrichtigungen» ausschalten.\n`,
+    text: `Hoi\n\nDas steht heute bei dir an:\n\n${lines.join("\n")}\n\nZu deinem Start: ${appUrl}/dashboard\n\nDu kannst diese Mails in den Einstellungen unter «Benachrichtigungen» ausschalten.\n`,
   };
 }

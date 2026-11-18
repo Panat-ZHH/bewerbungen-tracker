@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, EyeOff, Lock, ShieldCheck } from "lucide-react";
+import { ArrowLeft, EyeOff, Lock, ShieldCheck, UserMinus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
+import { toast } from "@/lib/toast";
 import { Avatar } from "@/components/ui/avatar";
 import { useAvatarUrls } from "@/components/ui/use-avatars";
 import { Badge } from "@/components/ui/badge";
@@ -15,10 +19,10 @@ import { buildApplicationCards, formatDateCh, studentLabel, todayIso, type Appli
 import { getStudentApplications, logStudentView } from "@/lib/teacher-more";
 import { statusLabels } from "@/lib/utils";
 import type { ApplicationStatus } from "@/types";
-import { getTeacherClassStudents, type TeacherStudent } from "./api";
-import { ErrorBanner, relativeDays, teacherError } from "./shared";
+import { getTeacherClassStudents, removeClassStudent, type TeacherStudent } from "./api";
+import { ErrorBanner, TeacherNotFound, isPermanentTeacherError, relativeDays, teacherError } from "./shared";
 
-const DEADLINE_TEXT: Record<DeadlineState, string> = { done: "erledigt", open: "offen", overdue: "überfällig" };
+const DEADLINE_TEXT: Record<DeadlineState, string> = { done: "eingehalten", open: "offen", overdue: "verpasst" };
 // A missed deadline is a hint for a talk, not an error: warning tone, never red.
 const DEADLINE_TONE: Record<DeadlineState, "success" | "info" | "warning"> = { done: "success", open: "info", overdue: "warning" };
 // Status of an application in the badge colours of the system (a rejection stays calm sand). Unknown statuses fall back to blue.
@@ -29,19 +33,31 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
   const [cards, setCards] = useState<ApplicationCard[] | null>(null);
   const [tlHidden, setTlHidden] = useState(false);
   const [error, setError] = useState("");
+  const [missing, setMissing] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [removeError, setRemoveError] = useState("");
+  const router = useRouter();
   const avatars = useAvatarUrls([studentId]);
   const load = useCallback(() => {
     Promise.all([getTeacherClassStudents(classId), getStudentApplications(classId, studentId)])
       .then(([list, apps]) => {
-        setStudent(list.find((s) => s.studentId === studentId) ?? null);
+        const found = list.find((s) => s.studentId === studentId) ?? null;
+        setStudent(found); setMissing(!found);
         setCards(buildApplicationCards(apps.applications, todayIso(), (status) => (statusLabels as Record<string, string>)[status]));
         setTlHidden(apps.hidden); setError("");
         // Audit trail: the student can see that a teacher looked at their profile (once per day and teacher).
         void logStudentView(classId, studentId).catch(() => undefined);
       })
-      .catch((e) => setError(teacherError(e)));
+      .catch((e) => { if (isPermanentTeacherError(e)) setMissing(true); else setError(teacherError(e)); });
   }, [classId, studentId]);
   useEffect(() => { load(); }, [load]);
+
+  async function confirmRemove() {
+    setBusy(true); setRemoveError("");
+    try { await removeClassStudent(classId, studentId); toast({ message: `${studentLabel(student?.displayName)} wurde aus der Klasse entfernt.`, tone: "success" }); router.replace(`/teacher/classes/${classId}`); }
+    catch (e) { setRemoveError(teacherError(e)); } finally { setBusy(false); }
+  }
 
   const hidden = (student?.hidden ?? false) || tlHidden;
   const events = cards;
@@ -50,7 +66,8 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
   return (
     <div className="space-y-6">
       <Link href={`/teacher/classes/${classId}`} className="text-small -mb-4 inline-flex min-h-11 items-center gap-1.5 font-semibold text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} aria-hidden /> Zurück zur Klasse</Link>
-      <PageHeader title={<span className="flex items-center gap-3"><Avatar name={student?.displayName || name} src={avatars[studentId]} size="lg" className="shadow-[var(--shadow-sm)]" />{student ? name : "Schülerprofil"}</span>} description={student && !hidden ? `${student.total} ${student.total === 1 ? "Bewerbung" : "Bewerbungen"} · letzte Aktivität: ${relativeDays(student.lastActivity).toLowerCase()}` : undefined} />
+      {missing ? <TeacherNotFound title="Schüler:in nicht gefunden" text="Diese Person ist nicht (mehr) in der Klasse oder die Klasse gehört nicht zu deinen Klassen." /> : <>
+      <PageHeader title={student ? <span className="flex items-center gap-3"><Avatar name={student.displayName || name} src={avatars[studentId]} size="lg" className="shadow-[var(--shadow-sm)]" />{name}</span> : "Schülerprofil"} description={student && !hidden ? `${student.total} ${student.total === 1 ? "Bewerbung" : "Bewerbungen"} · Zuletzt aktiv: ${relativeDays(student.lastActivity)}` : undefined} />
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!events && !error && <div className="space-y-3">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-28 rounded-[var(--radius-lg)]" />)}</div>}
 
@@ -65,8 +82,9 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
         <>
           <div className="max-w-3xl space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge tone="coral">{student.interviews} {student.interviews === 1 ? "Gespräch" : "Gespräche"}</Badge><Badge tone={student.offers ? "success" : "neutral"}>{student.offers} {student.offers === 1 ? "Zusage" : "Zusagen"}</Badge>
-              {student.schnupper > 0 && <Badge tone="info">{student.schnupper} Schnupperlehre{student.schnupper === 1 ? "" : "n"}</Badge>}{student.placed && <Badge tone="success">Lehrstelle gefunden</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
+              {/* Only reached stages, no zero badges in warning colours (lehrperson-22). */}
+              {student.interviews > 0 && <Badge tone="coral">{student.interviews} {student.interviews === 1 ? "Gespräch" : "Gespräche"}</Badge>}{student.offers > 0 && <Badge tone="success">{student.offers} {student.offers === 1 ? "Zusage" : "Zusagen"}</Badge>}
+              {student.schnupper > 0 && <Badge tone="info">{student.schnupper} Schnupperlehre{student.schnupper === 1 ? "" : "n"}</Badge>}{student.placed && student.offers === 0 && <Badge tone="success">Lehrvertrag</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
             </div>
             <StatusBar counts={student.statusCounts} total={student.total} legend />
           </div>
@@ -102,6 +120,19 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
           <p className="text-small">Du siehst nur Firma, Stelle, Status und Daten, die die Person für die Klasse freigibt. Notizen, Gehalt, Kontakte, Dokumente, Lebenslauf und Links bleiben privat und sind für Lehrpersonen nie sichtbar.</p>
         </aside>
       )}
+
+      {events && student && (
+        <section className="max-w-3xl border-t-[1.5px] border-dashed border-[var(--line)] pt-5" aria-label="Aus der Klasse entfernen">
+          <Button variant="ghost" className="min-h-11 sm:min-h-11" icon={<UserMinus size={15} />} onClick={() => { setRemoving(true); setRemoveError(""); }}>Aus der Klasse entfernen</Button>
+        </section>
+      )}
+      <Modal open={removing} onClose={() => setRemoving(false)} title="Aus der Klasse entfernen?" description={`${name} wird aus der Klasse entfernt. Die Bewerbungen der Person bleiben unverändert. Mit dem Klassencode kann sie wieder beitreten.`}>
+        <div className="space-y-4">
+          {removeError && <p role="alert" className="text-small text-[var(--danger-fg)]">{removeError}</p>}
+          <div className="flex flex-wrap justify-end gap-2"><Button variant="ghost" data-autofocus onClick={() => setRemoving(false)}>Abbrechen</Button><Button variant="danger" loading={busy} onClick={() => void confirmRemove()}>Entfernen</Button></div>
+        </div>
+      </Modal>
+      </>}
     </div>
   );
 }

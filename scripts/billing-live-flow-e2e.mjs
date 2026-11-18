@@ -308,6 +308,7 @@ try {
   await shot(P, "parent-familie-start");
   ok("AC-P1", "Parent start: state parent-start, step family=current", (await famState(P)) === "parent-start" && await P.locator("[data-step=family][data-state=current]").count() === 1, await famState(P));
   ok("AC-P1", "Parent start: no buy button / price before family", await P.getByRole("button", { name: /Familienpaket.*buchen/ }).count() === 0);
+  if (await P.getByLabel("Dein Vorname").isVisible().catch(() => false)) await P.getByLabel("Dein Vorname").fill("Sandra"); // eltern-04
   await P.locator("[data-primary-action]").first().click(); // Familie erstellen (empty name)
   await P.waitForSelector("[data-step=family][data-state=done]", { timeout: 20_000 });
   await P.waitForLoadState("networkidle").catch(() => {});
@@ -333,7 +334,7 @@ try {
   // ---- 4. Student joins with code ----
   await gotoFamilie(S);
   await shot(S, "student-familie-start");
-  ok("AC-S1", "Student start: data-student-step=connect, primary 'Link für meine Eltern erstellen'", await S.locator("[data-student-step=connect]").count() > 0 && /Link für meine Eltern erstellen/.test(await S.locator("[data-primary-action]").first().innerText().catch(() => "")));
+  ok("AC-S1", "Student start: data-student-step=connect, primary 'Eltern einladen'", await S.locator("[data-student-step=connect]").count() > 0 && /Eltern einladen/.test(await S.locator("[data-primary-action]").first().innerText().catch(() => "")));
   ok("AC-S1", "Student start: no price / plan card", !/CHF/.test(await S.evaluate(() => document.body.innerText)));
   await S.getByTestId("join-toggle").click();
   const joinForm = S.getByTestId("join-form");

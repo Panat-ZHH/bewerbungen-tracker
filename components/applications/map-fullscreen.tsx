@@ -11,7 +11,7 @@ import styles from "@/app/map/fullscreen.module.css";
  * Fullscreen map layout primitives. See docs/map-layout-v2.md.
  *   <MapFullscreen map={...}>          stage = exactly the space the shell gives us; no scroll
  *     <MapTopBar left right />         chips (+ their expanding panels) and the points/shop group
- *     <MapControls />                  zoom / reset / recenter / night / refresh on the right edge
+ *     <MapControls />                  one "Ansicht" toggle (collapsed by default) → zoom / reset / recenter / night / refresh
  *     <MapDock>                        bottom column above the navbar: notices, placement tools, sheets
  *       <MapSheet />                   bottom sheet on phones, side card from 768px
  */
@@ -62,7 +62,7 @@ export function MapFullscreen({ label, busy, map, children }: { label: string; b
   return (
     <div
       ref={stage}
-      className={styles.stage}
+      className={`${styles.stage} ui-raised`}
       data-map-fullscreen=""
       // A focused input must never end up behind the keyboard: scroll it inside its own panel (never the stage itself).
       onFocusCapture={(event) => {
@@ -145,11 +145,11 @@ export const overlayClasses = { iconButton: `${styles.iconButton} ${styles.stick
 /* ---------- right-hand controls ---------- */
 
 export function MapControls({ camera, night, onToggleNight, onRefresh, refreshing }: { camera: CameraControls; night: boolean; onToggleNight: () => void; onRefresh?: () => void; refreshing?: boolean }) {
-  const [collapsed, setCollapsed] = useStoredFlag("controls.collapsed", false);
+  const [collapsed, setCollapsed] = useStoredFlag("controls.collapsed", true);
   const bodyId = useId();
   return (
-    <div className={styles.controls} role="group" aria-label="Kartensteuerung">
-      <button type="button" className={`${styles.iconButton} ${styles.sticker}`} aria-expanded={!collapsed} aria-controls={bodyId} aria-label={collapsed ? "Kartensteuerung einblenden" : "Kartensteuerung ausblenden"} title={collapsed ? "Kartensteuerung einblenden" : "Kartensteuerung ausblenden"} onClick={() => setCollapsed(!collapsed)}>
+    <div className={styles.controls} role="group" aria-label="Ansicht">
+      <button type="button" className={`${styles.iconButton} ${styles.sticker}`} aria-expanded={!collapsed} aria-controls={bodyId} aria-label={collapsed ? "Ansicht anpassen: Zoom, Zentrieren, Nacht" : "Ansicht-Werkzeuge ausblenden"} title={collapsed ? "Ansicht anpassen" : "Ausblenden"} onClick={() => setCollapsed(!collapsed)}>
         <SlidersHorizontal size={18} aria-hidden />
       </button>
       <div id={bodyId} className={`${styles.controlsBody} ${styles.sticker}`} hidden={collapsed}>
@@ -157,7 +157,7 @@ export function MapControls({ camera, night, onToggleNight, onRefresh, refreshin
         <button type="button" title="Zoom zurücksetzen" aria-label={`Zoom zurücksetzen, aktuell ${Math.round(camera.zoom * 100)} Prozent`} onClick={camera.reset} className={styles.zoomValue}>{Math.round(camera.zoom * 100)}%</button>
         <button type="button" title="Verkleinern" aria-label="Verkleinern" onClick={camera.zoomOut} disabled={!camera.canZoomOut}><Minus size={18} aria-hidden /></button>
         <button type="button" title="Kamera zentrieren" aria-label="Kamera zentrieren" onClick={camera.recenter}><LocateFixed size={18} aria-hidden /></button>
-        <button type="button" title={night ? "Tagansicht" : "Nachtansicht"} aria-label={night ? "Tagansicht" : "Nachtansicht"} aria-pressed={night} onClick={onToggleNight}>{night ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}</button>
+        <button type="button" title={night ? "Bei Tag ansehen" : "Bei Nacht ansehen"} aria-label={night ? "Bei Tag ansehen" : "Bei Nacht ansehen"} aria-pressed={night} onClick={onToggleNight}>{night ? <Sun size={18} aria-hidden /> : <Moon size={18} aria-hidden />}</button>
         {onRefresh && <button type="button" title="Aktualisieren" aria-label="Aktualisieren" disabled={refreshing} onClick={onRefresh}><RefreshCw size={18} aria-hidden /></button>}
       </div>
     </div>

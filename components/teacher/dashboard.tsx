@@ -21,6 +21,24 @@ import { Segmented } from "@/components/ui/tabs";
 import { createClass, getTeacherDashboard, type TeacherDashboard } from "./api";
 import { ClassPath, ErrorBanner, teacherError } from "./shared";
 import { formatDate } from "@/components/classes/shared";
+import { useAccess } from "@/components/access/access-provider";
+import { formatDateCh } from "@/lib/family-core";
+
+/** Small line: which school licence the teacher uses and until when; a hint 30 days before it ends (lehrperson-27, read-only). */
+function LicenceLine() {
+  const { access } = useAccess();
+  const [now] = useState(() => Date.now());
+  const school = access?.school;
+  if (!school) return null;
+  const until = school.valid_until ? new Date(school.valid_until) : null;
+  const daysLeft = until ? Math.ceil((until.getTime() - now) / 864e5) : null;
+  const soon = daysLeft !== null && daysLeft >= 0 && daysLeft <= 30;
+  return (
+    <span className={`text-small mt-1 block ${soon ? "font-semibold text-[var(--warning-fg)]" : "text-muted"}`}>
+      Schullizenz: {school.name}{school.valid_until ? `, gültig bis ${formatDateCh(school.valid_until)}` : ""}.{soon ? " Bitte deine Schuladministration, sie zu verlängern." : ""}
+    </span>
+  );
+}
 
 export function TeacherDashboardView() {
   const router = useRouter();
@@ -56,19 +74,19 @@ export function TeacherDashboardView() {
   const firstClass = (data?.classes ?? []).find((c) => !c.archived);
   return (
     <div>
-      <PageHeader title="Übersicht" description="So weit sind deine Klassen mit der Lehrstellensuche. Es zählen nur Schülerinnen und Schüler, die ihre Daten teilen." actions={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
+      <PageHeader title="Meine Klassen" description={<>So weit sind deine Klassen mit der Lehrstellensuche.<LicenceLine /></>} actions={<Button variant={mode === "no-students" && firstClass ? "secondary" : "primary"} className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
       <SchoolAdminLink className="mb-8" />
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!data && !error && <div className="space-y-3"><Skeleton className="h-24 rounded-[var(--radius-lg)]" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />)}</div>}
       {data && t && (
         <div className="space-y-10">
           {mode === "no-students" && firstClass && (
-            <EmptyState icon={<Users size={26} />} title="Noch niemand in deinen Klassen" description="Sobald sich Schülerinnen und Schüler mit dem Code oder Link anmelden, siehst du hier ihren Fortschritt. Nächster Schritt: die Klasse einladen." action={<ButtonLink href={`/teacher/classes/${firstClass.id}?tab=invite`} variant="sun" className="max-w-full"><span className="truncate">Klasse «{firstClass.name}» einladen</span></ButtonLink>} />
+            <EmptyState icon={<Users size={26} />} title="Noch niemand in deinen Klassen" description="Sobald jemand mit dem Klassencode beitritt, siehst du hier den Fortschritt." action={<ButtonLink href={`/teacher/classes/${firstClass.id}?tab=invite`} variant="sun" className="max-w-full"><span className="truncate">Klasse «{firstClass.name}» einladen</span></ButtonLink>} />
           )}
           {mode === "no-applications" && (
             <div className="space-y-4">
               <Figures label="Kennzahlen" items={[{ label: "Schüler:innen", value: t.students, hint: t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined }, { label: "Bewerbungen", value: t.applications, hint: "Noch keine geteilt" }]} />
-              <p className="text-small max-w-2xl text-muted">Noch hat niemand eine Bewerbung erfasst oder geteilt. Die Kennzahlen erscheinen, sobald die ersten Bewerbungen da sind. Du kannst die Klasse mit einer Mitteilung ans Starten erinnern.</p>
+              <p className="text-small max-w-2xl text-muted">Noch hat niemand eine Bewerbung geteilt. Erinnere die Klasse mit einer Mitteilung ans Starten.</p>
             </div>
           )}
           {mode === "normal" && (
@@ -76,10 +94,10 @@ export function TeacherDashboardView() {
               label="Kennzahlen"
               students={t.students}
               studentsHint={t.hiddenStudents ? `${t.hiddenStudents} teilen nicht` : undefined}
-              stages={[{ label: "Bewerbungen", value: t.applications, fill: "brand" }, { label: "Gespräche", value: t.interviews, fill: "coral" }, { label: "Zusagen", value: t.offers, fill: "mint" }, { label: "Lehrstelle gefunden", short: "Lehrstelle", value: t.placed, fill: "sun" }]}
+              stages={[{ label: "Bewerbungen", value: t.applications, fill: "brand" }, { label: "Gespräche", value: t.interviews, fill: "coral" }, { label: "Zusage oder Lehrvertrag", value: t.placed, fill: "mint" }]}
               note={<>
                 {t.inactive ? <><Badge tone="warning">{t.inactive} inaktiv</Badge><span className="mr-2">seit 14+ Tagen ohne Aktivität</span></> : <Badge tone="success">Alle sind aktiv</Badge>}
-                {t.students > 0 && <span>Lehrstelle gefunden: {Math.round((t.placed / t.students) * 100)} % der Schüler:innen</span>}
+                {t.hiddenStudents > 0 && <span>{t.hiddenStudents === 1 ? "Zahlen ohne 1 Schüler:in, die nichts teilt." : `Zahlen ohne ${t.hiddenStudents} Schüler:innen, die nichts teilen.`}</span>}
               </>}
             />
           )}
@@ -91,7 +109,7 @@ export function TeacherDashboardView() {
               <h2 className="text-heading">Klassen</h2>
               <Segmented className="[&_button]:min-h-11" label="Klassen anzeigen" value={showArchived} onChange={setShowArchived} options={[{ value: "active", label: "Aktiv", count: active.length }, { value: "archived", label: "Archiv", icon: <Archive size={13} />, count: archived.length }]} />
             </div>
-            {data.classes.length === 0 && <EmptyState className="mt-3" icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und lade dann deine Schülerinnen und Schüler per Link, Code oder QR-Code ein." action={<Button className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
+            {data.classes.length === 0 && <EmptyState className="mt-3" icon={<GraduationCap size={26} />} title="Noch keine Klasse" description="Erstelle deine erste Klasse und teile den Klassencode." action={<Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />}
             {data.classes.length > 0 && shown.length === 0 && <EmptyState className="mt-3" icon={<Archive size={24} />} title={showArchived === "archived" ? "Das Archiv ist leer" : "Alle Klassen sind archiviert"} description={showArchived === "archived" ? "Archivierte Klassen erscheinen hier. Ihre Daten bleiben erhalten." : "Wechsle zum Archiv, um eine Klasse wieder zu aktivieren."} />}
             {shown.length > 0 && (
               <ul className="rows mt-3 border-y-[length:var(--border-w)] border-[var(--outline)]">
@@ -108,7 +126,7 @@ export function TeacherDashboardView() {
                         </div>
                       </div>
                       <dl className="tabular flex shrink-0 gap-x-5 sm:gap-x-7">
-                        {[["Bewerb.", c.applications], ["Gespräche", c.interviews], ["Zusagen", c.offers], ["Lehrstelle", c.placed]].map(([label, value]) => (
+                        {[["Bewerb.", c.applications], ["Gespräche", c.interviews], ["Zusage/Vertrag", c.placed]].map(([label, value]) => (
                           <div key={label} className="flex flex-col-reverse"><dt className="text-small text-muted">{label}</dt><dd className="font-display text-2xl font-extrabold leading-none">{value}</dd></div>
                         ))}
                       </dl>
@@ -120,8 +138,8 @@ export function TeacherDashboardView() {
             )}
           </section>
 
-          <section aria-label="Anstehende Fristen">
-            <h2 className="text-heading">Anstehende Fristen <span className="text-small font-normal text-muted">(nächste 14 Tage)</span></h2>
+          <section aria-label="Bewerbungsfristen der Schüler:innen">
+            <h2 className="text-heading">Bewerbungsfristen der Schüler:innen <span className="text-small font-normal text-muted">(nächste 14 Tage)</span></h2>
             {data.deadlines.length === 0 ? (
               <p className="text-small mt-2 flex items-center gap-2 text-muted"><CalendarClock size={17} aria-hidden /> Keine Bewerbungsfristen in den nächsten 14 Tagen.</p>
             ) : (
@@ -139,7 +157,7 @@ export function TeacherDashboardView() {
           </section>
         </div>
       )}
-      <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Danach kannst du Schülerinnen und Schüler per Link, Code, QR-Code oder E-Mail einladen.">
+      <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Danach lädst du die Schüler:innen mit Klassencode, Link oder QR-Code ein.">
         <form onSubmit={submit} className="space-y-4">
           <Field label="Klassenname" htmlFor="tc-name"><Input id="tc-name" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
           <Field label="Schuljahr (optional)" htmlFor="tc-year"><Input id="tc-year" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>

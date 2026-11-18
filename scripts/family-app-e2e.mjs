@@ -92,8 +92,8 @@ for (const { key, vp } of VIEWPORTS) {
     await page.getByRole("button", { name: "Familie erstellen" }).click();
     check(await visible(page, "Sobald dein Kind verbunden ist"), "family created: empty children list");
     check(await visible(page, "Bezahlung bald verfügbar"), "plan card shows the payment placeholder");
-    check(await visible(page, "Testphase"), "plan card shows the trial status");
-    check(await visible(page, /noch 1[34] Tage Testphase/), "trial days left are shown");
+    check(await visible(page, "Testwoche"), "plan card shows the trial status");
+    check(await visible(page, /noch 1[34] Tage Testwoche/), "trial days left are shown");
     check(calls(state, "family_create")[0]?.body.p_name === "Familie Meier", "family_create sends the name");
     await page.getByRole("button", { name: /Code für mein Kind erstellen|Einladungscode erstellen/ }).click();
     check(await visible(page, "KIND 2345"), "invite code is shown readable");
@@ -105,18 +105,18 @@ for (const { key, vp } of VIEWPORTS) {
     be.addChild("pending");
     await page.reload({ waitUntil: "domcontentloaded" });
     check(await visible(page, "Lina Meier", 60000), "child appears in the list after joining");
-    check(await visible(page, "Zustimmung offen"), "consent status pending is shown");
+    check(await visible(page, "Wartet auf deine Zustimmung"), "consent status pending is shown");
     check(await visible(page, "ist unter 16"), "overview stays hidden until consent");
     check(!calls(state, "family_child_overview").length, "no overview request without consent");
-    check(await visible(page, "In eurer Familie ist schon ein Kind verbunden"), "seat limit: no further invites (1 child seat)");
+    check(!(await page.getByText("In eurer Familie ist schon ein Kind verbunden").count()) || !(await page.getByText("In eurer Familie ist schon ein Kind verbunden").first().isVisible()), "seat note is not shown during consent (eltern-18)");
     await page.getByRole("button", { name: "Zustimmung geben" }).first().click();
-    check(await page.getByRole("dialog").getByText("Ich bin erziehungsberechtigt").isVisible(), "consent asks for confirmation in plain language");
+    check(await page.getByRole("dialog").getByText(/erziehungsberechtigt und einverstanden/).isVisible(), "consent asks for confirmation in plain language");
     await page.getByRole("dialog").getByRole("button", { name: "Ja, ich stimme zu" }).click();
-    check(await visible(page, "Zustimmung erteilt"), "consent granted");
+    check(await visible(page, "Verbunden"), "consent granted");
     check(calls(state, "family_set_consent")[0]?.body.p_child_id === "c1" && calls(state, "family_set_consent")[0]?.body.p_granted === true, "family_set_consent(c1, true)");
     check(await visible(page, "Bewerbungen erfasst"), "child overview: progress");
     check(await visible(page, "Zusage erhalten"), "child overview: placed badge");
-    check(await visible(page, "3 Inseln · 7 Gebäude · 420 Punkte"), "child overview: village");
+    check(await visible(page, /3 Inseln · 7 Häuser · 420 Punkte/), "child overview: village");
     check(!(await page.getByText("Bewerbungsliste").count()), "application list hidden when not shared");
     const text = await page.locator("main").innerText();
     check(!/Rückruf|Notiz|Swisscom/.test(text), "no notes or companies leak into the parent view");
@@ -172,7 +172,7 @@ for (const { key, vp } of VIEWPORTS) {
     await page.getByRole("button", { name: "Familie verlassen" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Verlassen" }).click();
     check(await visible(page, "Deine Eltern verbinden"), "after leaving: back to the connect card");
-    await page.getByRole("button", { name: "Link für meine Eltern erstellen" }).click();
+    await page.getByRole("button", { name: "Eltern einladen" }).click();
     check(await visible(page, "ELTE 6789"), "child can invite a parent");
     check(calls(state, "family_create_invite").at(-1)?.body.p_direction === "child_invites_parent", "invite direction child_invites_parent");
     if (key === "mobile-light") {
@@ -222,7 +222,7 @@ scope = "signup mobile";
   await page.goto(`${BASE}/login`, { waitUntil: "domcontentloaded" });
   // Retry until hydrated: a click before React attaches its handlers does nothing.
   for (let i = 0; i < 20 && !(await page.getByText("Ich bin", { exact: true }).count()); i++) { await page.getByRole("button", { name: "Konto erstellen" }).first().click(); await page.waitForTimeout(1000); }
-  for (const label of ["Schule", "Schüler:in privat", "Elternteil", "Lehrperson"]) check(await page.getByText(label, { exact: true }).first().isVisible(), `signup offers '${label}'`);
+  for (const label of ["Schüler:in mit Klasse", "Schüler:in privat", "Elternteil", "Lehrperson"]) check(await page.getByText(label, { exact: true }).first().isVisible(), `signup offers '${label}'`);
   await page.getByText("Schüler:in privat", { exact: true }).click();
   check(await page.getByLabel("Jahrgang").isVisible(), "private students are asked for the birth year only");
   await page.getByLabel("E-Mail-Adresse").fill("neu@beispiel.ch");
@@ -237,7 +237,7 @@ scope = "signup mobile";
   check(await visible(page, "Fast geschafft"), "signup sent");
   const d = bodies.at(-1)?.data;
   check(d && d.role === "student" && d.account_type === "independent_student" && d.birth_year === new Date().getFullYear() - 14, "signup stores role + account type + birth year", JSON.stringify(d));
-  await page.getByText("Schule", { exact: true }).click();
+  await page.getByText("Schüler:in mit Klasse", { exact: true }).click();
   check(!(await page.getByLabel("Jahrgang").count()), "no birth year for school students");
   await ctx.close();
 }

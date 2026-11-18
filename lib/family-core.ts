@@ -140,6 +140,14 @@ export function signupPreset(next: string | null | undefined): { choice: SignupC
   if (readInviteAudience(n) === "kind") return { choice: "independent", hint: "child" };
   return { choice: "parent", hint: invite ? "parent" : null };
 }
+/**
+ * A family invite link that doesn't say who it is for (code typed in, query stripped by a messenger). Presentation only:
+ * the preset above stays "parent" (origin behaviour, schueler-39 is open in BUGS.md); the signup just shows a neutral hint.
+ */
+export function familyInviteWithoutAudience(next: string | null | undefined): boolean {
+  const n = String(next ?? "");
+  return n.startsWith(`${FAMILY_INVITE_PATH}/`) && readInviteAudience(n) === null;
+}
 export function inviteShareText(direction: InviteDirection, code: string, link: string): string {
   const who = direction === "parent_invites_child" ? "Ich lade dich in unsere Familie bei WendApply ein." : "Ich möchte dir meinen Fortschritt bei WendApply zeigen.";
   return `${who} Öffne den Link oder gib den Code ${formatInviteCode(code)} unter «Familie» ein: ${link}`;
@@ -156,11 +164,26 @@ export function readShare(v: unknown): ShareSettings {
   const pick = (k: keyof ShareSettings) => (typeof r[k] === "boolean" ? (r[k] as boolean) : DEFAULT_SHARE[k]);
   return { progress: pick("progress"), applications: pick("applications"), village: pick("village"), documents: pick("documents") };
 }
+/**
+ * The sign-up default name is the e-mail local part ("sandra.meier77", "lina_2009"): never show it (eltern-04).
+ * Real names have no digits, underscores or @, and a dot only as an initial ("J. Müller", "Müller J."), never inside a
+ * word ("sandra.meier"). Then "Dein Kind" / "Elternteil" is shown instead.
+ */
+export function looksLikeLoginName(name: string): boolean {
+  const n = name.trim();
+  return !n || n.toLowerCase() === "nutzer" || /[\d_@]/.test(n) || /\.(?=\S)/.test(n);
+}
+/** Shown instead of a child's login name. Starts a sentence; mid-sentence fill() / childRef() in lib/family-copy.ts lowercase it. */
+export const CHILD_FALLBACK = "Dein Kind";
+export function memberName(raw: unknown, role: FamilyRole): string {
+  const n = str(raw).trim();
+  return looksLikeLoginName(n) ? (role === "parent" ? "Elternteil" : CHILD_FALLBACK) : n;
+}
 export function readMember(v: unknown): FamilyMember | null {
   const r = obj(v);
   if (!r || !r.user_id) return null;
   return {
-    userId: str(r.user_id), displayName: str(r.display_name).trim() || "Ohne Namen", role: oneOf(r.role, ["parent", "child"] as const, "child"),
+    userId: str(r.user_id), displayName: memberName(r.display_name, oneOf(r.role, ["parent", "child"] as const, "child")), role: oneOf(r.role, ["parent", "child"] as const, "child"),
     status: oneOf(r.status, ["pending", "active", "removed"] as const, "active"),
     consentStatus: oneOf(r.consent_status, ["not_required", "pending", "granted", "withdrawn"] as const, "not_required"),
     shareSettings: r.share_settings ? readShare(r.share_settings) : null,
@@ -213,14 +236,14 @@ export function seatUsage(f: MyFamily): { children: { used: number; limit: numbe
 }
 
 // ---------------------------------------------------------------- consent + sharing
-export const CONSENT_LABEL: Record<ConsentStatus, string> = { not_required: "Keine Zustimmung nötig", pending: "Zustimmung offen", granted: "Zustimmung erteilt", withdrawn: "Zustimmung zurückgezogen" };
-export const CONSENT_TONE: Record<ConsentStatus, "neutral" | "info" | "success" | "warning" | "danger"> = { not_required: "neutral", pending: "warning", granted: "success", withdrawn: "neutral" };
+export const CONSENT_LABEL: Record<ConsentStatus, string> = { not_required: "Verbunden", pending: "Wartet auf deine Zustimmung", granted: "Verbunden", withdrawn: "Zustimmung zurückgezogen" };
+export const CONSENT_TONE: Record<ConsentStatus, "neutral" | "info" | "success" | "warning" | "danger"> = { not_required: "success", pending: "warning", granted: "success", withdrawn: "neutral" }; // same word «Verbunden» = same colour (AUDIT-B P2)
 /** Family sharing works only for active members whose consent is granted or not required (16+). */
 export function sharingActive(m: Pick<FamilyMember, "status" | "consentStatus">): boolean { return m.status === "active" && (m.consentStatus === "granted" || m.consentStatus === "not_required"); }
 export const SHARE_LABELS: { key: keyof ShareSettings; label: string; on: string; off: string }[] = [
   { key: "progress", label: "Fortschritt teilen", on: "Deine Eltern sehen, wie viele Bewerbungen du hast und wie weit sie sind.", off: "Deine Eltern sehen keine Zahlen zu deinen Bewerbungen." },
-  { key: "applications", label: "Bewerbungsliste teilen", on: "Firma, Stelle und Stand jeder Bewerbung sind sichtbar. Notizen bleiben privat.", off: "Firmen und Stellen bleiben privat." },
-  { key: "village", label: "Dorf teilen", on: "Deine Eltern sehen die Stufe und die Gebäude deines Dorfs.", off: "Dein Dorf bleibt privat." },
+  { key: "applications", label: "Bewerbungsliste teilen", on: "Firma, Stelle und Status jeder Bewerbung sind sichtbar. Notizen bleiben privat.", off: "Firmen und Stellen bleiben privat." },
+  { key: "village", label: "Dorf teilen", on: "Deine Eltern sehen die Stufe und die Häuser deines Dorfs.", off: "Dein Dorf bleibt privat." },
 ];
 /** Applying one toggle keeps all other keys (including ones this UI does not show, e.g. documents). */
 export function nextShare(current: ShareSettings | null, key: keyof ShareSettings, value: boolean): ShareSettings { return { ...(current ?? DEFAULT_SHARE), [key]: value }; }
@@ -250,7 +273,7 @@ export function readChildOverview(data: unknown): ChildOverview | null {
   const statusCounts = counts(p?.status_counts ?? r.status_counts);
   const total = p ? int(p.applications_total ?? p.total ?? p.applications, Object.values(statusCounts).reduce((a, b) => a + b, 0)) : 0;
   return {
-    displayName: str(obj(r.child)?.display_name ?? r.display_name).trim() || "Dein Kind",
+    displayName: memberName(obj(r.child)?.display_name ?? r.display_name, "child"),
     shared: { progress: p !== null || share.progress === true, applications: apps !== null || share.applications === true, village: v !== null || share.village === true },
     consentStatus: r.consent_status ? oneOf(r.consent_status, ["not_required", "pending", "granted", "withdrawn"] as const, "pending") : null,
     progress: p ? { total, statusCounts, lastActivity: p.last_activity ? str(p.last_activity) : null, placed: p.placed === true || (statusCounts.offer ?? 0) > 0 } : null,
@@ -261,11 +284,11 @@ export function readChildOverview(data: unknown): ChildOverview | null {
 
 /** Status groups for the parent view (same wording as the rest of the app, no sensitive detail). */
 export const STATUS_GROUPS: { key: string; label: string; statuses: string[] }[] = [
-  { key: "open", label: "In Vorbereitung", statuses: ["saved", "preparing"] },
-  { key: "applied", label: "Beworben", statuses: ["applied"] },
-  { key: "talks", label: "Gespräch / Schnuppern", statuses: ["interview", "schnupper", "schnupper_done", "trial"] },
-  { key: "offer", label: "Zusage", statuses: ["offer", "accepted"] },
-  { key: "rejected", label: "Absage", statuses: ["rejected", "declined"] },
+  { key: "open", label: "Gemerkt / In Vorbereitung", statuses: ["saved", "preparing"] },
+  { key: "applied", label: "Abgeschickt", statuses: ["applied", "aptitude_test"] },
+  { key: "talks", label: "Gespräch / Schnupperlehre", statuses: ["interview", "final_interview", "schnupper_planned", "schnupper_done", "schnupper", "trial"] },
+  { key: "offer", label: "Zusage", statuses: ["offer", "accepted", "contract_signed"] },
+  { key: "rejected", label: "Absage erhalten", statuses: ["rejected", "declined", "withdrawn"] },
 ];
 export function groupStatusCounts(c: Record<string, number>): { key: string; label: string; count: number }[] {
   const known = new Set(STATUS_GROUPS.flatMap((g) => g.statuses));
@@ -274,11 +297,16 @@ export function groupStatusCounts(c: Record<string, number>): { key: string; lab
   if (other) rows.push({ key: "other", label: "Andere", count: other });
   return rows;
 }
-const STATUS_TEXT: Record<string, string> = { saved: "Gemerkt", preparing: "In Vorbereitung", applied: "Beworben", interview: "Gespräch", schnupper: "Schnuppern", schnupper_done: "Geschnuppert", trial: "Schnuppern", offer: "Zusage", accepted: "Zusage", rejected: "Absage", declined: "Abgelehnt" };
+// Same labels as lib/status.ts statusLabels (kept inline: this module stays import-free for node --test). eltern-16
+const STATUS_TEXT: Record<string, string> = {
+  saved: "Gemerkt", preparing: "In Vorbereitung", applied: "Abgeschickt", schnupper_planned: "Schnupperlehre geplant", schnupper_done: "Schnupperlehre gemacht",
+  aptitude_test: "Eignungstest / Multicheck", interview: "Gespräch", final_interview: "Weiteres Gespräch", offer: "Zusage", contract_signed: "Vertrag unterschrieben",
+  rejected: "Absage erhalten", withdrawn: "Zurückgezogen", schnupper: "Schnupperlehre geplant", trial: "Schnupperlehre geplant", accepted: "Zusage", declined: "Absage erhalten",
+};
 export const statusText = (s: string) => STATUS_TEXT[s] ?? s;
 
 // ---------------------------------------------------------------- plan card
-export const PLAN_STATUS_LABEL: Record<string, string> = { trial: "Testphase", pilot: "Pilot", active: "Aktiv", paused: "Pausiert", cancelled: "Beendet", expired: "Abgelaufen" };
+export const PLAN_STATUS_LABEL: Record<string, string> = { trial: "Testwoche", pilot: "Pilot", active: "Aktiv", paused: "Pausiert", cancelled: "Beendet", expired: "Abgelaufen" };
 export const PLAN_STATUS_TONE: Record<string, "neutral" | "info" | "success" | "warning" | "danger"> = { trial: "info", pilot: "info", active: "success", paused: "warning", cancelled: "neutral", expired: "neutral" };
 export function daysLeft(iso: string | null | undefined, now: Date = new Date()): number | null {
   if (!iso) return null;
@@ -333,8 +361,11 @@ export function planSummary(plan: FamilyPlan | null, now: Date = new Date(), opt
 // Same wording as FAMILY_COPY.seat / wrongType (lib/family-copy.ts); kept here so this module stays import-free for node --test.
 export const SEAT_FULL_CHILD = "In eurer Familie ist schon ein Kind verbunden. Das Familienpaket gilt für 1 Kind. Für ein weiteres Kind schreib uns über die Kontaktseite.";
 export const SEAT_FULL_PARENT = "In dieser Familie ist schon ein Elternteil verbunden. Für ein zweites Elternteil schreib uns über die Kontaktseite.";
-export const WRONG_TYPE_PARENT = "Dieser Code ist für ein Elternkonto. Du bist als Schüler/in angemeldet.";
+export const WRONG_TYPE_PARENT = "Dieser Code ist für ein Elternkonto. Du bist als Schüler:in angemeldet.";
 export const WRONG_TYPE_CHILD = "Dieser Code ist für ein Schülerkonto. Du bist als Elternteil angemeldet.";
+export const INVITE_INVALID_TEXT = "Diesen Code kennen wir nicht. Prüf die 8 Zeichen oder bitte um einen neuen Code. Codes gelten 7 Tage und nur einmal.";
+export const INVITE_EXPIRED_TEXT = "Dieser Code ist abgelaufen. Bitte um einen neuen Code (er gilt 7 Tage).";
+export const INVITE_USED_TEXT = "Dieser Code wurde schon verwendet. Jeder Code funktioniert nur einmal. Bitte um einen neuen Code.";
 export const ALREADY_IN_FAMILY_TEXT = "Du bist schon in einer Familie. Verlasse sie zuerst, wenn du wechseln möchtest.";
 /** The RPC said "already in a family" (family_join / family_create): the UI may offer the empty-family switch (S9). */
 export function isAlreadyInFamily(error: unknown): boolean {
@@ -355,13 +386,17 @@ export function familyError(error: unknown): string {
   if (/ALREADY_IN_FAMILY/.test(text)) return ALREADY_IN_FAMILY_TEXT;
   if (/INVITE_WRONG_ACCOUNT_TYPE/.test(text)) return /schülerkonto/i.test(str(e.details)) ? WRONG_TYPE_CHILD : WRONG_TYPE_PARENT;
   if (/BIRTH_YEAR_REQUIRED/.test(text)) return "Bitte gib zuerst deinen Jahrgang an.";
+  // Invite codes: our texts say how to fix it, the DB detail only that it failed (eltern-20).
+  if (/INVITE_EXPIRED/.test(text)) return INVITE_EXPIRED_TEXT;
+  if (/INVITE_USED/.test(text)) return INVITE_USED_TEXT;
+  if (/INVITE_INVALID/.test(text) && !/eigenen/i.test(str(e.details))) return INVITE_INVALID_TEXT;
   // The migration raises short codes with a German, user-facing `detail` (e.g. INVALID_NAME, BIRTH_YEAR_LOCKED): prefer it.
   const detail = str(e.details).trim();
   if (detail && /^[A-Z_]+$/.test(str(e.message).trim())) return detail;
   if (/seat|platz|SEATS?_FULL|limit/i.test(text)) return SEAT_FULL_CHILD;
-  if (/expired|abgelaufen/i.test(text)) return "Dieser Code ist abgelaufen. Bitte um einen neuen Code (er gilt 7 Tage).";
-  if (/used|already_used|bereits verwendet/i.test(text)) return "Dieser Code wurde schon verwendet. Jeder Code funktioniert nur einmal.";
-  if (/invalid|not.?found|unknown|INVALID_CODE/i.test(text)) return "Diesen Code kennen wir nicht. Prüfe die 8 Zeichen und versuche es nochmals.";
+  if (/expired|abgelaufen/i.test(text)) return INVITE_EXPIRED_TEXT;
+  if (/used|already_used|bereits verwendet/i.test(text)) return INVITE_USED_TEXT;
+  if (/invalid|not.?found|unknown|INVALID_CODE/i.test(text)) return INVITE_INVALID_TEXT;
   if (/already|ALREADY_MEMBER|bereits/i.test(text)) return ALREADY_IN_FAMILY_TEXT;
   if (/\bSELF\b|OWN_FAMILY|SAME_ROLE|WRONG_ROLE|WRONG_ACCOUNT_TYPE/i.test(text)) return "Dieser Code passt nicht zu deinem Konto (Elternteil oder Kind).";
   if (/consent|zustimmung/i.test(text)) return "Dafür braucht es zuerst die Zustimmung eines Elternteils.";

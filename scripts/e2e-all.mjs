@@ -119,7 +119,7 @@ function makeT({ page, mock, profile, theme, flowName, base }) {
 
 async function runFlow(browser, base, profile, theme, flow) {
   const ctx = await browser.newContext({ viewport: { width: profile.width, height: profile.height }, hasTouch: profile.mobile, isMobile: profile.mobile, colorScheme: theme, deviceScaleFactor: profile.mobile ? 2 : 1 });
-  await ctx.addInitScript((th) => { try { if (!localStorage.getItem("wendapply-theme")) localStorage.setItem("wendapply-theme", th); } catch { /* storage unavailable */ } }, theme);
+  await ctx.addInitScript((th) => { try { if (!localStorage.getItem("wendapply-theme")) localStorage.setItem("wendapply-theme", th); if (!localStorage.getItem("wendapply.map.overlay.controls.collapsed")) localStorage.setItem("wendapply.map.overlay.controls.collapsed", "0"); } catch { /* storage unavailable */ } }, theme);
   const mock = createMockSupabase(flow.mock ? flow.mock({ profile, theme }) : {});
   await mock.install(ctx);
   ctx.setDefaultTimeout(20000);
@@ -180,9 +180,9 @@ const base = (t) => t.base;
 flow("onboarding-empty", student(), async (t) => {
   const { page } = t;
   await t.visit("/dashboard");
-  t.check("empty dashboard shows the first-application call to action", await t.text(/Willkommen! So startest du in drei Schritten/));
+  t.check("empty dashboard shows the first-application call to action", await t.text(/So startest du in drei Schritten/));
   await t.shot("dashboard");
-  await page.getByRole("link", { name: "Erste Bewerbung eintragen" }).click();
+  await page.getByRole("link", { name: /Bewerbung eintragen/ }).first().click();
   await page.waitForURL(/\/applications\/new/);
   t.check("CTA leads to the form", /\/applications\/new/.test(page.url()));
   await t.visit("/applications");
@@ -195,10 +195,10 @@ flow("application-crud", student(), async (t) => {
   const { page, mock } = t;
   await t.visit("/applications/new");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
-  t.check("empty form is rejected with a clear message", await t.text(/Felder? brauchen noch deine Aufmerksamkeit|Bitte gib die Firma an/, 5000));
+  t.check("empty form is rejected with a clear message", await t.text(/Felder? brauchen noch deine Aufmerksamkeit|Gib einen Firmennamen ein/, 5000));
   await page.getByLabel(/^Firma/).fill("Migros");
-  await page.getByLabel(/^Welche Stelle/).fill("Mediamatiker:in");
-  await page.getByLabel("Was ist der Stand?").selectOption("applied");
+  await page.getByLabel(/^Beruf \/ Stelle/).fill("Mediamatiker:in");
+  await page.getByLabel("Status", { exact: true }).selectOption("applied");
   await t.shot("form");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   await page.waitForURL(/\/applications\/(?!new$)[^/]+$/, { timeout: 20000 }).catch(() => undefined);
@@ -206,7 +206,7 @@ flow("application-crud", student(), async (t) => {
   t.check("detail shows company and position", await t.text(/Mediamatiker:in/) && await t.text(/Migros/));
   const id = mock.state.apps[0]?.id;
   // status change -> "Zusage"
-  const pills = page.getByRole("radiogroup", { name: "Stand der Bewerbung" });
+  const pills = page.getByRole("radiogroup", { name: "Status der Bewerbung" });
   await pills.getByRole("radio", { name: "Zusage", exact: true }).click();
   await t.settle();
   t.check("status 'Zusage' is stored as offer", mock.state.apps[0]?.status === "offer", mock.state.apps[0]?.status);
@@ -226,14 +226,14 @@ flow("application-crud", student(), async (t) => {
   await t.settle();
   t.check("edit is saved", mock.state.apps[0]?.company === "Migros Bank", mock.state.apps[0]?.company);
   // after saving an edit the detail view should be shown again (BUG-1 in docs/test-report-v2.md)
-  const backToDetail = await page.getByRole("button", { name: "Löschen", exact: true }).waitFor({ timeout: 4000 }).then(() => true, () => false);
+  const backToDetail = await page.getByRole("button", { name: "Bewerbung löschen", exact: true }).waitFor({ timeout: 4000 }).then(() => true, () => false);
   t.known("after saving an edit the page leaves edit mode", backToDetail, "BUG-1");
   if (!backToDetail) await t.visit(`/applications/${id}`, { label: "detail (reload after edit)" });
   // delete: cancel first, then confirm, then undo if the app offers it
-  await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  await page.getByRole("button", { name: "Bewerbung löschen", exact: true }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Abbrechen" }).click();
   t.check("cancel keeps the Bewerbung", mock.state.apps.length === 1);
-  await page.getByRole("button", { name: "Löschen", exact: true }).click();
+  await page.getByRole("button", { name: "Bewerbung löschen", exact: true }).click();
   await t.shot("delete-dialog");
   await page.getByRole("dialog").getByRole("button", { name: "Löschen", exact: true }).click();
   await page.waitForURL(/\/applications$/, { timeout: 20000 }).catch(() => undefined);
@@ -320,7 +320,7 @@ flow("settings-theme", student({ apps: seedApps(2) }), async (t) => {
   await page.getByRole("tab", { name: "Hell" }).click();
   await t.settle(500);
   t.check("choosing Hell switches back", !(await dark()));
-  await page.getByRole("button", { name: "Daten exportieren (JSON)" }).click();
+  await page.getByRole("button", { name: "Daten exportieren" }).click();
   t.check("data export reports success", await t.text(/Deine Daten wurden als Datei/, 8000));
 });
 
@@ -449,7 +449,7 @@ flow("map", () => ({ role: "student", apps: seedApps(8), unlocked: 2 }), async (
 
   // islands
   let island2 = page.getByRole("button", { name: /Ostinsel/ }).first();
-  if (!(await island2.count())) { await page.getByRole("button", { name: /Heimatinsel/ }).first().click().catch(() => undefined); await page.waitForTimeout(400); island2 = page.getByRole("button", { name: /Ostinsel/ }).first(); }
+  if (!(await island2.count())) { await page.getByRole("button", { name: /Heimatinsel|^Dein Dorf/ }).first().click().catch(() => undefined); await page.waitForTimeout(400); island2 = page.getByRole("button", { name: /Ostinsel/ }).first(); }
   t.check("island switcher lists Heimatinsel and Ostinsel", await page.getByRole("button", { name: /Heimatinsel/ }).count() > 0 && await island2.count() > 0);
 
   // shop: buy a tree

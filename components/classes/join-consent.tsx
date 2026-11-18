@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { Field, Input } from "@/components/ui/input";
+import { supabase } from "@/lib/supabase";
 import { setClassSharingV2 } from "@/lib/classes";
 import type { ClassMembership } from "@/types";
 import { defaultConsent, type ConsentChoice } from "@/lib/consent";
@@ -20,10 +21,14 @@ export function useJoinConsent() {
   const [age, setAge] = useState<"u16" | "o16" | null>(null);
   const [choice, setChoice] = useState<ConsentChoice>(defaultConsent(null));
 
-  /** Call when the join step opens. */
+  const [editName, setEditName] = useState(true);
+
+  /** Call when the join step opens. Prefills only the name from the profile (schueler-04); the age band comes from the server or the pupil (QA M2). */
   const load = useCallback(async () => {
-    const s = await getMyNameStatus().catch(() => null);
-    setStatus(s); setFirst(""); setLast("");
+    const [s, known] = await Promise.all([getMyNameStatus().catch(() => null), knownProfile()]);
+    const f = known.first, l = known.last;
+    setStatus(s); setFirst(f); setLast(l);
+    setEditName(!(f && l && cleanNameInput(f, l)));
     setAge(s?.under16 === true ? "u16" : s?.under16 === false ? "o16" : null);
     setChoice(defaultConsent(s?.under16 ?? null));
   }, []);
@@ -44,7 +49,10 @@ export function useJoinConsent() {
 
   const fields = (teacherName?: string) => (
     <div className="space-y-4 text-left">
-      {needsName && (
+      {needsName && !editName && typedName && (
+        <p className="text-sm">Deine Lehrperson sieht dich als <strong>{typedName}</strong>. <button type="button" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline underline-offset-4" onClick={() => setEditName(true)}>Ändern</button></p>
+      )}
+      {needsName && (editName || !typedName) && (
         <fieldset className="space-y-2">
           <legend className="text-sm font-bold">Wie heisst du?</legend>
           <p className="text-small text-muted">Deine Lehrperson sieht deinen Namen in der Klassenliste. Bitte gib deinen echten Namen an.</p>
@@ -74,4 +82,15 @@ export function useJoinConsent() {
   );
 
   return { load, ready, run, fields };
+}
+
+/** First/last name from the own profile row (prefill only). Empty when unknown. No age/consent default is derived here. */
+async function knownProfile(): Promise<{ first: string; last: string }> {
+  try {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return { first: "", last: "" };
+    const { data } = await supabase.from("profiles").select("first_name,last_name").eq("user_id", auth.user.id).maybeSingle();
+    const row = data as { first_name?: string | null; last_name?: string | null } | null;
+    return { first: (row?.first_name ?? "").trim(), last: (row?.last_name ?? "").trim() };
+  } catch { return { first: "", last: "" }; }
 }

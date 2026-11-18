@@ -120,9 +120,10 @@ test("single primary action markers exist for every parent step", () => {
   assert.match(start, /submitLabel=\{FAMILY_COPY\.invite\.cta\} primary \/>/, "invite context: Einladung annehmen");
   assert.match(start, /submitLabel=\{FAMILY_COPY\.step1\.joinCta\} primary=\{false\}/, "collapsed join is secondary");
   const view = read("components/family/parent-view.tsx");
-  assert.match(view, /<InvitePanel direction="parent_invites_child" initialInvite=\{invite\} onCreated=\{setLocalInvite\} primary hideTitle \/>/, "step 2: code");
-  assert.match(view, /data-primary-action="">\{FAMILY_COPY\.consent\.cta\}/, "step 2: consent");
+  assert.match(view, /<InvitePanel direction="parent_invites_child" initialInvite=\{invite\} onCreated=\{setLocalInvite\} primary=\{!expiredCta && !requestPrimary\} hideTitle \/>/, "step 2: code");
+  assert.match(view, /\{\.\.\.\(expiredCta \|\| requestPrimary \? \{\} : \{ "data-primary-action": "" \}\)\}>\{FAMILY_COPY\.consent\.cta\}/, "step 2: consent");
   assert.match(view, /variant="secondary" onClick=\{\(\) => setConfirm\(\{ kind: "grant", child: k \}\)\}/, "list consent button is secondary");
+  assert.match(view, /data-family-expired[\s\S]*data-primary-action="">\{FAMILY_COPY\.parent\.expiredCta\}/, "trial over: Familienpaket wählen");
 });
 
 test("/familien: flag-aware family status and CTAs (S7)", () => {

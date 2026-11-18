@@ -18,7 +18,7 @@ const apps = [makeApplication(1, { company: "Migros", position: "Detailhandelsfa
 const SIZES = [{ name: "375", width: 375, height: 812, mobile: true }, { name: "1280", width: 1280, height: 800, mobile: false }];
 const letter = { name: "Motivationsschreiben.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4 Sehr geehrte Frau Muster") };
 
-const ready = (page) => page.getByRole("button", { name: "Bewerbung checken" }).waitFor({ timeout: 120000 });
+const ready = (page) => page.getByRole("button", { name: "Brief prüfen" }).waitFor({ timeout: 120000 });
 const fill = async (page) => {
   await ready(page);
   await page.locator('input[type="file"]').setInputFiles(letter);
@@ -26,17 +26,17 @@ const fill = async (page) => {
   await page.getByLabel("Beruf / Lehrstelle").fill("Detailhandelsfachfrau EFZ");
   await page.getByRole("checkbox").check();
 };
-const submit = async (page) => { await fill(page); await page.getByRole("button", { name: "Bewerbung checken" }).click(); };
+const submit = async (page) => { await fill(page); await page.getByRole("button", { name: "Brief prüfen" }).click(); };
 
 const SHOTS = [
   { name: "01-leer", prepare: ready },
   { name: "02-ausgefuellt", prepare: fill },
-  { name: "03-fehler", prepare: async (page) => { await ready(page); await page.getByRole("button", { name: "Bewerbung checken" }).click(); await page.waitForTimeout(300); } },
+  { name: "03-fehler", prepare: async (page) => { await ready(page); await page.getByRole("button", { name: "Brief prüfen" }).click(); await page.waitForTimeout(300); } },
   { name: "04-laedt", fullPage: false, prepare: async (page) => { await submit(page); await page.getByTestId("ai-review-loading").waitFor(); await page.waitForTimeout(500); } },
   { name: "05-ergebnis", prepare: async (page) => { await submit(page); await page.getByTestId("ai-review-result").waitFor(); await page.getByTestId("ai-review-history").locator("li").first().waitFor(); await page.waitForTimeout(800); } },
   { name: "06-aus-bewerbung", path: "/bewerbung-check?application=a1", prepare: async (page) => { await ready(page); await page.getByText("Schon ausgefüllt").waitFor(); await page.waitForTimeout(300); } },
   { name: "07-detail-link", path: "/applications/a1", prepare: async (page) => { await page.getByTestId("ai-review-link").waitFor({ timeout: 120000 }); await page.waitForTimeout(500); } },
-  { name: "08-dokumente", path: "/cvs", prepare: async (page) => { await page.getByText("Bewerbung checken lassen").waitFor({ timeout: 120000 }); await page.waitForTimeout(500); } },
+  { name: "08-dokumente", path: "/cvs", prepare: async (page) => { await page.getByText("Brief prüfen").waitFor({ timeout: 120000 }); await page.waitForTimeout(500); } },
 ];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME });

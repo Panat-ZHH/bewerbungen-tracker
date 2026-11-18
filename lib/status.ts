@@ -20,6 +20,30 @@ export const statusLabels: Record<ApplicationStatus, string> = {
   withdrawn: "Zurückgezogen",
 };
 
+/**
+ * Presentation only: ONE colour meaning per status family, used by every badge, bar, chart and the dashboard path.
+ * saved (Gemerkt) = paper · todo (In Vorbereitung) = yellow · sent (Abgeschickt, Schnupperlehre, Test) = blue · talk (Gespräch) = coral ·
+ * placed (Zusage, Vertrag) = green · closed (Absage, Zurückgezogen) = calm sand, never red (a rejection is not an error).
+ */
+export type StatusFamily = "saved" | "todo" | "sent" | "talk" | "placed" | "closed";
+export const statusFamily: Record<ApplicationStatus, StatusFamily> = {
+  saved: "saved", preparing: "todo",
+  applied: "sent", schnupper_planned: "sent", schnupper_done: "sent", aptitude_test: "sent",
+  interview: "talk", final_interview: "talk",
+  offer: "placed", contract_signed: "placed",
+  rejected: "closed", withdrawn: "closed",
+};
+/** Badge tone (components/ui/badge.tsx) and solid fill token per family. `onFill` is the readable text colour on `fill`. */
+export const statusFamilyStyle: Record<StatusFamily, { tone: "paper" | "warning" | "info" | "coral" | "success" | "neutral"; fill: string; onFill: string; label: string }> = {
+  saved: { tone: "paper", fill: "var(--surface)", onFill: "var(--ink)", label: "Gemerkt" },
+  todo: { tone: "warning", fill: "var(--sun)", onFill: "var(--on-sun)", label: "In Vorbereitung" },
+  sent: { tone: "info", fill: "var(--brand)", onFill: "var(--on-brand)", label: "Abgeschickt" },
+  talk: { tone: "coral", fill: "var(--coral)", onFill: "var(--on-coral)", label: "Gespräch" },
+  placed: { tone: "success", fill: "var(--mint)", onFill: "var(--on-mint)", label: "Zusage" },
+  closed: { tone: "neutral", fill: "var(--sand)", onFill: "var(--on-sand)", label: "Abgeschlossen" },
+};
+export const statusFill = (status: ApplicationStatus) => statusFamilyStyle[statusFamily[status]].fill;
+
 const set = (...list: ApplicationStatus[]) => new Set<ApplicationStatus>(list);
 
 /** Finished, nothing left to do on this application. */
@@ -85,8 +109,8 @@ export const parseTestResult = (value: unknown): TestResult | undefined => (valu
 /** Short hint under the status picker, Lehrstellen wording. */
 export const statusHints: Record<ApplicationStatus, string> = {
   saved: "Die Stelle ist dir aufgefallen, du hast noch nichts unternommen.",
-  preparing: "Du arbeitest an Lebenslauf und Anschreiben.",
-  applied: "Deine Unterlagen sind unterwegs.",
+  preparing: "Du arbeitest an Lebenslauf und Motivationsschreiben.",
+  applied: "Deine Bewerbung ist unterwegs.",
   schnupper_planned: "Du hast einen Schnuppertermin vereinbart. Trag unten das Datum ein.",
   schnupper_done: "Du warst schnuppern. Halte fest, wie es war.",
   aptitude_test: "Du schreibst einen Eignungstest oder Multicheck.",

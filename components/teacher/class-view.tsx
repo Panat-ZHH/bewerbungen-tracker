@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Archive, CalendarDays, LayoutGrid, Megaphone, Settings2, Target, UserPlus, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Archive, CalendarDays, LayoutGrid, Megaphone, MoreHorizontal, Settings2, Target, UserPlus, Users } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/ui/page-header";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/ui/tabs";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getTeacherClassStudents, getTeacherDashboard, type DashboardClass, type TeacherStudent } from "./api";
-import { ClassPath, ErrorBanner, teacherError } from "./shared";
+import { ClassPath, ErrorBanner, TeacherNotFound, isPermanentTeacherError, teacherError } from "./shared";
 import { StudentsPanel } from "./students-panel";
 import { InvitePanel } from "./invite-panel";
 import { AnnouncementsPanel } from "./announcements-panel";
@@ -26,20 +26,29 @@ import { ClassGoalsPanel } from "@/components/b2b/class-goals";
 
 type Tab = "students" | "overview" | "goals" | "invite" | "calendar" | "news" | "settings";
 const TABS: Tab[] = ["students", "overview", "goals", "invite", "calendar", "news", "settings"];
+// Daily tasks stay in the main tab bar; rare ones live under «Mehr» (lehrperson-10: 4 tabs fit on 390 px).
+type MainTab = "students" | "overview" | "invite" | "more";
+const MORE_TABS: Tab[] = ["goals", "calendar", "news", "settings"];
+const TAB_LABEL: Record<Tab, string> = { students: "Schüler:innen", overview: "Überblick", goals: "Ziele", invite: "Einladen", calendar: "Fristen", news: "Mitteilungen", settings: "Einstellungen" };
 
 export function TeacherClassView({ classId }: { classId: string }) {
   const [cls, setCls] = useState<DashboardClass | null>(null);
   const [students, setStudents] = useState<TeacherStudent[] | null>(null);
   const [error, setError] = useState("");
+  const [notFound, setNotFound] = useState(false);
   const requested = useSearchParams().get("tab");
   const [tab, setTab] = useState<Tab>(TABS.includes(requested as Tab) ? (requested as Tab) : "students");
+  const autoTab = useRef(!TABS.includes(requested as Tab));
 
   const load = useCallback(() => {
     Promise.all([getTeacherDashboard(), getTeacherClassStudents(classId)])
-      .then(([dash, list]) => { const found = dash.classes.find((c) => c.id === classId) ?? null; setCls(found); setStudents(list); setError(found ? "" : "Diese Klasse gibt es nicht oder du hast keinen Zugriff."); })
-      .catch((e) => setError(teacherError(e)));
+      .then(([dash, list]) => { const found = dash.classes.find((c) => c.id === classId) ?? null; setCls(found); setStudents(list); setNotFound(!found); setError("");
+        // A new class opens on «Einladen»: inviting is the only useful next step (lehrperson-10).
+        if (autoTab.current) { autoTab.current = false; if (list.length === 0) setTab("invite"); } })
+      .catch((e) => { if (isPermanentTeacherError(e)) setNotFound(true); else setError(teacherError(e)); });
   }, [classId]);
   useEffect(() => { load(); }, [load]);
+  const mainTab: MainTab = MORE_TABS.includes(tab) ? "more" : (tab as MainTab);
   // Perf: the attention list of the students tab starts together with the class data instead of after it.
   const [attention, setAttention] = useState<{ classId: string; read: Promise<AttentionItem[]> } | null>(null);
   const firstTab = useState(tab)[0];
@@ -54,30 +63,34 @@ export function TeacherClassView({ classId }: { classId: string }) {
 
   return (
     <div className="space-y-6">
-      <Link href="/teacher" className="text-small -mb-4 inline-flex min-h-11 items-center gap-1.5 font-semibold text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} aria-hidden /> Übersicht</Link>
-      <PageHeader title={<span className="flex flex-wrap items-center gap-x-3 gap-y-2">{cls?.name ?? "Klasse"}{cls?.archived && <Badge tone="info" className="font-sans tracking-normal"><Archive size={12} className="mr-1" aria-hidden />Archiviert</Badge>}</span>} description={<>{cls?.schoolYear && <span className="font-semibold text-[var(--ink)]">Schuljahr {cls.schoolYear} · </span>}Bewerbungsfortschritt deiner Klasse. Du siehst nur, was die Schülerinnen und Schüler freigeben.</>} />
+      <Link href="/teacher" className="text-small -mb-4 inline-flex min-h-11 items-center gap-1.5 font-semibold text-muted hover:text-[var(--ink)]"><ArrowLeft size={14} aria-hidden /> Alle Klassen</Link>
+      {notFound ? <TeacherNotFound title="Klasse nicht gefunden" text="Diese Klasse gibt es nicht oder sie gehört nicht zu deinen Klassen." /> : <>
+      <PageHeader title={<span className="flex flex-wrap items-center gap-x-3 gap-y-2">{cls?.name ?? "Klasse"}{cls?.archived && <Badge tone="info" className="font-sans tracking-normal"><Archive size={12} className="mr-1" aria-hidden />Archiviert</Badge>}</span>} description={<>{cls?.schoolYear && <span className="font-semibold text-[var(--ink)]">Schuljahr {cls.schoolYear} · </span>}Du siehst nur, was die Schülerinnen und Schüler freigeben.</>} />
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!students && !error && <div className="space-y-3"><Skeleton className="h-24 rounded-[var(--radius-lg)]" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />)}</div>}
       {students && cls && (
         <>
-          {students.length === 0 || kpi.applications === 0 ? (
-            <Figures label="Kennzahlen der Klasse" items={[{ label: "Schüler:innen", value: kpi.students, hint: kpi.hidden ? `${kpi.hidden} teilen nicht` : students.length === 0 ? "Noch niemand beigetreten" : undefined }, { label: "Bewerbungen", value: kpi.applications, hint: "Noch keine geteilt" }]} />
+          {students.length === 0 ? null : kpi.applications === 0 ? (
+            <Figures label="Kennzahlen der Klasse" items={[{ label: "Schüler:innen", value: kpi.students, hint: kpi.hidden ? `${kpi.hidden} teilen nicht` : undefined }, { label: "Bewerbungen", value: kpi.applications, hint: "Noch keine geteilt" }]} />
           ) : (
             <ClassPath
               label="Kennzahlen der Klasse"
               students={kpi.students}
               studentsHint={kpi.hidden ? `${kpi.hidden} teilen nicht` : undefined}
-              stages={[{ label: "Bewerbungen", value: kpi.applications, fill: "brand" }, { label: "Mit Zusage", value: kpi.offers, fill: "mint" }, { label: "Lehrstelle gefunden", short: "Lehrstelle", value: kpi.placed, fill: "sun" }]}
+              stages={[{ label: "Bewerbungen", value: kpi.applications, fill: "brand" }, { label: "Zusage oder Lehrvertrag", value: kpi.placed, fill: "mint" }]}
               note={kpi.inactive ? <Badge tone="warning">{kpi.inactive} inaktiv</Badge> : undefined}
             />
           )}
-          <Segmented className="[&_button]:min-h-11" label="Bereich der Klasse" value={tab} onChange={setTab} options={[{ value: "students", label: "Schüler:innen", icon: <Users size={14} />, count: kpi.students }, { value: "overview", label: "Überblick", icon: <LayoutGrid size={14} /> }, { value: "goals", label: "Ziele", icon: <Target size={14} /> }, { value: "invite", label: "Einladen", icon: <UserPlus size={14} /> }, { value: "calendar", label: "Kalender", icon: <CalendarDays size={14} /> }, { value: "news", label: "Mitteilungen", icon: <Megaphone size={14} /> }, { value: "settings", label: "Einstellungen", icon: <Settings2 size={14} /> }]} />
-          <div role="tabpanel" aria-label={{ students: "Schüler:innen", overview: "Überblick", goals: "Ziele", invite: "Einladen", calendar: "Kalender", news: "Mitteilungen", settings: "Einstellungen" }[tab]}>
+          <div className="space-y-3">
+            <Segmented<MainTab> className="[&_button]:min-h-11 max-sm:[&_button]:px-2.5 max-sm:[&_svg]:hidden" label="Bereich der Klasse" value={mainTab} onChange={(v) => setTab(v === "more" ? (mainTab === "more" ? tab : "goals") : v)} options={[{ value: "students", label: "Schüler:innen", icon: <Users size={14} /> }, { value: "overview", label: "Überblick", icon: <LayoutGrid size={14} /> }, { value: "invite", label: "Einladen", icon: <UserPlus size={14} /> }, { value: "more", label: "Mehr", icon: <MoreHorizontal size={14} /> }]} />
+            {mainTab === "more" && <div><Segmented className="[&_button]:min-h-11 max-sm:[&_button]:px-2.5 max-sm:[&_svg]:hidden" label="Weitere Bereiche der Klasse" value={tab} onChange={setTab} options={[{ value: "goals", label: "Ziele", icon: <Target size={14} /> }, { value: "calendar", label: "Fristen", icon: <CalendarDays size={14} /> }, { value: "news", label: "Mitteilungen", icon: <Megaphone size={14} /> }, { value: "settings", label: "Einstellungen", icon: <Settings2 size={14} /> }]} /></div>}
+          </div>
+          <div role="tabpanel" aria-label={TAB_LABEL[tab]}>
             {tab === "students" && (students.length === 0
-              ? <EmptyState icon={<Users size={26} />} title="Noch keine Schüler:innen" description="Lade deine Klasse per Link, Code oder QR-Code ein. Sobald jemand beitritt, erscheint die Person hier." action={<Button variant="sun" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
+              ? <EmptyState icon={<Users size={26} />} title="Noch keine Schüler:innen" description="Sobald jemand mit dem Klassencode beitritt, erscheint die Person hier." action={<Button variant="secondary" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
               : <div className="space-y-10"><AttentionPanel classId={classId} prefetched={attention?.classId === classId ? attention.read : null} /><StudentsPanel cls={cls} students={students} onChanged={load} /></div>)}
             {tab === "overview" && (students.length === 0
-              ? <EmptyState icon={<LayoutGrid size={26} />} title="Noch kein Überblick" description="Der Überblick erscheint, sobald Schülerinnen und Schüler der Klasse beigetreten sind." action={<Button variant="sun" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
+              ? <EmptyState icon={<LayoutGrid size={26} />} title="Noch kein Überblick" description="Der Überblick erscheint, sobald Schülerinnen und Schüler der Klasse beigetreten sind." action={<Button variant="secondary" onClick={() => setTab("invite")}>Schüler:innen einladen</Button>} />
               : <ClassOverviewPanel classId={classId} />)}
             {tab === "goals" && <ClassGoalsPanel classId={classId} archived={cls.archived} />}
             {tab === "invite" && <InvitePanel cls={cls} />}
@@ -87,6 +100,7 @@ export function TeacherClassView({ classId }: { classId: string }) {
           </div>
         </>
       )}
+      </>}
     </div>
   );
 }

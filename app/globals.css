@@ -55,6 +55,31 @@
   --shadow-md: 3px 3px 0 var(--shadow-ink);
   --shadow-lg: 5px 5px 0 var(--shadow-ink);
 
+  /* ===== Calm hierarchy (2026-11): three elevation levels. See docs/design-system.md "Calm hierarchy". =====
+     0 flat (no edge) · 1 calm surface (1px soft edge, no shadow) · 2 primary sticker (2px ink edge + hard offset shadow).
+     Level 2 is RESERVED for the one primary card and the one primary button per screen. */
+  --border-thin: 1px;
+  --border-strong: 2px;
+  --edge: #d9ccb1;           /* soft 1px contour of calm surfaces (decorative, not a control boundary) */
+  --edge-strong: #16140f;    /* ink contour of level-2 stickers */
+  --control-edge: #16140f;   /* contour of secondary buttons / chips; re-mapped to --field-border inside the app */
+  --elev-0: none;
+  --elev-1: none;
+  --elev-2: 3px 3px 0 var(--shadow-ink);
+  --elev-2-sm: 2px 2px 0 var(--shadow-ink);
+  --elev-2-hover: 4px 4px 0 var(--shadow-ink);
+  --shadow-hover: 4px 4px 0 var(--shadow-ink);   /* hover shadow of .pressable / .card-interactive (none inside the app) */
+  --press: translate(2px, 2px);                 /* press sink of .pressable / .card-interactive (1px inside the app) */
+  --lift: translate(-1px, -1px);                /* hover lift of .pressable / .card-interactive (none inside the app) */
+  --field-focus-shadow: 3px 3px 0 var(--brand);
+
+  /* focus: one ring everywhere */
+  --focus-ring-width: 3px;
+  --focus-ring-offset: 2px;
+
+  /* spacing scale (px): use only these steps – Tailwind 1 2 3 4 6 8 12 16 */
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-6: 24px; --space-8: 32px; --space-12: 48px; --space-16: 64px;
+
   /* motion: short + springy */
   --ease: cubic-bezier(.2,.7,.2,1);
   --spring: cubic-bezier(.34,1.56,.64,1);
@@ -72,6 +97,7 @@
   --paper: #15140f; --surface: #211f19; --surface-2: #2c2a22;
   --ink: #f6f0e3; --muted: #b5ad9c; --line: #3b382e;
   --outline: #f6f0e3; --shadow-ink: #000000; --outline-fill: #15140f;
+  --edge: #4a4639; --edge-strong: #f6f0e3; --control-edge: #f6f0e3;
 
   --brand: #8ea2ff; --brand-strong: #b3c0ff; --brand-soft: #232a4d; --on-brand: #15140f;
   --sun: #ffd23f;   --sun-soft: #3d3413;
@@ -94,6 +120,32 @@
   --focus-ring: #8ea2ff;
 }
 
+/* ===== Calm app scope =====
+   Every logged-in screen marks its root with data-ui="app" (WorkspaceShell, onboarding). While such a root is on the page the
+   legacy "sticker everywhere" tokens are re-mapped to elevation level 1, so existing markup (.panel, border-[var(--outline)],
+   shadow-[var(--shadow-*)]) turns calm without page hacks. Public pages keep the old values (backward compatible).
+   Level-2 stickers use --border-strong / --edge-strong / --elev-2*, which are NOT re-mapped. Modals are portalled to <body>,
+   so the scope lives on :root. */
+:root:has([data-ui="app"]) {
+  --border-w: var(--border-thin);
+  --outline: var(--edge);
+  --control-edge: var(--field-border);
+  --shadow-xs: none; --shadow-sm: none; --shadow-md: none; --shadow-lg: none;
+  --shadow-hover: none;
+  --lift: none;
+  --press: translate(0, 1px);
+  --field-focus-shadow: 0 0 0 1px var(--brand);
+}
+/* Opt back into the sticker look for a subtree that floats over busy content (map chrome over the 3D scene). */
+.ui-raised {
+  --border-w: 1.5px;
+  --outline: var(--edge-strong);
+  --shadow-xs: 1px 1px 0 var(--shadow-ink); --shadow-sm: 2px 2px 0 var(--shadow-ink); --shadow-md: 3px 3px 0 var(--shadow-ink); --shadow-lg: 5px 5px 0 var(--shadow-ink);
+  --shadow-hover: 4px 4px 0 var(--shadow-ink);
+  --lift: translate(-1px, -1px);
+  --press: translate(2px, 2px);
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-surface: var(--surface);
@@ -103,6 +155,8 @@
   --color-line: var(--line);
   --color-outline: var(--outline);
   --color-outline-fill: var(--outline-fill);
+  --color-edge: var(--edge);
+  --color-edge-strong: var(--edge-strong);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-soft: var(--brand-soft);
@@ -123,6 +177,8 @@
   --shadow-sticker-sm: var(--shadow-sm);
   --shadow-sticker: var(--shadow-md);
   --shadow-sticker-lg: var(--shadow-lg);
+  --shadow-primary: var(--elev-2);
+  --shadow-primary-sm: var(--elev-2-sm);
 }
 
 * { box-sizing: border-box; }
@@ -148,7 +204,7 @@ img, svg { max-width: 100%; }
 @layer base { button, input, select, textarea { font: inherit; } }
 button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 button:not(:disabled) { cursor: pointer; }
-@layer base { :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; } }
+@layer base { :focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring); outline-offset: var(--focus-ring-offset); } }
 ::selection { background: var(--sun); color: var(--on-sun); }
 html.theme-switching *, html.theme-switching *::before, html.theme-switching *::after { transition: background-color .25s var(--ease), border-color .25s var(--ease), color .25s var(--ease) !important; }
 @layer base {
@@ -166,6 +222,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .text-body    { font-size: .9375rem; line-height: 1.55; }
 .text-small   { font-size: .8125rem; line-height: 1.45; }
 .text-label   { font-size: .8125rem; line-height: 1.2; font-weight: 600; color: var(--muted); }
+.text-caption { font-size: .75rem; line-height: 1.35; color: var(--muted); }
 .text-muted { color: var(--muted); }
 .tabular { font-variant-numeric: tabular-nums; }
 /* Huge numerals ("3 Bewerbungen") */
@@ -190,6 +247,17 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 }
 /* Same contour without the shadow, for quieter groups */
 .panel-flat { border: var(--border-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--surface); }
+/* Level 2: THE primary sticker of a screen (at most one). Strong ink contour + hard shadow, never re-mapped. */
+.panel-primary {
+  border: var(--border-strong) solid var(--edge-strong);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--elev-2);
+}
+/* Level 1 explicitly (same as .panel inside the app, also calm on public pages) */
+.panel-calm { border: var(--border-thin) solid var(--edge); border-radius: var(--radius-xl); background: var(--surface); }
+/* Soft divider line (instead of ink rules between sections) */
+.divider { border: 0; border-top: var(--border-thin) solid var(--line); }
 /* Tinted, borderless inset block (use instead of a card inside a card) */
 .inset { border-radius: var(--radius-lg); background: var(--surface-2); }
 /* Top bar / tab bar: opaque paper with an ink edge */
@@ -214,14 +282,15 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .tilt-l3 { transform: rotate(-3.5deg); }
 
 /* Plain list rows separated by dashed lines (instead of bordered rows inside a card) */
-.rows > * + * { border-top: 1.5px dashed var(--line); }
+.rows > * + * { border-top: var(--border-w) dashed var(--line); }
 .row-link { display: flex; align-items: center; gap: .75rem; min-height: 3.5rem; padding: .75rem .25rem; transition: background-color var(--dur-fast) var(--ease), padding var(--dur-fast) var(--ease); border-radius: var(--radius-md); }
 @media (hover: hover) { .row-link:hover { background: var(--surface-2); padding-left: .625rem; padding-right: .625rem; } }
 
 /* Ticket strip (progress path Gemerkt → Abgeschickt → Gespräch → Zusage) */
-.ticket { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: var(--border-w) solid var(--outline); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-md); overflow: hidden; }
+/* The ticket is the dashboard's primary sticker: level 2 (strong tokens, not re-mapped). */
+.ticket { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: var(--border-strong) solid var(--edge-strong); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--elev-2); overflow: hidden; }
 .ticket-stub { position: relative; min-width: 0; padding: .875rem .5rem .75rem; text-align: center; }
-.ticket-stub + .ticket-stub { border-left: 2px dashed var(--outline); }
+.ticket-stub + .ticket-stub { border-left: 2px dashed var(--edge-strong); }
 
 /* ===== Layout ===== */
 .page-wrap { width: min(100% - 40px, 1120px); margin-inline: auto; }
@@ -247,7 +316,8 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 .status-warning { background: var(--warning-bg); color: var(--warning-fg); border-color: var(--warning-line); }
 .status-danger  { background: var(--danger-bg);  color: var(--danger-fg);  border-color: var(--danger-line); }
 .status-info    { background: var(--info-bg);    color: var(--info-fg);    border-color: var(--info-line); }
-.toast { border-color: var(--outline); box-shadow: var(--shadow-md); }
+/* Toasts float above content: they keep a small hard shadow (level 2 sm) in every scope. */
+.toast { border-color: var(--edge-strong); box-shadow: var(--elev-2-sm); }
 
 /* ===== Animations (all <= 600ms, springy; switched off by prefers-reduced-motion below) ===== */
 @keyframes pulse-soft { from { opacity: 1; } to { opacity: .45; } }
@@ -259,6 +329,9 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 @keyframes wiggle { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }
 @keyframes sticker-in { from { opacity: 0; transform: scale(.6) rotate(-10deg); } to { opacity: 1; transform: scale(1) rotate(var(--tilt, -2deg)); } }
 .animate-rise { animation: rise var(--dur-slow) var(--ease) both; }
+/* Transform-only variant for above-the-fold content: opacity:0 at first paint gives Lighthouse NO_FCP. */
+@keyframes lift { from { transform: translateY(8px); } to { transform: none; } }
+.animate-lift { animation: lift var(--dur-slow) var(--ease) both; }
 .animate-fade { animation: fade var(--dur) var(--ease) both; }
 .animate-sheet { animation: sheet-up var(--dur-slow) var(--ease) both; }
 @keyframes panel-in { from { transform: translateX(100%); } to { transform: none; } }
@@ -273,11 +346,13 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 /* Unlayered on purpose: the pressed/hovered state must beat shadow-* utilities on the same element. */
 /* Press behaviour: lifts a little on hover, sinks on press (shadow gone, 2px down) */
 .pressable { transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease); }
-@media (hover: hover) { .pressable:hover:not(:disabled) { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--shadow-ink); } }
-.pressable:active:not(:disabled) { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--shadow-ink); }
-.card-interactive { transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease); }
-@media (hover: hover) { .card-interactive:hover { transform: translate(-1px, -1px); box-shadow: var(--shadow-lg); } }
-.card-interactive:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--shadow-ink); }
+/* Hover lift + shadow come from tokens: inside the calm app scope they are `none`, primary buttons (.btn-strong) bring their own. */
+@media (hover: hover) { .pressable:hover:not(:disabled) { transform: var(--lift); box-shadow: var(--shadow-hover); } }
+.pressable:active:not(:disabled) { transform: var(--press); box-shadow: 0 0 0 var(--shadow-ink); }
+.btn-strong { --lift: translate(-1px, -1px); --shadow-hover: var(--elev-2-hover); --press: translate(2px, 2px); }
+.card-interactive { transition: transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease), background-color var(--dur-fast) var(--ease); }
+@media (hover: hover) { .card-interactive:hover { transform: var(--lift); box-shadow: var(--shadow-hover); border-color: var(--edge-strong); } }
+.card-interactive:active { transform: var(--press); box-shadow: 0 0 0 var(--shadow-ink); }
 
 .recharts-cartesian-axis-tick-value { fill: var(--muted); font-size: 12px; }
 .recharts-cartesian-grid-horizontal line { stroke: var(--line); }
@@ -336,7 +411,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 /* Ort field: the wrapper is exactly as tall as the input, the suggestion list floats below it. */
 .location-autocomplete { position: relative; display: grid; }
 .location-autocomplete__input { padding-right: 2.5rem; }
-.location-autocomplete[data-open] .location-autocomplete__input { border-color: var(--brand); box-shadow: 3px 3px 0 var(--brand); }
+.location-autocomplete[data-open] .location-autocomplete__input { border-color: var(--brand); box-shadow: var(--field-focus-shadow); }
 /* loading: small spinner inside the field, right edge */
 .location-autocomplete[data-loading]::after { content: ""; position: absolute; right: .875rem; top: 50%; width: 1rem; height: 1rem; margin-top: -.5rem; border-radius: 50%; border: 2px solid var(--brand); border-right-color: transparent; animation: spin .7s linear infinite; pointer-events: none; }
 /* No max-height: at most 8 rows, so the keyboard-active row can never hide behind an inner scroll. `display` stays untouched so [hidden] works. */

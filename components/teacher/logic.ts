@@ -19,9 +19,9 @@ export function parseEmails(text: string): { valid: string[]; invalid: string[] 
 
 export function inviteUrl(token: string, origin = ""): string { return `${origin}/classes/join/${encodeURIComponent(token)}`; }
 
-export function inviteMailto(email: string, className: string, url: string): string {
+export function inviteMailto(email: string, className: string, url: string, code?: string): string {
   const subject = `Einladung zur Klasse ${className} auf WendApply`;
-  const body = `Hallo!\n\nDu bist eingeladen, der Klasse "${className}" auf WendApply beizutreten:\n${url}\n\nMelde dich mit dieser E-Mail-Adresse (${email}) an oder registriere dich.`;
+  const body = `Hallo!\n\nDu bist eingeladen, der Klasse "${className}" auf WendApply beizutreten:\n${url}\n\nMelde dich mit dieser E-Mail-Adresse (${email}) an oder registriere dich.${code ? `\n\nKlappt der Link nicht? Klassencode: ${code}` : ""}`;
   return `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
@@ -37,9 +37,11 @@ export const INVITE_STATE_LABEL: Record<InviteState, string> = { active: "Aktiv"
 export type StudentFilter = "all" | "inactive" | "hidden" | "interview" | "schnupper" | "offer" | "placed";
 export type StudentSort = "name" | "total" | "progress" | "activity" | "joined";
 export const STUDENT_FILTERS: { value: StudentFilter; label: string }[] = [
-  { value: "all", label: "Alle" }, { value: "inactive", label: "Inaktiv" }, { value: "hidden", label: "Teilt nicht" },
-  { value: "interview", label: "Mit Gespräch" }, { value: "schnupper", label: "Mit Schnupperlehre" }, { value: "offer", label: "Mit Zusage" }, { value: "placed", label: "Lehrstelle gefunden" },
+  { value: "all", label: "Alle" }, { value: "inactive", label: "Inaktiv" }, { value: "hidden", label: "Teilt nicht" }, { value: "placed", label: "Zusage oder Lehrvertrag" },
+  { value: "interview", label: "Mit Gespräch" }, { value: "schnupper", label: "Mit Schnupperlehre" },
 ];
+/** Filters shown right away; the rest sits behind «Weitere Filter» (lehrperson-12). «Mit Zusage» is covered by «Zusage oder Lehrvertrag». */
+export const PRIMARY_FILTERS: StudentFilter[] = ["all", "inactive", "hidden", "placed"];
 export const studentMatches: Record<StudentFilter, (s: TeacherStudent) => boolean> = {
   all: () => true, inactive: (s) => !s.hidden && s.inactive, hidden: (s) => s.hidden,
   interview: (s) => !s.hidden && s.interviews > 0, schnupper: (s) => !s.hidden && s.schnupper > 0, offer: (s) => !s.hidden && s.offers > 0, placed: (s) => !s.hidden && s.placed,
@@ -86,7 +88,7 @@ export function studentCsvColumns(labels: Record<ApplicationStatus, string>): Cs
     { header: "Gespräche", value: (s) => (s.hidden ? "" : s.interviews) },
     { header: "Schnupperlehren", value: (s) => (s.hidden ? "" : s.schnupper) },
     { header: "Zusagen", value: (s) => (s.hidden ? "" : s.offers) },
-    { header: "Lehrstelle gefunden", value: (s) => (s.hidden ? "" : s.placed ? "ja" : "nein") },
+    { header: "Zusage oder Lehrvertrag", value: (s) => (s.hidden ? "" : s.placed ? "ja" : "nein") },
     { header: "Inaktiv", value: (s) => (s.hidden ? "" : s.inactive ? "ja" : "nein") },
     { header: "Letzte Aktivität", value: (s) => (s.hidden ? "" : day(s.lastActivity)) },
     ...(Object.keys(labels) as ApplicationStatus[]).map((status) => ({ header: labels[status], value: (s: TeacherStudent) => (s.hidden ? "" : s.statusCounts[status] ?? 0) })),

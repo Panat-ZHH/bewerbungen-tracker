@@ -25,9 +25,24 @@ export function SchoolLicenceView() {
           <span className="flex h-12 w-12 items-center justify-center rounded-full border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] [&>svg]:h-6 [&>svg]:w-6" aria-hidden><CheckCircle2 /></span>
           <h1 className="text-display text-[clamp(1.9rem,4.5vw,2.6rem)] leading-[1.05]">Dein Zugang ist <span className="marker">aktiv</span></h1>
           <p className="text-body">
-            {access?.school ? <>Du nutzt WendApply über die Lizenz von <strong>{access.school.name}</strong>{access.school.valid_until ? <> (gültig bis {formatDateCh(access.school.valid_until)})</> : null}.</> : "Du kannst WendApply mit deinen Klassen nutzen."}
+            {access?.role === "school_admin" ? (access.school ? <>Eure Schule <strong>{access.school.name}</strong> nutzt WendApply mit einer Schullizenz{access.school.valid_until ? <>, gültig bis {formatDateCh(access.school.valid_until)}</> : null}.</> : "Eure Schule nutzt WendApply mit einer Schullizenz.")
+              : access?.school ? <>Du nutzt WendApply über die Lizenz von <strong>{access.school.name}</strong>{access.school.valid_until ? <> (gültig bis {formatDateCh(access.school.valid_until)})</> : null}.</> : "Du kannst WendApply mit deinen Klassen nutzen."}
           </p>
-          <ButtonLink href="/teacher" size="lg">Zu deinen Klassen</ButtonLink>
+          {access?.role === "school_admin"
+            ? <ButtonLink href="/schul-admin" size="lg">Zur Schuladministration</ButtonLink>
+            : <ButtonLink href="/teacher" size="lg">Zu deinen Klassen</ButtonLink>}
+        </div>
+      </section>
+    );
+  }
+  // Parents reach this page only by link: the school path is not for them (eltern-12). UI only, no access decision.
+  if (access?.account_type === "parent") {
+    return (
+      <section data-testid="licence-parent" className="mx-auto max-w-[640px] py-4 sm:py-8">
+        <div className="panel space-y-4 p-5 sm:p-8">
+          <h1 className="text-display text-[clamp(1.9rem,4.5vw,2.6rem)] leading-[1.05]">Zugang über die <span className="marker">Schule</span></h1>
+          <p className="text-body">Die Schullizenz gilt für Schüler:innen einer Klasse. Für Eltern gibt es das Familienpaket.</p>
+          <ButtonLink href="/familie" size="lg">Zur Familie</ButtonLink>
         </div>
       </section>
     );

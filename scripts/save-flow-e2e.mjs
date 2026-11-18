@@ -77,7 +77,7 @@ try {
   await page.getByLabel(/^Firma/).waitFor();
   await page.waitForTimeout(1500); // let React hydrate so the typed value is not reset
   await page.getByLabel(/^Firma/).fill("Draft AG");
-  await page.getByLabel(/^Welche Stelle/).fill("Polymechaniker:in");
+  await page.getByLabel(/^Beruf \/ Stelle/).fill("Polymechaniker:in");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   await waitSaved();
   const id = idFromUrl();
@@ -116,7 +116,7 @@ try {
   const STATUSES = ["saved", "preparing", "applied", "schnupper_planned", "schnupper_done", "aptitude_test", "interview", "final_interview", "offer", "contract_signed", "rejected", "withdrawn"];
   for (const status of STATUSES) {
     await edit();
-    await page.getByLabel(/^Was ist der Stand/).selectOption(status);
+    await page.getByLabel(/^Status$/).selectOption(status);
     if (status === "schnupper_planned" || status === "schnupper_done") { await page.getByLabel(/^Schnupperdatum/).fill("2026-12-01"); await page.getByLabel(/^Notizen zum Schnuppern/).fill("Sehr nett"); }
     if (status === "schnupper_done") await page.getByLabel(/^Wie war es/).selectOption("positive");
     if (status === "aptitude_test") { await page.getByLabel(/^Testdatum/).fill("2026-12-10"); await page.getByLabel(/^Ergebnis/).selectOption("passed"); }
@@ -157,7 +157,7 @@ try {
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   check(await page.getByText(/Bitte gib die Stelle an/).first().isVisible(), "5 draft: incomplete save shows a clear German message");
   check((await rows()).length === before, "5 draft: incomplete save stores nothing");
-  await page.getByLabel(/^Welche Stelle/).fill("Koch/Köchin");
+  await page.getByLabel(/^Beruf \/ Stelle/).fill("Koch/Köchin");
   await page.getByRole("button", { name: "Bewerbung speichern" }).click();
   await waitSaved();
   check((await rows()).some((x) => x.company === "Halbfertig GmbH" && x.notes === "Noch nicht fertig"), "5 draft: completed form is stored");

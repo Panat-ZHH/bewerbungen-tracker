@@ -58,7 +58,7 @@ test("AC-U2 hasSubscription: false for ended (re-buy possible), true while a sub
 });
 
 test("badges and texts follow §4.3", () => {
-  const expected = { none: "", incomplete: "Zahlung ausstehend", trialing: "Testphase", active: "Aktiv", canceling: "Gekündigt", past_due: "Zahlung offen", unpaid: "Unbezahlt", paused: "Pausiert", ended: "Abgelaufen" };
+  const expected = { none: "", incomplete: "Zahlung ausstehend", trialing: "Testwoche", active: "Aktiv", canceling: "Gekündigt", past_due: "Zahlung offen", unpaid: "Unbezahlt", paused: "Pausiert", ended: "Abgelaufen" };
   for (const [phase, label] of Object.entries(expected)) assert.equal(phaseBadge(phase).label, label, phase);
   assert.equal(phaseBadge("unpaid").tone, "danger");
   assert.equal(phaseBadge("past_due").tone, "warning");
@@ -216,4 +216,11 @@ test("AC-U6 Part B component files: no sharp s, no CHF literals, no flag-off wor
   const tour = await read("components/onboarding/student-onboarding.tsx");
   assert.match(tour, /TOUR_FAMILY_LINK/);
   assert.match(tour, /TOUR_FAMILY_PATH/);
+});
+
+test("fill: the «Dein Kind» fallback is lowercase mid-sentence, real names unchanged (QA m6)", () => {
+  assert.equal(fill(FAMILY_COPY.consent.dialog1, { child: "Dein Kind" }), "Ich bin für dein Kind erziehungsberechtigt und einverstanden, dass dein Kind WendApply mit unserer Familie nutzt.");
+  assert.equal(fill(FAMILY_COPY.consent.title, { child: "Dein Kind" }), "Dein Kind braucht deine Zustimmung");
+  assert.equal(fill("Danach siehst du nichts mehr von {child}.", { child: "Dein Kind" }), "Danach siehst du nichts mehr von deinem Kind.");
+  assert.equal(fill(FAMILY_COPY.consent.dialog1, { child: "Lina" }).includes("für Lina"), true);
 });

@@ -83,6 +83,11 @@ export interface Profile {
   school?: string;
   gradeLevel?: string;
   desiredProfession?: string;
+  /** Same columns as the onboarding (school_level, desired_professions, canton, desired_start_year) – schueler-01. */
+  schoolLevel?: string;
+  desiredProfessions?: string[];
+  canton?: string;
+  desiredStartYear?: number | null;
 }
 
 export interface CV {

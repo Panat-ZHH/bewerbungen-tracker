@@ -11,10 +11,10 @@ export const features: { icon: typeof Search; title: string; text: string; step:
   { icon: FileText, title: "Dokumente", text: "Lebenslauf, Motivationsschreiben und Zeugnisse hochladen und an Bewerbungen anhängen.", step: "dokumente" },
   { icon: Sparkles, title: "KI-Bewerbungs-Check", text: "Punkte und konkrete Tipps mit Vorher-Nachher-Sätzen für dein Motivationsschreiben.", step: "ki-check" },
   { icon: House, title: "Dein Dorf", text: "Jede Bewerbung wird ein Haus. Mit Punkten kaufst du im Laden Deko, Autos und neue Inseln.", step: "dorf" },
-  { icon: Bell, title: "Erinnerungen", text: "Fristen und Nachfassen nicht verpassen: auf der Startseite, per E-Mail oder als Mitteilung.", step: "erinnerungen" },
+  { icon: Bell, title: "Erinnerungen", text: "Fristen und Nachfassen nicht verpassen: auf der Startseite, per E-Mail oder als Benachrichtigung.", step: "erinnerungen" },
   { icon: Users, title: "Freunde und Klassen", text: "Gemeinsam dranbleiben. Du entscheidest, was Freunde und deine Lehrperson sehen.", step: "freunde-klassen" },
   { icon: UserRound, title: "Profil", text: "Wunschberuf, Wohnort und Schule einmal angeben, damit Suche und Tipps besser passen.", step: "profil" },
-  { icon: GraduationCap, title: "Für Lehrpersonen", text: "Klassen erstellen, Stand der Klasse sehen, Fristen und Mitteilungen an alle schicken.", step: "lehrpersonen" },
+  { icon: GraduationCap, title: "Für Lehrpersonen", text: "Klassen erstellen, Fortschritt der Klasse sehen, Fristen und Mitteilungen an alle schicken.", step: "lehrpersonen" },
 ];
 
 export type GuideStep = {
@@ -64,9 +64,9 @@ export const guideSteps: GuideStep[] = [
     id: "bewerbungen", title: "Bewerbung erfassen und Status ändern",
     intro: "Jede Bewerbung hat einen Status. So siehst du immer, wo du stehst und was als Nächstes kommt.",
     steps: [
-      <>Gehe zu {k("Bewerbungen")} und tippe auf {k("Bewerbung hinzufügen")}, oder öffne eine gemerkte Stelle.</>,
+      <>Gehe zu {k("Bewerbungen")} und tippe auf {k("Bewerbung eintragen")}, oder öffne eine gemerkte Stelle.</>,
       <>Trage Firma, Stelle und Ort ein und setze {k("Bewerben bis")}, damit dich WendApply an die Frist erinnert. Ansprechperson und Notizen sind freiwillig.</>,
-      <>Unter {k("Was ist der Stand?")} wählst du den Status: Gemerkt, In Vorbereitung, Abgeschickt, Schnupperlehre geplant oder gemacht, Eignungstest / Multicheck, Gespräch, Weiteres Gespräch, Zusage, Vertrag unterschrieben, Absage erhalten oder Zurückgezogen.</>,
+      <>Unter {k("Status")} wählst du: Gemerkt, In Vorbereitung, Abgeschickt, Schnupperlehre geplant oder gemacht, Eignungstest / Multicheck, Gespräch, Weiteres Gespräch, Zusage, Vertrag unterschrieben, Absage erhalten oder Zurückgezogen.</>,
       <>Auf der Detailseite siehst du die {k("Zeitachse")} und kannst mit {k("Frist im Kalender speichern")} die Frist in deinen Kalender übernehmen.</>,
     ],
     tip: <>Unter {k("Auswertung")} siehst du, wie viele Rückmeldungen und Gespräche du schon hast. Auf der Startseite hilft dir das {k("Wochenziel")}, dranzubleiben.</>,
@@ -78,7 +78,7 @@ export const guideSteps: GuideStep[] = [
     steps: [
       <>Tippe auf {k("Dokument hochladen")} und wähle die Art: Lebenslauf, Motivationsschreiben, Zeugnis, Foto oder Weiteres Dokument.</>,
       <>Erlaubt sind PDF, JPG und PNG bis 5 MB. Vom Motivationsschreiben kannst du mehrere Versionen speichern.</>,
-      <>In einer Bewerbung hängst du unter {k("Unterlagen")} die passenden Dokumente an. Eine Checkliste zeigt, was noch fehlt.</>,
+      <>In einer Bewerbung hängst du unter {k("Dokumente")} die passenden Dokumente an. Eine Checkliste zeigt, was noch fehlt.</>,
     ],
   },
   {
@@ -108,30 +108,30 @@ export const guideSteps: GuideStep[] = [
     intro: "WendApply erinnert dich an Fristen und daran nachzufragen, wenn lange nichts passiert ist.",
     steps: [
       <>Öffne {k("Einstellungen")} und dort {k("Benachrichtigungen")}.</>,
-      <>Wähle, wie du erinnert werden willst: {k("Im Start-Bereich anzeigen")}, {k("Täglich per E-Mail")} oder als {k("Mitteilung auf diesem Gerät")}.</>,
+      <>Wähle, wie du erinnert werden willst: {k("Im Start-Bereich anzeigen")}, {k("Täglich per E-Mail")} oder als {k("Benachrichtigung auf diesem Gerät")}.</>,
       <>Lege fest, wie viele Tage vor einer Frist du erinnert wirst und nach wie vielen Tagen ohne Update.</>,
       <>Mit dem {k("Kalender-Abo für alle Fristen")} erscheinen alle Fristen automatisch in deinem Kalender.</>,
     ],
-    tip: <>Auf dem iPhone funktionieren Mitteilungen nur, wenn du WendApply zuerst <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="#installieren">auf den Home-Bildschirm legst</a>.</>,
+    tip: <>Auf dem iPhone funktionieren Benachrichtigungen nur, wenn du WendApply zuerst <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="#installieren">auf den Home-Bildschirm legst</a>.</>,
   },
   {
     id: "freunde-klassen", title: "Freunde und Klassen",
     intro: "Zu zweit fällt die Suche leichter. Was andere von dir sehen, bestimmst immer du.",
     steps: [
       <>Unter {k("Freunde")} findest du {k("Dein Einladungscode")}. Teile ihn per Link, QR-Code, WhatsApp oder E-Mail, oder gib den Code einer Freundin oder eines Freundes ein und tippe auf {k("Anfrage senden")}.</>,
-      <>Freunde sehen, wie viele Bewerbungen du hast, wie weit du bist und deine Insel, nie deine Notizen. Mit den Schaltern entscheidest du, ob Firmennamen und Zusagen oder Absagen sichtbar sind.</>,
+      <>Freunde sehen, wie viele Bewerbungen du hast, wie weit du bist und dein Dorf, nie deine Notizen. Mit den Schaltern entscheidest du, ob Firmennamen und Zusagen oder Absagen sichtbar sind.</>,
       <>Deiner Klasse trittst du mit dem Link oder QR-Code deiner Lehrperson bei, oder du gibst unter {k("Klassen")} den {k("Klassencode")} ein und tippst auf {k("Beitreten")}.</>,
       <>Vor dem Beitritt siehst du genau, was {k("Sichtbar")} ist und was {k("Nie sichtbar")} bleibt. Notizen, Lebenslauf und Dokumente sieht deine Lehrperson nie. Die Freigaben kannst du später ändern.</>,
     ],
   },
   {
     id: "lehrpersonen", title: "Für Lehrpersonen",
-    intro: "Mit WendApply sehen Sie den Stand Ihrer Klasse, ohne Listen zu führen. Sie sehen nur, was Schülerinnen und Schüler freigeben.",
+    intro: "Mit WendApply siehst du den Fortschritt deiner Klasse, ohne Listen zu führen. Du siehst nur, was Schülerinnen und Schüler freigeben.",
     steps: [
       <>Konto erstellen und {k("Lehrperson")} wählen. Danach Anzeigename, Klassenname und Schuljahr eingeben und {k("Klasse erstellen")}.</>,
-      <>Unter {k("Einladen")} teilen Sie Link, Code oder QR-Code. Sie können Schülerinnen und Schüler auch per E-Mail oder mit einer CSV-Datei einladen.</>,
+      <>Unter {k("Einladen")} teilst du Link, Klassencode oder QR-Code. Du kannst Schülerinnen und Schüler auch per E-Mail oder mit einer CSV-Datei einladen.</>,
       <>Die Übersicht zeigt Bewerbungen, Zusagen, wer {k("Braucht Aufmerksamkeit")} und {k("Anstehende Fristen")}.</>,
-      <>Mit {k("Neue Frist")} und {k("Neue Mitteilung")} erreichen Sie die ganze Klasse. Exporte gibt es als CSV.</>,
+      <>Mit {k("Neue Frist")} und {k("Neue Mitteilung")} erreichst du die ganze Klasse. Exporte gibt es als CSV.</>,
     ],
     tip: <>Mehr zum 30-Tage-Pilot und zu den Lizenzen unter <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/schulen">Für Schulen</a>, <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/pilot">Pilot</a> und <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/preise">Preise</a>.</>,
     shot: { src: "/landing/24-teacher-dashboard-light.webp", darkSrc: "/landing/24-teacher-dashboard-dark.webp", alt: "Lehrpersonen-Übersicht mit Bewerbungen, Gesprächen und Zusagen der Klassen und Schülerinnen und Schülern, die Aufmerksamkeit brauchen", width: 1600, height: 1280 },
@@ -145,8 +145,8 @@ export const faq: { q: string; a: string }[] = [
   { q: "Muss ich WendApply aus dem App Store laden?", a: "Nein. WendApply läuft im Browser. Du kannst es aber direkt aus dem Browser als App auf deinem Handy, Tablet oder Computer installieren, ganz ohne App Store." },
   { q: "Ist die installierte App anders als die Webseite?", a: "Nein, es ist dieselbe WendApply mit deinem Konto und deinen Daten. Die App öffnet sich nur im eigenen Fenster ohne Adresszeile und startet mit einem Tipp vom Home-Bildschirm." },
   { q: "Wie entferne ich die App wieder?", a: "iPhone und Android: Symbol gedrückt halten und entfernen bzw. deinstallieren. Mac und Windows: in der App das Menü öffnen und deinstallieren. Dein Konto und deine Daten bleiben dabei erhalten." },
-  { q: "Warum bekomme ich auf dem iPhone keine Mitteilungen?", a: "Apple erlaubt Mitteilungen von Web-Apps nur, wenn sie auf dem Home-Bildschirm installiert sind. Installiere WendApply über Safari, öffne es vom Home-Bildschirm und schalte dann in den Einstellungen unter Benachrichtigungen die Mitteilung auf diesem Gerät ein." },
+  { q: "Warum bekomme ich auf dem iPhone keine Benachrichtigungen?", a: "Apple erlaubt Benachrichtigungen von Web-Apps nur, wenn sie auf dem Home-Bildschirm installiert sind. Installiere WendApply über Safari, öffne es vom Home-Bildschirm und schalte dann in den Einstellungen unter Benachrichtigungen die Benachrichtigung auf diesem Gerät ein." },
   { q: "Sieht meine Lehrperson alle meine Bewerbungen?", a: "Nein. Du entscheidest beim Beitritt zur Klasse, was geteilt wird, und kannst das später ändern. Notizen, Lebenslauf und Dokumente sieht deine Lehrperson nie." },
   { q: "Was passiert mit meinem Brief beim KI-Check?", a: "Der Text wird für den Check an einen KI-Dienst geschickt. Deine Datei wird nicht gespeichert, nur das Ergebnis in deinem Konto. Frühere Checks kannst du jederzeit löschen." },
-  { q: "Kann ich mein Konto löschen?", a: "Ja. In den Einstellungen findest du Konto löschen. Dein Konto und alle Daten werden damit entfernt. Vorher kannst du unter Daten sichern eine Kopie herunterladen." },
+  { q: "Kann ich mein Konto löschen?", a: "Ja. In den Einstellungen findest du Konto löschen. Dein Konto und alle Daten werden damit entfernt. Vorher kannst du unter «Daten exportieren» eine Kopie herunterladen." },
 ];

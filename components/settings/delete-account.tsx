@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import Link from "next/link";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import type { AccountKind } from "@/components/settings/account-kind";
 import { DELETE_CONFIRM_WORD, REAUTH_FLAG, confirmationMatches, deletionItems, isFreshSignIn, teacherWarning, withSupport, type AccountSummary } from "@/lib/account-deletion";
 
 type Identity = { email: string | null; hasPassword: boolean };
@@ -20,7 +21,7 @@ function clearBrowserData() {
   } catch { /* storage unavailable */ }
 }
 
-export function DeleteAccountCard() {
+export function DeleteAccountCard({ kind = null }: { kind?: AccountKind | null } = {}) {
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [identity, setIdentity] = useState<Identity | null>(null);
@@ -94,12 +95,12 @@ export function DeleteAccountCard() {
       clearBrowserData();
       window.location.replace("/login?deleted=1");
     } catch {
-      setError(withSupport("Keine Verbindung. Bitte prüfe dein Internet und versuche es nochmal."));
+      setError(withSupport("Keine Verbindung zum Internet. Prüfe dein Netz und versuch es noch einmal."));
       setBusy(false);
     }
   }
 
-  const items = deletionItems(summary);
+  const items = deletionItems(summary, kind === "parent" ? "parent" : undefined);
   const warning = teacherWarning(summary);
   const confirmed = confirmationMatches(confirm, identity?.email);
   const authReady = identity?.hasPassword ? password.length > 0 : fresh;
@@ -112,7 +113,7 @@ export function DeleteAccountCard() {
         <h3 className="font-display text-lg font-bold leading-tight tracking-[-.02em] text-[var(--danger-fg)]">Konto löschen</h3>
         <p className="mt-1.5 text-body text-muted">Löscht dein Konto samt Anmeldung, allen Daten und Dateien dauerhaft. Das kann nicht rückgängig gemacht werden.</p>
         <Button variant="danger" onClick={show} full className="mt-4 sm:min-h-11 sm:w-auto" icon={<AlertTriangle size={16} />}>Konto löschen…</Button>
-        <p className="mt-3 text-small text-muted">Tipp: Lade vorher oben eine Sicherung deiner Daten herunter.</p>
+        <p className="mt-3 text-small text-muted">Tipp: Exportiere vorher oben deine Daten.</p>
       </div>
 
       <Modal open={open} onClose={() => !busy && setOpen(false)} title="Konto endgültig löschen?" description="Dein Konto und alle Daten werden sofort und dauerhaft gelöscht."
