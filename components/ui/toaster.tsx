@@ -11,7 +11,7 @@ const icons = { success: CheckCircle2, danger: TriangleAlert, info: Info } as co
 export function Toaster() {
   const items = useSyncExternalStore(subscribeToasts, getToasts, () => empty);
   return (
-    <div aria-live="polite" aria-atomic="false" role="region" aria-label="Hinweise" className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--tabbar-h)+var(--safe-bottom)+12px)] z-[150] flex flex-col items-center gap-2 px-3 md:bottom-6">
+    <div aria-live="polite" aria-atomic="false" role="region" aria-label="Hinweise" className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottom-clearance)+12px)] z-[150] flex flex-col items-center gap-2 px-3 md:bottom-6">
       {items.map((item) => <ToastCard key={item.id} item={item} />)}
     </div>
   );

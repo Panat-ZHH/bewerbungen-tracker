@@ -103,7 +103,7 @@ export default function DashboardPage() {
             <ProgressPath applications={applications} />
 
             <section className="mt-10">
-              <div className="flex items-end justify-between gap-3">
+              <div className="flex flex-wrap items-end justify-between gap-x-3">
                 <h2 className="text-heading">Zuletzt geändert</h2>
                 <Link href="/applications" className="inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap px-1 text-sm font-semibold text-[var(--brand)] hover:underline">
                   Alle ansehen <ArrowRight size={15} />
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                       <li key={application.id}>
                         <Link href={`/applications/${application.id}`} className="row-link flex-wrap justify-between gap-y-1">
                           <span className="min-w-0 truncate text-sm font-bold">{application.company}<span className="font-normal text-muted"> · {application.position}</span></span>
-                          <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-muted"><CalendarClock size={15} aria-hidden />{new Date(application.deadline as string).toLocaleDateString("de-CH")}{info && <Badge tone={info.tone}>{info.label}</Badge>}</span>
+                          <span className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 text-sm text-muted"><CalendarClock size={15} aria-hidden />{new Date(application.deadline as string).toLocaleDateString("de-CH")}{info && <Badge tone={info.tone}>{info.label}</Badge>}</span>
                         </Link>
                       </li>
                     );

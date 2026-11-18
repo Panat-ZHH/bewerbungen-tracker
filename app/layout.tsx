@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { PwaRegister } from "@/components/pwa/PwaRegister";
 import { InstallHint } from "@/components/pwa/InstallHint";
+import { ThemeColorSync } from "@/components/pwa/ThemeColorSync";
+import { KeyboardInset } from "@/components/layout/keyboard-inset";
 import { BRAND_TAGLINE } from "@/components/public/marketing";
 import { NOINDEX, OG_IMAGES, SITE_LANG, SITE_LOCALE, SITE_NAME, SITE_URL } from "@/lib/seo/site";
 
@@ -35,6 +37,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Notch / home indicator: content may use the whole screen, safe areas are padded via env(safe-area-inset-*) in globals.css.
+  // Never maximumScale / userScalable: pinch zoom must stay possible (WCAG 1.4.4).
   viewportFit: "cover",
   // must match --paper in app/globals.css (light / dark)
   themeColor: [{ media: "(prefers-color-scheme: light)", color: "#fff9ef" }, { media: "(prefers-color-scheme: dark)", color: "#15140f" }],
@@ -47,7 +51,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang={SITE_LANG} suppressHydrationWarning className={`${titleFont.variable} ${bodyFont.variable}`}>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
-      <body>{children}<Toaster /><InstallHint /><PwaRegister /></body>
+      <body>{children}<Toaster /><InstallHint /><PwaRegister /><ThemeColorSync /><KeyboardInset /></body>
     </html>
   );
 }
