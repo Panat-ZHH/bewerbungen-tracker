@@ -168,6 +168,10 @@ export const FAMILY_COPY = {
     expiredTitle: "Deine Testwoche ist vorbei",
     expiredText: "Mit dem Familienpaket geht es für dich und dein Kind sofort weiter. Deine Daten sind noch da.",
     expiredCta: "Familienpaket wählen",
+    // Online payment flag off: nothing to buy yet, so the banner and the plan card point to «Zugang anfragen» (QA M5).
+    expiredTextOffline: "Das Familienpaket kannst du noch nicht online buchen. Frag unten Zugang an, dann melden wir uns. Deine Daten sind noch da.",
+    expiredPlanOffline: "Deine Testwoche ist vorbei. Frag hier Zugang an, dann melden wir uns bei dir.",
+    expiredNoticeOffline: "Die Online-Bezahlung ist gerade nicht verfügbar. Du kannst uns auch über die Kontaktseite schreiben.",
     help: "Fragen? Hilfe für Eltern",
     /** Placeholder names (e-mail prefixes) are never shown (eltern-04). */
     childFallback: "Dein Kind",

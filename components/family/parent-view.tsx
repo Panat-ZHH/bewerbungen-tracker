@@ -61,6 +61,8 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
   const { access } = useAccess();
   const expired = access?.state === "expired" && !PAID_PHASES.includes(phase) && !billingLoading;
   const expiredCta = expired && online && !planIsCurrent;
+  /** Trial over, online payment off: «Zugang anfragen» in the plan card is the single primary action (QA M5). */
+  const requestPrimary = expired && !online;
   const [joined] = useState(() => joinedOtherFamily());
 
   // Waiting for the child: refresh every 15 s and when the window gets focus, so the next step appears by itself.
@@ -130,7 +132,7 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
     <section aria-labelledby="step-child" className="panel-flat space-y-3 p-5 outline outline-2 outline-offset-2 outline-[var(--brand)]" data-current-step="child">
       <h2 id="step-child" className="text-heading"><UserPlus size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{FAMILY_COPY.step2.title}</h2>
       <p className="text-body text-muted">{FAMILY_COPY.step2.text}</p>
-      <InvitePanel direction="parent_invites_child" initialInvite={invite} onCreated={setLocalInvite} primary={!expiredCta} hideTitle />
+      <InvitePanel direction="parent_invites_child" initialInvite={invite} onCreated={setLocalInvite} primary={!expiredCta && !requestPrimary} hideTitle />
       {/* InvitePanel renders the waiting status and the "no account yet" hint itself once a code exists. */}
       {online && !payNow && !expiredCta && (phase === "none" || phase === "ended") && (
         <button type="button" onClick={openPlanNow} className="min-h-11 text-sm font-semibold underline underline-offset-2">{FAMILY_COPY.step2.payNow}</button>
@@ -151,11 +153,11 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
     <section aria-labelledby="step-consent" className="panel-flat space-y-3 p-5 outline outline-2 outline-offset-2 outline-[var(--sun)]" data-current-step="consent">
       <h2 id="step-consent" className="text-heading"><ShieldCheck size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{fill(FAMILY_COPY.consent.title, { child: consentChild.displayName })}</h2>
       <p className="text-body text-muted">{fill(FAMILY_COPY.consent.text, { child: consentChild.displayName })}</p>
-      <Button variant={expiredCta ? "secondary" : "primary"} onClick={() => setConfirm({ kind: "grant", child: consentChild })} icon={<ShieldCheck size={16} />} {...(expiredCta ? {} : { "data-primary-action": "" })}>{FAMILY_COPY.consent.cta}</Button>
+      <Button variant={expiredCta || requestPrimary ? "secondary" : "primary"} onClick={() => setConfirm({ kind: "grant", child: consentChild })} icon={<ShieldCheck size={16} />} {...(expiredCta || requestPrimary ? {} : { "data-primary-action": "" })}>{FAMILY_COPY.consent.cta}</Button>
     </section>
   ) : null;
 
-  const planCard = <PlanCard plan={family.plan} email={email} familyId={family.id} isParent online={online} billing={online ? billing : null} current={planIsCurrent} open={payNow} />;
+  const planCard = <PlanCard plan={family.plan} email={email} familyId={family.id} isParent online={online} billing={online ? billing : null} current={planIsCurrent} open={payNow} expired={expired} />;
   const fix = FIX_PHASES.includes(phase) && !billing.activationPending;
 
   return (
@@ -168,7 +170,7 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
           <span className="mt-0.5 shrink-0 [&>svg]:h-[17px] [&>svg]:w-[17px]"><Clock aria-hidden /></span>
           <div className="min-w-0 flex-1">
             <strong id="family-expired" className="block">{FAMILY_COPY.parent.expiredTitle}</strong>
-            {FAMILY_COPY.parent.expiredText}
+            {online ? FAMILY_COPY.parent.expiredText : FAMILY_COPY.parent.expiredTextOffline}
           </div>
           {expiredCta && <Button onClick={openPlanNow} className="shrink-0" data-primary-action="">{FAMILY_COPY.parent.expiredCta}</Button>}
         </section>
