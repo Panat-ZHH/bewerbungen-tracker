@@ -85,15 +85,22 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
           {l && <Badge tone={STATUS_TONE[status ?? ""] ?? "neutral"}>{statusLabel(status)}</Badge>}
         </div>
         {!expired && <p role="status" data-testid="school-status-line" className={`status status-${line.tone} text-sm`}>{line.text}</p>}
-        <p className="text-small flex items-start gap-2 text-muted"><ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden /><span><strong className="font-semibold text-[var(--ink)]">Datenschutz:</strong> Als Schuladmin siehst du nur Zahlen pro Klasse – keine Namen von Schüler:innen, keine Bewerbungen oder Firmen. Unter drei Personen bleiben die Zahlen ausgeblendet.</span></p>
+        <p className="text-small flex items-start gap-2 text-muted"><ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden /><span><strong className="font-semibold text-[var(--ink)]">Datenschutz:</strong> Als Schuladmin siehst du nur Zahlen pro Klasse, und nur von Schüler:innen, die ihre Daten teilen – keine Namen von Schüler:innen, keine Bewerbungen oder Firmen. Unter drei Personen bleiben die Zahlen ausgeblendet.</span></p>
       </div>
 
       {expired && (
         <div role="alert" data-testid="licence-expired" className="status status-danger flex-col items-start gap-3">
           <p className="flex items-start gap-2"><TriangleAlert size={18} className="mt-0.5 shrink-0" aria-hidden /><span><strong className="block">Die Lizenz ist {l?.validUntil ? `am ${formatDateCh(l.validUntil)} ` : ""}abgelaufen.</strong>Lehrpersonen und Schüler:innen eurer Schule haben keinen Zugang mehr. Die Daten bleiben gespeichert.</span></p>
           <div className="flex flex-wrap gap-2">
-            <ButtonLink href="#abo" size="sm" data-primary-action="">Lizenz verlängern</ButtonLink>
-            <ButtonLink href="/kontakt" size="sm" variant="ghost" icon={<Mail size={14} aria-hidden />}>Offerte anfragen</ButtonLink>
+            {/* Online payment off: renewing goes through an Offerte, so no «Lizenz verlängern» next to «Online-Bezahlung nicht verfügbar» (QA M5). */}
+            {onlinePaymentEnabled() ? (
+              <>
+                <ButtonLink href="#abo" size="sm" data-primary-action="">Lizenz verlängern</ButtonLink>
+                <ButtonLink href="/kontakt" size="sm" variant="ghost" icon={<Mail size={14} aria-hidden />}>Offerte anfragen</ButtonLink>
+              </>
+            ) : (
+              <ButtonLink href="/kontakt" size="sm" data-primary-action="" icon={<Mail size={14} aria-hidden />}>Offerte anfragen</ButtonLink>
+            )}
           </div>
         </div>
       )}

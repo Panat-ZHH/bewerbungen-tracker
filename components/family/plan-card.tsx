@@ -22,15 +22,19 @@ const ACCESS_STATES = ["pilot", "active"];
  * - Flag on, parent with `billing` (from useFamilyBilling on /familie): badge and body follow the billing phase only.
  * - Flag on, child: neutral line, never prices or payment problems (S8).
  */
-export function PlanCard({ plan, email, kind = "family", familyId = null, isParent = false, online = onlinePaymentEnabled(), billing = null, current = false, open = false }: {
+export function PlanCard({ plan, email, kind = "family", familyId = null, isParent = false, online = onlinePaymentEnabled(), billing = null, current = false, open = false, expired = false }: {
   plan: FamilyPlan | null; email: string; kind?: WaitlistKind; familyId?: string | null; isParent?: boolean; online?: boolean;
   billing?: FamilyBillingState | null;
   /** Step 3 is the current setup step: the card's main button is the page's single primary action. */
   current?: boolean;
   /** Show the purchase form before step 3 is current ("Paket schon jetzt buchen"). */
   open?: boolean;
+  /** Parent whose trial is over (flag off): the card text says so and «Zugang anfragen» is the page's single primary action. */
+  expired?: boolean;
 }) {
   const [requestOpen, setRequestOpen] = useState(false);
+  /** Parent before the trial ends: connecting the child leads, so «Zugang anfragen» stays secondary. Child view unchanged. */
+  const requestLeads = expired || !isParent;
   if (online && isParent && billing && familyId) {
     const badge = familyPhaseBadge(billing.activationPending ? null : billing.phase);
     return (
@@ -62,14 +66,15 @@ export function PlanCard({ plan, email, kind = "family", familyId = null, isPare
         <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{s.title}</h2>
         {s.status && <Badge tone={plan ? PLAN_STATUS_TONE[plan.status] ?? "neutral" : "info"}>{s.status}</Badge>}
       </div>
-      <p className="text-body text-muted">{s.detail}</p>
+      <p className="text-body text-muted">{expired && !online && !plan ? FAMILY_COPY.parent.expiredPlanOffline : s.detail}</p>
       {online ? <FamilyBilling familyId={familyId} isParent={isParent} enabled /> : (
         <div className="space-y-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--line)] p-3" data-billing-state="off">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard size={16} aria-hidden className="shrink-0" />Bezahlung bald verfügbar</p>
-            <Button size="sm" variant="sun" onClick={() => setRequestOpen(true)} icon={<Mail size={14} />}>Zugang anfragen</Button>
+            {/* Parent: filled only when it is the next step (trial over); otherwise connecting the child leads (QA M5). */}
+            <Button size="sm" variant={requestLeads ? "sun" : "secondary"} onClick={() => setRequestOpen(true)} icon={<Mail size={14} />} {...(expired ? { "data-primary-action": "" } : {})}>Zugang anfragen</Button>
           </div>
-          <p className="text-small text-muted">{FREE_NOTICE}</p>
+          <p className="text-small text-muted">{expired ? FAMILY_COPY.parent.expiredNoticeOffline : FREE_NOTICE}</p>
         </div>
       )}
       {!online && <RequestAccessModal open={requestOpen} onClose={() => setRequestOpen(false)} email={email} kind={kind} />}
