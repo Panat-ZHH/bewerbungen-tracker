@@ -77,7 +77,7 @@ export function ApplicationDocuments({ applicationId }: { applicationId: string 
           })}
         </ul>
       )}
-      {docs.length > 0 && <p className="mt-3 text-small text-muted"><Link href="/cvs" className="font-semibold text-[var(--brand)] hover:underline">Dokumente verwalten</Link></p>}
+      {docs.length > 0 && <p className="mt-3 text-small text-muted"><Link href="/cvs" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] hover:underline">Dokumente verwalten</Link></p>}
     </div>
   );
 }

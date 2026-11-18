@@ -275,7 +275,7 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
 
       <details open={isEditing || optionalHasError || restored || undefined} className="group mt-7 border-t-[length:var(--border-w)] border-dashed border-[var(--line)] pt-2">
         <summary className="flex min-h-11 cursor-pointer list-none items-center text-sm font-bold text-[var(--ink)] marker:hidden [&::-webkit-details-marker]:hidden">
-          <span className="flex items-center gap-2"><Plus size={17} strokeWidth={2.6} className="text-[var(--brand)] transition-transform group-open:rotate-45" /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
+          <span className="flex flex-wrap items-center gap-x-2"><Plus size={17} strokeWidth={2.6} className="text-[var(--brand)] transition-transform group-open:rotate-45" /> Noch mehr eintragen <span className="font-normal text-muted">(optional)</span></span>
         </summary>
         <div className="mt-4 space-y-8">
           <fieldset className="min-w-0 border-0 p-0">
@@ -305,7 +305,7 @@ export function ApplicationForm({ application, onSaved }: { application?: Applic
         </div>
       </details>
 
-      <div className="sticky bottom-[calc(var(--tabbar-h)+var(--safe-bottom))] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-4 py-4 sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:border-dashed sm:border-[var(--line)] sm:bg-transparent sm:px-0 sm:pb-0">
+      <div className="sticky bottom-[var(--bottom-nav-space)] z-10 -mx-4 mt-7 flex flex-col-reverse gap-3 border-t-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-4 py-4 sm:static sm:z-auto sm:mx-0 sm:flex-row sm:items-center sm:border-dashed sm:border-[var(--line)] sm:bg-transparent sm:px-0 sm:pb-0">
         <Button type="button" variant="ghost" onClick={() => router.back()} className="min-h-11 sm:min-h-11">
           <ArrowLeft size={16} /> Zurück
         </Button>

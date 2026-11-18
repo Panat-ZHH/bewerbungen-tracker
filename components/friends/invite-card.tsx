@@ -40,7 +40,7 @@ export function InviteCard({ profile }: { profile: SocialProfile }) {
   return (
     // The hero of the page: soft yellow face (calm contour inside the app), one tilted label on the edge.
     <div className="animate-rise relative space-y-4 rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--sun-soft)] p-4 pt-8 shadow-[var(--shadow-md)] sm:p-5 sm:pt-9">
-      <p className="sticker tilt-l3 absolute -top-3.5 left-3 text-sm">Dein Einladungscode</p>
+      <p className="sticker tilt-l3 absolute -top-3.5 left-3 max-w-[calc(100%-1.5rem)] text-sm !whitespace-normal">Dein Einladungscode</p>
       <div>
         <p className="font-display tabular select-all break-all pr-10 text-[2.1rem] font-extrabold leading-none tracking-[.08em] sm:text-[2.5rem]">{profile.inviteCode}</p>
         <p className="mt-2 text-small text-muted">Wer deinen Code kennt, kann dir eine Freundschaftsanfrage schicken.</p>
