@@ -88,8 +88,8 @@ export default function ResetPasswordPage() {
         ) : (
           <form onSubmit={submit} className="panel space-y-5 p-5 sm:p-7">
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
-            <Field label="Neues Passwort" htmlFor="new-password"><Input id="new-password" type="password" required minLength={8} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
-            <Field label="Passwort wiederholen" htmlFor="new-password-2"><Input id="new-password-2" type="password" required minLength={8} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
+            <Field label="Neues Passwort" htmlFor="new-password"><Input id="new-password" enterKeyHint="next" type="password" required minLength={8} autoComplete="new-password" autoFocus value={password} onChange={(e) => setPassword(e.target.value)} /></Field>
+            <Field label="Passwort wiederholen" htmlFor="new-password-2"><Input id="new-password-2" enterKeyHint="done" type="password" required minLength={8} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} /></Field>
             <Button type="submit" size="lg" full loading={loading}>{loading ? "Speichert …" : "Passwort speichern"}{!loading && <ArrowRight size={16} strokeWidth={2.4} />}</Button>
           </form>
         )}

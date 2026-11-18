@@ -79,7 +79,7 @@ function ProfileContent() {
     <div className="max-w-4xl pb-safe">
       <PageHeader title="Mein Profil" description={description} />
       {notice && <StatusMessage tone="danger" className="mb-5">{notice}</StatusMessage>}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] lg:gap-12">
         <AvatarEditor name={[profile?.firstName, profile?.lastName].filter(Boolean).join(" ") || "Profil"} />
         {loading ? (
           <Card><CardContent role="status" aria-label="Dein Profil wird geladen" className="grid gap-5 sm:grid-cols-2 sm:p-7">{[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="space-y-2"><Skeleton className="h-3.5 w-20" /><Skeleton className="h-11" /></div>)}</CardContent></Card>
@@ -88,7 +88,7 @@ function ProfileContent() {
             <div className="grid gap-5 sm:grid-cols-2">
               {who === "staff" && (
                 <Field label="Anzeigename (sichtbar für deine Klassen)" htmlFor="profile-displayName" hint="So erscheinst du bei deinen Schülerinnen und Schülern, z. B. «Frau Keller»." className="sm:col-span-2">
-                  <Input id="profile-displayName" value={displayName} maxLength={60} onChange={(event) => setDisplayName(event.target.value)} />
+                  <Input id="profile-displayName" autoComplete="nickname" value={displayName} maxLength={60} onChange={(event) => setDisplayName(event.target.value)} />
                 </Field>
               )}
               {contactFields.filter((f) => !f.only || f.only === who).map(({ key, label, type, autoComplete, wide }) => (

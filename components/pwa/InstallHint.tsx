@@ -50,7 +50,7 @@ export function InstallHint() {
   };
 
   return (
-    <aside aria-label="App installieren" data-testid="install-hint" className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--tabbar-h)+var(--safe-bottom)+12px)] z-40 flex justify-center px-3 md:inset-x-auto md:bottom-6 md:right-6 md:px-0">
+    <aside aria-label="App installieren" data-testid="install-hint" className="pointer-events-none fixed inset-x-0 bottom-[calc(var(--bottom-clearance)+12px)] z-40 flex justify-center px-3 md:inset-x-auto md:bottom-6 md:right-6 md:px-0">
       <div className="pointer-events-auto animate-rise flex w-full max-w-md items-center gap-3 rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] py-1.5 pl-4 pr-1.5 text-[var(--ink)] shadow-[var(--shadow-md)]">
         {mode === "prompt" ? (
           <>

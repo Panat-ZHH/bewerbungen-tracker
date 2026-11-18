@@ -58,6 +58,7 @@ export const SearchBar = forwardRef<SearchBarHandle, { query: string; onQueryCha
               aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
               aria-label="Beruf oder Stelle suchen"
               autoComplete="off"
+              enterKeyHint="search"
               maxLength={80}
               value={query}
               placeholder={hasKeyboard ? "Beruf und Ort, z. B. Informatiker Zürich  (Taste «/»)" : "Beruf und Ort, z. B. Informatiker Zürich"}
