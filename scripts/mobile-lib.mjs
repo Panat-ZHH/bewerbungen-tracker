@@ -194,7 +194,9 @@ export function auditPage(opts, h) {
   };
   const textOf = (el) => (el.innerText || el.value || el.getAttribute("aria-label") || el.getAttribute("title") || el.getAttribute("placeholder") || "").replace(/\s+/g, " ").trim().slice(0, 50);
   const hiddenByAncestor = (el) => { for (let a = el; a; a = a.parentElement) { if (a.hasAttribute?.("inert") || a.getAttribute?.("aria-hidden") === "true") return true; const s = cs(a); if (s.display === "none" || s.visibility === "hidden" || Number(s.opacity) === 0) return true; } return false; };
-  const visible = (el) => { const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; const s = cs(el); if (s.visibility === "hidden" || s.display === "none" || s.pointerEvents === "none") return false; if (el.closest(".sr-only")) return false; return !hiddenByAncestor(el); };
+  // closed <details> content still has layout boxes in some engines: treat it as hidden (except the summary itself)
+  const inClosedDetails = (el) => { const d = el.closest("details:not([open])"); if (!d) return false; const sum = el.closest("summary"); return !(sum && sum.parentElement === d); };
+  const visible = (el) => { const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return false; const s = cs(el); if (s.visibility === "hidden" || s.display === "none" || s.pointerEvents === "none") return false; if (el.closest(".sr-only") || inClosedDetails(el)) return false; if (el.checkVisibility && !el.checkVisibility({ contentVisibilityAuto: true, opacityProperty: true, visibilityProperty: true })) return false; return !hiddenByAncestor(el); };
   const fixedAncestor = (el) => { for (let a = el; a && a !== document.body; a = a.parentElement) { const p = cs(a).position; if (p === "fixed" || p === "sticky") return a; } return null; };
   for (const p of document.querySelectorAll("nextjs-portal")) p.remove(); // dev badge / overlay: ignore
 
@@ -241,7 +243,8 @@ export function auditPage(opts, h) {
     let w = r.width, hh = r.height;
     if (tag === "input" && (type === "checkbox" || type === "radio")) { const lab = el.closest("label") || (el.id && document.querySelector(`label[for="${CSS.escape(el.id)}"]`)); if (lab) { const lr = lab.getBoundingClientRect(); w = Math.max(w, lr.width); hh = Math.max(hh, lr.height); } }
     const inlineText = tag === "a" && cs(el).display === "inline" && !!el.closest("p, li, dd, td, label, small, span, figcaption, blockquote");
-    const inNav = !!el.closest("nav, header, .app-bar, [role=navigation], [role=tablist]");
+    // footer link lists are secondary navigation: < 44px there is a warning, not a gate failure
+    const inNav = !el.closest("footer") && !!el.closest("nav, header, .app-bar, [role=navigation], [role=tablist]");
     const primary = (tag === "button" && type === "submit") || /\b(btn-primary|btn-sun|bg-\[var\(--sun\)\]|button-primary)\b/.test(typeof el.className === "string" ? el.className : "") || el.getAttribute("data-variant") === "primary";
     const kind = h.classifyTarget({ w, h: hh, inNav, primary, inlineText });
     if (!kind) continue;
@@ -298,6 +301,8 @@ export function auditPage(opts, h) {
     if (cy > H - 1 || cy < 1 || cx > W - 1 || cx < 1) {
       // scrollIntoView could not bring it into the viewport: the control is unreachable (fixed layer, or a clipped
       // full-height stage such as the village map). Elements of horizontally scrolling rails are skipped.
+      // labels pinned to the 3D village move with the camera (reachable by panning): not a layout problem
+      if (/worldLabel|canvasHost/i.test(String(el.className) + " " + String(el.parentElement?.className || ""))) continue;
       let rail = false; for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const o = cs(a).overflowX; if ((o === "auto" || o === "scroll") && a.scrollWidth > a.clientWidth + 1) { rail = true; break; } }
       if (!rail && offN < 6) { offN++; issues.push({ kind: "offscreen-control", sel: selOf(el), msg: `"${textOf(el)}" centre at ${Math.round(cx)},${Math.round(cy)} stays outside the ${W}x${H} viewport even after scrollIntoView${fa ? ` (layer ${selOf(fa).split(" > ").pop()})` : ""}` }); }
       continue;

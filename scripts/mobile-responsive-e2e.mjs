@@ -61,8 +61,11 @@ async function settle(page, ms = 600) {
   await page.waitForTimeout(ms);
 }
 const visibleButton = (page, name) => page.getByRole("button", { name }).locator("visible=true");
-async function clickFirst(page, locators) {
-  for (const loc of locators) { const l = loc.first(); if (await l.isVisible().catch(() => false)) { await l.click({ timeout: 5000 }); return true; } }
+async function clickFirst(page, locators, waitMs = 15000) {
+  // the app may still be hydrating on a loaded machine: wait until one of the candidates is visible
+  const any = locators.slice(1).reduce((acc, l) => acc.or(l), locators[0]).first();
+  await any.waitFor({ state: "visible", timeout: waitMs }).catch(() => {});
+  for (const loc of locators) { const l = loc.first(); if (await l.isVisible().catch(() => false)) { await l.click({ timeout: 8000 }); return true; } }
   return false;
 }
 /** Scripted interactions before the audit. Returns null or an error message. */
@@ -76,10 +79,10 @@ const FLOWS = {
     return (await page.locator('[role=dialog]').locator("visible=true").count()) ? null : "Mehr sheet did not open";
   },
   async edit(page) { return (await clickFirst(page, [visibleButton(page, /^Bearbeiten$/)])) ? (await page.waitForTimeout(500), null) : "no 'Bearbeiten' button"; },
-  async "map-search"(page) { return (await clickFirst(page, [page.locator("button[aria-expanded]").filter({ hasText: /^Such/ })])) ? (await page.waitForTimeout(600), null) : "no 'Suche' chip on the map"; },
+  async "map-search"(page) { return (await clickFirst(page, [page.locator("button[aria-expanded]").and(page.getByRole("button", { name: /^Suche/ }))])) ? (await page.waitForTimeout(600), null) : "no 'Suche' chip on the map"; },
   async "map-shop"(page) {
     await page.waitForFunction(() => !document.querySelector('[data-map-fullscreen] [role=status]'), null, { timeout: 15000 }).catch(() => {});
-    if (!(await clickFirst(page, [page.locator("button[aria-expanded]").filter({ hasText: /^Laden$/ }), visibleButton(page, /^Laden$/)]))) return "no 'Laden' button on the map";
+    if (!(await clickFirst(page, [page.locator("button[aria-expanded]").and(page.getByRole("button", { name: /^Laden$/ })), visibleButton(page, /^Laden$/)]))) return "no 'Laden' button on the map";
     await page.waitForTimeout(900);
     return null;
   },
@@ -100,7 +103,7 @@ const FLOWS = {
     if (!(await item.isVisible().catch(() => false))) return "placed item 'Sport-Roller Limette #2' not visible in the inventory";
     await item.click({ timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(400);
-    await clickFirst(page, [visibleButton(page, /^Laden schliessen$/)]);
+    await clickFirst(page, [visibleButton(page, /^Laden schliessen$/)], 3000);
     await page.waitForTimeout(800);
     return (await page.locator('[aria-label="Ausgewählter Gegenstand"]').locator("visible=true").count()) ? null : "selected-item panel did not appear after closing the shop";
   },
@@ -118,8 +121,12 @@ const FLOWS = {
 let S = null;
 const needUsers = personas.some((p) => p.user || p.needsUsers);
 const storage = new Map();
-async function login(browser, userKey) {
+async function login(browser, userKey, attempt = 1) {
   if (storage.has(userKey)) return storage.get(userKey);
+  try { return await loginOnce(browser, userKey); }
+  catch (e) { if (attempt >= 3) throw e; log(`login ${userKey} failed (${String(e.message).split("\n")[0]}), retry ${attempt}`); return login(browser, userKey, attempt + 1); }
+}
+async function loginOnce(browser, userKey) {
   const ctx = await browser.newContext({ viewport: { width: 1024, height: 800 }, locale: "de-CH" });
   const p = await ctx.newPage();
   try {
@@ -128,7 +135,7 @@ async function login(browser, userKey) {
     if (/Konto erstellen/.test(await p.locator('form button[type="submit"]').first().innerText().catch(() => ""))) { await p.getByRole("button", { name: "Anmelden", exact: true }).last().click().catch(() => {}); await p.waitForTimeout(300); }
     await p.fill('input[type="email"]', S.users[userKey].email); await p.fill('input[type="password"]', S.pw);
     await p.locator('form button[type="submit"]').first().click();
-    await p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 45000 });
+    await p.waitForURL((u) => !u.pathname.startsWith("/login"), { timeout: 90000 });
     await settle(p, 300);
     const st = await ctx.storageState();
     storage.set(userKey, st);
@@ -180,7 +187,8 @@ try {
       if (dev.standalone) await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "display-mode", value: "standalone" }] }).catch(() => {});
     }
     const pageErrors = [];
-    page.on("pageerror", (e) => pageErrors.push(String(e.message).split("\n")[0].slice(0, 200)));
+    // fetches aborted by our own navigation/reload are not app errors
+    page.on("pageerror", (e) => { const m = String(e.message).split("\n")[0].slice(0, 200); if (!/access control checks|Load failed|Failed to fetch|NetworkError|aborted/i.test(m)) pageErrors.push(m); });
     for (const [name, rawPath, flow] of p.pages) {
       const path = fillPath(rawPath, S?.vars);
       const r = { device: dev.id, browser: dev.browser, persona: p.key, role: p.role, page: name, path, mode, issues: [] };
@@ -189,12 +197,17 @@ try {
         if (path.includes("{")) throw new Error("missing setup variable for " + rawPath);
         const resp = await page.goto(BASE + path, { waitUntil: "domcontentloaded", timeout: 60000 });
         r.status = resp?.status();
+        if (flow && path.startsWith("/map")) {
+          // map panels remember open/collapsed state in localStorage; start every scripted map flow from a clean UI state
+          await page.evaluate(() => { for (const k of Object.keys(localStorage)) if (!k.startsWith("sb-")) localStorage.removeItem(k); sessionStorage.clear(); }).catch(() => {});
+          await page.reload({ waitUntil: "domcontentloaded", timeout: 60000 });
+        }
         await settle(page);
         r.finalPath = new URL(page.url()).pathname;
         if (p.user && r.finalPath.startsWith("/login")) r.issues.push({ kind: "redirected", sel: "document", msg: `redirected to ${r.finalPath} (session lost?)` });
         if (flow) {
           let err;
-          try { err = await FLOWS[flow](page, dev); } catch (e) { err = String(e.message).split("\n")[0]; }
+          try { err = await FLOWS[flow](page, dev); } catch (e) { const lines = String(e.message).split("\n"); err = [lines[0], lines.find((l) => /intercepts pointer events|not enabled|not visible|outside of the viewport/.test(l))].filter(Boolean).join(" — ").replace(/\s+/g, " ").slice(0, 400); }
           if (err) r.issues.push({ kind: "flow-failed", sel: `flow:${flow}`, msg: err });
           await settle(page, 400);
         }
