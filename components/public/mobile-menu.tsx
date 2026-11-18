@@ -81,7 +81,7 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
               ))}
             </ul>
           </nav>
-          <LoginLink size="lg" full className="mt-4" onClick={() => { navigating.current = true; setOpen(false); }} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Loslegen</LoginLink>
+          <LoginLink size="lg" full className="mt-4" onClick={() => { navigating.current = true; setOpen(false); }} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Kostenlos testen</LoginLink>
         </div>
       </dialog>
     </>
