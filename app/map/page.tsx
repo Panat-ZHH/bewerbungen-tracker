@@ -5,14 +5,14 @@ import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Coins, Hammer, Plus, Search, ShoppingBag, Trophy } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { MapApplicationDialog } from "@/components/applications/map-application-dialog";
-import { MapChip, MapControls, MapDock, MapFullscreen, MapSheet, MapTopBar, MapBadge, overlayClasses } from "@/components/applications/map-fullscreen";
+import { MapChip, MapControls, MapDock, MapFullscreen, MapSheet, MapTopBar, MapBadge, overlayClasses, isCompactMap, useCloseMapTopPanel, useCompactMap, useHideBottomNav } from "@/components/applications/map-fullscreen";
 import { useCameraControls } from "@/components/applications/use-camera-controls";
 import { MapPlacementTools, MapShop, useMapShop } from "@/components/applications/map-shop";
 import { IslandPanel } from "@/components/applications/island-panel";
 import { PalaceCelebration, usePalaceCelebration } from "@/components/applications/palace-celebration";
 import { useIslands } from "@/components/applications/use-islands";
 import { buildingStages } from "@/lib/application-map";
-import type { MapLayout, OwnedMapItem } from "@/lib/map-shop";
+import { isLockedMapObject, type MapLayout, type OwnedMapItem } from "@/lib/map-shop";
 import { getApplications } from "@/lib/storage";
 import { supabase } from "@/lib/supabase";
 import { statusLabels } from "@/lib/utils";
@@ -45,6 +45,27 @@ function ApplicationMap() {
   const shop = useMapShop(refresh + shopRefresh, applications, islands.unlocked);
   const balance = shop.state?.balance ?? null;
   const palace = usePalaceCelebration(applications);
+  // Phones: one map panel at a time. Opening the shop, a house or an item closes the top chip panel (Suche, Inseln) …
+  const closeTopPanel = useCloseMapTopPanel();
+  const compact = useCompactMap();
+  function selectHouse(id: string | null) { if (id) closeTopPanel(); setShopOpen(false); setSelectedId(id); }
+  function selectShopItem(id: string) { closeTopPanel(); shop.select(id); }
+  // … and opening a chip panel closes the shop, the house sheet and the item / placement tools.
+  // «Laden» toggles what the user sees: if the sheet is hidden (closed, or replaced by the item tools on a phone) it opens and
+  // the other panels close – one panel at a time, as with «Suche». Placed items are saved, so deselecting loses nothing.
+  function toggleShop() {
+    if (shopSheetOpen) { setShopOpen(false); return; }
+    closeTopPanel();
+    setSelectedId(null);
+    if (isCompactMap() || shop.placement) shop.clearSelection();
+    setShopOpen(true);
+  }
+  function onTopPanelOpen() {
+    if (!isCompactMap()) return;
+    setShopOpen(false);
+    setSelectedId(null);
+    shop.clearSelection();
+  }
 
   useEffect(() => {
     let active = true;
@@ -88,7 +109,12 @@ function ApplicationMap() {
 
   const emptyNotice = !loading && !applications.length && !error;
   const noMatch = applications.length > 0 && visible.length === 0;
-  const shopSheetOpen = shopOpen && !shop.placement && !selected;
+  const selectedItem = shop.selectedId ? shop.allItems.find(({ id }) => id === shop.selectedId) : undefined;
+  const itemToolsOpen = Boolean(shop.placement) || Boolean(selectedItem && selectedItem.x !== null && !isLockedMapObject(selectedItem));
+  // Phones: the item tools replace the shop sheet (it comes back when they close); from 768px both stay side by side.
+  const shopSheetOpen = shopOpen && !shop.placement && !selected && !(compact && itemToolsOpen);
+  // Phones: a sheet or the placement tools replace the bottom tab bar (more map, actions never behind the bar).
+  useHideBottomNav(shopSheetOpen || Boolean(selected) || itemToolsOpen);
 
   return (
     <>
@@ -98,11 +124,12 @@ function ApplicationMap() {
         busy={loading}
         map={loading && !applications.length ? <div className={styles.loading} role="status">Dein Dorf wird geladen ...</div> : (
           <Suspense fallback={<div className={styles.loading} role="status">Dein Dorf wird aufgebaut ...</div>}>
-            <ApplicationMapWorld applications={applications} visibleIds={visibleIds} selectedId={selectedId} night={night} zoom={camera.zoom} center={camera.center} onZoomChange={camera.setZoom} onCameraApi={camera.onCameraApi} onSelect={(id) => { setShopOpen(false); setSelectedId(id); }} shopItems={shop.state?.items ?? noItems} layouts={shop.state?.layouts ?? noLayouts} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={shop.select} onPlacePosition={shop.position} islandCount={islands.unlocked} islandFocus={islands.focus} celebratePalaceId={palace.application?.id ?? null} drag={{ enabled: shop.state !== null && !shop.busy, move: (id, position) => void shop.move(id, position), reject: shop.reject, nudge: shop.nudge, confirm: () => { if (shop.placement) void shop.save(shop.placement.item, shop.placement.position); }, cancel: shop.cancel, undo: shop.undo }} />
+            <ApplicationMapWorld applications={applications} visibleIds={visibleIds} selectedId={selectedId} night={night} zoom={camera.zoom} center={camera.center} onZoomChange={camera.setZoom} onCameraApi={camera.onCameraApi} onSelect={selectHouse} shopItems={shop.state?.items ?? noItems} layouts={shop.state?.layouts ?? noLayouts} selectedShopItemId={shop.selectedId} placement={shop.placement} onSelectShopItem={selectShopItem} onPlacePosition={shop.position} islandCount={islands.unlocked} islandFocus={islands.focus} celebratePalaceId={palace.application?.id ?? null} drag={{ enabled: shop.state !== null && !shop.busy, move: (id, position) => void shop.move(id, position), reject: shop.reject, nudge: shop.nudge, confirm: () => { if (shop.placement) void shop.save(shop.placement.item, shop.placement.position); }, cancel: shop.cancel, undo: shop.undo }} />
           </Suspense>
         )}
       >
         <MapTopBar
+          onPanelOpen={onTopPanelOpen}
           left={<>
             <IslandPanel islands={islands} balance={balance} />
             <MapChip id="search" icon={<Search size={16} />} label="Suche" meta={query || status !== "all" ? `${visible.length}/${applications.length}` : undefined} panelLabel="Suche, Filter und Legende">
@@ -116,7 +143,7 @@ function ApplicationMap() {
                   <span><Hammer size={14} aria-hidden /><strong>{construction}</strong> im Bau</span>
                   <span><Trophy size={14} aria-hidden /><strong>{offers}</strong> {offers === 1 ? "Zusage" : "Zusagen"}</span>
                 </div>
-                {visible.length > 0 && <ul className={layout.buildingList} aria-label="Gefundene Bewerbungen">{visible.map((application) => <li key={application.id}><button type="button" onClick={() => { setShopOpen(false); setSelectedId(application.id); }}><strong>{application.company}</strong><span>{application.position} · {statusLabels[application.status]}</span></button></li>)}</ul>}
+                {visible.length > 0 && <ul className={layout.buildingList} aria-label="Gefundene Bewerbungen">{visible.map((application) => <li key={application.id}><button type="button" onClick={() => selectHouse(application.id)}><strong>{application.company}</strong><span>{application.position} · {statusLabels[application.status]}</span></button></li>)}</ul>}
                 <div className={layout.legendRow} aria-label="Legende">{(Object.keys(buildingStages) as ApplicationStatus[]).map((value) => <span key={value}><i style={{ background: buildingStages[value].color }} />{statusLabels[value]}</span>)}</div>
                 <p className={layout.helpText}>Häuser und Gegenstände verschiebst du per Ziehen (Touch: kurz halten, dann ziehen). Zoom mit Mausrad oder zwei Fingern.</p>
               </div>
@@ -124,11 +151,11 @@ function ApplicationMap() {
           </>}
           right={<>
             <MapBadge label={`Punktestand: ${balance ?? "unbekannt"}`}><Coins size={16} aria-hidden /><strong>{balance ?? "–"}</strong></MapBadge>
-            <button type="button" className={`${layout.chip} ${overlayClasses.sticker}`} aria-expanded={shopSheetOpen} onClick={() => { setSelectedId(null); setShopOpen(!shopOpen); }}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
+            <button type="button" className={`${layout.chip} ${overlayClasses.sticker}`} aria-expanded={shopSheetOpen} onClick={toggleShop}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
             <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Bewerbung eintragen" title="Bewerbung eintragen"><Plus size={18} aria-hidden /></Link>
           </>}
         />
-        <PalaceCelebration application={palace.application} onDismiss={palace.dismiss} paused={shopSheetOpen || Boolean(selected) || Boolean(shop.placement)} />
+        <PalaceCelebration application={palace.application} onDismiss={palace.dismiss} paused={shopSheetOpen || Boolean(selected) || itemToolsOpen} />
         <MapControls camera={camera} night={night} onToggleNight={() => setNight(!night)} onRefresh={() => setRefresh(refresh + 1)} refreshing={loading} />
         <MapDock>
           <MapPlacementTools shop={shop} />
@@ -138,7 +165,7 @@ function ApplicationMap() {
           <MapSheet id="shop" open={shopSheetOpen} onClose={() => setShopOpen(false)} title="Laden" subtitle={shop.state ? `${shop.state.balance} Punkte` : undefined} icon={<ShoppingBag size={18} />} tall>
             <MapShop shop={shop} compact />
           </MapSheet>
-          {selected && <MapApplicationDialog key={selected.id} application={selected} onClose={() => setSelectedId(null)} onMove={() => { const house = shop.objects.find((item) => item.applicationId === selected.id); if (house) { shop.start(house); setSelectedId(null); } }} canMove={shop.state !== null && !shop.busy} onUpdated={(updated) => { revision.current++; setApplications((current) => current.map((application) => application.id === updated.id ? updated : application)); setShopRefresh((current) => current + 1); }} />}
+          {selected && <MapApplicationDialog key={selected.id} application={selected} onClose={() => setSelectedId(null)} onMove={() => { const house = shop.objects.find((item) => item.applicationId === selected.id); if (house) { closeTopPanel(); shop.start(house); setSelectedId(null); } }} canMove={shop.state !== null && !shop.busy} onUpdated={(updated) => { revision.current++; setApplications((current) => current.map((application) => application.id === updated.id ? updated : application)); setShopRefresh((current) => current + 1); }} />}
         </MapDock>
       </MapFullscreen>
     </>

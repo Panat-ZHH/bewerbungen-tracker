@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Armchair, Bike, Car, CarFront, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Package, RotateCw, Route, ShoppingCart, Sparkles, TreePine, Undo2, Waves, X, Zap, type LucideIcon } from "lucide-react";
+import { Armchair, Bike, Car, CarFront, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Move, Package, RotateCw, Route, ShoppingCart, Sparkles, TreePine, Undo2, Waves, X, Zap, type LucideIcon } from "lucide-react";
 import { buyMapItem, getMapShop, moveMapObject, placeMapItem } from "@/lib/storage";
 import { applyMove, dropMessages, nudgePosition, samePosition, type DropVerdict, type MoveRecord } from "@/lib/map-drag";
 import { canPlaceMapItem, findFreeMapPosition, isLockedMapObject, isMapShopSetupError, isUnknownShopItemError, placeableCatalog, SHOP_ITEM_SOON, shopBuyErrorMessage, shopCatalog, shopCategories, shopItemsByCategory, shopRarities, unavailableShopItems, villageDepth, villageObjects, type MapPosition, type MapShopState, type PlaceableItem, type Placement, type ShopCategory, type ShopItemType } from "@/lib/map-shop";
 import type { Application } from "@/types";
 import { supabase } from "@/lib/supabase";
+import { useStoredFlag } from "./use-stored-flag";
 import styles from "@/app/map/map.module.css";
 
 const baseIcons: Partial<Record<ShopItemType, LucideIcon>> = { road: Route, flowers: Flower2, tree: TreePine, bench: Armchair, fountain: Waves, amusement_park: FerrisWheel };
@@ -76,9 +77,10 @@ export function useMapShop(refresh: number, applications: Application[], islandC
     return () => { active = false; window.removeEventListener("focus", onFocus); listener.subscription.unsubscribe(); };
   }, [refresh, retry]);
 
-  function start(item: PlaceableItem) {
+  /** Start placing / moving an item. `turn` rotates the ghost by quarter turns right away («Drehen» on a placed item). */
+  function start(item: PlaceableItem, turn = 0) {
     if (locked.current || !state || isLockedMapObject(item)) return;
-    const position = item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: item.rotation } : findFreeMapPosition(item as Parameters<typeof findFreeMapPosition>[0], allItems, maxZ, islandCount);
+    const position = item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: (item.rotation + turn) % 4 } : findFreeMapPosition(item as Parameters<typeof findFreeMapPosition>[0], allItems, maxZ, islandCount);
     setSelectedId(item.id);
     if (!position) { setError("Auf der Baufläche ist kein freier Platz mehr."); return; }
     setError(""); setNotice(""); setHint(""); setPlacement({ item, position });
@@ -196,9 +198,24 @@ export function useMapShop(refresh: number, applications: Application[], islandC
 
 type ShopController = ReturnType<typeof useMapShop>;
 
+/** «Verschieben» while placing: the mode is already active; hand the focus to the map so arrow keys move the item. */
+function focusMap() { document.querySelector<HTMLElement>('[role="region"][aria-label="3D-Bewerbungsdorf"]')?.focus({ preventScroll: true }); }
+
+/** Items that live on the map for good (houses, streets): they can be moved and turned, not put back into the inventory. */
+function canStore(item: PlaceableItem) { return item.itemType !== "house" && item.itemType !== "street"; }
+
+/**
+ * Placement / item tools. Phones: a bottom sheet (drag handle) that replaces the tab bar, with the five actions
+ * Platzieren / Drehen / Verschieben / Entfernen / Abbrechen always visible as >= 48px buttons; landscape phones: a side card;
+ * from 768px: one compact row. The X/Z fields (keyboard / screen-reader alternative to tapping a tile) are always shown from
+ * 768px and behind the handle («Position eingeben») on phones.
+ */
 export function MapPlacementTools({ shop }: { shop: ShopController }) {
   const { dragMessage, lastMove } = shop;
   const { dismissMessage } = shop;
+  const [expanded, setExpanded] = useStoredFlag("placement.expanded", false);
+  const grip = useRef<{ y: number; pointer: number } | null>(null);
+  const swiped = useRef(false);
   useEffect(() => {
     if (!dragMessage) return;
     const timer = window.setTimeout(dismissMessage, 5000);
@@ -207,22 +224,61 @@ export function MapPlacementTools({ shop }: { shop: ShopController }) {
   const message = dragMessage ? <p role="status" className={styles.dragMessage}>{dragMessage}</p> : null;
   const undoItem = lastMove ? shop.allItems.find(({ id }) => id === lastMove.id) : null;
   const undo = lastMove && undoItem ? <button type="button" disabled={shop.busy} onClick={shop.undo} title="Letztes Verschieben rückgängig machen (Strg+Z)"><Undo2 size={15} />Rückgängig</button> : null;
+  const handle = (label: string) => <button
+    type="button"
+    className={styles.toolsGrip}
+    aria-expanded={expanded}
+    aria-label={expanded ? `${label}: Positionsfelder ausblenden` : `${label}: Position eingeben`}
+    title={expanded ? "Weniger anzeigen" : "Position eingeben"}
+    onClick={() => { if (swiped.current) { swiped.current = false; return; } setExpanded(!expanded); }}
+    onPointerDown={(event) => { swiped.current = false; grip.current = { y: event.clientY, pointer: event.pointerId }; }}
+    onPointerUp={(event) => {
+      const start = grip.current; grip.current = null;
+      if (!start || start.pointer !== event.pointerId) return;
+      const dy = event.clientY - start.y;
+      if (Math.abs(dy) < 24) return; // a tap: onClick toggles
+      swiped.current = true; // the click that may follow this swipe must not toggle back
+      setExpanded(dy < 0);
+    }}
+  ><span aria-hidden /></button>;
+
   if (!shop.placement) {
     const item = shop.allItems.find(({ id }) => id === shop.selectedId);
     if (!item || item.x === null || isLockedMapObject(item)) return undo || message ? <div className={styles.moveToast} aria-label="Verschieben">{undo}{message}</div> : null;
-    return <div className={styles.placementTools} aria-label="Ausgewählter Gegenstand">{undo}{message}<strong>{placeableCatalog[item.itemType].name}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(item)}><LocateFixed size={15} />Verschieben</button>{item.itemType !== "house" && item.itemType !== "street" && <button type="button" disabled={shop.busy} onClick={() => void shop.save(item, null)}><Package size={15} />Einlagern</button>}<button type="button" title="Auswahl schliessen" aria-label="Auswahl schliessen" disabled={shop.busy} onClick={shop.clearSelection}><X size={17} /></button></div>;
+    const name = placeableCatalog[item.itemType].name;
+    return <div className={styles.placementTools} role="group" aria-label="Ausgewählter Gegenstand" data-map-panel="item">
+      <div className={styles.toolsHead}><strong><MapPin size={16} aria-hidden />{name}</strong>{undo}</div>
+      <p className={styles.toolsHint}>{canStore(item) ? "Verschieben: neuen Platz antippen. Entfernen: zurück ins Inventar." : "Verschieben: neuen Platz antippen. Oder lange drücken und ziehen."}</p>
+      {message}
+      <div className={styles.toolsActions} data-count="4">
+        <button type="button" disabled={shop.busy} onClick={() => shop.start(item, 1)} title="Um 90 Grad drehen"><RotateCw size={18} aria-hidden /><span>Drehen</span></button>
+        <button type="button" className={styles.toolsPrimary} disabled={shop.busy} onClick={() => shop.start(item)} title="Neuen Platz wählen"><Move size={18} aria-hidden /><span>Verschieben</span></button>
+        <button type="button" disabled={shop.busy || !canStore(item)} onClick={() => void shop.save(item, null)} title={canStore(item) ? "Zurück ins Inventar legen" : "Häuser und Strassen bleiben im Dorf"}><Package size={18} aria-hidden /><span>Entfernen</span></button>
+        <button type="button" disabled={shop.busy} onClick={shop.clearSelection} title="Auswahl schliessen"><X size={18} aria-hidden /><span>Abbrechen</span></button>
+      </div>
+    </div>;
   }
   const { item, position } = shop.placement;
+  const current = shop.allItems.find(({ id }) => id === item.id) ?? item;
+  const placed = current.x !== null;
   const valid = canPlaceMapItem(item, position, shop.allItems, shop.maxZ, shop.islandCount);
-  return <div className={styles.placementTools} aria-label="Gegenstand platzieren">
-    <strong><MapPin size={16} />{placeableCatalog[item.itemType].name}</strong>
-    <label>X<input aria-label="Position X" type="number" min="-10" max="95" step="1" value={Number.isNaN(position.x) ? "" : position.x} disabled={shop.busy} onChange={(event) => shop.position({ ...position, x: event.target.valueAsNumber })} /></label>
-    <label>Z<input aria-label="Position Z" type="number" min="-7" max="54" step="1" value={Number.isNaN(position.z) ? "" : position.z} disabled={shop.busy} onChange={(event) => shop.position({ ...position, z: event.target.valueAsNumber })} /></label>
-    <button type="button" title="Um 90 Grad drehen" aria-label="Um 90 Grad drehen" disabled={shop.busy} onClick={() => shop.position({ ...position, rotation: (position.rotation + 1) % 4 })}><RotateCw size={17} /></button>
-    <span>{position.rotation * 90}°</span>
-    <button type="button" className={styles.placeConfirm} disabled={shop.busy || !valid} onClick={() => void shop.save(item, position)}><MapPin size={15} />{shop.busy ? "Speichern ..." : "Platzieren"}</button>
-    <button type="button" title="Platzierung abbrechen" aria-label="Platzierung abbrechen" disabled={shop.busy} onClick={shop.cancel}><X size={17} /></button>
-    {!valid && <p role="status">Dieser Platz ist belegt oder ausserhalb der Baufläche.</p>}{message}
+  const name = placeableCatalog[item.itemType].name;
+  return <div className={styles.placementTools} role="group" aria-label="Gegenstand platzieren" data-map-panel="placement" data-expanded={expanded}>
+    {handle(name)}
+    <div className={styles.toolsHead}><strong><MapPin size={16} aria-hidden />{name}</strong><span className={styles.toolsMeta} aria-label={`Drehung ${position.rotation * 90} Grad`}>{position.rotation * 90}°</span></div>
+    {valid ? <p className={styles.toolsHint}>Tippe auf ein Feld, um {placed ? "den Gegenstand dorthin zu verschieben" : "ihn dorthin zu setzen"}. Zwei Finger: zoomen und Karte schieben.</p> : <p role="status" className={styles.toolsInvalid}>Dieser Platz ist belegt oder ausserhalb der Baufläche.</p>}
+    <div className={styles.toolsPosition}>
+      <label>X<input aria-label="Position X" type="number" inputMode="numeric" enterKeyHint="done" min="-10" max="95" step="1" value={Number.isNaN(position.x) ? "" : position.x} disabled={shop.busy} onChange={(event) => shop.position({ ...position, x: event.target.valueAsNumber })} /></label>
+      <label>Z<input aria-label="Position Z" type="number" inputMode="numeric" enterKeyHint="done" min="-7" max="54" step="1" value={Number.isNaN(position.z) ? "" : position.z} disabled={shop.busy} onChange={(event) => shop.position({ ...position, z: event.target.valueAsNumber })} /></label>
+    </div>
+    {message}
+    <div className={styles.toolsActions} data-count="5">
+      <button type="button" disabled={shop.busy} onClick={() => shop.position({ ...position, rotation: (position.rotation + 1) % 4 })} title="Um 90 Grad drehen"><RotateCw size={18} aria-hidden /><span>Drehen</span></button>
+      <button type="button" aria-pressed="true" disabled={shop.busy} onClick={focusMap} title="Verschieben ist aktiv: neuen Platz antippen, den Gegenstand ziehen oder mit den Pfeiltasten bewegen"><Move size={18} aria-hidden /><span>Verschieben</span></button>
+      <button type="button" disabled={shop.busy || !placed || !canStore(current)} onClick={() => void shop.save(current, null)} title={!placed ? "Noch nicht platziert: der Gegenstand ist im Inventar" : canStore(current) ? "Zurück ins Inventar legen" : "Häuser und Strassen bleiben im Dorf"}><Package size={18} aria-hidden /><span>Entfernen</span></button>
+      <button type="button" disabled={shop.busy} onClick={shop.cancel} title={placed ? "Abbrechen: bleibt am alten Platz" : "Abbrechen: bleibt im Inventar"}><X size={18} aria-hidden /><span>Abbrechen</span></button>
+      <button type="button" className={styles.placeConfirm} disabled={shop.busy || !valid} onClick={() => void shop.save(item, position)}><MapPin size={18} aria-hidden /><span>{shop.busy ? "Speichern ..." : "Platzieren"}</span></button>
+    </div>
   </div>;
 }
 
@@ -258,6 +314,6 @@ export function MapShop({ shop, compact = false }: { shop: ShopController; compa
       const Icon = iconFor(item.itemType);
       return <button type="button" key={item.id} className={item.id === shop.selectedId ? styles.inventorySelected : ""} disabled={shop.busy} onClick={() => shop.select(item.id)} aria-pressed={item.id === shop.selectedId}><Icon size={18} /><span><strong>{shopCatalog[item.itemType]?.name ?? "Gegenstand"} #{index + 1}</strong><small>{item.x === null ? "Im Inventar" : `Platziert: ${item.x}, ${item.z}`}</small></span></button>;
     })}</div>}
-    {selected && <div className={styles.inventoryActions}><strong>{shopCatalog[selected.itemType]?.name ?? "Gegenstand"}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(selected)}><LocateFixed size={15} />{selected.x === null ? "Platzieren" : "Verschieben"}</button>{selected.x !== null && <button type="button" disabled={shop.busy} onClick={() => void shop.save(selected, null)}><Package size={15} />Einlagern</button>}</div>}
+    {selected && <div className={styles.inventoryActions}><strong>{shopCatalog[selected.itemType]?.name ?? "Gegenstand"}</strong><button type="button" disabled={shop.busy} onClick={() => shop.start(selected)}><LocateFixed size={15} />{selected.x === null ? "Platzieren" : "Verschieben"}</button>{selected.x !== null && <button type="button" disabled={shop.busy} onClick={() => void shop.save(selected, null)} title="Zurück ins Inventar legen"><Package size={15} />Entfernen</button>}</div>}
   </section>;
 }

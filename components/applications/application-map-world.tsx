@@ -144,6 +144,11 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   const renderer = createMapRenderer();
   renderer.domElement.setAttribute("aria-hidden", "true");
   host.prepend(renderer.domElement);
+  // Android Chrome «touch adjustment» moves a finger tap onto the nearest element that reacts to taps when the touched one does
+  // not: a tap on a tile next to a house label («Firma 2») opened that application instead of placing / selecting on the map.
+  // A click listener makes the canvas a tap target itself, so the tap stays where the finger is (the map handles pointerup).
+  const keepTap = () => {};
+  renderer.domElement.addEventListener("click", keepTap);
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color("#b9c9ae");
@@ -755,6 +760,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   }
 
   function pointerDown(event: PointerEvent) {
+    if (event.pointerType === "touch" && event.isPrimary) { touches.clear(); multiTouch = false; } // new interaction: forget lost touches
     if (!touches.size) refreshRect();
     down = { x: event.clientX, y: event.clientY };
     if (event.pointerType === "touch") { touches.add(event.pointerId); if (touches.size > 1) multiTouch = true; }
@@ -932,6 +938,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
     pixelRatio: () => renderer.pixelRatio,
     palaceRises: () => [...palaceRises.keys()],
     bounds: () => ({ rects: controller.rects, margin: BOUNDS_MARGIN }),
+    tapAt: (clientX: number, clientY: number) => { freshCamera(); const r = host.getBoundingClientRect(); raycaster.setFromCamera(new THREE.Vector2((clientX - r.left) / r.width * 2 - 1, -(clientY - r.top) / r.height * 2 + 1), camera); return raycaster.intersectObjects([...buildings, ...shopObjects], true).slice(0, 4).map((h) => { const chain: string[] = []; for (let o: THREE.Object3D | null = h.object; o && chain.length < 5; o = o.parent) chain.push(o.name || o.type); return { owner: ownerId(h.object), y: Math.round(h.point.y * 100) / 100, chain: chain.join("<") }; }); },
     movableAt: (clientX: number, clientY: number) => { freshCamera(); hostRect = host.getBoundingClientRect(); return pickMovable({ clientX, clientY } as PointerEvent) !== null; },
   }, configurable: true });
 
@@ -1001,6 +1008,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
       constructionGrid.geometry.dispose();
       for (const item of Array.isArray(constructionGrid.material) ? constructionGrid.material : [constructionGrid.material]) item.dispose();
       renderer.dispose();
+      renderer.domElement.removeEventListener("click", keepTap);
       renderer.domElement.remove();
     },
   };

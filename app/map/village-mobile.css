@@ -1,0 +1,18 @@
+/*
+ * Village / island map on phones (global, attribute-scoped; imported by components/applications/map-fullscreen.tsx).
+ * - html[data-hide-bottom-nav] (shell contract, set by useHideBottomNav from components/layout/bottom-nav while a map
+ *   sheet or the placement tools are open): the shell (app/globals.css) slides the tab bar out and drops the fullscreen
+ *   <main>'s bottom margin, so the stage reaches the screen edge; here the overlays keep clear of the home indicator.
+ * - Touch hardening for the fullscreen map: no page rubber-banding / pull-to-refresh / swipe navigation,
+ *   no text selection or iOS long-press callouts on the map chrome (inputs stay selectable).
+ */
+@media (max-width: 767px) {
+  html[data-hide-bottom-nav] [data-map-fullscreen] { --fs-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+}
+
+html[data-fullscreen], html[data-fullscreen] body { overscroll-behavior: none; }
+[data-map-fullscreen] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+[data-map-fullscreen] :is(input, textarea, select) { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+/* Buttons, chips and sheets: taps are taps (no 300ms double-tap zoom wait, no pinch-zooming the page from a button). */
+/* :where() = zero specificity, so component rules (drag handles: touch-action none) always win. */
+:where([data-map-fullscreen]) :where(button, a, label, [role="dialog"], [role="group"]) { touch-action: manipulation; }

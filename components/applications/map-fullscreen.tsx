@@ -1,11 +1,40 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { ChevronDown, ChevronUp, LocateFixed, Minus, Moon, Plus, RefreshCw, SlidersHorizontal, Sun, X } from "lucide-react";
-import { nextSheetSnap, sheetMaxHeight, viewportInsets } from "@/lib/map-layout";
+import { nextSheetSnap, sheetMaxHeight, stageBottomLift } from "@/lib/map-layout";
 import { useStoredFlag, useStoredValue } from "./use-stored-flag";
 import type { CameraControls } from "./use-camera-controls";
 import styles from "@/app/map/fullscreen.module.css";
+// Global (attribute-scoped) rules for phones: hide the app's bottom tab bar while a map panel is open, touch hardening.
+import "@/app/map/village-mobile.css";
+
+/** The shell's fixed bottom tab bar on phones (components/layout/workspace-shell.tsx). */
+const BOTTOM_NAV = 'nav[aria-label="Hauptmenü mobil"]';
+
+/**
+ * Top edge (client px) of the visible bottom tab bar, or null when it is hidden (desktop, or a map panel replaced it).
+ * Measured instead of trusted: on some iOS Safari versions 100dvh and the fixed tab bar disagree and the stage ran
+ * under the bar (Panat's iPhone, 2026-11-17: the placement panel's buttons sat behind "Start … Mehr").
+ */
+function bottomNavTop() {
+  const nav = document.querySelector<HTMLElement>(BOTTOM_NAV);
+  if (!nav) return null;
+  // Hidden per the shell contract (it slides out with a transition, so its rect is not trustworthy meanwhile).
+  const html = document.documentElement;
+  if (html.dataset.hideBottomNav || html.dataset.keyboardOpen || document.body.classList.contains("sheet-open")) return null;
+  const style = getComputedStyle(nav);
+  if (style.display === "none" || style.visibility === "hidden") return null;
+  const rect = nav.getBoundingClientRect();
+  return rect.height > 0 ? rect.top : null;
+}
+
+/**
+ * While `active`, the bottom tab bar is hidden on phones so a bottom sheet / the placement tools get the whole lower
+ * edge of the screen. The shell owns the contract (ref-counted html[data-hide-bottom-nav], components/layout/bottom-nav);
+ * re-exported here so map code keeps one import site and never runs a second counter.
+ */
+export { useHideBottomNav } from "@/components/layout/bottom-nav";
 
 /*
  * Fullscreen map layout primitives. See docs/map-layout-v2.md.
@@ -29,13 +58,12 @@ function useViewportVars() {
       if (!element) return;
       const rect = element.getBoundingClientRect();
       const visual = vv ? { height: vv.height, offsetTop: vv.offsetTop } : { height: window.innerHeight, offsetTop: 0 };
-      const insets = viewportInsets(rect, visual);
-      const visible = Math.max(0, Math.round(Math.min(rect.bottom, visual.offsetTop + visual.height) - Math.max(rect.top, visual.offsetTop)));
-      element.style.setProperty("--fs-lift-top", `${insets.top}px`);
-      element.style.setProperty("--fs-lift-bottom", `${insets.bottom}px`);
-      element.style.setProperty("--fs-vh", `${visible}px`);
-      element.style.setProperty("--sheet-max", `${sheetMaxHeight(visible, rect.height)}px`);
-      element.dataset.keyboard = insets.bottom > 0 ? "open" : "closed";
+      const lift = stageBottomLift(rect, visual, bottomNavTop());
+      element.style.setProperty("--fs-lift-top", `${lift.top}px`);
+      element.style.setProperty("--fs-lift-bottom", `${lift.bottom}px`);
+      element.style.setProperty("--fs-vh", `${lift.visible}px`);
+      element.style.setProperty("--sheet-max", `${sheetMaxHeight(lift.visible, rect.height)}px`);
+      element.dataset.keyboard = lift.keyboard ? "open" : "closed";
     }
     const schedule = () => { if (!frame) frame = requestAnimationFrame(update); };
     update();
@@ -45,7 +73,14 @@ function useViewportVars() {
     window.addEventListener("orientationchange", schedule);
     const observer = new ResizeObserver(schedule);
     observer.observe(element);
+    const nav = document.querySelector(BOTTOM_NAV);
+    if (nav) observer.observe(nav);
+    // The tab bar appears / disappears with html[data-hide-bottom-nav] / [data-keyboard-open] / body.sheet-open: re-measure.
+    const attributes = new MutationObserver(schedule);
+    attributes.observe(document.documentElement, { attributes: true, attributeFilter: ["data-hide-bottom-nav", "data-keyboard-open"] });
+    attributes.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     return () => {
+      attributes.disconnect();
       if (frame) cancelAnimationFrame(frame);
       vv?.removeEventListener("resize", schedule);
       vv?.removeEventListener("scroll", schedule);
@@ -82,11 +117,40 @@ export function MapFullscreen({ label, busy, map, children }: { label: string; b
 
 const PanelContext = createContext<{ open: string; toggle: (id: string) => void; close: () => void } | null>(null);
 
+const COMPACT_QUERY = "(max-width: 767px), (max-height: 480px)";
+/** Phones (portrait, and landscape phones up to 480px high): one map panel at a time, see useCloseMapTopPanel. */
+export function isCompactMap() {
+  return typeof window !== "undefined" && window.matchMedia(COMPACT_QUERY).matches;
+}
+
+function subscribeCompact(callback: () => void) {
+  const query = window.matchMedia(COMPACT_QUERY);
+  query.addEventListener("change", callback);
+  return () => query.removeEventListener("change", callback);
+}
+/** Reactive isCompactMap() (false on the server and from 768px). */
+export function useCompactMap() {
+  return useSyncExternalStore(subscribeCompact, () => window.matchMedia(COMPACT_QUERY).matches, () => false);
+}
+
+/**
+ * Closes the open top-bar chip panel (Suche, Inseln ...) on phones. Call it when a sheet / item panel opens, so panels
+ * never stack on small screens (320px: search + shop + item panel used to be open at once). Desktop is unchanged.
+ */
+export function useCloseMapTopPanel() {
+  const [, setStored] = useStoredValue("top-panel");
+  return useCallback(() => { if (isCompactMap()) setStored("none"); }, [setStored]);
+}
+
 /** Top overlay row. Only ONE chip panel is open at a time; the choice is remembered (localStorage). */
-export function MapTopBar({ left, right }: { left: ReactNode; right?: ReactNode }) {
+export function MapTopBar({ left, right, onPanelOpen }: { left: ReactNode; right?: ReactNode; onPanelOpen?: (id: string) => void }) {
   const [stored, setStored] = useStoredValue("top-panel");
   const open = stored ?? "none";
-  const toggle = useCallback((id: string) => setStored(open === id ? "none" : id), [open, setStored]);
+  const toggle = useCallback((id: string) => {
+    const next = open === id ? "none" : id;
+    setStored(next);
+    if (next !== "none") onPanelOpen?.(next);
+  }, [open, setStored, onPanelOpen]);
   const close = useCallback(() => setStored("none"), [setStored]);
   // Esc closes an open chip panel from anywhere in the stage (sheets handle their own Esc and run later on the same key press only if no panel was open).
   useEffect(() => {

@@ -34,6 +34,9 @@ export function attachCameraInput({ host, controller, dragState, onUserCamera }:
 
   function down(event: PointerEvent) {
     if (event.pointerType === "mouse" ? event.button !== 0 && event.button !== 1 : false) return;
+    // A primary touch starts a new interaction: no other finger is down, so drop pointers whose pointerup/cancel never arrived
+    // (otherwise one finger would pair with a ghost and pinch instead of pan).
+    if (event.pointerType === "touch" && event.isPrimary) for (const id of [...pointers.keys()]) if (pointers.get(id)?.type === "touch") pointers.delete(id);
     if (!pointers.size) refreshRect();
     const type = (event.pointerType === "mouse" || event.pointerType === "pen" ? event.pointerType : "touch") as Tracked["type"];
     tapBlocked.delete(event.pointerId);
