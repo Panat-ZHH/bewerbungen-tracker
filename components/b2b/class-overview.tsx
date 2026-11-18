@@ -39,7 +39,7 @@ export function ClassOverviewPanel({ classId }: { classId: string }) {
       <section aria-labelledby="b2b-stats-h">
         <h2 id="b2b-stats-h" className="text-heading">Klassenstatistik</h2>
         <p className="text-small mt-1 max-w-2xl text-muted">Anteil der {a.sharing} {a.sharing === 1 ? "Person, die ihre Daten teilt" : "Personen, die ihre Daten teilen"}{a.students > a.sharing ? ` (${a.students - a.sharing} teilen nicht)` : ""}. Gezählt werden Schritte, nicht die Menge an Bewerbungen.</p>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        <dl className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           {stats.map((s) => (
             <div key={s.label}>
               <dt className="flex items-baseline justify-between gap-3 text-sm font-semibold"><span className="min-w-0 [overflow-wrap:anywhere]">{s.label}</span><span className="tabular shrink-0 text-muted">{s.value} von {a.sharing} · {share(s.value, a.sharing)} %</span></dt>

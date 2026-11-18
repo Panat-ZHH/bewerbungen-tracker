@@ -72,7 +72,7 @@ export function Overview({ version, chip, onChip, onSchools }: { version: number
 
   return (
     <section aria-label="Überblick" data-testid="admin-overview">
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <ul className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {TILES.map((t) => {
           const active = !!t.chip && t.chip === chip && t.chip !== "all";
           return (

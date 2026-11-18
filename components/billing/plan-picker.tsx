@@ -9,7 +9,7 @@ export function PlanPicker({ plans, value, onChange, recommended = "professional
   return (
     <fieldset>
       <legend className="mb-2 text-sm font-bold">Paket</legend>
-      <div className="grid gap-2 md:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-2 md:grid-cols-3">
         {plans.map((p) => {
           const checked = value === p.id;
           return (

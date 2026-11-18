@@ -154,7 +154,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
       <div aria-busy="true" className="space-y-4" data-testid="admin-user-detail">
         <p role="status" className="sr-only">Wird geladen …</p>
         <Skeleton className="h-8 w-2/3" /><Skeleton className="h-4 w-1/2" />
-        <div className="grid gap-3 sm:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[4.25rem] w-full" />)}</div>
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[4.25rem] w-full" />)}</div>
         <Skeleton className="h-40 w-full" />
       </div>
     );
@@ -194,7 +194,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
         </div>
       </header>
 
-      <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
+      <dl className="grid grid-cols-[repeat(2,minmax(0,1fr))] gap-x-4 gap-y-3 sm:grid-cols-4">
         {[
           ["Trial bis", fmtDate(trialEnd)],
           ["Zuletzt da", fmtRelative(u.last_sign_in_at)],
@@ -210,7 +210,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
 
       <section aria-labelledby="admin-actions-title" className="space-y-3">
         <h3 id="admin-actions-title" className="text-heading">Aktionen</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
           {granted && grant.forever && !protectedAccount
             ? <ActionTile action="revoke_access" icon={<Gift />} label="Gratis-Zugang entfernen" help="Danach gelten wieder Trial, Abo oder Schule." onClick={() => openAction("revoke_access")} />
             : <ActionTile action="grant_access" tone="brand" icon={<Gift />} label="Gratis geben (unbefristet)" help={grantText ? `Jetzt: ${grantText}` : "Voller Zugang ohne Abo und ohne Enddatum."} onClick={() => openAction("grant_access")} />}

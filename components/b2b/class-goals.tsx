@@ -116,7 +116,7 @@ export function ClassGoalsPanel({ classId, archived = false }: { classId: string
           <Field label="Was wird gezählt?" htmlFor="goal-metric" hint={metric?.hint}>
             <Select id="goal-metric" value={draft.metric} onChange={(e) => setDraft({ ...draft, metric: e.target.value as GoalMetric })}>{GOAL_METRICS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</Select>
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
             <Field label={draft.metric === "custom" ? "Zielwert pro Person (optional)" : "Zielwert pro Person"} htmlFor="goal-target" hint={draft.metric === "custom" ? undefined : "Das Ziel ist erreicht, wenn alle diesen Wert schaffen."}><Input id="goal-target" type="number" inputMode="numeric" min={1} max={GOAL_TARGET_MAX} className="text-base! sm:text-base!" value={draft.target} onChange={(e) => setDraft({ ...draft, target: e.target.value })} /></Field>
             <Field label="Bis wann? (optional)" htmlFor="goal-due"><Input id="goal-due" type="date" className="text-base! sm:text-base!" value={draft.dueDate} onChange={(e) => setDraft({ ...draft, dueDate: e.target.value })} /></Field>
           </div>

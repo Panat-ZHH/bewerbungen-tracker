@@ -45,7 +45,7 @@ export function AuditTab({ onOpen, version }: { onOpen: OpenDetail; version: num
   return (
     <div className="space-y-5">
       <p className="text-small text-muted">Jede Änderung durch einen Admin wird hier festgehalten, auch fehlgeschlagene Versuche.</p>
-      <div className="grid gap-3 sm:grid-cols-[2fr_1fr]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Field label="Art der Änderung" htmlFor="admin-audit-action">
           <Select id="admin-audit-action" data-testid="admin-audit-action" value={action} aria-invalid={result?.field === "action" || undefined}
             onChange={(e) => { setAction(e.target.value); setPage(1); }}>
