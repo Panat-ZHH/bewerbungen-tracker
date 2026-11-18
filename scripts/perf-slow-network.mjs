@@ -5,7 +5,7 @@
 //
 // Env: RUNS (default 3), PROFILES (comma list of none,fast4g,slow; default all), PAGES (comma list of keys, default all),
 //      TAG (output name, default "local"), OUT_DIR (default ./perf-out), PLAYWRIGHT (path to playwright-core/index.mjs),
-//      CHROME (browser binary), SR_ENV (file with SR=<service role key>, default ~/.config/alfred/tmp/wendapply-sr.env)
+//      CHROME (browser binary), PROBE_PREFIX (default probe-reel-wf), SR_ENV (file with SR=<service role key>, default ~/.config/alfred/tmp/wendapply-sr.env)
 //      or SUPABASE_SERVICE_ROLE_KEY. Supabase URL / publishable key come from .env.local or the environment.
 //
 // Two throwaway LIVE probe users are created through the admin API (probe-reel-wf-<stamp>-s / -t @wendapply-test.invalid):
@@ -81,7 +81,8 @@ const rpcAs = (token, fn, body) => fetch(`${SB}/rest/v1/rpc/${fn}`, { method: "P
 
 const stamp = Date.now().toString(36);
 const PW = `Probe-${stamp}-xY9!`;
-const probes = { student: { email: `probe-reel-wf-${stamp}-s@wendapply-test.invalid` }, teacher: { email: `probe-reel-wf-${stamp}-t@wendapply-test.invalid` } };
+const PREFIX = /^probe-[a-z0-9-]+$/.test(process.env.PROBE_PREFIX || "") ? process.env.PROBE_PREFIX : "probe-reel-wf"; // throwaway users only
+const probes = { student: { email: `${PREFIX}-${stamp}-s@wendapply-test.invalid` }, teacher: { email: `${PREFIX}-${stamp}-t@wendapply-test.invalid` } };
 
 async function createProbes() {
   const s = await admin("/users", { method: "POST", body: JSON.stringify({ email: probes.student.email, password: PW, email_confirm: true, user_metadata: { role: "student", role_confirmed: true, account_type: "independent_student", birth_year: 2009, student_onboarded: true, onboarding_tour_done: true } }) });
