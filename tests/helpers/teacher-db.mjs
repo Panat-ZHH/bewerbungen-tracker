@@ -42,12 +42,15 @@ async function seedData({ database, as, rpc, admin }) {
     ($4,'s1@x.de','{"full_name":"Anna"}'), ($5,'s2@x.de','{"full_name":"Ben"}'), ($6,'s3@x.de','{"full_name":"Cem"}'),
     ($7,'s4@x.de','{"full_name":"Dina"}'), ($8,'stranger@x.de','{"full_name":"Fremd"}')`,
     [ids.owner, ids.co, ids.other, ids.s1, ids.s2, ids.s3, ids.s4, ids.stranger]);
+  // Dates relative to the DB's own current_date (what _teacher_stats compares with), not the JS UTC date: PGlite takes the host
+  // offset, so between 00:00 and 01:00 CET a UTC toISOString() date was one day behind current_date ("inactive" off by one).
+  const dbToday = (await database.query("select current_date::text d")).rows[0].d;
+  const day = (n) => { const d = new Date(`${dbToday}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   // Applications incl. sensitive fields that must never reach a teacher.
   const app = (id, user, company, status, extra = {}) => database.query(
     `insert into public.applications (id,user_id,company,position,location,category,status,deadline,applied_at,created_at,updated_at,notes,salary_min,salary_max,job_url,job_description)
      values ($1,$2,$3,$4,'Zürich','software',$5,$6,$7,$8,$9,'GEHEIME NOTIZ',80000,90000,'https://secret.example/job','GEHEIME BESCHREIBUNG')`,
-    [id, user, company, extra.position ?? "Informatiker", status, extra.deadline ?? null, extra.applied ?? null, extra.created ?? new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10), extra.updated ?? extra.created ?? new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 10)]);
-  const day = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+    [id, user, company, extra.position ?? "Informatiker", status, extra.deadline ?? null, extra.applied ?? null, extra.created ?? day(-2), extra.updated ?? extra.created ?? day(-2)]);
   await app("s1a", ids.s1, "Alpha AG", "applied", { applied: day(-3), created: day(-5), updated: day(-3) });
   await app("s1b", ids.s1, "Beta GmbH", "interview", { applied: day(-9), created: day(-12), updated: day(-1) });
   await app("s1c", ids.s1, "Gamma SE", "saved", { deadline: day(3), created: day(-1), updated: day(-1) });
