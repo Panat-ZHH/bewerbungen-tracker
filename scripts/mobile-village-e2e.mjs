@@ -7,7 +7,8 @@
 //   NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy npx next dev --webpack -p 3231
 //   PLAYWRIGHT=<playwright-core/index.mjs whose browsers are installed> BASE=http://localhost:3231 node scripts/mobile-village-e2e.mjs
 // Env:
-//   MODE=test|shots|all (default all)   test = touch flow + layout assertions, shots = screenshots per device/orientation/theme
+//   MODE=test|flow|panels|shots|all (default all)   flow = touch flow + layout assertions, panels = one-panel-at-a-time
+//                                        + 44px select + palace card (320px and phones), test = flow + panels, shots = screenshots
 //   SHOTS=<dir>                          screenshot folder (default ../_mobile/shots/village/after next to this worktree)
 //   DEVICES=iphone-se,pixel-7,…          subset (ids below)   ORIENT=portrait|landscape|both (default both)
 //   PLAYWRIGHT_WEBKIT=<playwright-core>  optional separate playwright-core for WebKit
@@ -64,9 +65,9 @@ async function waitMap(page) {
   await sleep(2000);
 }
 
-async function open(device, orient, dark) {
+async function open(device, orient, dark, { extraApps = [], viewport: forced } = {}) {
   const browser = await browserFor(device.engine);
-  const viewport = size(device, orient);
+  const viewport = forced ?? size(device, orient);
   const ctx = await browser.newContext({ viewport, isMobile: true, hasTouch: true, deviceScaleFactor: viewport.width <= 640 ? 2 : 1, colorScheme: dark ? "dark" : "light" });
   await ctx.addInitScript(([s, theme]) => {
     localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s));
@@ -80,7 +81,7 @@ async function open(device, orient, dark) {
     if (p.startsWith("/auth/v1/user")) return json(user);
     if (p.startsWith("/auth/v1/token")) return json(session);
     if (p.startsWith("/storage/")) return json([]);
-    if (p === "/rest/v1/applications") return json(apps);
+    if (p === "/rest/v1/applications") return json([...apps, ...extraApps]);
     if (p === "/rest/v1/map_shop_catalog") return json([]);
     if (p.startsWith("/rest/v1/rpc/")) {
       const rpc = p.split("/").pop(); let b = {}; try { b = req.postDataJSON() || {}; } catch { /* no body */ }
@@ -122,7 +123,9 @@ async function layout(page, selector) {
   return page.evaluate((sel) => {
     const nav = document.querySelector('nav[aria-label="Hauptmenü mobil"]');
     const nr = nav?.getBoundingClientRect();
-    const navShown = !!nav && getComputedStyle(nav).display !== "none" && nr.height > 0;
+    const ns = nav && getComputedStyle(nav);
+    // shell contract: the bar slides out (translateY + visibility:hidden) while html[data-hide-bottom-nav] is set
+    const navShown = !!nav && ns.display !== "none" && ns.visibility !== "hidden" && nr.height > 0 && nr.top < innerHeight - 1;
     const stage = document.querySelector("[data-map-fullscreen]").getBoundingClientRect();
     const root = sel ? document.querySelector(sel) : null;
     const rb = root?.getBoundingClientRect();
@@ -213,20 +216,20 @@ const onTile = (page, item) => host(page).evaluate((h, [x, z]) => { const p = h.
 async function shots(device, orient, dark) {
   const name = `${device.id}-${orient}-${dark ? "dark" : "light"}`;
   const { ctx, page, logs } = await open(device, orient, dark);
-  await page.screenshot({ path: `${SHOTS}/${name}-0-map.png` });
+  await page.screenshot({ type: "jpeg", quality: 80, path: `${SHOTS}/${name}-0-map.jpg` });
   await tap(page, page.getByRole("button", { name: "Laden", exact: true }));
   await sleep(700);
-  await page.screenshot({ path: `${SHOTS}/${name}-1-shop.png` });
+  await page.screenshot({ type: "jpeg", quality: 80, path: `${SHOTS}/${name}-1-shop.jpg` });
   const buy = page.locator('[data-item="scooter_sport_lime"] button');
   await buy.scrollIntoViewIfNeeded();
   await tap(page, buy);
   await tools(page).waitFor({ timeout: 20000 }).catch(() => {});
   await sleep(1200);
-  await page.screenshot({ path: `${SHOTS}/${name}-2-placing.png` });
+  await page.screenshot({ type: "jpeg", quality: 80, path: `${SHOTS}/${name}-2-placing.jpg` });
   const place = tools(page).getByRole("button", { name: /Platzieren/ });
   if (await place.count()) await tap(page, place.first());
   await sleep(1200);
-  await page.screenshot({ path: `${SHOTS}/${name}-3-selected.png` });
+  await page.screenshot({ type: "jpeg", quality: 80, path: `${SHOTS}/${name}-3-selected.jpg` });
   console.log("SHOT", name, logs.length ? JSON.stringify(logs.slice(0, 2)) : "");
   await ctx.close();
 }
@@ -392,9 +395,64 @@ async function flow(device, orient) {
   await ctx.close();
 }
 
+/**
+ * One map panel at a time on phones (tester finding, w320): Suche -> Laden -> buy (placement) -> Abbrechen -> Suche.
+ * Also: the map search select is >= 44px, and the palace celebration card never covers the item / placement panel.
+ */
+async function exclusive(device, viewport) {
+  const N = `${device.id} ${viewport.width}x${viewport.height} panels`;
+  const palaceApp = { ...apps[0], id: "p1", company: "Palast AG", status: "offer", created_at: "2026-08-01" };
+  const { ctx, page, logs } = await open(device, "portrait", false, { extraApps: [palaceApp], viewport });
+  const palace = page.getByTestId("palace-celebration");
+  check(await palace.isVisible(), `${N}: palace celebration shows on the plain map`);
+  const search = page.locator('[data-map-panel="search"]');
+  await tap(page, page.locator("button[aria-expanded]", { hasText: "Suche" }).first());
+  check(await search.isVisible(), `${N}: «Suche» opens its panel`);
+  check(!(await palace.isVisible()), `${N}: palace card steps aside while «Suche» is open`);
+  const sel = await search.locator("select").boundingBox();
+  check(!!sel && sel.height >= 44, `${N}: status select >= 44px`, JSON.stringify(sel));
+  await tap(page, page.getByRole("button", { name: "Laden", exact: true }));
+  await page.locator('[data-sheet="shop"]').waitFor();
+  check(!(await search.isVisible()), `${N}: opening «Laden» closes «Suche»`);
+  const buy = page.locator('[data-item="scooter_sport_lime"] button');
+  await buy.scrollIntoViewIfNeeded();
+  await tap(page, buy);
+  await tools(page).waitFor({ timeout: 20000 });
+  await sleep(600);
+  const open1 = await page.evaluate(() => [...document.querySelectorAll("[data-map-panel]")].map((e) => e.getAttribute("data-map-panel")));
+  check(open1.length === 1 && open1[0] === "placement", `${N}: while placing only the placement panel is open`, JSON.stringify(open1));
+  check(!(await palace.isVisible()), `${N}: palace card hidden while placing`);
+  const target = await tapFreeTile(page);
+  check(target !== null, `${N}: tile tapped`);
+  await tap(page, action(tools(page), "Platzieren"));
+  await sleep(900);
+  const after = await page.evaluate(() => [...document.querySelectorAll("[data-map-panel]")].map((e) => e.getAttribute("data-map-panel")));
+  check(after.length <= 1, `${N}: after placing at most one panel is open`, JSON.stringify(after));
+  if (await selectedTools(page).isVisible()) {
+    const pr = (await palace.isVisible()) ? await palace.boundingBox() : null; const tr = await selectedTools(page).boundingBox();
+    check(!pr || !(pr.x < tr.x + tr.width && pr.x + pr.width > tr.x && pr.y < tr.y + tr.height && pr.y + pr.height > tr.y), `${N}: palace card does not cover the selected-item panel`, JSON.stringify({ pr, tr }));
+  }
+  await tap(page, page.locator("button[aria-expanded]", { hasText: "Suche" }).first());
+  await sleep(500);
+  const open2 = await page.evaluate(() => [...document.querySelectorAll("[data-map-panel]")].map((e) => e.getAttribute("data-map-panel")));
+  check(open2.length === 1 && open2[0] === "search", `${N}: opening «Suche» closes shop / item panels`, JSON.stringify(open2));
+  await tap(page, page.locator("button[aria-expanded]", { hasText: "Suche" }).first());
+  await sleep(500);
+  const m = await layout(page, null);
+  check(m.sw <= m.iw + 1, `${N}: no horizontal overflow`);
+  check(logs.length === 0, `${N}: no page errors`, JSON.stringify(logs.slice(0, 3)));
+  await ctx.close();
+}
+
 try {
-  if (MODE !== "test") for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of [false, true]) await shots(device, orient, dark);
-  if (MODE !== "shots") for (const device of DEVICES) for (const orient of ORIENTS) {
+  if (MODE !== "shots" && MODE !== "flow") {
+    const small = [{ id: "w320", engine: "webkit" }, { id: "w320", engine: "chromium" }];
+    for (const d of [...small.map((x) => ({ ...x, viewport: { width: 320, height: 568 } })), ...DEVICES.filter((d) => d.id !== "ipad").map((d) => ({ ...d, viewport: size(d, "portrait") }))]) {
+      try { await exclusive(d, d.viewport); } catch (error) { check(false, `${d.id} ${d.engine} panels: crashed`, String(error).slice(0, 300)); }
+    }
+  }
+  if (MODE !== "test" && MODE !== "flow" && MODE !== "panels") for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of [false, true]) await shots(device, orient, dark);
+  if (MODE !== "shots" && MODE !== "panels") for (const device of DEVICES) for (const orient of ORIENTS) {
     try { await flow(device, orient); } catch (error) { check(false, `${device.id} ${orient}: flow crashed`, String(error).slice(0, 300)); }
   }
 } finally {
