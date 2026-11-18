@@ -3,27 +3,27 @@
 // by Playwright (page.evaluate), so they must stay self-contained (no closures over module scope).
 
 // ------------------------------------------------------------------------------------------------ device matrix
-/** Registry devices used by the full matrix: [id, playwright registry name, browser]. */
+/** Registry devices (Playwright 1.65 names): [id, registry name, browser]. */
 export const REGISTRY_DEVICES = [
-  ["iphone-se", "iPhone SE", "webkit"],
-  ["iphone-13", "iPhone 13", "webkit"],
+  ["iphone-se", "iPhone SE (3rd gen)", "webkit"],
   ["iphone-15", "iPhone 15", "webkit"],
   ["iphone-15-pro-max", "iPhone 15 Pro Max", "webkit"],
-  ["ipad-7", "iPad (gen 7)", "webkit"],
-  ["ipad-7-land", "iPad (gen 7) landscape", "webkit"],
-  ["ipad-mini", "iPad Mini", "webkit"],
-  ["pixel-5", "Pixel 5", "chromium"],
+  ["ipad", "iPad (gen 7)", "webkit"],
   ["pixel-7", "Pixel 7", "chromium"],
-  ["galaxy-s9plus", "Galaxy S9+", "chromium"],
   ["galaxy-tab-s4", "Galaxy Tab S4", "chromium"],
 ];
 const ANDROID_UA = "Mozilla/5.0 (Linux; Android 14; SM-S911B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36";
-/** Galaxy S23 is not in the Playwright registry: 360x780 @3x, touch, mobile. */
-export const GALAXY_S23 = { viewport: { width: 360, height: 780 }, screen: { width: 360, height: 780 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: ANDROID_UA, defaultBrowserType: "chromium" };
+const IPHONE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1";
+/** Galaxy S23 is not in the Playwright registry: 360x780 @3x, touch, mobile (same metrics as the registry's Galaxy S24). */
+export const GALAXY_S23 = { viewport: { width: 360, height: 780 }, screen: { width: 360, height: 780 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: ANDROID_UA };
+export const SAFE_AREA_DEVICES = [["iphone-15-pwa", 393, 852, { top: 59, bottom: 34, left: 0, right: 0 }], ["iphone-15-pwa-land", 852, 393, { top: 0, bottom: 21, left: 59, right: 59 }]];
 export const PLAIN_WIDTHS = [320, 360, 375, 390, 412, 430, 600, 768, 1024];
-export const LANDSCAPES = [[844, 390], [932, 430]];
+/** Landscape phones (iPhone SE / 15 / 15 Pro Max sizes) run in WebKit. */
+export const LANDSCAPES = [[667, 375], [844, 390], [932, 430]];
 /** Height for a plain width: phone-like aspect below 600, tablet-ish above. */
 export const heightFor = (w) => (w <= 430 ? Math.round(w * 2.16) : w <= 768 ? 1024 : 768);
+/** Bottom nav is `md:hidden` (Tailwind md = 768px): expected below that width. */
+export const expectsBottomNav = (width) => width < 768;
 
 /**
  * Builds the device list. `registry` = playwright-core's `devices` export.
@@ -31,62 +31,101 @@ export const heightFor = (w) => (w <= 430 ? Math.round(w * 2.16) : w <= 768 ? 10
  */
 export function buildMatrix(registry, { quick = false, only = null } = {}) {
   const out = [];
-  const add = (id, label, browser, options) => out.push({ id, label, browser, options, mobile: options.viewport.width < 768, touch: !!options.hasTouch });
+  const add = (id, label, browser, options) => out.push({ id, label, browser, options, mobile: expectsBottomNav(options.viewport.width), touch: !!options.hasTouch });
   for (const [id, name, browser] of REGISTRY_DEVICES) {
     const d = registry?.[name];
     if (!d) continue;
     const { defaultBrowserType: _ignored, ...options } = d;
     add(id, name, browser, options);
+    if (id === "pixel-7") add("galaxy-s23", "Galaxy S23 (360x780 custom)", "chromium", { ...GALAXY_S23 });
   }
-  { const { defaultBrowserType: _ignored, ...options } = GALAXY_S23; add("galaxy-s23", "Galaxy S23 (360x780 custom)", "chromium", options); }
   for (const w of PLAIN_WIDTHS) {
     const mobile = w <= 600;
     add(`w${w}`, `Chromium ${w}px`, "chromium", { viewport: { width: w, height: heightFor(w) }, deviceScaleFactor: 2, isMobile: mobile, hasTouch: true, ...(mobile ? { userAgent: ANDROID_UA } : {}) });
   }
-  for (const [w, h] of LANDSCAPES) add(`land${w}x${h}`, `Chromium landscape ${w}x${h}`, "chromium", { viewport: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: ANDROID_UA });
+  // iPhone 15 as installed PWA (standalone, full screen incl. notch + home indicator): Chromium with emulated safe-area insets.
+  // WebKit in Playwright has env(safe-area-inset-*) = 0, so this is the only way to see the home-indicator strip.
+  for (const [id, w, h, safeArea] of SAFE_AREA_DEVICES) { add(id, `iPhone 15 PWA ${w}x${h} (Chromium, safe-area ${JSON.stringify(safeArea)})`, "chromium", { viewport: { width: w, height: h }, screen: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: IPHONE_UA }); Object.assign(out[out.length - 1], { safeArea, standalone: true }); }
+  for (const [w, h] of LANDSCAPES) add(`land${w}x${h}`, `WebKit landscape ${w}x${h}`, "webkit", { viewport: { width: w, height: h }, screen: { width: w, height: h }, deviceScaleFactor: 3, isMobile: true, hasTouch: true, userAgent: IPHONE_UA });
   let list = out;
   if (quick) list = out.filter((d) => QUICK_DEVICES.includes(d.id));
   if (only?.length) list = out.filter((d) => only.includes(d.id));
   return list;
 }
-export const QUICK_DEVICES = ["iphone-se", "w320", "pixel-7"];
+export const QUICK_DEVICES = ["iphone-se", "w320", "pixel-7", "iphone-15-pwa", "land844x390"];
+/** Dark mode runs on this subset (colour scheme does not change layout much; keeps the run time sane). */
+export const DARK_DEVICES = ["iphone-15", "iphone-15-pwa", "pixel-7", "w320", "ipad"];
+/** Text scaling (root font-size 130 % / 200 %) runs on this subset. */
+export const SCALE_DEVICES = ["iphone-se", "pixel-7"];
+export const SCALE_LEVELS = [130, 200];
+/** Screenshots are taken on this subset (all modes). */
+export const SHOT_DEVICES = ["iphone-se", "iphone-15", "iphone-15-pwa", "pixel-7", "w320", "ipad", "land844x390", "w1024"];
+
+/** Variants (theme + text scale) to run on one device. */
+export function variantsFor(deviceId, { themes = ["light", "dark"], scales = SCALE_LEVELS, allDark = false, allScale = false } = {}) {
+  const out = [];
+  if (themes.includes("light")) out.push({ theme: "light", scale: 100 });
+  if (themes.includes("dark") && (allDark || DARK_DEVICES.includes(deviceId))) out.push({ theme: "dark", scale: 100 });
+  if (allScale || SCALE_DEVICES.includes(deviceId)) for (const s of scales) out.push({ theme: "light", scale: s });
+  return out;
+}
+export const modeOf = (v) => (v.theme === "dark" ? "dark" : "") + (v.scale && v.scale !== 100 ? `${v.theme === "dark" ? "+" : ""}text${v.scale}` : "") || "base";
 
 // ------------------------------------------------------------------------------------------------ pages
-/** Public pages: [name, path]. */
-export const PUBLIC_PAGES = [
-  ["home", "/"], ["preise", "/preise"], ["schulen", "/schulen"], ["familien", "/familien"], ["pilot", "/pilot"], ["kontakt", "/kontakt"],
-  ["hilfe", "/hilfe"], ["anleitung", "/anleitung"], ["impressum", "/impressum"], ["datenschutz", "/datenschutz"], ["datenschutz-jugend", "/datenschutz-jugend"],
-  ["datenschutz-schulen", "/datenschutz-schulen"], ["datenschutz-uebersicht", "/datenschutz-uebersicht"], ["avv", "/avv"], ["hosting", "/hosting"],
-  ["loeschkonzept", "/loeschkonzept"], ["schullizenz", "/schullizenz"], ["bewerbung-check", "/bewerbung-check"], ["login", "/login"], ["login-reset", "/login/reset"],
-  ["class-join-wrong", "/classes/join/FALSCH12"], ["family-invite-wrong", "/familie/einladung/FALSCH12"], ["not-found", "/gibt-es-nicht-404"],
-];
-/** Per-role app pages. `{appId}`, `{classId}`, `{studentId}` are filled in after the setup. `flow` names a scripted interaction. */
-export const ROLE_PAGES = {
-  schueler: [
+/**
+ * Personas: { key, role (report group), user (key from scripts/mobile-users.mjs or null = logged out), pages: [name, path, flow?] }.
+ * `{appId}`, `{classId}`, `{classCode}`, `{studentId}`, `{friendId}`, `{inviteCode}`, `{familyCode}` come from the user setup.
+ * Every app/(all)/page.tsx route is covered at least once (see tests/mobile-lib.test.mjs).
+ */
+export const PERSONAS = [
+  { key: "public", role: "public", user: null, pages: [
+    ["home", "/"], ["preise", "/preise"], ["schulen", "/schulen"], ["familien", "/familien"], ["pilot", "/pilot"], ["kontakt", "/kontakt"],
+    ["hilfe", "/hilfe"], ["anleitung", "/anleitung"], ["impressum", "/impressum"], ["datenschutz", "/datenschutz"], ["datenschutz-jugend", "/datenschutz-jugend"],
+    ["datenschutz-schulen", "/datenschutz-schulen"], ["datenschutz-uebersicht", "/datenschutz-uebersicht"], ["avv", "/avv"], ["hosting", "/hosting"],
+    ["loeschkonzept", "/loeschkonzept"], ["schullizenz", "/schullizenz"], ["bewerbung-check", "/bewerbung-check"], ["login", "/login"], ["login-reset", "/login/reset"],
+    ["not-found", "/gibt-es-nicht-404"],
+  ] },
+  { key: "public-codes", role: "public", user: null, needsUsers: true, pages: [
+    ["class-join-loggedout", "/classes/join/{classCode}"], ["family-invite-loggedout", "/familie/einladung/{familyCode}"], ["friend-invite-loggedout", "/invite/{inviteCode}"],
+    ["admin-loggedout", "/admin"], ["auth-callback", "/auth/callback"],
+  ] },
+  { key: "schueler", role: "schueler", user: "schueler", pages: [
     ["dashboard", "/dashboard"], ["mehr-sheet", "/dashboard", "mehr"], ["search", "/search"], ["applications", "/applications"], ["applications-new", "/applications/new"],
-    ["application-detail", "/applications/{appId}"], ["application-edit", "/applications/{appId}", "edit"], ["application-delete-dialog", "/applications/{appId}", "delete-dialog"],
-    ["map", "/map"], ["map-search-panel", "/map", "map-search"], ["map-shop-sheet", "/map", "map-shop"], ["map-placement", "/map", "map-placement"],
-    ["cvs", "/cvs"], ["analytics", "/analytics"], ["friends", "/friends"], ["classes", "/classes"], ["class-detail", "/classes/{classId}"],
-    ["familie", "/familie"], ["profile", "/profile"], ["settings", "/settings"], ["abo", "/abo"],
-  ],
-  eltern: [["familie", "/familie"], ["mehr-sheet", "/familie", "mehr"], ["abo", "/abo"], ["settings", "/settings"], ["profile", "/profile"]],
-  lehrperson: [["teacher", "/teacher"], ["mehr-sheet", "/teacher", "mehr"], ["teacher-class", "/teacher/classes/{classId}"], ["teacher-student", "/teacher/classes/{classId}/students/{studentId}"], ["settings", "/settings"], ["profile", "/profile"]],
-  schule: [["schul-admin", "/schul-admin"], ["mehr-sheet", "/schul-admin", "mehr"], ["schullizenz", "/schullizenz"], ["settings", "/settings"]],
-};
+    ["application-detail", "/applications/{appId}"], ["application-edit", "/applications/{appId}", "edit"],
+    ["map", "/map"], ["map-search", "/map", "map-search"], ["map-shop", "/map", "map-shop"], ["map-item", "/map", "map-item"], ["map-selected", "/map", "map-selected"], ["map-placement", "/map", "map-placement"],
+    ["cvs", "/cvs"], ["analytics", "/analytics"], ["friends", "/friends"], ["friend-island", "/friends/{friendId}"], ["invite-own", "/invite/{inviteCode}"],
+    ["classes", "/classes"], ["class-detail", "/classes/{classId}"], ["class-join-member", "/classes/join/{classCode}"],
+    ["familie", "/familie"], ["profile", "/profile"], ["settings", "/settings"], ["abo", "/abo"], ["admin-denied", "/admin"],
+  ] },
+  { key: "schueler-fresh", role: "schueler", user: "schuelerfresh", pages: [["onboarding", "/onboarding"], ["onboarding-klasse", "/onboarding/klasse"], ["auth-role", "/auth/role"]] },
+  { key: "eltern", role: "eltern", user: "parent", pages: [
+    ["familie", "/familie"], ["mehr-sheet", "/familie", "mehr"], ["familie-bezahlen", "/familie/bezahlen"], ["familie-bezahlen-fertig", "/familie/bezahlen/fertig"],
+    ["abo", "/abo"], ["settings", "/settings"], ["profile", "/profile"],
+  ] },
+  { key: "eltern-fresh", role: "eltern", user: "parentfresh", pages: [["familie-start", "/familie"], ["familie-bezahlen-trial", "/familie/bezahlen"]] },
+  { key: "eltern-kind", role: "eltern", user: "famkid", pages: [["familie-child", "/familie"]] },
+  { key: "lehrperson", role: "lehrperson", user: "teacher", pages: [
+    ["teacher", "/teacher"], ["mehr-sheet", "/teacher", "mehr"],
+    ...["students", "overview", "goals", "invite", "calendar", "news", "settings"].map((t) => [`class-${t}`, `/teacher/classes/{classId}?tab=${t}`]),
+    ["teacher-student", "/teacher/classes/{classId}/students/{studentId}"], ["settings", "/settings"], ["profile", "/profile"],
+  ] },
+  { key: "lehrperson-fresh", role: "lehrperson", user: "teacherfresh", pages: [["teacher-onboarding", "/teacher/onboarding"]] },
+  { key: "schule", role: "schule", user: "schooladmin", pages: [["schul-admin", "/schul-admin"], ["mehr-sheet", "/schul-admin", "mehr"], ["settings", "/settings"], ["profile", "/profile"]] },
+];
 export const QUICK_PAGES = {
   public: ["home", "preise", "login"],
-  schueler: ["dashboard", "mehr-sheet", "applications", "application-detail", "map", "map-shop-sheet", "map-placement"],
-  eltern: ["familie"], lehrperson: ["teacher", "teacher-class"], schule: ["schul-admin"],
+  schueler: ["dashboard", "mehr-sheet", "applications", "application-detail", "map", "map-shop", "map-item", "map-selected", "map-placement"],
+  eltern: ["familie"], lehrperson: ["teacher", "class-students"], schule: ["schul-admin"],
 };
-/** Text-scaling subset: [role, page name]. */
-export const SCALE_PAGES = [["public", "home"], ["public", "preise"], ["schueler", "dashboard"], ["schueler", "applications"], ["lehrperson", "teacher-class"]];
-export const SCALE_LEVELS = [130, 200];
-export const SCALE_DEVICES = ["iphone-13", "w360"];
-/** Throttled subset (Chromium only). */
-export const THROTTLE_PAGES = [["public", "home"], ["schueler", "dashboard"], ["schueler", "map"]];
 export const SLOW_4G = { offline: false, latency: 150, downloadThroughput: Math.round((1.6 * 1024 * 1024) / 8), uploadThroughput: Math.round((750 * 1024) / 8) };
 export const fillPath = (path, vars) => path.replace(/\{(\w+)\}/g, (_, k) => (vars?.[k] != null ? encodeURIComponent(vars[k]) : `{${k}}`));
 export const parseList = (v) => (v ? String(v).split(",").map((s) => s.trim()).filter(Boolean) : null);
+/** Route pattern of a concrete path, to check coverage against app/(all)/page.tsx ("/applications/x" -> "/applications/[id]"). */
+export function coveredRoutes(personas = PERSONAS) {
+  const out = new Set();
+  for (const p of personas) for (const [, path] of p.pages) out.add(path.split("?")[0].replace(/\{[^}]+\}/g, "[x]"));
+  return out;
+}
 
 // ------------------------------------------------------------------------------------------------ ownership
 const PUBLIC_RE = /^\/($|preise|schulen|familien|pilot|kontakt|hilfe|anleitung|impressum|datenschutz|avv|hosting|loeschkonzept|schullizenz|bewerbung-check|gibt-es-nicht)/;
@@ -94,14 +133,15 @@ const PUBLIC_RE = /^\/($|preise|schulen|familien|pilot|kontakt|hilfe|anleitung|i
 export function ownerFor(role, path, selector = "") {
   if (/app-bar|Hauptmenü|^viewport|bottom-nav|nextjs/i.test(selector)) return role === "public" ? "PUBLIC" : "SHELL";
   if (/^\/map|^\/friends\/[^/]+/.test(path) || /class-village|map-shop|island|placement|MapSheet|map_/i.test(selector)) return "VILLAGE";
-  if (role === "public" || PUBLIC_RE.test(path)) return path.startsWith("/login") || path.startsWith("/classes/join") || path.startsWith("/familie/einladung") ? "SHELL" : "PUBLIC";
   if (/^\/(familie|teacher|classes|schul-admin|admin)/.test(path)) return "ROLES";
+  if (/^\/(login|auth|invite|onboarding)/.test(path)) return "SHELL";
+  if (role === "public" || PUBLIC_RE.test(path)) return "PUBLIC";
   return "SHELL";
 }
 
 // ------------------------------------------------------------------------------------------------ severity
 /** Issue kinds that make the gate fail. */
-export const ERROR_KINDS = new Set(["overflow", "overlap", "offscreen-control", "dialog-offscreen", "target-primary", "input-font", "viewport-meta", "nav-gap", "content-under-nav"]);
+export const ERROR_KINDS = new Set(["overflow", "overlap", "offscreen-control", "dialog-offscreen", "target-primary", "input-font", "viewport-meta", "nav-gap", "content-under-nav", "sheet-under-nav", "flow-failed", "page-error"]);
 export const severityOf = (issue) => (ERROR_KINDS.has(issue.kind) ? "error" : "warn");
 /** Tap target classification from size + context (pure, unit-tested). */
 export function classifyTarget({ w, h, inNav = false, primary = false, inlineText = false }) {
@@ -256,11 +296,10 @@ export function auditPage(opts, h) {
     const r = el.getBoundingClientRect();
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     if (cy > H - 1 || cy < 1 || cx > W - 1 || cx < 1) {
-      // in a fixed/sticky layer that cannot scroll it into view: unreachable control
-      if (fa && offN < 6) {
-        let sc = false; for (let a = el.parentElement; a && a !== fa.parentElement; a = a.parentElement) { const o = cs(a).overflowY; if ((o === "auto" || o === "scroll") && a.scrollHeight > a.clientHeight) { sc = true; break; } }
-        if (!sc) { offN++; issues.push({ kind: "offscreen-control", sel: selOf(el), msg: `"${textOf(el)}" centre at ${Math.round(cx)},${Math.round(cy)} is outside the ${W}x${H} viewport and its layer (${selOf(fa).split(" > ").pop()}) does not scroll` }); }
-      }
+      // scrollIntoView could not bring it into the viewport: the control is unreachable (fixed layer, or a clipped
+      // full-height stage such as the village map). Elements of horizontally scrolling rails are skipped.
+      let rail = false; for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const o = cs(a).overflowX; if ((o === "auto" || o === "scroll") && a.scrollWidth > a.clientWidth + 1) { rail = true; break; } }
+      if (!rail && offN < 6) { offN++; issues.push({ kind: "offscreen-control", sel: selOf(el), msg: `"${textOf(el)}" centre at ${Math.round(cx)},${Math.round(cy)} stays outside the ${W}x${H} viewport even after scrollIntoView${fa ? ` (layer ${selOf(fa).split(" > ").pop()})` : ""}` }); }
       continue;
     }
     const hit = document.elementFromPoint(cx, cy);
@@ -272,6 +311,30 @@ export function auditPage(opts, h) {
     issues.push({ kind: "overlap", sel: selOf(el), msg: `"${textOf(el)}" (${Math.round(r.width)}x${Math.round(r.height)} @${Math.round(cx)},${Math.round(cy)}) is covered by ${selOf(bar).split(" > ").pop()}${nav && nav.contains(hit) ? " (bottom nav)" : ""}` });
   }
   window.scrollTo(sx, sy);
+
+  // (h) panels / sheets that reach behind the fixed bottom nav (Panat's village item panel): any absolutely/fixed positioned
+  // container with controls whose lower part is painted over by the nav. Content that scrolls with the document is fine.
+  if (nav) {
+    const nTop = nav.getBoundingClientRect().top;
+    const seen = [];
+    for (const el of ia) {
+      if (nav.contains(el)) continue;
+      let layer = null;
+      for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const p = cs(a).position; if ((p === "fixed" || p === "absolute" || p === "sticky") && a.getBoundingClientRect().height > 60 && a.getBoundingClientRect().width > W * 0.4) { layer = a; break; } }
+      if (!layer || seen.includes(layer)) continue;
+      const lr = layer.getBoundingClientRect();
+      if (lr.bottom <= nTop + 2 || lr.top >= H) continue;
+      if (cs(layer).position !== "fixed" && document.documentElement.scrollHeight > H + 4 && !layer.closest("[data-map-fullscreen]") && cs(layer.offsetParent || document.body).position !== "fixed") continue;
+      seen.push(layer);
+      const y = Math.min(H - 2, nTop + (Math.min(lr.bottom, H) - nTop) / 2), x = Math.max(lr.left + 4, Math.min(lr.right - 4, W / 2));
+      const hit = document.elementFromPoint(x, y);
+      if (hit && nav.contains(hit)) {
+        const hidden = [...layer.querySelectorAll("button, a[href], input, select, textarea")].filter((c) => visible(c) && c.getBoundingClientRect().bottom > nTop + 2);
+        issues.push({ kind: "sheet-under-nav", sel: selOf(layer), msg: `panel ${Math.round(lr.top)}..${Math.round(lr.bottom)}px reaches behind the bottom nav (top ${Math.round(nTop)}px)${hidden.length ? `; controls under the nav: ${hidden.slice(0, 5).map((c) => `"${textOf(c)}"`).join(", ")}` : ""}` });
+      }
+      if (seen.length > 8) break;
+    }
+  }
 
   // (g) bottom nav flush + no empty strip + page end clears the nav
   const metrics = { W, H, scrollW, overflowX, interactive: ia.length, modal: !!modal, nav: null };
@@ -355,5 +418,43 @@ export function markdownReport({ title, base, started, finished, devices, result
     }
   }
   if (extra) L.push("", extra);
+  return L.join("\n");
+}
+
+/** Per-page x per-device table: cell = error count ("·" = clean, "–" = not run, "!" = navigation error). Modes merged per device. */
+export function matrixTable(results, devices) {
+  const ids = devices.map((d) => d.id);
+  const rows = new Map();
+  for (const r of results) {
+    const k = `${r.persona} ${r.page}`;
+    if (!rows.has(k)) rows.set(k, { path: r.path, cells: {} });
+    const c = (rows.get(k).cells[r.device] ??= { e: 0, nav: false });
+    c.e += (r.issues || []).filter((i) => severityOf(i) === "error").length;
+    if (r.error) c.nav = true;
+  }
+  const L = [`| page | ${ids.join(" | ")} |`, `|---|${ids.map(() => "---").join("|")}|`];
+  for (const [k, v] of rows) L.push(`| ${k} | ${ids.map((id) => { const c = v.cells[id]; return !c ? "–" : c.nav ? "!" : c.e ? `**${c.e}**` : "·"; }).join(" | ")} |`);
+  return L.join("\n");
+}
+
+/** Findings file for one owner (read by the builders): errors first, one row per distinct issue. */
+export function ownerMarkdown(owner, aggregated, { title = "", base = "", shotsDir = "" } = {}) {
+  const rows = aggregated.filter((r) => r.owner === owner);
+  const L = [`# Mobile findings for ${owner}${title ? ` — ${title}` : ""}`, "", `Base: ${base}. ${rows.filter((r) => r.severity === "error").length} errors, ${rows.filter((r) => r.severity === "warn").length} warnings (distinct issues, merged across devices).`, shotsDir ? `Screenshots: \`${shotsDir}\` (<persona>/<page>__<device>_<mode>.jpg).` : "", "", "Errors fail `npm run test:mobile`. Warnings (target-small = tap target 40-44px or non-primary, input-type, text-clipped, nav-strip, offscreen-clipped) should be fixed where cheap.", ""];
+  const pages = [...new Set(rows.map((r) => `${r.role} ${r.page}${r.mode !== "base" ? "@" + r.mode : ""}`))];
+  for (const sev of ["error", "warn"]) {
+    const part = rows.filter((r) => r.severity === sev);
+    if (!part.length) continue;
+    L.push(`## ${sev === "error" ? "Errors" : "Warnings"}`, "");
+    for (const pg of pages) {
+      const pr = part.filter((r) => `${r.role} ${r.page}${r.mode !== "base" ? "@" + r.mode : ""}` === pg);
+      if (!pr.length) continue;
+      L.push(`### ${pg} (\`${pr[0].path}\`)`, "", "| check | element | what | devices |", "|---|---|---|---|");
+      for (const r of pr.slice(0, 25)) L.push(`| ${r.kind} | \`${esc(r.sel)}\` | ${esc(r.msg).slice(0, 350)} | ${r.devices.length > 8 ? r.devices.length + ": " + r.devices.slice(0, 8).join(", ") + " …" : r.devices.join(", ")} |`);
+      if (pr.length > 25) L.push(`| | | … ${pr.length - 25} more (see JSON) | |`);
+      L.push("");
+    }
+  }
+  if (!rows.length) L.push("No findings.");
   return L.join("\n");
 }
