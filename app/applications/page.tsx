@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Plus, Search, X } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
@@ -14,22 +14,25 @@ import { cn, statusLabels } from "@/lib/utils";
 import { friendlyMessage } from "@/lib/ux";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
-import { useSnapshotData } from "@/components/ui/use-snapshot";
-import { RefreshHint } from "@/components/ui/refresh-hint";
-import { applicationsSnapshotCodec } from "@/lib/snapshot-cache";
 import type { Application, ApplicationStatus } from "@/types";
-
-const NO_APPLICATIONS: Application[] = [];
 
 
 export default function ApplicationsPage() {
-  // Last-known list from this device first (reload / new tab), then the server answer (reel fix 2, lib/snapshot-cache.ts).
-  const list = useSnapshotData("applications", getApplications, applicationsSnapshotCodec);
-  const applications: Application[] = list.data ?? NO_APPLICATIONS;
-  const loading = list.data === undefined && list.loading;
-  const error = list.error ? friendlyMessage(list.error, "Deine Bewerbungen konnten nicht geladen werden.") : "";
+  const [applications, setApplications] = useState<Application[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ApplicationStatus | "all">("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    getApplications()
+      .then((data) => { if (active) { setApplications(data); setError(""); } })
+      .catch((reason) => { if (active) setError(friendlyMessage(reason, "Deine Bewerbungen konnten nicht geladen werden.")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [attempt]);
 
   const filtered = useMemo(() => applications
     .filter((item) => `${item.company} ${item.position}`.toLowerCase().includes(query.toLowerCase()))
@@ -58,7 +61,7 @@ export default function ApplicationsPage() {
         actions={<ButtonLink href="/applications/new" variant="sun" className="w-full sm:w-fit" icon={<Plus size={17} strokeWidth={2.4} />}>Bewerbung hinzufügen</ButtonLink>}
       />
 
-      {error && <StatusMessage tone="danger" className="mt-6"><p>{error}</p><Button size="sm" variant="secondary" className="mt-2" onClick={list.retry}>Erneut versuchen</Button></StatusMessage>}
+      {error && <StatusMessage tone="danger" className="mt-6"><p>{error}</p><Button size="sm" variant="secondary" className="mt-2" onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Erneut versuchen</Button></StatusMessage>}
 
       <div className="mt-7 space-y-3">
         <label className="relative block max-w-xl">
@@ -81,10 +84,7 @@ export default function ApplicationsPage() {
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p className="text-sm text-muted" aria-live="polite">{loading ? "Lädt …" : `${filtered.length} ${filtered.length === 1 ? "Bewerbung" : "Bewerbungen"}`}</p>
-        <RefreshHint active={list.stale && list.loading} />
-      </div>
+      <p className="mt-6 text-sm text-muted" aria-live="polite">{loading ? "Lädt …" : `${filtered.length} ${filtered.length === 1 ? "Bewerbung" : "Bewerbungen"}`}</p>
 
       {loading ? (
         <div className="mt-3 space-y-3" role="status" aria-label="Bewerbungen werden geladen">

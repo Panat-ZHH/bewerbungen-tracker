@@ -20,20 +20,23 @@ import { firstName, nextStep } from "@/lib/next-step";
 import { loadMyRole } from "@/lib/role";
 import { sessionUser } from "@/lib/session-user";
 import { todayLocal } from "@/lib/reminders-client";
-import { useSnapshotData } from "@/components/ui/use-snapshot";
-import { RefreshHint } from "@/components/ui/refresh-hint";
-import { applicationsSnapshotCodec } from "@/lib/snapshot-cache";
 import type { Application } from "@/types";
 
-const NO_APPLICATIONS: Application[] = [];
-
 export default function DashboardPage() {
-  // Last-known list from this device first (reload / new tab), then the server answer (reel fix 2, lib/snapshot-cache.ts).
-  const list = useSnapshotData("applications", getApplications, applicationsSnapshotCodec);
-  const applications: Application[] = list.data ?? NO_APPLICATIONS;
-  const loading = list.data === undefined && list.loading;
-  const error = list.error ? friendlyMessage(list.error, "Deine Bewerbungen konnten nicht geladen werden.") : "";
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
   const [name, setName] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    getApplications()
+      .then((data) => { if (active) { setApplications(data); setError(""); } })
+      .catch((reason) => { if (active) setError(friendlyMessage(reason, "Deine Bewerbungen konnten nicht geladen werden.")); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [attempt]);
 
   // Name for the greeting: profile name first, then the name from the sign-up; never an e-mail address.
   useEffect(() => {
@@ -69,12 +72,11 @@ export default function DashboardPage() {
           </div>
         )}
         {!isNew && <p className="mt-3 text-body text-muted">Ein guter nächster Schritt reicht für heute.</p>}
-        <RefreshHint active={list.stale && list.loading} className="mt-2" />
       </header>
 
       <NoticesCard />
 
-      {error && <StatusMessage tone="danger" className="mt-6"><p>{error}</p><Button size="sm" variant="secondary" className="mt-2" onClick={list.retry}>Erneut versuchen</Button></StatusMessage>}
+      {error && <StatusMessage tone="danger" className="mt-6"><p>{error}</p><Button size="sm" variant="secondary" className="mt-2" onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Erneut versuchen</Button></StatusMessage>}
 
       {loading && (
         <div className="mt-8 space-y-3" role="status" aria-label="Bewerbungen werden geladen">
