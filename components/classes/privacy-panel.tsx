@@ -22,9 +22,9 @@ export function PrivacyPanel({ variant, teacherName, collapsed = false }: { vari
   const question = variant === "class" ? (teacherName ? `Was sieht ${teacherName}?` : "Was sieht meine Lehrperson?") : "Was sehen meine Freunde?";
   const body = (
     <>
-      <div className="text-small mt-3 grid gap-x-5 gap-y-3 sm:grid-cols-2">
-        <ul className="space-y-1.5" aria-label="Sichtbar">{sees.map((t) => <li key={t} className="flex gap-2"><Check size={14} strokeWidth={2.6} className="mt-0.5 shrink-0 text-[var(--success-fg)]" aria-hidden />{t}</li>)}</ul>
-        <ul className="space-y-1.5" aria-label="Nie sichtbar">{never_.map((t) => <li key={t} className="flex gap-2 text-muted"><X size={14} strokeWidth={2.6} className="mt-0.5 shrink-0" aria-hidden />{t}</li>)}</ul>
+      <div className="text-small mt-3 grid grid-cols-[minmax(0,1fr)] gap-x-5 gap-y-3 sm:grid-cols-2">
+        <ul className="space-y-1.5" aria-label="Sichtbar">{sees.map((t) => <li key={t} className="flex min-w-0 gap-2 [overflow-wrap:anywhere] hyphens-auto"><Check size={14} strokeWidth={2.6} className="mt-0.5 shrink-0 text-[var(--success-fg)]" aria-hidden />{t}</li>)}</ul>
+        <ul className="space-y-1.5" aria-label="Nie sichtbar">{never_.map((t) => <li key={t} className="flex min-w-0 gap-2 text-muted [overflow-wrap:anywhere] hyphens-auto"><X size={14} strokeWidth={2.6} className="mt-0.5 shrink-0" aria-hidden />{t}</li>)}</ul>
       </div>
       <p className="text-small mt-3 border-t-[1.5px] border-dashed border-[var(--line)] pt-3 text-muted">{variant === "class" ? "Du kannst jeden dieser Schalter jederzeit ändern. Ohne «Fortschritt teilen» sieht deine Lehrperson nur deinen Namen." : "Du kannst das Teilen mit Freunden jederzeit oben ausschalten."}</p>
     </>

@@ -105,7 +105,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
         <div className="panel-flat space-y-3 p-5">
           <h3 className="text-heading">Lizenz</h3>
           {!l ? <p className="text-sm text-muted">Für diese Schule ist noch keine Lizenz hinterlegt.</p> : isPilot ? (
@@ -114,7 +114,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
               <p className="text-muted">Danach braucht eure Schule eine Schullizenz, sonst pausiert der Zugang für Lehrpersonen und Schüler:innen.</p>
             </div>
           ) : (
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm [overflow-wrap:anywhere]">
               <dt className="text-muted">Paket</dt><dd className="font-bold">{packageLabel(l.package)}{limit ? <span className="font-normal text-muted"> · bis {limit} Schüler:innen</span> : null}</dd>
               <dt className="text-muted">Status</dt><dd className="font-semibold">{statusLabel(status)}</dd>
               {l.validUntil && <><dt className="text-muted">{expired ? "Abgelaufen am" : "Gültig bis"}</dt><dd className="font-semibold">{formatDateCh(l.validUntil)}{!expired && validDays !== null && validDays >= 0 && validDays <= 30 && <Badge tone="warning" className="ml-2">in {validDays} Tagen</Badge>}</dd></>}
@@ -126,7 +126,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
           <h3 className="text-heading flex items-center gap-2"><Users size={18} aria-hidden /> Schüler:innen</h3>
           {school.studentCount === null ? <p className="text-sm text-muted">Die Anzahl kann gerade nicht berechnet werden.</p> : (
             <>
-              <p className="flex items-end gap-2"><span className="num-big">{school.studentCount}</span><span className="pb-0.5 text-sm text-muted">{!l ? "noch keine Lizenz" : limit ? `von ${limit} im Paket` : "ohne feste Obergrenze"}</span></p>
+              <p className="flex flex-wrap items-end gap-x-2"><span className="num-big">{school.studentCount}</span><span className="pb-0.5 text-sm text-muted">{!l ? "noch keine Lizenz" : limit ? `von ${limit} im Paket` : "ohne feste Obergrenze"}</span></p>
               {usage.percent !== null && <ProgressBar value={school.studentCount} max={limit ?? 1} tone={usage.level === "ok" ? "mint" : usage.level === "warning" ? "warning" : "danger"} label="Auslastung der Lizenz" valueText={`${school.studentCount} von ${limit} Schüler:innen, ${usage.percent} Prozent`} />}
               {usage.level === "warning" && <p role="status" className="status status-warning flex items-start gap-2 text-sm"><TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden /><span>Über 90 % der Plätze sind belegt (noch {usage.remaining} frei). <a href="#abo" className="font-semibold underline underline-offset-2">Paket wechseln</a></span></p>}
               {full && <p role="status" className="status status-danger flex items-start gap-2 text-sm"><TriangleAlert size={16} className="mt-0.5 shrink-0" aria-hidden /><span>Das Paket ist voll. Neue Schüler:innen kommen erst nach einem Paketwechsel dazu. <a href="#abo" className="font-semibold underline underline-offset-2">Paket wechseln</a></span></p>}
@@ -135,7 +135,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
         </div>
       </div>
 
-      <div className="grid gap-x-12 gap-y-8 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-8 lg:grid-cols-2">
         <section aria-labelledby={`classes-${school.id}`}>
           <h3 id={`classes-${school.id}`} className="text-heading flex items-center gap-2"><GraduationCap size={18} aria-hidden /> Klassen {school.classes && <Badge>{school.classes.length}</Badge>}</h3>
           {school.classes === null ? <p className="text-small mt-2 text-muted">Die Klassenliste ist noch nicht verfügbar.</p> : school.classes.length === 0 ? <p className="text-small mt-2 text-muted">Noch keine Klasse ist dieser Schule zugeordnet.</p> : (
@@ -211,7 +211,7 @@ function AttachClassForm({ schoolId, full, onDone }: { schoolId: string; full: b
     <form onSubmit={submit} className="mt-4 space-y-2" noValidate>
       <Field label="Klasse hinzufügen" htmlFor={id} hint={full ? "Das Paket ist voll. Wechsle unten das Paket, um weitere Klassen zuzuordnen." : "Den Klassencode findet die Lehrperson in ihrer Klasse. Die Schüler:innen der Klasse zählen dann zur Lizenz."}>
         <div className="flex flex-wrap gap-2">
-          <Input id={id} aria-describedby={msg ? msgId : undefined} aria-invalid={msg?.tone === "danger" || undefined} value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} className="max-w-48 uppercase" placeholder="z. B. AB12CD" />
+          <Input id={id} enterKeyHint="go" aria-describedby={msg ? msgId : undefined} aria-invalid={msg?.tone === "danger" || undefined} value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} className="max-w-48 uppercase" placeholder="z. B. AB12CD" />
           <Button type="submit" variant="secondary" loading={busy} disabled={full} icon={<Plus size={16} />}>Zuordnen</Button>
         </div>
       </Field>
@@ -233,7 +233,7 @@ function ClassRow({ schoolId, c, onDone }: { schoolId: string; c: SchoolClassInf
     <li className="py-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
         <div className="min-w-0"><p className="truncate text-sm font-bold">{c.name}{c.archived && <Badge tone="info" className="ml-2">Archiviert</Badge>}</p><p className="text-small text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear}` : "Ohne Schuljahr"}{c.teacherName && ` · ${c.teacherName}`}{c.studentsWithApplication !== null && ` · ${c.studentsWithApplication} mit Bewerbung`}{c.studentsPlaced !== null && ` · ${c.studentsPlaced} mit Lehrstelle`}</p></div>
-        <span className="flex items-center gap-3"><span className="tabular text-sm font-semibold">{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}</span><Button type="button" size="sm" variant="ghost" onClick={() => setOpen(true)} aria-label={`${c.name} von der Schule entfernen`}>Entfernen</Button></span>
+        <span className="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-1"><span className="tabular text-sm font-semibold">{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}</span><Button type="button" size="sm" variant="ghost" onClick={() => setOpen(true)} aria-label={`${c.name} von der Schule entfernen`}>Entfernen</Button></span>
       </div>
       {err && <p role="alert" className="status status-danger mt-2 text-sm">{err}</p>}
       <Modal open={open} onClose={() => setOpen(false)} title={`«${c.name}» von der Schule entfernen?`}

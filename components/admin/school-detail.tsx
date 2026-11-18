@@ -221,7 +221,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
         </CardContent>
       </Card>
 
-      <div className="grid gap-7 sm:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-7 sm:grid-cols-2">
         <Section title="Schuladmins" actions={<Button size="sm" variant="secondary" data-testid="admin-action-add_admin" onClick={() => openAction({ action: "add_admin" })}>Hinzufügen</Button>}>
           {people(s.admin_users, "remove_admin", "Noch kein Schuladmin.")}
         </Section>
@@ -268,7 +268,7 @@ export function SchoolDetail({ id, onOpen, onChanged }: { id: string; onOpen: Op
         )}
         {action === "revoke_access" && <p className="text-body">Der Gratis-Zugang ({freeText ?? "abgelaufen"}) wird sofort entzogen. Danach braucht die Schule wieder eine gültige Lizenz.</p>}
         {action === "assign_licence" && (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
             <Field label="Paket" htmlFor="f-package">
               <Select id="f-package" value={form.package} onChange={set("package")} aria-invalid={invalid("package")} data-autofocus>
                 <option value="pilot">Pilot</option>

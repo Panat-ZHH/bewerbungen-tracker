@@ -179,15 +179,15 @@ export function AboView() {
           <section className="panel space-y-4 p-6" data-testid="abo-plan-solo">
             <h2 className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Einzelabo</h2>
             <p className="text-body text-muted">Alle Funktionen für dich: Lehrstellensuche, Bewerbungen, KI-Check, dein Dorf. Jederzeit kündbar.</p>
-            <fieldset className="space-y-2">
+            <fieldset className="min-w-0 space-y-2">
               <legend className="mb-2 text-sm font-bold">Abrechnung</legend>
               {(["month", "year"] as const).map((o) => {
                 const checked = period === o;
                 return (
-                  <label key={o} className={`flex cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border-2 p-3 transition-colors ${checked ? "border-[var(--brand)] bg-[var(--brand-soft)]" : "border-[var(--line)] hover:border-[var(--outline)]"}`}>
+                  <label key={o} className={`flex min-w-0 cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 rounded-[var(--radius-lg)] border-2 p-3 transition-colors ${checked ? "border-[var(--brand)] bg-[var(--brand-soft)]" : "border-[var(--line)] hover:border-[var(--outline)]"}`}>
                     <input type="radio" name="solo-interval" value={o} checked={checked} disabled={payInApp} onChange={() => setPeriod(o)} className="size-4 shrink-0 accent-[var(--brand)]" />
-                    <span className="text-sm"><span className="font-bold">{o === "month" ? "Monatlich" : "Jährlich"}</span> · <span className="tabular">{intervalPriceText(soloPlan(), o)}</span></span>
-                    {o === "year" && savingText(soloPlan()) && <span className="ml-auto rounded-full bg-[var(--sun)] px-2 py-0.5 text-xs font-bold text-[var(--on-sun)]">Spare {savingText(soloPlan())!.replace(/ günstiger.*$/, "")}</span>}
+                    <span className="min-w-0 flex-1 text-sm [overflow-wrap:anywhere]"><span className="font-bold">{o === "month" ? "Monatlich" : "Jährlich"}</span> · <span className="tabular">{intervalPriceText(soloPlan(), o)}</span></span>
+                    {o === "year" && savingText(soloPlan()) && <span className="ml-auto max-w-full rounded-full bg-[var(--sun)] px-2 py-0.5 text-xs font-bold text-[var(--on-sun)]">Spare {savingText(soloPlan())!.replace(/ günstiger.*$/, "")}</span>}
                   </label>
                 );
               })}

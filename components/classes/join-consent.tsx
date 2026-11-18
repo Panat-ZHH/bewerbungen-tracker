@@ -56,9 +56,9 @@ export function useJoinConsent() {
         <fieldset className="space-y-2">
           <legend className="text-sm font-bold">Wie heisst du?</legend>
           <p className="text-small text-muted">Deine Lehrperson sieht deinen Namen in der Klassenliste. Bitte gib deinen echten Namen an.</p>
-          <div className="grid gap-2 sm:grid-cols-2">
-            <Field label="Vorname" htmlFor="join-first"><Input id="join-first" value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" maxLength={30} /></Field>
-            <Field label="Nachname" htmlFor="join-last"><Input id="join-last" value={last} onChange={(e) => setLast(e.target.value)} autoComplete="family-name" maxLength={30} /></Field>
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-2">
+            <Field label="Vorname" htmlFor="join-first"><Input id="join-first" enterKeyHint="next" value={first} onChange={(e) => setFirst(e.target.value)} autoComplete="given-name" maxLength={30} /></Field>
+            <Field label="Nachname" htmlFor="join-last"><Input id="join-last" enterKeyHint="done" value={last} onChange={(e) => setLast(e.target.value)} autoComplete="family-name" maxLength={30} /></Field>
           </div>
         </fieldset>
       )}

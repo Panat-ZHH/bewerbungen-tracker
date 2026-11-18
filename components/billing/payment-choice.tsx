@@ -12,7 +12,7 @@ export function PaymentChoice({ options, value, onChange, name = "payment" }: { 
   return (
     <fieldset className="space-y-2">
       <legend className="mb-2 text-sm font-bold">Zahlungsart</legend>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-2 sm:grid-cols-2">
         {options.map((o) => {
           const Icon = o === "card" ? CreditCard : FileText;
           const checked = value === o;

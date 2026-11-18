@@ -23,8 +23,8 @@ import { relativeDays, teacherError } from "./shared";
 
 function StatusBadges({ s }: { s: TeacherStudent }) {
   return (
-    <span className="flex flex-wrap gap-1.5">
-      {s.placed && <Badge tone="success"><CheckCircle2 size={12} className="mr-1" aria-hidden />Zusage oder Lehrvertrag</Badge>}
+    <span className="flex min-w-0 flex-wrap gap-1.5">
+      {s.placed && <Badge tone="success" className="max-w-full whitespace-normal [overflow-wrap:anywhere]"><CheckCircle2 size={12} className="mr-1 shrink-0" aria-hidden />Zusage oder Lehrvertrag</Badge>}
       {s.inactive && <Badge tone="warning">Inaktiv</Badge>}
       {s.hidden && <Badge><EyeOff size={12} className="mr-1" aria-hidden />Teilt nicht</Badge>}
     </span>
@@ -94,18 +94,18 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
           <div className="relative lg:w-64">
             <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" aria-hidden />
-            <Input type="search" aria-label="Schüler:innen suchen" placeholder="Name suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
+            <Input type="search" enterKeyHint="search" aria-label="Schüler:innen suchen" placeholder="Name suchen" value={query} onChange={(e) => setQuery(e.target.value)} className="pl-9 text-base! sm:text-base!" />
           </div>
           <label className="flex items-center gap-2 text-sm font-semibold text-muted">Sortierung
-            <Select aria-label="Sortierung" value={sort} onChange={(e) => setSort(e.target.value as StudentSort)} className="w-auto min-w-60 flex-1 font-normal lg:flex-none">
+            <Select aria-label="Sortierung" value={sort} onChange={(e) => setSort(e.target.value as StudentSort)} className="w-auto min-w-0 flex-1 font-normal sm:min-w-60 lg:flex-none">
               <option value="activity">Am längsten inaktiv zuerst</option><option value="progress">Am weitesten gekommen</option><option value="name">Name A–Z</option><option value="joined">Zuletzt beigetreten</option>
             </Select>
           </label>
           <div className="flex flex-wrap gap-2 lg:ml-auto">
             <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<BellRing size={15} />} disabled={nudgeable.length === 0} onClick={() => { setNudge(nudgeable); setNudgeError(""); }}>Inaktive erinnern ({nudgeable.length})</Button>
-            <details className="group relative">
+            <details className="group relative max-sm:w-full">
               <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)] [&::-webkit-details-marker]:hidden"><Download size={15} aria-hidden />Exportieren<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden /></summary>
-              <div className="panel absolute right-0 z-20 mt-1 flex w-60 flex-col p-1">
+              <div className="panel z-20 mt-1 flex w-full flex-col p-1 sm:absolute sm:right-0 sm:w-60">
                 <Button variant="ghost" className="min-h-11 justify-start sm:min-h-11" disabled={rows.length === 0} onClick={exportCsv}>Übersicht (CSV)</Button>
                 <Button variant="ghost" className="min-h-11 justify-start sm:min-h-11" disabled={rows.length === 0 || busy} onClick={() => void exportApplications()}>Alle Bewerbungen (CSV)</Button>
               </div>

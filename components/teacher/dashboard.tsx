@@ -120,12 +120,12 @@ export function TeacherDashboardView() {
                         <h3 className="font-display truncate text-xl font-extrabold tracking-[-.02em] group-hover:underline group-hover:decoration-[var(--sun)] group-hover:decoration-4 group-hover:underline-offset-4">{c.name}</h3>
                         <p className="text-small mt-0.5 text-muted">{c.schoolYear ? `Schuljahr ${c.schoolYear} · ` : ""}{c.students} {c.students === 1 ? "Schüler:in" : "Schüler:innen"}{!c.isOwner && " · Co-Lehrperson"}</p>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {c.inactive > 0 ? <Badge tone="warning">{c.inactive} inaktiv</Badge> : c.students > 0 ? <Badge tone="success">Alle aktiv</Badge> : <Badge>Noch keine Schüler:innen</Badge>}
+                          {c.inactive > 0 ? <Badge tone="warning">{c.inactive} inaktiv</Badge> : c.students > 0 ? <Badge tone="success">Alle aktiv</Badge> : <Badge className="max-w-full whitespace-normal [overflow-wrap:anywhere]">Noch keine Schüler:innen</Badge>}
                           {c.hidden > 0 && <Badge>{c.hidden} teilen nicht</Badge>}
                           {c.archived && <Badge tone="info">Archiviert</Badge>}
                         </div>
                       </div>
-                      <dl className="tabular flex shrink-0 gap-x-5 sm:gap-x-7">
+                      <dl className="tabular flex min-w-0 flex-wrap gap-x-5 gap-y-2 sm:shrink-0 sm:gap-x-7">
                         {[["Bewerb.", c.applications], ["Gespräche", c.interviews], ["Zusage/Vertrag", c.placed]].map(([label, value]) => (
                           <div key={label} className="flex flex-col-reverse"><dt className="text-small text-muted">{label}</dt><dd className="font-display text-2xl font-extrabold leading-none">{value}</dd></div>
                         ))}
@@ -159,8 +159,8 @@ export function TeacherDashboardView() {
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Danach lädst du die Schüler:innen mit Klassencode, Link oder QR-Code ein.">
         <form onSubmit={submit} className="space-y-4">
-          <Field label="Klassenname" htmlFor="tc-name"><Input id="tc-name" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
-          <Field label="Schuljahr (optional)" htmlFor="tc-year"><Input id="tc-year" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>
+          <Field label="Klassenname" htmlFor="tc-name"><Input id="tc-name" enterKeyHint="next" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
+          <Field label="Schuljahr (optional)" htmlFor="tc-year"><Input id="tc-year" enterKeyHint="done" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>
           {formError && <p role="alert" className="text-small text-[var(--danger-fg)]">{formError}</p>}
           <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Abbrechen</Button><Button type="submit" loading={saving}>Erstellen</Button></div>
         </form>

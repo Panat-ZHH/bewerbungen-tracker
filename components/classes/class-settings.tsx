@@ -38,8 +38,8 @@ export function ClassSettings({ cls, open, onClose, onChanged }: { cls: SchoolCl
           <ButtonLink href={mailto} size="sm" variant="secondary" className="min-h-11 sm:min-h-11" icon={<Mail size={14} />}>Per E-Mail einladen</ButtonLink>
         </section>
         <form onSubmit={save} className="space-y-3">
-          <Field label="Klassenname" htmlFor="cs-name"><Input id="cs-name" className="text-base! sm:text-base!" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} /></Field>
-          <Field label="Schuljahr" htmlFor="cs-year"><Input id="cs-year" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} maxLength={20} /></Field>
+          <Field label="Klassenname" htmlFor="cs-name"><Input id="cs-name" enterKeyHint="next" className="text-base! sm:text-base!" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} /></Field>
+          <Field label="Schuljahr" htmlFor="cs-year"><Input id="cs-year" enterKeyHint="done" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} maxLength={20} /></Field>
           <Button type="submit" size="sm" className="min-h-11 sm:min-h-11" loading={busy === "save"}>Speichern</Button>
         </form>
         <section className="space-y-3 border-t-[1.5px] border-dashed border-[var(--line)] pt-4">

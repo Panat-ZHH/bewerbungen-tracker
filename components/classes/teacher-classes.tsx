@@ -65,8 +65,8 @@ export function TeacherClasses() {
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Schüler:innen treten mit einem Code bei, den du danach erhältst.">
         <form onSubmit={submit} className="space-y-4">
-          <Field label="Klassenname" htmlFor="class-name"><Input id="class-name" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
-          <Field label="Schuljahr (optional)" htmlFor="class-year"><Input id="class-year" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>
+          <Field label="Klassenname" htmlFor="class-name"><Input id="class-name" enterKeyHint="next" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
+          <Field label="Schuljahr (optional)" htmlFor="class-year"><Input id="class-year" enterKeyHint="done" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>
           {formError && <p role="alert" className="text-small text-[var(--danger-fg)]">{formError}</p>}
           <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Abbrechen</Button><Button type="submit" loading={saving}>Erstellen</Button></div>
         </form>

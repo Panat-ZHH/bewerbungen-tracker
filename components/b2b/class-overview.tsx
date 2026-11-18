@@ -39,10 +39,10 @@ export function ClassOverviewPanel({ classId }: { classId: string }) {
       <section aria-labelledby="b2b-stats-h">
         <h2 id="b2b-stats-h" className="text-heading">Auswertung der Klasse</h2>
         <p className="text-small mt-1 max-w-2xl text-muted">Anteil der {a.sharing} {a.sharing === 1 ? "Person, die ihre Daten teilt" : "Personen, die ihre Daten teilen"}{a.students > a.sharing ? ` (${a.students - a.sharing} teilen nicht)` : ""}. Gezählt werden Schritte, nicht die Menge an Bewerbungen.</p>
-        <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+        <dl className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2">
           {stats.map((s) => (
             <div key={s.label}>
-              <dt className="flex items-baseline justify-between gap-3 text-sm font-semibold"><span>{s.label}</span><span className="tabular shrink-0 text-muted">{s.value} von {a.sharing} · {share(s.value, a.sharing)} %</span></dt>
+              <dt className="flex items-baseline justify-between gap-3 text-sm font-semibold"><span className="min-w-0 [overflow-wrap:anywhere]">{s.label}</span><span className="tabular shrink-0 text-muted">{s.value} von {a.sharing} · {share(s.value, a.sharing)} %</span></dt>
               <dd className="mt-1.5"><ProgressBar value={s.value} max={Math.max(1, a.sharing)} tone={s.tone} label={s.label} valueText={`${s.value} von ${a.sharing}, ${share(s.value, a.sharing)} Prozent`} /></dd>
             </div>
           ))}
@@ -59,7 +59,7 @@ export function ClassOverviewPanel({ classId }: { classId: string }) {
             {support.map((s) => (
               <li key={s.studentId}>
                 <Link href={`/teacher/classes/${classId}/students/${s.studentId}`} className="row-link flex-wrap justify-between gap-x-4 gap-y-1">
-                  <div className="min-w-0"><p className="truncate text-sm font-bold">{studentLabel(s.displayName)}</p><p className="text-small text-muted">{s.reasons.map(supportText).join(" · ") || "Braucht Unterstützung"}</p></div>
+                  <div className="min-w-0"><p className="truncate text-sm font-bold">{studentLabel(s.displayName)}</p><p className="text-small text-muted [overflow-wrap:anywhere]">{s.reasons.map(supportText).join(" · ") || "Braucht Unterstützung"}</p></div>
                   {s.reasons.includes("self_report") && <Badge tone="info"><HandHelping size={12} className="mr-1" aria-hidden />Eigene Meldung</Badge>}
                 </Link>
               </li>
@@ -92,12 +92,12 @@ function StudentLine({ s, classId }: { s: OverviewStudent; classId: string }) {
           ) : (
             <p className="text-small text-muted">{PROGRESS_STEPS[step]} · {relativeDays(s.lastActivity)}</p>
           )}
-          {s.needsSupport && <span className="mt-1.5 inline-flex"><Badge tone="warning" title={s.reasons.map(supportText).join(", ")}>Braucht Unterstützung: {s.reasons.length ? supportText(s.reasons[0]) : "ja"}</Badge></span>}
+          {s.needsSupport && <span className="mt-1.5 flex max-w-full"><Badge tone="warning" className="max-w-full whitespace-normal [overflow-wrap:anywhere]" title={s.reasons.map(supportText).join(", ")}>Braucht Unterstützung: {s.reasons.length ? supportText(s.reasons[0]) : "ja"}</Badge></span>}
         </div>
         {!s.hidden && (
-          <div className="flex w-full items-center gap-4 sm:w-[24rem]">
-            <div className="min-w-20 flex-1"><ProgressBar size="sm" value={step} max={PROGRESS_LAST_STEP} tone={step >= PROGRESS_LAST_STEP ? "sun" : step >= 2 ? "mint" : "brand"} label={`Fortschritt von ${name}`} valueText={`Schritt ${step} von ${PROGRESS_LAST_STEP}: ${PROGRESS_STEPS[step]}`} /></div>
-            <dl className="tabular flex shrink-0 gap-3 text-xs">
+          <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 sm:w-[24rem] sm:flex-nowrap">
+            <div className="min-w-20 flex-1 basis-40 sm:basis-auto"><ProgressBar size="sm" value={step} max={PROGRESS_LAST_STEP} tone={step >= PROGRESS_LAST_STEP ? "sun" : step >= 2 ? "mint" : "brand"} label={`Fortschritt von ${name}`} valueText={`Schritt ${step} von ${PROGRESS_LAST_STEP}: ${PROGRESS_STEPS[step]}`} /></div>
+            <dl className="tabular flex min-w-0 flex-wrap gap-3 text-xs sm:shrink-0">
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Abgeschickt</dt><dd className="font-bold">{s.applications}</dd></div>
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Gespräche</dt><dd className="font-bold">{s.interviews}</dd></div>
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Schnupperlehren</dt><dd className="font-bold">{s.trialDays}</dd></div>
