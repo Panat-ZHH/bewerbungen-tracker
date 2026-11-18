@@ -24,7 +24,7 @@ export function TrialBanner({ daysLeft, endsAt, parent = false, schoolStudent = 
   const href = parent ? "/familie#abo" : familyChild ? "/familie" : ABO_PATH;
   if (compact) {
     return (
-      <Link href={href} role="status" data-testid="trial-banner" data-variant="compact" className="mb-4 inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--info-bg)] px-3.5 text-small font-semibold text-[var(--info-fg)] hover:underline">
+      <Link href={href} role="status" data-testid="trial-banner" data-variant="compact" className="mb-4 flex w-fit max-w-full min-h-11 items-center gap-2 rounded-full bg-[var(--info-bg)] px-3.5 text-small font-semibold text-[var(--info-fg)] hover:underline">
         <Gift size={16} aria-hidden className="shrink-0" />
         Testwoche: {daysLeftText(daysLeft)}
         <ChevronRight size={16} aria-hidden className="shrink-0 text-[var(--muted)]" />
