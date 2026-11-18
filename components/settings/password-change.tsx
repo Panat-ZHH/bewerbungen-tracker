@@ -57,7 +57,7 @@ export function PasswordChangeCard() {
       <form onSubmit={submit} className="max-w-md space-y-3" noValidate>
         <Field label="Aktuelles Passwort" htmlFor="pw-current"><Input id="pw-current" type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} /></Field>
         <Field label="Neues Passwort" htmlFor="pw-new"><Input id="pw-new" type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} /></Field>
-        <Field label="Neues Passwort wiederholen" htmlFor="pw-repeat"><Input id="pw-repeat" type="password" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} /></Field>
+        <Field label="Neues Passwort wiederholen" htmlFor="pw-repeat"><Input id="pw-repeat" enterKeyHint="done" type="password" autoComplete="new-password" value={repeat} onChange={(e) => setRepeat(e.target.value)} /></Field>
         <div id="password-notice">{notice && <StatusMessage tone={notice.tone} icon={notice.tone === "success" ? <CheckCircle2 /> : undefined}>{notice.text}</StatusMessage>}</div>
         <Button type="submit" variant="secondary" loading={busy} className="sm:min-h-11">Passwort ändern</Button>
       </form>

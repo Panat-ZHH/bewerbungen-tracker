@@ -229,18 +229,18 @@ export default function LoginPage() {
             <div className="flex items-center gap-3 text-xs font-medium text-muted" aria-hidden><span className="flex-1 border-t-2 border-dashed border-[var(--line)]" />oder mit E-Mail<span className="flex-1 border-t-2 border-dashed border-[var(--line)]" /></div>
 
             <Field label="E-Mail-Adresse" htmlFor="email">
-              <Input id="email" type="email" required autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" />
+              <Input id="email" type="email" required autoComplete="email" inputMode="email" enterKeyHint="next" autoCapitalize="none" spellCheck={false} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" />
             </Field>
             <Field label="Passwort" htmlFor="password" hint={hint?.label || undefined}>
               <div className="relative">
-                <Input id="password" type={showPassword ? "text" : "password"} required minLength={isSignup ? 8 : undefined} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 8 Zeichen" : "Dein Passwort"} className="pr-12" aria-describedby={hint?.label ? "password-hint" : undefined} />
+                <Input id="password" enterKeyHint={isSignup ? "next" : "go"} type={showPassword ? "text" : "password"} required minLength={isSignup ? 8 : undefined} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 8 Zeichen" : "Dein Passwort"} className="pr-12" aria-describedby={hint?.label ? "password-hint" : undefined} />
                 <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
               </div>
             </Field>
             {!isSignup && <p className="-mt-3 text-right"><button type="button" onClick={forgotPassword} disabled={loading} className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)] disabled:opacity-60">Passwort vergessen?</button></p>}
             {isSignup && (
               <Field label="Passwort wiederholen" htmlFor="confirm-password">
-                <Input id="confirm-password" type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
+                <Input id="confirm-password" enterKeyHint="go" type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
               </Field>
             )}
 

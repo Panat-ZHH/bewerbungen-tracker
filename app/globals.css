@@ -87,9 +87,20 @@
 
   /* layout */
   --nav-h: 64px;
-  --tabbar-h: 64px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+  /* Mobile tab bar (components/layout/workspace-shell.tsx, contract in components/layout/bottom-nav.ts):
+     58px tap row + bottom padding that shares the home-indicator area (iOS-native height: 58 + 26 = 84pt on notched iPhones,
+     no empty strip). All four drop to 0 / the safe area from md up and while the bar is hidden (see below). */
+  --bottom-nav-h: 58px;
+  --bottom-nav-pad: max(calc(var(--safe-bottom) - 8px), 0px);
+  --bottom-nav-space: calc(var(--bottom-nav-h) + var(--bottom-nav-pad));
+  --bottom-clearance: max(var(--bottom-nav-space), var(--safe-bottom));
+  --tabbar-h: var(--bottom-nav-h); /* legacy alias */
 }
+@media (min-width: 768px) { :root { --bottom-nav-h: 0px; --bottom-nav-pad: 0px; } }
+/* Bar hidden: map sheets / placement tools (useHideBottomNav), any open Modal/Sheet, plain-CSS escape hatch, on-screen keyboard. */
+:root[data-hide-bottom-nav], :root:has(body.sheet-open), :root[data-keyboard-open] { --bottom-nav-h: 0px; --bottom-nav-pad: 0px; }
 
 /* Dark tokens are opt-in via <html data-theme="dark">: warm near-black, never navy. */
 [data-theme="dark"] {
@@ -294,7 +305,10 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 
 /* ===== Layout ===== */
 .page-wrap { width: min(100% - 40px, 1120px); margin-inline: auto; }
-.pb-safe { padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 24px); }
+.pb-safe { padding-bottom: calc(var(--bottom-clearance) + 24px); }
+/* Full-height layouts: vh first (old iOS / Android WebViews), dvh where supported (no address-bar jump). */
+.h-viewport { height: 100vh; height: 100dvh; }
+.min-h-viewport { min-height: 100vh; min-height: 100dvh; }
 
 /* ===== Form controls ===== */
 .select-caret { appearance: none; background-repeat: no-repeat; background-position: right 12px center; background-size: 16px; padding-right: 2.25rem; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2316140f' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>"); }
@@ -385,7 +399,7 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 [data-theme="dark"] img { opacity: .94; }
 
 /* ===== Joy moments (lib/joy.ts) – never rendered with prefers-reduced-motion (JS skips, CSS double-guards) ===== */
-.confetti-host { position: fixed; left: 50%; bottom: calc(var(--tabbar-h) + var(--safe-bottom) + 60px); width: 0; height: 0; z-index: 160; pointer-events: none; }
+.confetti-host { position: fixed; left: 50%; bottom: calc(var(--bottom-clearance) + 60px); width: 0; height: 0; z-index: 160; pointer-events: none; }
 .confetti-piece { position: absolute; width: 9px; height: 13px; border-radius: 2px; opacity: 0; animation: confetti-burst 600ms cubic-bezier(.15,.8,.3,1) forwards; }
 .confetti-piece:nth-child(3n) { width: 10px; height: 10px; border-radius: 50%; }
 .confetti-piece:nth-child(4n) { width: 14px; height: 5px; }
@@ -431,3 +445,29 @@ html.theme-switching *, html.theme-switching *::before, html.theme-switching *::
 /* Distance sticker on a result card */
 .distance-badge { gap: .25rem; border-color: var(--outline-fill); background: var(--sun); color: var(--on-sun); font-weight: 700; font-variant-numeric: tabular-nums; }
 .distance-badge svg { flex-shrink: 0; }
+
+/* ===== Mobile shell (2026-11 responsive round) ===== */
+/* Tab bar: slides away while hidden (sheet open, keyboard open, map placement); not focusable then. */
+.bottom-nav { padding-bottom: var(--bottom-nav-pad); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); transition: transform var(--dur) var(--ease), visibility 0s linear 0s; }
+:root[data-hide-bottom-nav] .bottom-nav, :root:has(body.sheet-open) .bottom-nav, :root[data-keyboard-open] .bottom-nav { transform: translateY(100%); visibility: hidden; transition: transform var(--dur) var(--ease), visibility 0s linear var(--dur); }
+/* Header: never under a notch / status bar in landscape or standalone mode. */
+.app-bar-top { padding-top: var(--safe-top); }
+/* Sheets / dialogs: fit the visible viewport (minus safe areas and the keyboard) and scroll inside. */
+.max-h-sheet { max-height: calc(100vh - 1rem); max-height: calc(min(100dvh, var(--vvh, 100dvh)) - .75rem - var(--safe-top)); }
+@media (min-width: 640px) { .max-h-sheet { max-height: calc(100vh - 3rem); max-height: calc(min(100dvh, var(--vvh, 100dvh)) - 3rem - var(--safe-top) - var(--safe-bottom)); } }
+/* dvh fallback for the arbitrary Tailwind classes used across pages (browsers without dvh drop those declarations). */
+@supports not (height: 100dvh) {
+  .min-h-\[100dvh\] { min-height: 100vh; }
+  .h-\[100dvh\] { height: 100vh; }
+}
+/* Long German compounds («Donaudampfschifffahrtsgesellschaft», «Applikationsentwickler:in») never push the page sideways. */
+main h1, main h2, main h3, main p, main li, main dd, main dt, main label, main legend, [role="dialog"] h2, [role="dialog"] p { overflow-wrap: break-word; }
+@media (max-width: 640px) {
+  main h1, main h2, main h3, main p, main li, main dd, main label, [role="dialog"] h2, [role="dialog"] p { hyphens: auto; -webkit-hyphens: auto; }
+  main h1, main h2 { overflow-wrap: anywhere; }
+}
+/* Native tap behaviour on touch: no double-tap zoom delay on controls, no callout on app chrome. */
+a, button, [role="button"], input, select, textarea, label { touch-action: manipulation; }
+.bottom-nav, .app-bar-top { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+/* Scroll targets (anchors, focused fields) stop below the sticky header and above the tab bar. */
+html { scroll-padding-top: calc(var(--nav-h) + var(--safe-top) + 8px); scroll-padding-bottom: calc(var(--bottom-clearance) + 16px); }

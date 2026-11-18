@@ -224,7 +224,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
 
   if (checkingSession || !user || !role || accessLoading) {
     return (
-      <main data-ui="app" className="workspace-bg flex min-h-[100dvh] flex-col items-center justify-center gap-5 px-5" aria-busy="true">
+      <main data-ui="app" className="workspace-bg min-h-viewport flex flex-col items-center justify-center gap-5 px-5" aria-busy="true">
         <BrandMark size={56} className="animate-wiggle" priority />
         <div className="w-full max-w-[260px] space-y-2.5" role="status">
           <Skeleton className="h-3.5" />
@@ -269,7 +269,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
   const greeting = placeholder ? "Hoi!" : `Hoi ${isTeacher ? profileName : profileName.split(" ")[0]}!`;
 
   return (
-    <div data-ui="app" className={fullscreen ? "workspace-bg flex h-[100dvh] flex-col overflow-hidden" : "workspace-bg min-h-[100dvh]"}>
+    <div data-ui="app" className={fullscreen ? "workspace-bg h-viewport flex flex-col overflow-hidden" : "workspace-bg min-h-viewport"}>
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[200] focus:rounded-full focus:border-[length:var(--border-w)] focus:border-[var(--outline-fill)] focus:bg-[var(--sun)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[var(--on-sun)] focus:shadow-[var(--shadow-sm)]">Zum Inhalt springen</a>
 
       <header className={`app-bar app-bar-top sticky top-0 z-30 shrink-0 ${fullscreen ? "max-md:hidden" : ""}`}>
@@ -306,7 +306,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
             {!compact && <NotificationsBell />}
             <button type="button" onClick={() => setMenuDesktop(true)} aria-haspopup="dialog" aria-expanded={menuDesktop} aria-label="Konto und mehr" title="Konto und mehr" className="hidden h-11 items-center gap-1.5 rounded-full pl-1 pr-3 text-[13.5px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
               <Avatar name={displayName || null} src={myAvatar} size="sm" />
-              <span>Mehr</span>
+              <span className="max-w-full truncate">Mehr</span>
             </button>
             <Link href="/profile" aria-label="Mein Profil" title="Mein Profil" aria-current={accountLinks[0].keys.includes(active) ? "page" : undefined} className="flex h-11 w-11 items-center justify-center rounded-full transition-transform active:translate-y-0.5 md:hidden">
               <Avatar name={displayName || null} src={myAvatar} size="sm" />
@@ -318,29 +318,29 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
       {gate !== "page" ? (
         <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10"><AccessGatePage view={gate} access={access} email={user.email} /></main>
       ) : fullscreen ? (
-        <main id="main" className="relative min-h-0 flex-1 max-md:mb-[calc(var(--tabbar-h)+var(--safe-bottom))]">{children}</main>
+        <main id="main" className="relative min-h-0 flex-1 mb-[var(--bottom-nav-space)] transition-[margin] duration-200">{children}</main>
       ) : (
         <main id="main" className="page-wrap pb-safe pt-6 md:pb-12 md:pt-10">{!/^\/(abo|familie\/bezahlen)(\/|$)/.test(pathname ?? "") && <AccessBanner access={access} parent={parentAccount} pathname={pathname} />}{children}</main>
       )}
 
-      <nav aria-label="Hauptmenü mobil" className="app-bar app-bar-bottom fixed inset-x-0 bottom-0 z-30 md:hidden" style={{ paddingBottom: "var(--safe-bottom)" }}>
-        <ul className="mx-auto flex h-[var(--tabbar-h)] max-w-xl items-stretch px-1">
+      <nav aria-label="Hauptmenü mobil" className="bottom-nav app-bar app-bar-bottom fixed inset-x-0 bottom-0 z-30 md:hidden">
+        <ul className="mx-auto flex h-[58px] max-w-xl items-stretch px-1">
           {primary.map((item) => {
             const { label, href, icon: Icon } = item;
             const selected = isSelected(item);
             return (
-              <li key={href} className="flex-1">
-                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full flex-col items-center justify-center gap-0.5 text-[11px] max-[340px]:text-[10px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
-                  <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-150 ${selected ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={20} strokeWidth={2} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
+              <li key={href} className="min-w-0 flex-auto">
+                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+                  <span className={`relative flex h-[28px] w-[min(48px,100%)] items-center justify-center rounded-full transition-colors duration-150 ${selected ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={20} strokeWidth={2} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
                   <span className="max-w-full truncate max-[340px]:text-[10px]">{label}</span>
                 </Link>
               </li>
             );
           })}
-          <li className="min-w-0 flex-1">
-            <button type="button" onClick={() => setMoreOpen("mobile")} aria-haspopup="dialog" aria-expanded={moreOpen === "mobile"} className={`group flex h-full w-full flex-col items-center justify-center gap-0.5 text-[11px] max-[340px]:text-[10px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
-              <span className={`relative flex h-7 w-12 items-center justify-center rounded-full transition-colors duration-150 ${moreActive ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={20} strokeWidth={2} /><NoticeBadge enabled={!compact && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
-              <span>Mehr</span>
+          <li className="min-w-0 flex-auto">
+            <button type="button" onClick={() => setMoreOpen("mobile")} aria-haspopup="dialog" aria-expanded={moreOpen === "mobile"} className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+              <span className={`relative flex h-[28px] w-[min(48px,100%)] items-center justify-center rounded-full transition-colors duration-150 ${moreActive ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={20} strokeWidth={2} /><NoticeBadge enabled={!compact && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
+              <span className="max-w-full truncate">Mehr</span>
             </button>
           </li>
         </ul>

@@ -15,7 +15,7 @@ export function PresetMenu({ presets, onSave, onApply, onDelete, canSave }: { pr
       <Button type="button" variant="secondary" size="sm" icon={<Bookmark size={15} />} onClick={() => setOpen(true)}>Gespeicherte Suchen{presets.length ? ` (${presets.length})` : ""}</Button>
       <Modal open={open} onClose={() => setOpen(false)} title="Gespeicherte Suchen" description="Suche samt Filtern speichern und später mit einem Klick wieder öffnen.">
         <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (!canSave) return; onSave(name); setName(""); }}>
-          <Input data-autofocus aria-label="Name der Suche" maxLength={40} value={name} onChange={(e) => setName(e.target.value)} placeholder="Name, z. B. Informatik Zürich" />
+          <Input data-autofocus enterKeyHint="done" aria-label="Name der Suche" maxLength={40} value={name} onChange={(e) => setName(e.target.value)} placeholder="Name, z. B. Informatik Zürich" />
           <Button type="submit" disabled={!canSave}>Speichern</Button>
         </form>
         {!canSave && <p className="mt-2 text-small text-muted">Gib zuerst einen Suchbegriff ein oder setze einen Filter.</p>}

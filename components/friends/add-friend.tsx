@@ -36,7 +36,7 @@ export function AddFriend({ onChanged }: { onChanged: () => void }) {
         <h2 id="add-friend-title" className="text-heading">Freund:in hinzufügen</h2>
         <form onSubmit={submit} className="mt-3 space-y-3" noValidate>
           <Field label="Code oder E-Mail" htmlFor="friend-entry" hint="Den Code findest du bei deiner Freundin oder deinem Freund.">
-            <Input id="friend-entry" className="text-base! sm:text-base!" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} placeholder="z. B. K7P2QXMA oder name@beispiel.ch" />
+            <Input id="friend-entry" enterKeyHint="send" className="text-base! sm:text-base!" value={value} onChange={(e) => setValue(e.target.value)} autoComplete="off" autoCapitalize="none" spellCheck={false} placeholder="z. B. K7P2QXMA oder name@beispiel.ch" />
           </Field>
           <Button type="submit" variant="secondary" className="min-h-11 sm:min-h-11" loading={busy} full icon={<UserPlus size={16} />}>Anfrage senden</Button>
           {error && <StatusMessage tone="danger">{error}</StatusMessage>}

@@ -20,14 +20,14 @@ const variants: Record<ButtonVariant, string> = {
   danger: "border-[length:var(--border-w)] border-[var(--danger-line)] bg-[var(--danger-bg)] text-[var(--danger-fg)] transition-[transform,filter] hover:brightness-95 active:translate-y-px",
 };
 const sizes: Record<ButtonSize, string> = {
-  sm: "min-h-9 px-3.5 text-[13px] pointer-coarse:min-h-11",
-  md: "min-h-11 px-5 text-sm sm:px-4",
-  lg: "min-h-12 px-6 text-base",
+  sm: "min-h-9 px-3.5 py-1.5 text-[13px] pointer-coarse:min-h-11",
+  md: "min-h-11 px-5 py-2 text-sm sm:px-4",
+  lg: "min-h-12 px-6 py-2.5 text-base",
 };
 
 export function buttonClasses({ variant = "primary", size = "md", full, className }: { variant?: ButtonVariant; size?: ButtonSize; full?: boolean; className?: string }) {
   return cn(
-    "inline-flex items-center justify-center gap-2 rounded-full font-semibold leading-none whitespace-nowrap select-none disabled:pointer-events-none disabled:opacity-50 aria-busy:pointer-events-none aria-busy:opacity-80",
+    "inline-flex max-w-full items-center justify-center gap-2 rounded-full text-center font-semibold leading-[1.15] [text-wrap:balance] select-none [&>svg]:shrink-0 [&>.spinner]:shrink-0 disabled:pointer-events-none disabled:opacity-50 aria-busy:pointer-events-none aria-busy:opacity-80",
     variants[variant], sizes[size], full && "w-full", className,
   );
 }

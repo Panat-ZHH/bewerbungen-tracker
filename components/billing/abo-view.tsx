@@ -163,7 +163,7 @@ export function AboView() {
       )}
 
       {mode === "student" && (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-4 md:grid-cols-2">
           <div className="space-y-4">
             <section className="panel-flat space-y-2 p-6">
               <h2 className="text-heading"><School size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Hat deine Schule eine Lizenz?</h2>

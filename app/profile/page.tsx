@@ -88,7 +88,7 @@ function ProfileContent() {
             <div className="grid gap-5 sm:grid-cols-2">
               {who === "staff" && (
                 <Field label="Anzeigename (sichtbar für deine Klassen)" htmlFor="profile-displayName" hint="So erscheinst du bei deinen Schülerinnen und Schülern, z. B. «Frau Keller»." className="sm:col-span-2">
-                  <Input id="profile-displayName" value={displayName} maxLength={60} onChange={(event) => setDisplayName(event.target.value)} />
+                  <Input id="profile-displayName" autoComplete="nickname" value={displayName} maxLength={60} onChange={(event) => setDisplayName(event.target.value)} />
                 </Field>
               )}
               {contactFields.filter((f) => !f.only || f.only === who).map(({ key, label, type, autoComplete, wide }) => (

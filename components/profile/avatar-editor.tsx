@@ -110,7 +110,7 @@ export function AvatarEditor({ name }: { name: string }) {
 
   return (
     <section aria-labelledby="avatar-title" className="min-w-0 lg:sticky lg:top-24 lg:self-start">
-      <div className="flex items-center gap-5 lg:flex-col lg:items-start">
+      <div className="flex flex-wrap items-center gap-5 lg:flex-col lg:items-start">
         <div className="relative shrink-0">
           <Avatar name={name} src={current} size="xl" className="h-24 w-24 text-3xl shadow-[var(--shadow-md)] lg:h-40 lg:w-40 lg:text-6xl lg:shadow-[var(--shadow-lg)]" />
           <DoodleSparkle className="absolute -right-3 -top-2 h-7 w-7 text-[var(--sun)] lg:-right-4 lg:h-9 lg:w-9" />
