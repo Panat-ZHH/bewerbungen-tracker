@@ -62,6 +62,8 @@ async function browserFor(engine) {
 async function waitMap(page) {
   await page.waitForSelector("[data-map-fullscreen] [data-map-renderer]", { timeout: 240000 });
   await page.waitForFunction(() => document.querySelector("[role=region][aria-label='3D-Bewerbungsdorf']")?.__map, null, { timeout: 60000 });
+  // dev-only Next.js indicator (bottom-left) must not cover the tab bar / actions in hit tests; re-added after every reload
+  await page.addStyleTag({ content: "nextjs-portal{display:none!important}" });
   await sleep(2000);
 }
 
@@ -133,7 +135,7 @@ async function layout(page, selector) {
     const controls = root ? [...root.querySelectorAll("button")].filter((el) => getComputedStyle(el).display !== "none" && el.getBoundingClientRect().width > 0).map((el) => {
       const r = el.getBoundingClientRect();
       const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-      return { name: (el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 28), t: r.top, b: r.bottom, l: r.left, r: r.right, w: r.width, h: r.height, covered: !(hit && (hit === el || el.contains(hit))), grip: el.getAttribute("aria-expanded") !== null && !el.textContent.trim() };
+      return { name: (el.textContent || el.getAttribute("aria-label") || "").trim().slice(0, 28), t: r.top, b: r.bottom, l: r.left, r: r.right, w: r.width, h: r.height, covered: !(hit && (hit === el || el.contains(hit))), by: hit && !(hit === el || el.contains(hit)) ? (hit.tagName + "." + String(hit.className?.baseVal ?? hit.className ?? "") + "[" + (hit.getAttribute("aria-label") ?? hit.textContent?.trim().slice(0, 20) ?? "") + "]").slice(0, 90) : undefined, grip: el.getAttribute("aria-expanded") !== null && !el.textContent.trim() };
     }) : [];
     return {
       ih: innerHeight, iw: innerWidth, sw: document.scrollingElement.scrollWidth, sh: document.scrollingElement.scrollHeight, scrollY, scrollX,
@@ -262,11 +264,11 @@ async function flow(device, orient) {
   const item = st.items.at(-1);
   check(item && item.itemType === "scooter_sport_lime" && item.x === null, `${N}: bought item is in the inventory (not placed yet)`);
 
-  // 3. tap a tile -> ghost moves there; Drehen; Platzieren
+  // 3. Drehen; tap a tile -> ghost moves there (a free tile for the turned item); Platzieren
+  await tap(page, action(tools(page), "Drehen"));
   const target = await tapFreeTile(page);
   check(target !== null, `${N}: tapping a free tile moves the ghost there`, JSON.stringify(target));
-  await tap(page, action(tools(page), "Drehen"));
-  // after a tile tap + turn, the five actions must still be on screen (landscape phones once scrolled «Platzieren» away)
+  // after a turn + tile tap, the five actions must still be on screen (landscape phones once scrolled «Platzieren» away)
   checkPanel(`${N} placing (after tap + turn)`, await layout(page, '[aria-label="Gegenstand platzieren"]'), ["Drehen", "Verschieben", "Entfernen", "Abbrechen", "Platzieren"]);
   await tap(page, action(tools(page), "Platzieren"));
   await sleep(900);
