@@ -80,7 +80,7 @@ await scenario("role-picker", async () => {
     await page.goto(BASE + "/dashboard"); await page.waitForURL("**/auth/role**");
     check(path(page) === "/auth/role", `Google user without role is asked once (${tag})`);
     await page.getByRole("radio", { name: /^Lehrperson/ }).check({ force: true }); await shot(page, `role-picker-${tag}`);
-    await page.getByRole("radio", { name: /^Schule/ }).check({ force: true }); await page.getByRole("button", { name: "Weiter" }).click();
+    await page.getByRole("radio", { name: /Schüler:in mit Klasse/ }).check({ force: true }); await page.getByRole("button", { name: "Weiter" }).click();
     // a freshly chosen student starts the first-login tour (components/onboarding/student-onboarding.tsx)
     await page.waitForURL("**/onboarding**");
     check(state.calls.some((c) => c.rpc === "set_my_role" && c.body.p_role === "student"), `set_my_role called, then the onboarding tour (${tag})`);
@@ -91,12 +91,12 @@ await scenario("role-picker", async () => {
 await scenario("join", async () => {
   const token = "Xk3_9aBcDeFgHiJkLmNoPq";
   const { ctx, page, state } = await session({ opts: rpcOpts({ class_invite_preview: [{ class_id: "c1", name: "Informatik 4a", school_year: "2026/27", teacher_name: "Herr Keller", member_count: 6, already_member: false, valid: true, reason: null }], class_invite_accept: [{ class_id: "c1", name: "Informatik 4a", school_year: "2026/27", teacher_name: "Herr Keller", share_applications: true, joined_at: iso(0) }] }), vp: { w: 375, h: 812 } });
-  await page.goto(BASE + `/classes/join/${token}`); await page.getByRole("button", { name: /Beitreten/ }).waitFor();
+  await page.goto(BASE + `/classes/join/${token}`); await page.getByRole("button", { name: /beitreten/i }).waitFor();
   check(state.calls.some((c) => c.rpc === "class_invite_preview" && c.body.p_token === token), "token link previews via class_invite_preview (case kept)");
   await page.getByText("Was Herr Keller sieht").waitFor(); await shot(page, "join-token-mobile");
-  await page.getByRole("radio", { name: "16 oder älter" }).check({ force: true }); await page.getByRole("button", { name: /Beitreten/ }).click(); await page.getByText("Du bist beigetreten").waitFor();
+  await page.getByRole("radio", { name: "16 oder älter" }).check({ force: true }); await page.getByRole("button", { name: /beitreten/i }).click(); await page.getByText("Du bist beigetreten").waitFor();
   check(state.calls.some((c) => c.rpc === "class_invite_accept" && c.body.p_token === token), "accept via class_invite_accept");
-  await page.goto(BASE + "/classes/join/abc12345"); await page.getByRole("button", { name: /Beitreten/ }).waitFor();
+  await page.goto(BASE + "/classes/join/abc12345"); await page.getByRole("button", { name: /beitreten/i }).waitFor();
   check(state.calls.some((c) => c.rpc === "class_preview" && c.body.p_code === "ABC12345"), "short code uses class_preview (upper-cased)");
   await ctx.close();
   const bad = await session({ opts: rpcOpts({ class_invite_preview: [{ class_id: null, name: null, school_year: null, teacher_name: null, member_count: null, already_member: false, valid: false, reason: "EXPIRED" }] }), vp: { w: 375, h: 812, dark: true } });
