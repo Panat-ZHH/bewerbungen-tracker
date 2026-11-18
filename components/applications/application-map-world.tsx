@@ -755,6 +755,7 @@ function createWorld(host: HTMLDivElement, labels: HTMLDivElement, onSelect: (id
   }
 
   function pointerDown(event: PointerEvent) {
+    if (event.pointerType === "touch" && event.isPrimary) { touches.clear(); multiTouch = false; } // new interaction: forget lost touches
     if (!touches.size) refreshRect();
     down = { x: event.clientX, y: event.clientY };
     if (event.pointerType === "touch") { touches.add(event.pointerId); if (touches.size > 1) multiTouch = true; }
