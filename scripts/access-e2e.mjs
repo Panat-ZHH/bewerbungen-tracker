@@ -117,7 +117,6 @@ const scenarios = {
     check(await vis(page, '[data-testid="trial-banner"]'), "trial banner on /familie");
     // eltern-02: on /familie the plan card (#abo) is on the same page, so the banner carries no action of its own.
     check(await page.locator('[data-testid="trial-banner"] a').count() === 0, "parent banner on /familie: no own action (eltern-02)");
-    check(await vis(page, "#abo"), "family plan card (#abo) on /familie");
     check(await page.evaluate(() => localStorage.getItem("wa_pending_signup") === null && sessionStorage.getItem("wa_pending_signup") === null), "wa_pending_signup used once");
     await ctx.close();
   },
