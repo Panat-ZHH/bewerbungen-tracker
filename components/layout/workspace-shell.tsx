@@ -17,6 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { signOutEverywhere } from "@/lib/sign-out";
+import { clearSnapshots, clearSnapshotsExcept } from "@/lib/snapshot-cache";
 import { cachedRole, clearPendingSignup, clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
@@ -79,6 +80,8 @@ let classCache: { userId: string; inClass: boolean } | null = null;
 function rememberUser(user: User | null) {
   // Another account in this tab: forget everything cached for the previous one.
   if (shellUser?.id !== user?.id) { classCache = null; clearMyAvatarCache(); }
+  // Device snapshots (reel fix 2): only the current user's may stay; signed out = none (shared school computers).
+  if (user) clearSnapshotsExcept(user.id); else clearSnapshots();
   shellUser = user;
   if (!user) verifiedOnce = false;
 }
@@ -147,6 +150,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
 
   useEffect(() => {
     if (checkingSession || user) return;
+    clearSnapshots(); // session missing or refused by the auth server: nothing of the last user may be shown again
     // Keep the query and hash (e.g. /familie?plan=family&interval=month#abo) and remember a family invite across signup.
     const next = loginNextFor(pathname, window.location.search, window.location.hash);
     const familyCode = familyInviteCodeFromPath(pathname);
@@ -203,7 +207,8 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
 
   async function logout() {
     setMoreOpen(false);
-    await signOutEverywhere(supabase.auth);
+    await signOutEverywhere(supabase.auth); // also clears the device snapshots
+    clearSnapshots();
     clearRoleCache();
     clearAccessCache();
     rememberUser(null);
