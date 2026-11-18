@@ -81,16 +81,21 @@ async function open(device, orient, dark, { extraApps = [], viewport: forced, pa
   const viewport = forced ?? size(device, orient);
   const ctx = await browser.newContext({ viewport, isMobile: true, hasTouch: true, deviceScaleFactor: viewport.width <= 640 ? 2 : 1, colorScheme: dark ? "dark" : "light" });
   contexts.add(ctx); ctx.on("close", () => contexts.delete(ctx));
-  // Production build over plain http://localhost: WebKit honours the app's HSTS header (+ CSP upgrade-insecure-requests) for localhost
-  // and upgrades every asset to https://localhost -> TLS error, the map never renders. Production itself is https, so the test strips
-  // only these two upgrade instructions from local responses (WebKit only; Chromium exempts localhost). CSP stays enforced otherwise.
-  if (device.engine === "webkit") await ctx.route((url) => url.origin === new URL(BASE).origin, async (route) => {
+  // Production build over plain http: the app sends HSTS + CSP upgrade-insecure-requests (lib/security-headers.ts, production only).
+  // WebKit applies both to localhost and upgrades every asset to https -> TLS error, the map never renders. Production itself is
+  // https, so for WebKit the test loads the app via 127.0.0.1 (HSTS never applies to IP hosts) and strips only the upgrade directive
+  // from the HTML document response (the rest of the CSP stays enforced). Only documents are routed: routing every request with
+  // route.fetch() made WebKit drop a concurrent Supabase stub call (map_shop_state «Could not connect»).
+  const base = device.engine === "webkit" ? BASE.replace("//localhost", "//127.0.0.1") : BASE;
+  if (device.engine === "webkit") await ctx.route((url) => url.origin === new URL(base).origin, async (route) => {
+    if (route.request().resourceType() !== "document") return route.fallback();
     const response = await route.fetch();
     const headers = { ...response.headers() };
     delete headers["strict-transport-security"];
     if (headers["content-security-policy"]) headers["content-security-policy"] = headers["content-security-policy"].replace(/;?\s*upgrade-insecure-requests/g, "");
     await route.fulfill({ response, headers });
   });
+
   await ctx.addInitScript(([s, theme]) => {
     localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s));
     localStorage.setItem("wendapply-theme", theme);
@@ -121,7 +126,8 @@ async function open(device, orient, dark, { extraApps = [], viewport: forced, pa
   const page = await ctx.newPage();
   const logs = [];
   page.on("pageerror", (e) => logs.push("pageerror: " + e.message.slice(0, 200)));
-  await page.goto(BASE + path);
+  if (process.env.DEBUG) { page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") console.log("CONSOLE", m.type(), m.text().slice(0, 240)); }); page.on("requestfailed", (r) => console.log("REQFAIL", r.url().slice(0, 120), r.failure()?.errorText)); page.on("request", (r) => { if (r.url().includes("/rpc/")) console.log("RPC", r.url().split("/").pop()); }); }
+  await page.goto(base + path);
   await waitMap(page);
   // hide the Next.js dev indicator so it does not cover the tab bar in screenshots / hit tests
   await page.addStyleTag({ content: "nextjs-portal{display:none!important}" });
