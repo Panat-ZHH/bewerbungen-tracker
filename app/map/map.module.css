@@ -149,8 +149,11 @@
   .toolsActions { order: -1; }
   .toolsInvalid { font-size: 12px; line-height: 1.3; }
 }
-/* Tablets / desktop: compact centred card, everything in view, no handle */
-@media (min-width: 768px) {
+/* Tablets / desktop: compact centred card, everything in view, no handle.
+   Not on landscape phones (<= 480px tall): Android phones are 780-915px wide in landscape, and this centred 640px card
+   (plus the always-open X/Z row) covered the middle of the map, incl. the item being placed and the tiles around it,
+   so tapping a tile next to it was impossible. They keep the landscape side card above. */
+@media (min-width: 768px) and (min-height: 481px) {
   .placementTools { align-self: center; width: min(640px, 100%); padding: 10px 14px 12px; }
   .toolsGrip { display: none; }
   .toolsPosition { display: flex; }

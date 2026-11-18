@@ -181,11 +181,14 @@ async function tapFreeTile(page, avoid) {
     if (panel && p.x > panel.x - 10 && p.x < panel.x + panel.width + 10 && p.y > panel.y - 10) continue;
     const covered = await page.evaluate(([x, y]) => !document.elementFromPoint(x, y)?.closest("[role=region][aria-label='3D-Bewerbungsdorf']"), [p.x, p.y]);
     if (covered) continue;
+    if (process.env.DEBUG) await host(page).evaluate((h) => { window.__tev = []; if (h.__tevOn) return; h.__tevOn = true; for (const t of ["pointerdown", "pointermove", "pointerup", "pointercancel", "touchstart", "touchend", "click"]) h.addEventListener(t, (e) => window.__tev.push(`${t} ${e.pointerId ?? ""} ${e.pointerType ?? ""} ${e.isPrimary ?? ""} ${Math.round(e.clientX ?? e.changedTouches?.[0]?.clientX)},${Math.round(e.clientY ?? e.changedTouches?.[0]?.clientY)} btn=${e.button ?? ""}`), true); });
     await page.touchscreen.tap(p.x, p.y);
+    if (process.env.DEBUG) { await sleep(800); console.log("DEBUG tile", JSON.stringify({ target, p, base, panel, now: await page.evaluate(() => [document.querySelector('input[aria-label="Position X"]')?.value, document.querySelector('input[aria-label="Position Z"]')?.value]), ev: await page.evaluate(() => window.__tev) })); }
     // poll: under load the software renderer can take a few seconds to handle the tap
     const moved = await page.waitForFunction(([tx, tz]) => Number(document.querySelector('input[aria-label="Position X"]')?.value) === tx && Number(document.querySelector('input[aria-label="Position Z"]')?.value) === tz, [target.x, target.z], { timeout: 4000 }).then(() => true, () => false);
     if (moved && await action(tools(page), "Platzieren").isEnabled()) return target;
   }
+  if (process.env.DEBUG) console.log("DEBUG no tile", JSON.stringify({ base, panel, vp, cands: await Promise.all([[2, 0], [0, -2], [-2, 0], [4, 0], [0, -4]].map(async ([dx, dz]) => { const p = await project(page, base.x + dx + 0.5, base.z + dz + 0.5); return [dx, dz, Math.round(p.x), Math.round(p.y), await page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.tagName + "." + String(e.className?.baseVal ?? e.className).slice(0, 30) : null; }, [p.x, p.y])]; })), stage: await page.evaluate(() => { const r = document.querySelector("[data-map-fullscreen]").getBoundingClientRect(); return [r.top, r.bottom, r.left, r.right]; }) }));
   return null;
 }
 
