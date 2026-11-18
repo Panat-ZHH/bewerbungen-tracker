@@ -154,9 +154,16 @@ try {
     if (USERS === "reuse") { S = JSON.parse(readFileSync(args.state || DEFAULT_STATE, "utf8")); log("reusing users", S.stamp); }
     else { log("creating throwaway users ..."); S = await setupUsers({ stateFile: args.state || DEFAULT_STATE, log: (...a) => log("  setup", ...a) }); }
   }
-  browsers.chromium = await pw.chromium.launch({ executablePath: CHROME, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
-  if (devices.some((d) => d.browser === "webkit")) browsers.webkit = await pw.webkit.launch();
-  for (const p of personas) if (p.user) { await login(browsers.chromium, p.user); log("logged in", p.user); }
+  // One shared browser for all 21 devices died after ~650 audits ("Target page, context or browser has been closed") and every
+  // later context failed (baseline-ux-qafix). Now: a fresh browser per device (closed after the device), relaunched when it
+  // disconnects, and a crashed context is retried once on a new browser.
+  const launch = (type) => (type === "webkit" ? pw.webkit.launch() : pw.chromium.launch({ executablePath: CHROME, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] }));
+  const getBrowser = async (type) => {
+    if (!browsers[type] || !browsers[type].isConnected()) { await browsers[type]?.close().catch(() => {}); browsers[type] = await launch(type); }
+    return browsers[type];
+  };
+  const loginBrowser = await launch("chromium");
+  try { for (const p of personas) if (p.user) { await login(loginBrowser, p.user); log("logged in", p.user); } } finally { await loginBrowser.close().catch(() => {}); }
 
   // one group = device x variant x persona (one browser context, pages in sequence)
   const groups = [];
@@ -165,7 +172,7 @@ try {
   log(`${devices.length} devices, ${personas.length} personas, ${groups.length} contexts, ${total} page audits, concurrency ${CONC}, base ${BASE}`);
   let done = 0;
   async function runGroup({ dev, v, p }) {
-    const browser = browsers[dev.browser];
+    const browser = await getBrowser(dev.browser);
     const mode = modeOf(v);
     const ctx = await browser.newContext({ ...dev.options, colorScheme: v.theme, locale: "de-CH", timezoneId: "Europe/Zurich", reducedMotion: "reduce", storageState: p.user ? storage.get(p.user) : undefined });
     if (v.scale !== 100) await ctx.addInitScript((scale) => { const add = () => { const st = document.createElement("style"); st.textContent = `html{font-size:${scale}% !important;-webkit-text-size-adjust:${scale}% !important;text-size-adjust:${scale}% !important}`; (document.head || document.documentElement).appendChild(st); }; if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", add); else add(); }, v.scale);
@@ -230,8 +237,24 @@ try {
     }
     await ctx.close();
   }
-  const queue = [...groups];
-  await Promise.all(Array.from({ length: Math.min(CONC, queue.length) }, async () => { while (queue.length) { const g = queue.shift(); try { await runGroup(g); } catch (e) { log("context failed", g.dev.id, g.p.key, String(e.message).split("\n")[0]); for (const [name, rawPath] of g.p.pages) results.push({ device: g.dev.id, persona: g.p.key, role: g.p.role, page: name, path: fillPath(rawPath, S?.vars), mode: modeOf(g.v), error: String(e.message).slice(0, 200), issues: [{ kind: "page-error", sel: "context", msg: String(e.message).split("\n")[0].slice(0, 200) }] }); } } }));
+  const CRASH_RE = /has been closed|Browser closed|crashed|Target closed|disconnected/i;
+  const crashed = (g) => results.some((r) => r.device === g.dev.id && r.persona === g.p.key && r.mode === modeOf(g.v) && r.issues.some((i) => CRASH_RE.test(i.msg || "")));
+  const dropGroup = (g) => { for (let i = results.length - 1; i >= 0; i--) { const r = results[i]; if (r.device === g.dev.id && r.persona === g.p.key && r.mode === modeOf(g.v)) { results.splice(i, 1); done--; } } };
+  async function runWithRetry(g) {
+    for (let attempt = 1; ; attempt++) {
+      try { await runGroup(g); if (!crashed(g) || attempt >= 2) return; }
+      catch (e) { if (!CRASH_RE.test(String(e.message)) || attempt >= 2) throw e; }
+      log(`browser crash in ${g.dev.id} ${modeOf(g.v)} ${g.p.key} – relaunching ${g.dev.browser} and retrying the context`);
+      dropGroup(g);
+      await browsers[g.dev.browser]?.close().catch(() => {}); browsers[g.dev.browser] = null;
+    }
+  }
+  for (const dev of devices) {
+    const queue = groups.filter((g) => g.dev === dev);
+    await Promise.all(Array.from({ length: Math.min(CONC, queue.length) }, async () => { while (queue.length) { const g = queue.shift(); try { await runWithRetry(g); } catch (e) { log("context failed", g.dev.id, g.p.key, String(e.message).split("\n")[0]); for (const [name, rawPath] of g.p.pages) results.push({ device: g.dev.id, persona: g.p.key, role: g.p.role, page: name, path: fillPath(rawPath, S?.vars), mode: modeOf(g.v), error: String(e.message).slice(0, 200), issues: [{ kind: "page-error", sel: "context", msg: String(e.message).split("\n")[0].slice(0, 200) }] }); } } }));
+    await browsers[dev.browser]?.close().catch(() => {}); browsers[dev.browser] = null;
+    log(`device ${dev.id} done (${done}/${total})`);
+  }
 
   // ---------------------------------------------------------------------------------------------- report
   const finished = new Date().toISOString();
@@ -248,7 +271,7 @@ try {
   console.error("FATAL", e?.stack || e);
   exitCode = 2;
 } finally {
-  for (const b of Object.values(browsers)) await b.close().catch(() => {});
+  for (const b of Object.values(browsers)) await b?.close().catch(() => {});
   if (needUsers && USERS === "setup") {
     try { const left = await cleanupUsers({ stateFile: args.state || DEFAULT_STATE }); log("throwaway users left:", left.users, JSON.stringify(left)); if (left.users) exitCode = exitCode || 3; }
     catch (e) { console.error("CLEANUP FAILED — run `node scripts/mobile-users.mjs cleanup`:", e.message); exitCode = 3; }
