@@ -131,9 +131,18 @@
 @media (max-width: 359px) { .toolsActions { grid-template-columns: repeat(2, minmax(0, 1fr)); } .placementTools .toolsActions button { flex-direction: row; gap: 6px; min-height: 48px; } }
 /* Landscape phones: side card on the left so the map stays visible */
 @media (max-height: 480px) and (min-width: 480px) {
-  .placementTools { align-self: flex-start; width: min(360px, 52%); }
+  /* Only ~130px of height on an iPhone SE in landscape: one row of five actions (incl. «Platzieren») so nothing scrolls away. */
+  .placementTools { align-self: flex-start; width: min(400px, 58%); gap: 6px; padding: 2px 10px 10px; }
   .toolsHint { display: none; }
-  .placementTools .toolsActions button { min-height: 48px; }
+  .toolsGrip { height: 18px; }
+  .toolsHead { min-height: 24px; padding-top: 4px; }
+  .toolsHead strong { font-size: 14px; }
+  .toolsActions, .toolsActions[data-count="5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .toolsActions[data-count="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .placementTools .toolsActions button { min-height: 52px; font-size: 11px; }
+  .placementTools .toolsActions .placeConfirm { grid-column: auto; flex-direction: column; gap: 2px; min-height: 52px; border-radius: var(--radius-lg); font-size: 11px; }
+  /* Position fields (behind the handle) push the actions down: keep the actions on screen, the fields scroll. */
+  .placementTools[data-expanded="true"] .toolsPosition { order: 1; }
 }
 /* Tablets / desktop: compact centred card, everything in view, no handle */
 @media (min-width: 768px) {

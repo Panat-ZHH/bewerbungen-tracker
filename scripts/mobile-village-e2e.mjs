@@ -266,6 +266,8 @@ async function flow(device, orient) {
   const target = await tapFreeTile(page);
   check(target !== null, `${N}: tapping a free tile moves the ghost there`, JSON.stringify(target));
   await tap(page, action(tools(page), "Drehen"));
+  // after a tile tap + turn, the five actions must still be on screen (landscape phones once scrolled «Platzieren» away)
+  checkPanel(`${N} placing (after tap + turn)`, await layout(page, '[aria-label="Gegenstand platzieren"]'), ["Drehen", "Verschieben", "Entfernen", "Abbrechen", "Platzieren"]);
   await tap(page, action(tools(page), "Platzieren"));
   await sleep(900);
   check(target && item.x === target.x && item.z === target.z && item.rotation === 1, `${N}: placed + turned on the tapped tile (server state)`, JSON.stringify(item));
