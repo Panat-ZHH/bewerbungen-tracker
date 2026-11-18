@@ -115,7 +115,7 @@ export function AvatarEditor({ name }: { name: string }) {
           <Avatar name={name} src={current} size="xl" className="h-24 w-24 text-3xl shadow-[var(--shadow-md)] lg:h-40 lg:w-40 lg:text-6xl lg:shadow-[var(--shadow-lg)]" />
           <DoodleSparkle className="absolute -right-3 -top-2 h-7 w-7 text-[var(--sun)] lg:-right-4 lg:h-9 lg:w-9" />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-[1_1_9rem]">
           <h2 id="avatar-title" className="text-heading">Profilbild</h2>
           <p className="mt-1 text-small text-muted">PNG, JPEG oder WebP bis 5 MB. Du kannst den Ausschnitt gleich anpassen.</p>
         </div>

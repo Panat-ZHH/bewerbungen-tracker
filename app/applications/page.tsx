@@ -99,8 +99,8 @@ export default function ApplicationsPage() {
             <li key={application.id}>
               <Link href={`/applications/${application.id}`} className="row-link group min-h-[4.5rem] flex-wrap justify-between gap-y-1.5">
                 <span className="min-w-0 flex-[1_1_12rem]">
-                  <span className="font-display block truncate text-[17px] font-bold tracking-[-.01em]">{application.company}</span>
-                  <span className="mt-0.5 line-clamp-2 block text-sm text-muted [overflow-wrap:anywhere]">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
+                  <span className="font-display line-clamp-2 block text-[17px] font-bold tracking-[-.01em] [hyphens:manual] [overflow-wrap:anywhere]">{application.company}</span>
+                  <span className="mt-0.5 line-clamp-2 block text-sm text-muted [hyphens:manual] [overflow-wrap:anywhere]">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <StatusBadge status={application.status} />

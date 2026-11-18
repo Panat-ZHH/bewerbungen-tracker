@@ -324,7 +324,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
       )}
 
       <nav aria-label="Hauptmenü mobil" className="bottom-nav app-bar app-bar-bottom fixed inset-x-0 bottom-0 z-30 md:hidden">
-        <ul className="mx-auto flex h-[58px] max-w-xl items-stretch px-1">
+        <ul className="mx-auto flex h-[var(--bottom-nav-row)] max-w-xl items-stretch px-1">
           {primary.map((item) => {
             const { label, href, icon: Icon } = item;
             const selected = isSelected(item);
