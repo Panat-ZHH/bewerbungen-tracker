@@ -20,7 +20,7 @@ export function ClassVillage({ goals, className }: { goals: ClassGoal[]; classNa
           return (
             <li key={g.id} className="flex flex-col items-center pb-3 text-center">
               <House stage={stage} label={`${g.title}: ${STAGE_TEXT[stage]}, ${percent} Prozent`} />
-              <span className="mt-1 line-clamp-2 text-xs font-bold leading-tight">{g.title}</span>
+              <span className="mt-1 line-clamp-2 max-w-full text-xs font-bold leading-tight [overflow-wrap:anywhere]" lang="de-CH">{g.title}</span>
               <span className="text-[11px] text-muted">{STAGE_TEXT[stage]}</span>
             </li>
           );
