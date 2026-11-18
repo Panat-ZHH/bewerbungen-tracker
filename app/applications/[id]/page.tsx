@@ -228,5 +228,5 @@ export default function ApplicationDetailPage() {
 }
 
 function DetailRow({ label, value, badge }: { label: string; value: string; badge?: ReturnType<typeof deadlineInfo> }) {
-  return <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center"><span className="w-44 shrink-0 text-sm text-muted">{label}</span><span className="flex min-w-0 flex-wrap items-center gap-2 break-words text-sm font-semibold">{value}{badge && <Badge tone={badge.tone}>{badge.label}</Badge>}</span></div>;
+  return <div className="flex flex-col gap-1 py-4 sm:flex-row sm:items-center"><span className="shrink-0 text-sm text-muted sm:w-44">{label}</span><span className="flex min-w-0 flex-wrap items-center gap-2 break-words text-sm font-semibold">{value}{badge && <Badge tone={badge.tone}>{badge.label}</Badge>}</span></div>;
 }

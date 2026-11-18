@@ -67,7 +67,7 @@ export function ClassCodeStep() {
             Deine Lehrperson gibt dir den Code. Hat deine Schule eine Lizenz, nutzt du WendApply damit über die Schule.
           </AuthTitle>
           <Field label="Klassencode" htmlFor="class-code" error={error || undefined}>
-            <Input id="class-code" value={code} onChange={(e) => { setCode(e.target.value); if (error) setError(""); }} autoComplete="off" autoCapitalize="characters" inputMode="text" placeholder="z. B. KLAS7Q2" maxLength={20} />
+            <Input id="class-code" enterKeyHint="go" autoCorrect="off" spellCheck={false} value={code} onChange={(e) => { setCode(e.target.value); if (error) setError(""); }} autoComplete="off" autoCapitalize="characters" inputMode="text" placeholder="z. B. KLAS7Q2" maxLength={20} />
           </Field>
           <div className="flex flex-wrap items-center gap-3">
             <Button type="submit" size="lg" loading={busy} icon={<School size={16} aria-hidden />}>Klasse beitreten</Button>

@@ -69,7 +69,7 @@ export default function ApplicationsPage() {
       {!isEmpty && <div className="mt-7 space-y-3">
         <label className="relative block max-w-xl">
           <Search size={17} strokeWidth={2.4} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--ink)]" />
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma oder Stelle suchen" aria-label="Firma oder Stelle suchen" className={cn(fieldClasses, "pl-10 pr-11 [&::-webkit-search-cancel-button]:hidden")} />
+          <input type="search" enterKeyHint="search" autoComplete="off" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Firma oder Stelle suchen" aria-label="Firma oder Stelle suchen" className={cn(fieldClasses, "pl-10 pr-11 [&::-webkit-search-cancel-button]:hidden")} />
           {query && (
             <button type="button" onClick={() => setQuery("")} aria-label="Suche löschen" className="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]"><X size={16} /></button>
           )}
@@ -97,10 +97,10 @@ export default function ApplicationsPage() {
         <ul className="rows mt-2 border-y-[length:var(--border-w)] border-[var(--outline)]">
           {filtered.map((application) => (
             <li key={application.id}>
-              <Link href={`/applications/${application.id}`} className="row-link group min-h-[4.5rem] justify-between">
-                <span className="min-w-0">
-                  <span className="font-display block truncate text-[17px] font-bold tracking-[-.01em]">{application.company}</span>
-                  <span className="mt-0.5 block truncate text-sm text-muted">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
+              <Link href={`/applications/${application.id}`} className="row-link group min-h-[4.5rem] flex-wrap justify-between gap-y-1.5">
+                <span className="min-w-0 flex-[1_1_12rem]">
+                  <span className="font-display line-clamp-2 block text-[17px] font-bold tracking-[-.01em] [hyphens:manual] [overflow-wrap:anywhere]">{application.company}</span>
+                  <span className="mt-0.5 line-clamp-2 block text-sm text-muted [hyphens:manual] [overflow-wrap:anywhere]">{application.position}{application.location ? ` · ${application.location}` : ""}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-2">
                   <StatusBadge status={application.status} />
