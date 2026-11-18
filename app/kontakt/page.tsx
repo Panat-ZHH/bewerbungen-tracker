@@ -14,7 +14,7 @@ export default function KontaktPage() {
       <JsonLd data={publicBreadcrumb("/kontakt")} />
       <div className="panel max-w-md p-6">
         <h2 className="text-heading">E-Mail</h2>
-        <p className="mt-2"><a className="font-semibold text-[var(--brand)] underline underline-offset-4" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+        <p className="mt-1"><a className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline underline-offset-4 [overflow-wrap:anywhere]" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
         <ButtonLink href={`mailto:${CONTACT_EMAIL}`} className="mt-4" icon={<Mail size={16} aria-hidden />}>E-Mail schreiben</ButtonLink>
       </div>
       <section aria-labelledby="anliegen"><h2 id="anliegen" className="text-heading">Wofür Sie uns schreiben können</h2>

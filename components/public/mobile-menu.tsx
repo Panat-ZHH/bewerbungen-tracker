@@ -18,13 +18,14 @@ type NavItem = { href: string; label: string };
 export function PublicMobileMenu({ items }: { items: NavItem[] }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDialogElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname();
   const lastPath = useRef(pathname);
 
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
-    if (open && !d.open) d.showModal();
+    if (open && !d.open) { d.showModal(); closeRef.current?.focus(); }
     if (!open && d.open) d.close();
     if (!open) return;
     const root = document.documentElement;
@@ -47,13 +48,13 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
         <Menu size={20} strokeWidth={2.4} aria-hidden />
         <span className="sr-only">Menü öffnen</span>
       </button>
-      <dialog ref={ref} aria-label="Menü" className="public-menu" onClose={() => setOpen(false)} onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+      <dialog ref={ref} aria-labelledby="public-menu-title" className="public-menu" onClose={() => setOpen(false)} onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
         <div className="public-menu-sheet">
           <div className="flex items-center justify-between gap-3 pb-2">
-            <p className="font-display text-lg font-extrabold tracking-[-.02em]">Menü</p>
+            <p id="public-menu-title" className="font-display text-lg font-extrabold tracking-[-.02em]">Menü</p>
             <div className="flex items-center gap-1">
               <ThemeSwitch />
-              <button type="button" onClick={() => setOpen(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] hover:bg-[var(--hover)]">
+              <button ref={closeRef} type="button" onClick={() => setOpen(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] hover:bg-[var(--hover)]">
                 <X size={20} strokeWidth={2.4} aria-hidden />
                 <span className="sr-only">Menü schliessen</span>
               </button>

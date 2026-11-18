@@ -56,7 +56,7 @@ export default function PreisePage() {
               {p.recommended && <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">Empfohlen</span>}
               <h2 id={`pkg-${p.id}`} className="text-title !text-[1.75rem]">{p.name}</h2>
               <p className="text-small mt-1 text-muted">{p.audience}</p>
-              <p className="mt-5 flex items-baseline gap-2"><span className="text-sm font-semibold">CHF</span><span className="num-big !text-5xl">{chf(p.pricePerYear)}</span><span className="text-sm text-muted">pro Jahr</span></p>
+              <p className="mt-5 flex flex-wrap items-baseline gap-x-2"><span className="text-sm font-semibold">CHF</span><span className="num-big !text-[clamp(2rem,13vw,3rem)]">{chf(p.pricePerYear)}</span><span className="text-sm text-muted">pro Jahr</span></p>
               <p className="mt-2 text-[15px] font-semibold">bis {p.maxStudents} Schülerinnen und Schüler</p>
               <p className="text-small mt-1 text-muted">entspricht ab CHF {chf(perStudentYear(p), 2)} pro Schüler und Jahr</p>
               <ul className="mt-5 flex-1 space-y-2.5 text-[15px]">
@@ -86,7 +86,7 @@ export default function PreisePage() {
           <div>
             <h3 id="pkg-solo" className="text-title flex items-center gap-2 !text-[1.75rem]"><Sparkles size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />Einzelabo</h3>
             <p className="text-small mt-1 text-muted">1 Schüleraccount</p>
-            <p className="mt-4 flex items-baseline gap-2" data-solo-price><span className="num-big !text-4xl">CHF 4.90</span><span className="text-sm text-muted">pro Monat</span></p>
+            <p className="mt-4 flex flex-wrap items-baseline gap-x-2" data-solo-price><span className="num-big !text-4xl">CHF 4.90</span><span className="text-sm text-muted">pro Monat</span></p>
             <p className="text-small mt-1 text-muted">oder CHF 49 pro Jahr (2 Monate gratis)</p>
           </div>
           <ul className="space-y-2 text-[15px]">
@@ -99,7 +99,7 @@ export default function PreisePage() {
           <div>
             <h3 id="pkg-family" className="text-title flex items-center gap-2 !text-[1.75rem]"><Heart size={26} strokeWidth={2.2} aria-hidden className="text-[var(--brand)]" />{FAMILY.name}</h3>
             <p className="text-small mt-1 text-muted">{FAMILY.seatsChildren} Schüleraccount + {FAMILY.seatsParents} Elternaccount</p>
-            <p className="mt-4 flex items-baseline gap-2" data-family-price><span className="num-big !text-4xl">{intervalPriceText(fam, "month")}</span></p>
+            <p className="mt-4 flex flex-wrap items-baseline gap-x-2" data-family-price><span className="num-big !text-4xl">{intervalPriceText(fam, "month")}</span></p>
             <p className="text-small mt-1 text-muted">oder {intervalPriceText(fam, "year")} ({savingText(fam)})</p>
           </div>
           <ul className="space-y-2 text-[15px]">

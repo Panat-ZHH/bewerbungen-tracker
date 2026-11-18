@@ -1,0 +1,39 @@
+/* Public pages (PublicShell): responsive guards for phones, landscape and large text. Scoped to .public-site, tokens only. */
+/* In @layer components (same as the design-system classes), so Tailwind utilities on a page still win. */
+@layer components {
+  /* Header/footer keep clear of notches and rounded corners in landscape (viewport-fit=cover). */
+  .public-header-row, .public-footer-grid, .public-footer-base {
+    padding-left: max(1rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+  @media (min-width: 640px) {
+    .public-header-row, .public-footer-grid, .public-footer-base {
+      padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+      padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+    }
+  }
+  .public-footer-base { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+
+  /* Grid items may shrink below their longest word: one-column grids on phones otherwise grow to the widest
+     card (big prices, «Familienpaket» at 200 % text) and push content past the screen edge. */
+  .public-site main .grid > * { min-width: 0; }
+
+  /* Long German compounds wrap instead of overflowing (html lang = de-CH, so hyphenation is German). */
+  .public-site main :is(h1, h2, h3, h4, .marker, .sticker, dt, dd, figcaption, summary) { overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
+  @media (max-width: 640px) {
+    .public-site main :is(h3, h4, .marker, .sticker, summary) { overflow-wrap: anywhere; }
+  }
+
+  /* Images and embedded media never exceed their column. */
+  .public-site main :is(img, video, svg, iframe) { max-width: 100%; }
+  .public-site main img { height: auto; }
+
+  /* Footer link lists: two columns while they fit, one column on narrow screens or with large text (rem-based). */
+  .public-footer-links { grid-template-columns: repeat(auto-fit, minmax(min(100%, 10.5rem), 1fr)); }
+  .public-footer-links > li { min-width: 0; overflow-wrap: break-word; }
+  .public-site footer :is(p, div) { overflow-wrap: break-word; }
+
+  /* Stickers (labels like «Empfohlen», «Preise für Schulen») wrap with large text instead of running off the card. */
+  .public-site main .sticker { max-width: 100%; white-space: normal; }
+  .public-site main .sticker.absolute { max-width: calc(100% - 2.5rem); }
+}
