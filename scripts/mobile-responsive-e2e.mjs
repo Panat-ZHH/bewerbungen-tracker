@@ -13,7 +13,7 @@
 // Options: --base=URL --devices=a,b|--quick --personas=a,b --pages=a,b --themes=light,dark --all-dark --all-scale --no-scale
 //          --users=setup(default)|reuse|none (setup creates throwaway users and ALWAYS deletes them in finally{}; reuse reads
 //          the state file of `node scripts/mobile-users.mjs setup`) --concurrency=4 --label=name --out=<dir for report/json/shots>
-//          --shots=0 (no screenshots) --findings=<dir> (write <OWNER>.md per owner) --no-fail (always exit 0)
+//          --shots=0 (no screenshots) --shotdir=<dir> --findings=<dir> (write <OWNER>.md per owner) --no-fail (always exit 0)
 // Env: PLAYWRIGHT (playwright-core >= 1.65 index.mjs; WebKit build webkit-2388), CHROME (Chrome binary for Chromium).
 // Live role pages use the production Supabase project with throwaway users `probe-rel-mobile-*@wendapply-probe.invalid`
 // (see scripts/mobile-users.mjs). Never run it against production URLs with --users=setup unless you mean it.
@@ -139,7 +139,7 @@ async function login(browser, userKey) {
 // ------------------------------------------------------------------------------------------------ run
 const results = [];
 const started = new Date().toISOString();
-const shotRoot = join(OUT, "shots");
+const shotRoot = args.shotdir || join(OUT, "shots");
 let browsers = {};
 let exitCode = 0;
 try {
@@ -162,6 +162,17 @@ try {
     const mode = modeOf(v);
     const ctx = await browser.newContext({ ...dev.options, colorScheme: v.theme, locale: "de-CH", timezoneId: "Europe/Zurich", reducedMotion: "reduce", storageState: p.user ? storage.get(p.user) : undefined });
     if (v.scale !== 100) await ctx.addInitScript((scale) => { const add = () => { const st = document.createElement("style"); st.textContent = `html{font-size:${scale}% !important;-webkit-text-size-adjust:${scale}% !important;text-size-adjust:${scale}% !important}`; (document.head || document.documentElement).appendChild(st); }; if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", add); else add(); }, v.scale);
+    // Production CSP contains `upgrade-insecure-requests`; WebKit (unlike Chromium) also upgrades http://localhost, so every
+    // CSS/font/JS request of a local `next start` fails with a TLS error. Drop only that directive for plain-http targets.
+    if (dev.browser === "webkit" && BASE.startsWith("http://")) await ctx.route("**/*", async (route) => {
+      if (route.request().resourceType() !== "document") return route.continue();
+      try {
+        const resp = await route.fetch({ maxRedirects: 0 });
+        const headers = { ...resp.headers() };
+        for (const k of Object.keys(headers)) if (/^content-security-policy/i.test(k)) headers[k] = headers[k].replace(/upgrade-insecure-requests;?\s*/gi, "");
+        return route.fulfill({ response: resp, headers });
+      } catch { return route.continue(); }
+    });
     const page = await ctx.newPage();
     if (dev.safeArea && dev.browser === "chromium") {
       const cdp = await ctx.newCDPSession(page);
