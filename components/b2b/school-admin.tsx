@@ -211,7 +211,7 @@ function AttachClassForm({ schoolId, full, onDone }: { schoolId: string; full: b
     <form onSubmit={submit} className="mt-4 space-y-2" noValidate>
       <Field label="Klasse hinzufügen" htmlFor={id} hint={full ? "Das Paket ist voll. Wechsle unten das Paket, um weitere Klassen zuzuordnen." : "Den Klassencode findet die Lehrperson in ihrer Klasse. Die Schüler:innen der Klasse zählen dann zur Lizenz."}>
         <div className="flex flex-wrap gap-2">
-          <Input id={id} aria-describedby={msg ? msgId : undefined} aria-invalid={msg?.tone === "danger" || undefined} value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} className="max-w-48 uppercase" placeholder="z. B. AB12CD" />
+          <Input id={id} enterKeyHint="go" aria-describedby={msg ? msgId : undefined} aria-invalid={msg?.tone === "danger" || undefined} value={code} onChange={(e) => setCode(e.target.value)} autoComplete="off" autoCapitalize="characters" spellCheck={false} className="max-w-48 uppercase" placeholder="z. B. AB12CD" />
           <Button type="submit" variant="secondary" loading={busy} disabled={full} icon={<Plus size={16} />}>Zuordnen</Button>
         </div>
       </Field>

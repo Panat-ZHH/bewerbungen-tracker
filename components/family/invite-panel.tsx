@@ -122,7 +122,7 @@ export function JoinForm({ initialCode = "", onJoined, title = "Code eingeben", 
       {!bare && <h2 id={headingId} className="text-heading"><KeyRound size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{title}</h2>}
       {intro && <p className="text-body text-muted">{intro}</p>}
       <Field label={label} htmlFor={inputId} error={error || undefined}>
-        <Input id={inputId} value={formatInviteCode(code)} onChange={(e) => setCode(normalizeInviteCode(e.target.value))} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder={FAMILY_COPY.join.placeholder} className="font-display text-lg tracking-[.12em]" />
+        <Input id={inputId} enterKeyHint="go" value={formatInviteCode(code)} onChange={(e) => setCode(normalizeInviteCode(e.target.value))} autoComplete="off" autoCapitalize="characters" spellCheck={false} placeholder={FAMILY_COPY.join.placeholder} className="font-display text-lg tracking-[.12em]" />
       </Field>
       <Button type="submit" loading={busy} variant={primary === false ? "secondary" : "primary"} {...(primary ? { "data-primary-action": "" } : {})}>{submitLabel}</Button>
     </form>

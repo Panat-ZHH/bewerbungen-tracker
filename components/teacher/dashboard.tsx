@@ -154,8 +154,8 @@ export function TeacherDashboardView() {
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Klasse erstellen" description="Danach lädst du die Schüler:innen mit Klassencode, Link oder QR-Code ein.">
         <form onSubmit={submit} className="space-y-4">
-          <Field label="Klassenname" htmlFor="tc-name"><Input id="tc-name" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
-          <Field label="Schuljahr (optional)" htmlFor="tc-year"><Input id="tc-year" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>
+          <Field label="Klassenname" htmlFor="tc-name"><Input id="tc-name" enterKeyHint="next" className="text-base! sm:text-base!" data-autofocus value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. 10b Wirtschaft" maxLength={80} /></Field>
+          <Field label="Schuljahr (optional)" htmlFor="tc-year"><Input id="tc-year" enterKeyHint="done" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} placeholder="2026/27" maxLength={20} /></Field>
           {formError && <p role="alert" className="text-small text-[var(--danger-fg)]">{formError}</p>}
           <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={() => setOpen(false)}>Abbrechen</Button><Button type="submit" loading={saving}>Erstellen</Button></div>
         </form>

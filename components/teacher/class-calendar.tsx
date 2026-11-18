@@ -82,9 +82,9 @@ export function ClassCalendar({ classId, archived = false }: { classId: string; 
         <Card className="max-w-2xl space-y-4 p-4 sm:p-5">
           <div><h2 className="text-heading">Neue Frist</h2><p className="text-small mt-1 text-muted">Alle Schülerinnen und Schüler der Klasse sehen die Frist auf ihrer Klassenseite.</p></div>
           <form onSubmit={submit} className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2" noValidate>
-            <Field label="Titel" htmlFor="dl-title"><Input id="dl-title" className="text-base! sm:text-base!" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z. B. Dossier abgeben" maxLength={120} /></Field>
+            <Field label="Titel" htmlFor="dl-title"><Input id="dl-title" enterKeyHint="next" className="text-base! sm:text-base!" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z. B. Dossier abgeben" maxLength={120} /></Field>
             <Field label="Datum" htmlFor="dl-date"><Input id="dl-date" type="date" className="text-base! sm:text-base!" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
-            <Field label="Hinweis (optional)" htmlFor="dl-note" className="sm:col-span-2"><Input id="dl-note" className="text-base! sm:text-base!" value={note} onChange={(e) => setNote(e.target.value)} placeholder="z. B. bis 12 Uhr im Sekretariat" maxLength={300} /></Field>
+            <Field label="Hinweis (optional)" htmlFor="dl-note" className="sm:col-span-2"><Input id="dl-note" enterKeyHint="done" className="text-base! sm:text-base!" value={note} onChange={(e) => setNote(e.target.value)} placeholder="z. B. bis 12 Uhr im Sekretariat" maxLength={300} /></Field>
             {formError && <p role="alert" className="text-small text-[var(--danger-fg)] sm:col-span-2">{formError}</p>}
             <div className="sm:col-span-2"><Button type="submit" className="min-h-11 sm:min-h-11" icon={<Plus size={15} />} loading={busy}>Frist speichern</Button></div>
           </form>

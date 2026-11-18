@@ -46,8 +46,8 @@ export function ClassSettingsPanel({ cls, onChanged }: { cls: DashboardClass; on
       <Card className="h-fit space-y-4 p-4 sm:p-5">
         <h2 className="text-heading">Klasse</h2>
         <form onSubmit={save} className="space-y-3">
-          <Field label="Klassenname" htmlFor="cs2-name"><Input id="cs2-name" className="text-base! sm:text-base!" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} /></Field>
-          <Field label="Schuljahr" htmlFor="cs2-year"><Input id="cs2-year" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} maxLength={20} /></Field>
+          <Field label="Klassenname" htmlFor="cs2-name"><Input id="cs2-name" enterKeyHint="next" className="text-base! sm:text-base!" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} /></Field>
+          <Field label="Schuljahr" htmlFor="cs2-year"><Input id="cs2-year" enterKeyHint="done" className="text-base! sm:text-base!" value={year} onChange={(e) => setYear(e.target.value)} maxLength={20} /></Field>
           <Button type="submit" className="min-h-11 sm:min-h-11" loading={busy === "save"}>Speichern</Button>
         </form>
         {error && <p role="alert" className="text-small text-[var(--danger-fg)]">{error}</p>}
@@ -78,7 +78,7 @@ export function ClassSettingsPanel({ cls, onChanged }: { cls: DashboardClass; on
               ))}</ul>
             )}
             <form onSubmit={addTeacher} className="flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-start">
-              <Field label="Co-Lehrperson per E-Mail hinzufügen" htmlFor="co-email" error={coError} hint="Die Person braucht bereits ein Lehrpersonen-Konto in WendApply." className="sm:flex-1"><Input id="co-email" type="email" className="text-base! sm:text-base!" autoComplete="off" value={coEmail} onChange={(e) => setCoEmail(e.target.value)} placeholder="kollegin@schule.ch" aria-invalid={!!coError} /></Field>
+              <Field label="Co-Lehrperson per E-Mail hinzufügen" htmlFor="co-email" error={coError} hint="Die Person braucht bereits ein Lehrpersonen-Konto in WendApply." className="sm:flex-1"><Input id="co-email" enterKeyHint="send" inputMode="email" autoCapitalize="none" spellCheck={false} type="email" className="text-base! sm:text-base!" autoComplete="off" value={coEmail} onChange={(e) => setCoEmail(e.target.value)} placeholder="kollegin@schule.ch" aria-invalid={!!coError} /></Field>
               <Button type="submit" variant="secondary" className="min-h-11 sm:mt-[1.65rem] sm:min-h-11" icon={<UserPlus size={15} />} loading={busy === "co"}>Hinzufügen</Button>
             </form>
           </>

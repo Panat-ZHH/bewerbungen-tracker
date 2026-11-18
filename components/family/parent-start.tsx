@@ -80,11 +80,11 @@ function CreateFamily({ onChanged }: { onChanged: () => void }) {
         {error && <StatusMessage tone="danger">{error}</StatusMessage>}
         {needsName && (
           <Field label={FAMILY_COPY.step1.firstNameLabel} htmlFor="parent-first-name" hint={FAMILY_COPY.step1.firstNameHint} error={nameError || undefined}>
-            <Input id="parent-first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} autoComplete="given-name" required />
+            <Input id="parent-first-name" enterKeyHint="next" value={firstName} onChange={(e) => setFirstName(e.target.value)} maxLength={60} autoComplete="given-name" required />
           </Field>
         )}
         <Field label={FAMILY_COPY.step1.nameLabel} htmlFor="family-name" hint={FAMILY_COPY.step1.nameHint}>
-          <Input id="family-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="off" placeholder="Meine Familie" />
+          <Input id="family-name" enterKeyHint="done" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="off" placeholder="Meine Familie" />
         </Field>
         <Button type="submit" loading={busy} data-primary-action="">{FAMILY_COPY.step1.cta}</Button>
       </form>

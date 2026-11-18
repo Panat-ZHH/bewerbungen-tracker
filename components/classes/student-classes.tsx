@@ -88,7 +88,7 @@ export function StudentClasses() {
     <form onSubmit={lookup}>
       <Field label="Klassencode" htmlFor="join-code" hint="Code oder Einladungslink bekommst du von deiner Lehrperson." error={joinError}>
         <div className="flex flex-col gap-2 sm:flex-row">
-          <Input id="join-code" value={code} onChange={(e) => setCode(e.target.value)} placeholder="z. B. AB12CD" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! sm:max-w-sm sm:text-base!" />
+          <Input id="join-code" enterKeyHint="go" value={code} onChange={(e) => setCode(e.target.value)} placeholder="z. B. AB12CD" autoCapitalize="characters" autoComplete="off" spellCheck={false} className="text-base! sm:max-w-sm sm:text-base!" />
           <Button type="submit" className="min-h-11 shrink-0 sm:min-h-11" loading={joining && !pending}>Klasse beitreten</Button>
         </div>
       </Field>

@@ -112,7 +112,7 @@ export function ClassGoalsPanel({ classId, archived = false }: { classId: string
 
       <Modal open={editing !== null} onClose={() => !saving && setEditing(null)} title={editing === "new" ? "Klassenziel erstellen" : "Klassenziel bearbeiten"} description="Die Klasse sieht Titel, Beschreibung und wie viele das Ziel schon erreicht haben, nie wer.">
         <form onSubmit={save} className="space-y-4" noValidate>
-          <Field label="Titel" htmlFor="goal-title" hint={`${draft.title.length}/${GOAL_TITLE_MAX} Zeichen`}><Input id="goal-title" data-autofocus className="text-base! sm:text-base!" maxLength={GOAL_TITLE_MAX} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="z. B. Alle schnuppern zweimal bis Ende Januar" /></Field>
+          <Field label="Titel" htmlFor="goal-title" hint={`${draft.title.length}/${GOAL_TITLE_MAX} Zeichen`}><Input id="goal-title" enterKeyHint="next" data-autofocus className="text-base! sm:text-base!" maxLength={GOAL_TITLE_MAX} value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} placeholder="z. B. Alle schnuppern zweimal bis Ende Januar" /></Field>
           <Field label="Was wird gezählt?" htmlFor="goal-metric" hint={metric?.hint}>
             <Select id="goal-metric" value={draft.metric} onChange={(e) => setDraft({ ...draft, metric: e.target.value as GoalMetric })}>{GOAL_METRICS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}</Select>
           </Field>
