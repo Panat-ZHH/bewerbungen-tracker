@@ -50,7 +50,7 @@ function InviteContent({ code }: { code: string }) {
 
   return (
     <Card className="animate-rise relative mx-auto mt-4 flex max-w-md flex-col items-center p-6 text-center shadow-[var(--shadow-lg)] sm:p-8">
-      <span className="sticker tilt-l3 absolute -left-2 -top-3.5">Einladung</span>
+      <span className="sticker tilt-l3 absolute -left-[8px] -top-3.5">Einladung</span>
       <Avatar name={inviter.displayName} size="xl" />
       <h1 className="text-title mt-5 max-w-full break-words">{inviter.displayName}</h1>
       <p className="mt-2 text-body text-muted">möchte mit dir bei WendApply befreundet sein und gemeinsam dranbleiben.</p>
