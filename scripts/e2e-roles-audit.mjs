@@ -57,7 +57,10 @@ function expected(persona, path) {
   // Settings (export / delete) stay reachable before a role is chosen (access model G10); everything else asks for the role.
   if (persona === "norole") return path === "/settings" ? "/settings" : /^\/auth\/role/;
   const studentOnly = STUDENT_PAGES.includes(path);
-  if (persona === "student") return TEACHER_PAGES.includes(path) ? "/dashboard" : path;
+  if (persona === "student") {
+    if (path === "/classes/c1") return "/classes"; // pupils see their classes on /classes, not the teacher class view (UX schueler-23)
+    return TEACHER_PAGES.includes(path) ? "/dashboard" : path;
+  }
   if (persona === "teacher") {
     if (path === "/classes") return "/teacher";
     if (path === "/classes/c1") return "/teacher/classes/c1";
