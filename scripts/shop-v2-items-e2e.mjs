@@ -10,6 +10,8 @@ const session = { access_token: "a.b.c", refresh_token: "r", token_type: "bearer
 const apps = Array.from({ length: 3 }, (_, i) => ({ id: "a" + i, user_id: "u1", company: "Firma " + i, position: "Job", location: "Bern", status: "applied", category: "software", currency: "CHF", deadline: null, created_at: `2026-09-0${i + 1}`, updated_at: "2026-10-01", notes: "", job_url: "" }));
 const oldTypes = ["road", "flowers", "tree", "bench", "fountain", "amusement_park"];
 const results = [];
+// Phones: the village placement sheet starts collapsed (mobile-village); open it before typing X/Z, as a user taps «Position eingeben».
+const expandPlacement = async (page) => { const g = page.locator('[aria-label="Gegenstand platzieren"] button[aria-expanded="false"]'); if (await g.count()) await g.first().click(); };
 const check = (name, ok, info = "") => { results.push({ name, ok: !!ok, info }); console.log(ok ? "PASS" : "FAIL", name, info); };
 
 /** catalogue: "full" (migration applied), "old" (only the 6 original rows), "unreadable" (select fails → buy decides). */
@@ -73,7 +75,7 @@ async function run(name, vp) {
         await shot(page, "1-shop-autos");
         await page.getByRole("button", { name: /Ferraro-Sportwagen kaufen/ }).click(); await page.waitForTimeout(1000);
         check(`${name}: Ferraro bought, server price deducted`, st.balance === 1900 && st.items[0]?.itemType === "car_ferrari", `balance=${st.balance}`);
-        await page.getByLabel("Position X").fill("20"); await page.getByLabel("Position Z").fill("0"); await page.waitForTimeout(300);
+        await expandPlacement(page); await page.getByLabel("Position X").fill("20"); await page.getByLabel("Position Z").fill("0"); await page.waitForTimeout(300);
         await page.getByRole("button", { name: /^Drehen/ }).click(); await page.waitForTimeout(300);
         check(`${name}: Ferraro placed rotated`, await confirm(page) && st.items[0].x === 20 && st.items[0].rotation === 1, JSON.stringify(st.items[0]));
         await shot(page, "2-ferraro-placed");
@@ -81,14 +83,14 @@ async function run(name, vp) {
         await tabs.getByRole("button", { name: /E-Roller/ }).click(); await page.waitForTimeout(500);
         await shot(page, "3-shop-e-roller");
         await page.getByRole("button", { name: /Retro-E-Moped Himmelblau kaufen/ }).click(); await page.waitForTimeout(1000);
-        await page.getByLabel("Position X").fill("22"); await page.getByLabel("Position Z").fill("0"); await page.waitForTimeout(300);
+        await expandPlacement(page); await page.getByLabel("Position X").fill("22"); await page.getByLabel("Position Z").fill("0"); await page.waitForTimeout(300);
         check(`${name}: scooter placed`, await confirm(page) && st.items[1]?.x === 22, JSON.stringify(st.items[1]));
         // move the car (same flow as a drag drop: map_shop_place with a new position)
         const item = page.getByRole("button", { name: /Ferraro-Sportwagen #1/ }).locator("visible=true");
         if (!(await item.count())) await openShop();
         await item.first().click(); await page.waitForTimeout(300);
         await page.getByRole("button", { name: /Verschieben/ }).locator("visible=true").last().click(); await page.waitForTimeout(500);
-        await page.getByLabel("Position X").fill("24"); await page.getByLabel("Position Z").fill("2"); await page.waitForTimeout(300);
+        await expandPlacement(page); await page.getByLabel("Position X").fill("24"); await page.getByLabel("Position Z").fill("2"); await page.waitForTimeout(300);
         await page.getByRole("button", { name: /^Drehen/ }).click(); await page.waitForTimeout(300);
         check(`${name}: car moved + rotated back`, await confirm(page) && st.items[0].x === 24 && st.items[0].rotation === 2, JSON.stringify(st.items[0]));
         const real = logs.filter((l) => !/favicon|Failed to load resource.*(404|400)/.test(l));

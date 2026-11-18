@@ -51,6 +51,15 @@ function ApplicationMap() {
   function selectHouse(id: string | null) { if (id) closeTopPanel(); setShopOpen(false); setSelectedId(id); }
   function selectShopItem(id: string) { closeTopPanel(); shop.select(id); }
   // … and opening a chip panel closes the shop, the house sheet and the item / placement tools.
+  // «Laden» toggles what the user sees: if the sheet is hidden (closed, or replaced by the item tools on a phone) it opens and
+  // the other panels close – one panel at a time, as with «Suche». Placed items are saved, so deselecting loses nothing.
+  function toggleShop() {
+    if (shopSheetOpen) { setShopOpen(false); return; }
+    closeTopPanel();
+    setSelectedId(null);
+    if (isCompactMap() || shop.placement) shop.clearSelection();
+    setShopOpen(true);
+  }
   function onTopPanelOpen() {
     if (!isCompactMap()) return;
     setShopOpen(false);
@@ -142,7 +151,7 @@ function ApplicationMap() {
           </>}
           right={<>
             <MapBadge label={`Punktestand: ${balance ?? "unbekannt"}`}><Coins size={16} aria-hidden /><strong>{balance ?? "–"}</strong></MapBadge>
-            <button type="button" className={`${layout.chip} ${overlayClasses.sticker}`} aria-expanded={shopSheetOpen} onClick={() => { if (!shopOpen) closeTopPanel(); setSelectedId(null); setShopOpen(!shopOpen); }}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
+            <button type="button" className={`${layout.chip} ${overlayClasses.sticker}`} aria-expanded={shopSheetOpen} onClick={toggleShop}><ShoppingBag size={16} aria-hidden /><span className={layout.chipLabel}>Laden</span></button>
             <Link href="/applications/new" className={overlayClasses.iconButton} aria-label="Bewerbung eintragen" title="Bewerbung eintragen"><Plus size={18} aria-hidden /></Link>
           </>}
         />

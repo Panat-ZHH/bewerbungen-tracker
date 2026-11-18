@@ -56,7 +56,14 @@ let passes = 0;
 const check = (ok, text, info = "") => { console.log(ok ? "PASS" : "FAIL", text, ok ? "" : info); if (ok) passes++; else failures++; return ok; };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const browsers = {};
+const contexts = new Set();
+/** Harness hygiene (round 5): a crashed case left its context open, and one browser served 24+ heavy WebGL contexts on a loaded
+ *  machine until Chromium died ("browser has been closed") or timed out. Each case now closes its leftovers, and each device gets
+ *  a fresh browser. */
+async function closeContexts() { for (const c of [...contexts]) { contexts.delete(c); await c.close().catch(() => {}); } }
+async function freshBrowser(engine) { await closeContexts(); if (browsers[engine]) { await browsers[engine].close().catch(() => {}); delete browsers[engine]; } }
 async function browserFor(engine) {
+  if (browsers[engine] && !browsers[engine].isConnected()) delete browsers[engine];
   if (!browsers[engine]) browsers[engine] = engine === "webkit" ? await pwWebkit.webkit.launch() : await pwChromium.chromium.launch({ executablePath: CHROME, args: ["--use-gl=angle", "--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--ignore-gpu-blocklist"] });
   return browsers[engine];
 }
@@ -73,6 +80,7 @@ async function open(device, orient, dark, { extraApps = [], viewport: forced, pa
   const browser = await browserFor(device.engine);
   const viewport = forced ?? size(device, orient);
   const ctx = await browser.newContext({ viewport, isMobile: true, hasTouch: true, deviceScaleFactor: viewport.width <= 640 ? 2 : 1, colorScheme: dark ? "dark" : "light" });
+  contexts.add(ctx); ctx.on("close", () => contexts.delete(ctx));
   await ctx.addInitScript(([s, theme]) => {
     localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s));
     localStorage.setItem("wendapply-theme", theme);
@@ -415,7 +423,7 @@ async function flow(device, orient, dark = false) {
 async function exclusive(device, viewport) {
   const N = `${device.id} ${viewport.width}x${viewport.height} panels`;
   const palaceApp = { ...apps[0], id: "p1", company: "Palast AG", status: "offer", created_at: "2026-08-01" };
-  const { ctx, page, logs } = await open(device, "portrait", false, { extraApps: [palaceApp], viewport });
+  const { ctx, page, st, logs } = await open(device, "portrait", false, { extraApps: [palaceApp], viewport });
   const palace = page.getByTestId("palace-celebration");
   check(await palace.isVisible(), `${N}: palace celebration shows on the plain map`);
   const search = page.locator('[data-map-panel="search"]');
@@ -445,6 +453,14 @@ async function exclusive(device, viewport) {
     const pr = (await palace.isVisible()) ? await palace.boundingBox() : null; const tr = await selectedTools(page).boundingBox();
     check(!pr || !(pr.x < tr.x + tr.width && pr.x + pr.width > tr.x && pr.y < tr.y + tr.height && pr.y + pr.height > tr.y), `${N}: palace card does not cover the selected-item panel`, JSON.stringify({ pr, tr }));
   }
+  // V1 (AUDIT-C / BUGS round 2): «Laden» while a placed item is selected opens the shop and closes the item panel; the item stays placed.
+  check(await selectedTools(page).isVisible(), `${N}: the placed item stays selected (item panel open)`);
+  const placed = st.items.at(-1);
+  await tap(page, page.getByRole("button", { name: "Laden", exact: true }));
+  await page.locator('[data-sheet="shop"]').waitFor({ timeout: 8000 }).catch(() => {});
+  const open3 = await page.evaluate(() => [...document.querySelectorAll("[data-map-panel]")].map((e) => e.getAttribute("data-map-panel")));
+  check(await page.locator('[data-sheet="shop"]').isVisible() && !(await selectedTools(page).isVisible()), `${N}: «Laden» with a placed item selected opens the shop (item panel closes)`, JSON.stringify(open3));
+  check(placed && placed.x !== null && target && placed.x === target.x && placed.z === target.z, `${N}: the placed item is still placed after opening «Laden»`, JSON.stringify(placed));
   await tap(page, page.locator("button[aria-expanded]", { hasText: "Suche" }).first());
   await sleep(500);
   const open2 = await page.evaluate(() => [...document.querySelectorAll("[data-map-panel]")].map((e) => e.getAttribute("data-map-panel")));
@@ -484,17 +500,24 @@ try {
     const small = [{ id: "w320", engine: "webkit" }, { id: "w320", engine: "chromium" }];
     for (const d of [...small.map((x) => ({ ...x, viewport: { width: 320, height: 568 } })), ...DEVICES.filter((d) => d.id !== "ipad").map((d) => ({ ...d, viewport: size(d, "portrait") }))]) {
       try { await exclusive(d, d.viewport); } catch (error) { check(false, `${d.id} ${d.engine} panels: crashed`, String(error).slice(0, 300)); }
+      await closeContexts();
     }
   }
   if (run("shots")) for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of [false, true]) await shots(device, orient, dark);
-  if (run("flow")) for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of THEMES) {
-    try { await flow(device, orient, dark); } catch (error) { check(false, `${device.id} ${orient} ${dark ? "dark" : "light"}: flow crashed`, String(error).slice(0, 300)); }
+  if (run("flow")) for (const device of DEVICES) {
+    await freshBrowser(device.engine);
+    for (const orient of ORIENTS) for (const dark of THEMES) {
+      try { await flow(device, orient, dark); } catch (error) { check(false, `${device.id} ${orient} ${dark ? "dark" : "light"}: flow crashed`, String(error).slice(0, 300)); }
+      await closeContexts();
+    }
   }
   if (run("views")) for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of THEMES) {
     try { await friendIsland(device, orient, dark); } catch (error) { check(false, `${device.id} ${orient}: friend island crashed`, String(error).slice(0, 300)); }
+    await closeContexts();
   }
 } finally {
-  for (const b of Object.values(browsers)) await b.close();
+  await closeContexts();
+  for (const b of Object.values(browsers)) await b.close().catch(() => {});
 }
 console.log(`${passes} passed, ${failures} failed`);
 console.log(failures ? `${failures} FAILED` : "ALL PASSED");
