@@ -111,8 +111,8 @@ for (const { key, vp } of VIEWPORTS) {
     check(await visible(page, "ganze Zahl zwischen 1 und 1000"), "invalid target is rejected with a message");
     await page.getByLabel("Zielwert pro Person").fill("2");
     await page.getByRole("button", { name: "Speichern" }).click();
-    check(await visible(page, "1 von 3 haben das Ziel erreicht. Zusammen: 5 Schnuppertage."), "created goal shows the class progress");
-    check(await visible(page, "Ziel: 2 Schnuppertage pro Person"), "target is shown per person");
+    check(await visible(page, "1 von 3 haben das Ziel erreicht. Zusammen: 5 Schnupperlehren."), "created goal shows the class progress");
+    check(await visible(page, "Ziel: 2 Schnupperlehren pro Person"), "target is shown per person");
     const post = state.calls.find((c) => c.goals === "POST");
     check(post && post.body.class_id === "c1" && post.body.metric === "trial_days" && post.body.target === 2, "insert sends class, metric and target", JSON.stringify(post));
     check(await page.getByRole("img", { name: /Alle schnuppern zweimal.*Mauern stehen/ }).count() === 1, "class village shows the goal house (33 % = walls)");
@@ -151,7 +151,7 @@ for (const { key, vp } of VIEWPORTS) {
     const { ctx, page } = await actor({ role: "student", rpc, vp });
     await page.goto(`${BASE}/classes`, { waitUntil: "domcontentloaded" });
     check(await visible(page, "Ziele deiner Klasse", 90000), "student class area shows the class goals");
-    check(await visible(page, "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnuppertage."), "aggregate progress is shown");
+    check(await visible(page, "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnupperlehren."), "aggregate progress is shown");
     check(await visible(page, "mindestens drei Personen"), "suppressed goal explains why no number is shown");
     check(!(await page.getByText("Anna Meier").count()), "no other student names on the page");
     check(await noOverflow(page), "no horizontal overflow");

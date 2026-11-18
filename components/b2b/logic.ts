@@ -33,7 +33,7 @@ export const PACKAGE_INFO: Record<LicencePackage, { label: string; limit: number
   starter: info("starter", "Starter"),
   professional: info("professional", "Professional"),
   enterprise: info("enterprise", "Enterprise"),
-  custom: info("custom", "Individuelles Angebot"),
+  custom: info("custom", "Individuelle Offerte"),
 };
 export const STATUS_LABEL: Record<LicenceStatus, string> = { pilot: "Pilotphase", active: "Aktiv", expired: "Abgelaufen", cancelled: "Gekündigt" };
 export function packageLabel(p: string | null | undefined): string { return (PACKAGE_INFO as Record<string, { label: string }>)[p ?? ""]?.label ?? "Kein Paket"; }
@@ -66,7 +66,7 @@ export function pilotText(days: number | null): string {
 // ---------- class goals ----------
 export type GoalMetric = "applications_sent" | "interviews" | "trial_days" | "custom";
 export const GOAL_METRICS: { value: GoalMetric; label: string; unit: [string, string]; hint: string }[] = [
-  { value: "trial_days", label: "Schnuppertage", unit: ["Schnuppertag", "Schnuppertage"], hint: "Erledigte Schnupperlehren pro Person" },
+  { value: "trial_days", label: "Schnupperlehren", unit: ["Schnupperlehre", "Schnupperlehren"], hint: "Erledigte Schnupperlehren pro Person" },
   { value: "interviews", label: "Vorstellungsgespräche", unit: ["Gespräch", "Gespräche"], hint: "Einladungen zu einem Gespräch pro Person (zählt nur bei «Status zeigen»)" },
   { value: "applications_sent", label: "Verschickte Bewerbungen", unit: ["Bewerbung", "Bewerbungen"], hint: "Sorgfältig vorbereitete und verschickte Bewerbungen pro Person" },
   { value: "custom", label: "Eigenes Ziel", unit: ["", ""], hint: "Ohne automatische Zählung: den Fortschritt besprecht ihr im Unterricht" },

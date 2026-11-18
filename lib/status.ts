@@ -109,7 +109,7 @@ export const parseTestResult = (value: unknown): TestResult | undefined => (valu
 /** Short hint under the status picker, Lehrstellen wording. */
 export const statusHints: Record<ApplicationStatus, string> = {
   saved: "Die Stelle ist dir aufgefallen, du hast noch nichts unternommen.",
-  preparing: "Du arbeitest an Lebenslauf und Anschreiben.",
+  preparing: "Du arbeitest an Lebenslauf und Motivationsschreiben.",
   applied: "Deine Bewerbung ist unterwegs.",
   schnupper_planned: "Du hast einen Schnuppertermin vereinbart. Trag unten das Datum ein.",
   schnupper_done: "Du warst schnuppern. Halte fest, wie es war.",

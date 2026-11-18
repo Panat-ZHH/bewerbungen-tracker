@@ -61,7 +61,7 @@ test("goal validation", () => {
   assert.equal(goalProblem({ ...ok, dueDate: "" }, TODAY), null);
   assert.match(goalProblem({ ...ok, target: "" }, TODAY), /pro Person/, "measured goals need a target");
   assert.equal(goalProblem({ ...ok, metric: "custom", target: "" }, TODAY), null, "custom goals may omit the target");
-  assert.equal(metricLabel("trial_days"), "Schnuppertage"); assert.equal(metricLabel("x"), "Ziel");
+  assert.equal(metricLabel("trial_days"), "Schnupperlehren"); assert.equal(metricLabel("x"), "Ziel");
 });
 
 test("goal status (target per person), caption and village house stage", () => {
@@ -75,8 +75,8 @@ test("goal status (target per person), caption and village house stage", () => {
   assert.equal(goalStatus(g({ reached: 12 })).done, true);
   assert.equal(goalStatus(g({ reached: 0, counted: 0, total: 0 })).done, false, "nobody counted is not 'done'");
   assert.equal(goalStatus(g({ reached: 15 })).reached, 12, "reached is clamped to counted");
-  assert.equal(goalCaption(goalStatus(g()), "trial_days", 10), "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnuppertage. Noch 10 Tage.");
-  assert.match(goalCaption(goalStatus(g({ total: 1 })), "trial_days", 0), /Zusammen: 1 Schnuppertag\. Heute ist der letzte Tag/);
+  assert.equal(goalCaption(goalStatus(g()), "trial_days", 10), "4 von 12 haben das Ziel erreicht. Zusammen: 7 Schnupperlehren. Noch 10 Tage.");
+  assert.match(goalCaption(goalStatus(g({ total: 1 })), "trial_days", 0), /Zusammen: 1 Schnupperlehre\. Heute ist der letzte Tag/);
   assert.match(goalCaption(goalStatus(g({ reached: 12 })), "trial_days", 3), /^Geschafft! Alle 12/);
   assert.match(goalCaption(goalStatus(g({ reached: 0, counted: 0, total: 0 })), "trial_days", null), /Noch teilt niemand/);
   assert.equal(metricUnit("interviews", 2), "Gespräche"); assert.equal(metricUnit("x", 2), "");

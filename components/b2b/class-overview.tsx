@@ -30,7 +30,7 @@ export function ClassOverviewPanel({ classId }: { classId: string }) {
   const stats = [
     { label: "Mindestens eine Bewerbung verschickt", value: a.withApplication, tone: "brand" as const },
     { label: "Vorstellungsgespräch erhalten", value: a.withInterview, tone: "coral" as const },
-    { label: "Schnuppertag gemacht oder geplant", value: a.withTrialDay, tone: "mint" as const },
+    { label: "Schnupperlehre gemacht oder geplant", value: a.withTrialDay, tone: "mint" as const },
     { label: "Lehrstelle gefunden", value: a.placed, tone: "sun" as const },
   ];
 
