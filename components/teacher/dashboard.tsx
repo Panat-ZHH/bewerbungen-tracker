@@ -14,6 +14,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Figures } from "@/components/ui/figures";
 import { dashboardMode } from "@/lib/teacher-extras";
 import { AttentionPanel } from "./attention-panel";
+import { getAttention } from "@/lib/teacher-more";
+import type { AttentionItem } from "@/lib/teacher-extras";
 import { SchoolAdminLink } from "@/components/b2b/school-admin-link";
 import { Segmented } from "@/components/ui/tabs";
 import { createClass, getTeacherDashboard, type TeacherDashboard } from "./api";
@@ -51,6 +53,9 @@ export function TeacherDashboardView() {
 
   const load = useCallback(() => { getTeacherDashboard().then((d) => { setData(d); setError(""); }).catch((e) => setError(teacherError(e))); }, []);
   useEffect(() => { load(); }, [load]);
+  // Perf: the attention list (shown below the classes) starts together with the dashboard instead of after it.
+  const [attention, setAttention] = useState<Promise<AttentionItem[]> | null>(null);
+  useEffect(() => { const read = getAttention(null, 14); read.catch(() => undefined); setAttention(read); }, []); // eslint-disable-line react-hooks/set-state-in-effect -- starts one read on mount
 
   const active = useMemo(() => (data?.classes ?? []).filter((c) => !c.archived), [data]);
   const archived = useMemo(() => (data?.classes ?? []).filter((c) => c.archived), [data]);
@@ -97,7 +102,7 @@ export function TeacherDashboardView() {
             />
           )}
 
-          {mode !== "no-class" && mode !== "no-students" && <AttentionPanel />}
+          {mode !== "no-class" && mode !== "no-students" && <AttentionPanel prefetched={attention} />}
 
           <section aria-label="Klassen">
             <div className="flex flex-wrap items-end justify-between gap-3">

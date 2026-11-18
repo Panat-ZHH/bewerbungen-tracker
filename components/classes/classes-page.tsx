@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { clearPendingInvite, readPendingInviteEntry } from "@/components/friends/shared";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getMySocialProfile } from "@/lib/social";
+import { cachedRole } from "@/lib/role";
+import { sessionUser } from "@/lib/session-user";
 import type { UserRole } from "@/types";
 import { StudentClasses } from "./student-classes";
 import { TeacherClasses } from "./teacher-classes";
@@ -21,7 +23,12 @@ export function ClassesPage() {
 
   useEffect(() => {
     let alive = true;
-    getMySocialProfile().then((p) => { if (alive) { setRole(p.role); setFailed(false); } }).catch(() => { if (alive) setFailed(true); });
+    // The shell / page resolved the role from the same social_my_profile answer a moment ago: reuse it (no second round trip).
+    // A retry (attempt > 0) or no cached answer reads the profile as before.
+    sessionUser().then((user) => (attempt === 0 && user ? cachedRole(user.id) : null)).catch(() => null).then((known) => {
+      if (known) { if (alive) { setRole(known.role); setFailed(false); } return; }
+      return getMySocialProfile().then((p) => { if (alive) { setRole(p.role); setFailed(false); } }).catch(() => { if (alive) setFailed(true); });
+    });
     return () => { alive = false; };
   }, [attempt]);
 

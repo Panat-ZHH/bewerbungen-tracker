@@ -1,5 +1,5 @@
 // Stand-in for lib/supabase.ts in unit tests. Set globalThis.__supabaseStub = { rpc(name, args) => {data, error} }.
-// Optional: getUser() / updateUser(attrs) for supabase.auth, and from(table, { select, eq }) => {data, error} for
+// Optional: getUser() / getSession() / updateUser(attrs) for supabase.auth, and from(table, { select, eq }) => {data, error} for
 // `supabase.from(t).select(c).eq(k, v).maybeSingle()` style reads.
 const stub = () => globalThis.__supabaseStub ?? {};
 function query(table) {
@@ -18,6 +18,7 @@ export const supabase = {
   from: (table) => query(table),
   auth: {
     getUser: async () => (stub().getUser ? stub().getUser() : { data: { user: null }, error: null }),
+    getSession: async () => (stub().getSession ? stub().getSession() : { data: { session: null }, error: null }),
     updateUser: async (attrs) => (stub().updateUser ? stub().updateUser(attrs) : { data: { user: null }, error: null }),
   },
 };

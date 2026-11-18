@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { loadMyAccess } from "@/lib/access/client";
 import { accessView, LICENCE_PATH } from "@/lib/access/gate";
 import { Blocked } from "@/components/access/access-pages";
+import { guardReads } from "@/lib/teacher-guard";
 
 /**
  * Guard for /teacher/**: logged out -> login, no role yet -> role picker, student -> /dashboard,
@@ -23,19 +24,24 @@ export default function TeacherLayout({ children }: { children: React.ReactNode 
   useEffect(() => {
     let alive = true;
     (async () => {
-      const { data } = await supabase.auth.getUser();
+      // Perf (reel waterfall, 2026-11-18): the reads below used to run one after another (auth server → profile → my_access →
+      // classes, 4 round trips before the page could start). They are independent, so they start together for the user of the
+      // local session; the checks are still evaluated in exactly the same order, on the auth server's answer.
+      const reads = guardReads((await supabase.auth.getSession()).data.session?.user ?? null, pathname);
+      const { data } = await reads.verified;
       const user = data.user;
       if (!user) { router.replace(`/login?next=${encodeURIComponent(pathname)}`); return; }
       if (needsRoleChoice(user)) { router.replace(rolePickerHref(pathname)); return; }
-      const { role } = await loadMyRole(user);
+      const same = reads.userId === user.id; // otherwise (session changed meanwhile) read again for the verified user
+      const { role } = await (same && reads.role ? reads.role : loadMyRole(user));
       const target = guardRedirect(role, pathname);
       if (target) { router.replace(target); return; }
       // Licence gate (SPEC §1): teachers / school admins without a valid school licence never reach the teacher area.
-      const view = accessView(await loadMyAccess({ userId: user.id }), pathname);
+      const view = accessView(await (same && reads.access ? reads.access : loadMyAccess({ userId: user.id })), pathname);
       if (view === "licence" || view === "paywall") { router.replace(LICENCE_PATH); return; }
       if (view === "blocked") { if (alive) setBlocked(true); return; }
       if (pathname !== ONBOARDING_PATH && !teacherOnboarded(user.user_metadata)) {
-        const classes = await listMyClasses().catch(() => null);
+        const classes = await (same && reads.classes ? reads.classes : listMyClasses().catch(() => null));
         if (classes && classes.length === 0) { router.replace(ONBOARDING_PATH); return; }
       }
       if (alive) setAllowed(true);

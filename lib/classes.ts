@@ -1,5 +1,6 @@
 import { shownName } from "@/lib/profile-name-utils";
 import { supabase } from "@/lib/supabase";
+import { classChange, readMyClasses } from "@/lib/my-classes-read";
 import type { ApplicationCategory, ApplicationStatus, ClassDeadline, ClassMember, ClassMembership, ClassStudentApplications, ClassStudentOverview, SchoolClass, StatusCounts } from "@/types";
 
 function databaseError(error: { code?: string; message?: string; details?: string | null; hint?: string | null }) { const parts = [error.code, error.message, error.details, error.hint].filter(Boolean); return Object.assign(new Error(`Database error: ${parts.join(" | ")}`), { code: error.code, details: error.details ?? null }); }
@@ -22,10 +23,10 @@ export async function getClassStudentApplications(classId: string, studentId: st
 
 // Student
 // class_join / class_preview answer with NO row for an unknown code (so the rate limiter counts the guess; see migration 20261117020000).
-export async function joinClass(code: string): Promise<ClassMembership> { const { data, error } = await supabase.rpc("class_join", { p_code: code }); if (error) throw databaseError(error); const row = (data as MembershipRow[] | null)?.[0]; if (!row) throw new Error("Database error: CLASS_NOT_FOUND"); return membershipFromRow(row); }
-export async function getMyClassMemberships(): Promise<ClassMembership[]> { const { data, error } = await supabase.rpc("class_my_classes"); if (error) throw databaseError(error); return ((data ?? []) as MembershipRow[]).map(membershipFromRow); }
-export async function setClassSharing(classId: string, share: boolean): Promise<void> { const { error } = await supabase.rpc("class_set_sharing", { p_class_id: classId, p_share: share }); if (error) throw databaseError(error); }
-export async function leaveClass(classId: string): Promise<void> { const { error } = await supabase.rpc("class_leave", { p_class_id: classId }); if (error) throw databaseError(error); }
+export async function joinClass(code: string): Promise<ClassMembership> { const { data, error } = await classChange(async () => supabase.rpc("class_join", { p_code: code })); if (error) throw databaseError(error); const row = (data as MembershipRow[] | null)?.[0]; if (!row) throw new Error("Database error: CLASS_NOT_FOUND"); return membershipFromRow(row); }
+export async function getMyClassMemberships(): Promise<ClassMembership[]> { const { data, error } = await readMyClasses(); if (error) throw databaseError(error); return ((data ?? []) as MembershipRow[]).map(membershipFromRow); }
+export async function setClassSharing(classId: string, share: boolean): Promise<void> { const { error } = await classChange(async () => supabase.rpc("class_set_sharing", { p_class_id: classId, p_share: share })); if (error) throw databaseError(error); }
+export async function leaveClass(classId: string): Promise<void> { const { error } = await classChange(async () => supabase.rpc("class_leave", { p_class_id: classId })); if (error) throw databaseError(error); }
 
 export type ClassPreview = { classId: string; name: string; schoolYear: string; teacherName: string; memberCount: number; alreadyMember: boolean };
 // Round 2 (migration 20261104000000_class_management.sql)
@@ -43,13 +44,13 @@ export function isInviteToken(value: string): boolean { return value.length >= 2
 export type InvitePreview = ClassPreview & { valid: boolean; reason: "EXPIRED" | "REVOKED" | "USED_UP" | "INVALID" | null };
 type PreviewRow = { class_id: string | null; name: string | null; school_year: string | null; teacher_name: string | null; member_count: number | null; already_member: boolean | null; valid?: boolean; reason?: string | null };
 export async function previewInvite(token: string): Promise<InvitePreview> { const { data, error } = await supabase.rpc("class_invite_preview", { p_token: token }); if (error) throw databaseError(error); const row = (data as PreviewRow[] | null)?.[0]; if (!row) return { classId: "", name: "", schoolYear: "", teacherName: "", memberCount: 0, alreadyMember: false, valid: false, reason: "INVALID" }; return { classId: row.class_id ?? "", name: row.name ?? "", schoolYear: row.school_year ?? "", teacherName: row.teacher_name ?? "", memberCount: row.member_count ?? 0, alreadyMember: !!row.already_member, valid: row.valid !== false, reason: (row.reason as InvitePreview["reason"]) ?? null }; }
-export async function acceptInvite(token: string): Promise<ClassMembership> { const { data, error } = await supabase.rpc("class_invite_accept", { p_token: token }); if (error) throw databaseError(error); return membershipFromRow((data as MembershipRow[])[0]); }
+export async function acceptInvite(token: string): Promise<ClassMembership> { const { data, error } = await classChange(async () => supabase.rpc("class_invite_accept", { p_token: token })); if (error) throw databaseError(error); return membershipFromRow((data as MembershipRow[])[0]); }
 
 export type ClassMembershipV2 = ClassMembership & { shareCompanies: boolean; shareStatus: boolean; lastNudgeAt?: string; announcementsCount: number };
 type MembershipRowV2 = MembershipRow & { share_companies?: boolean | null; last_nudge_at?: string | null; announcements_count?: number | null; share_status?: boolean | null };
-export async function getMyClassMembershipsV2(): Promise<ClassMembershipV2[]> { const { data, error } = await supabase.rpc("class_my_classes"); if (error) throw databaseError(error); return ((data ?? []) as MembershipRowV2[]).map((row) => ({ ...membershipFromRow(row), shareCompanies: row.share_companies !== false, shareStatus: row.share_status !== false, lastNudgeAt: row.last_nudge_at ?? undefined, announcementsCount: row.announcements_count ?? 0 })); }
+export async function getMyClassMembershipsV2(): Promise<ClassMembershipV2[]> { const { data, error } = await readMyClasses(); if (error) throw databaseError(error); return ((data ?? []) as MembershipRowV2[]).map((row) => ({ ...membershipFromRow(row), shareCompanies: row.share_companies !== false, shareStatus: row.share_status !== false, lastNudgeAt: row.last_nudge_at ?? undefined, announcementsCount: row.announcements_count ?? 0 })); }
 /** share = master switch (false: teacher sees only the name). companies = company names and positions. */
-export async function setClassSharingV2(classId: string, share: boolean, companies: boolean, status?: boolean): Promise<void> { const { error } = await supabase.rpc("class_set_sharing_v2", { p_class_id: classId, p_share: share, p_companies: companies, p_status: status ?? null }); if (error) throw databaseError(error); }
+export async function setClassSharingV2(classId: string, share: boolean, companies: boolean, status?: boolean): Promise<void> { const { error } = await classChange(async () => supabase.rpc("class_set_sharing_v2", { p_class_id: classId, p_share: share, p_companies: companies, p_status: status ?? null })); if (error) throw databaseError(error); }
 
 export type VisibilityInfo = { teacherSees: string[]; teacherNeverSees: string[] };
 export async function getVisibilityInfo(): Promise<VisibilityInfo> { const { data, error } = await supabase.rpc("class_visibility_info"); if (error) throw databaseError(error); const v = (Array.isArray(data) ? data[0] : data) as { teacher_sees?: string[]; teacher_never_sees?: string[] } | null; return { teacherSees: v?.teacher_sees ?? [], teacherNeverSees: v?.teacher_never_sees ?? [] }; }

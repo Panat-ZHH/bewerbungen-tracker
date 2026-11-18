@@ -1,5 +1,6 @@
 import { shownName } from "@/lib/profile-name-utils";
 import { supabase } from "@/lib/supabase";
+import { classChange, readMyClasses } from "@/lib/my-classes-read";
 import type { ApplicationStatus, StatusCounts } from "@/types";
 import { isPlacedFromCounts, schnupperCounts } from "@/lib/status";
 
@@ -136,12 +137,12 @@ export async function createInvites(classId: string, emails: string[], expiresIn
 export async function listInvites(classId: string): Promise<ClassInvitation[]> { return (await call<Row[] | null>("class_invite_list", { p_class_id: classId }) ?? []).map((r) => ({ id: String(r.id), token: String(r.token), email: str(r.email), maxUses: r.max_uses === null || r.max_uses === undefined ? null : num(r.max_uses), uses: num(r.uses), expiresAt: String(r.expires_at), revoked: Boolean(r.revoked), createdAt: String(r.created_at) })); }
 export async function revokeInvite(invitationId: string): Promise<void> { await call("class_invite_revoke", { p_invitation_id: invitationId }); }
 export async function previewInvite(token: string): Promise<InvitePreview> { const r = ((await call<Row[]>("class_invite_preview", { p_token: token })) ?? [])[0]; if (!r) return { valid: false, reason: "INVALID", classId: null, name: null, schoolYear: null, teacherName: null, memberCount: null, alreadyMember: false }; return { valid: Boolean(r.valid), reason: (r.reason ?? null) as InviteReason | null, classId: str(r.class_id), name: str(r.name), schoolYear: str(r.school_year), teacherName: str(r.teacher_name), memberCount: r.member_count === null || r.member_count === undefined ? null : num(r.member_count), alreadyMember: Boolean(r.already_member) }; }
-export async function acceptInvite(token: string): Promise<InviteAccepted> { const r = (await call<Row[]>("class_invite_accept", { p_token: token }))[0]; return { classId: String(r.class_id), name: String(r.name), schoolYear: String(r.school_year ?? ""), teacherName: String(r.teacher_name ?? ""), shareApplications: Boolean(r.share_applications), joinedAt: String(r.joined_at) }; }
+export async function acceptInvite(token: string): Promise<InviteAccepted> { const r = (await classChange(() => call<Row[]>("class_invite_accept", { p_token: token })))[0]; return { classId: String(r.class_id), name: String(r.name), schoolYear: String(r.school_year ?? ""), teacherName: String(r.teacher_name ?? ""), shareApplications: Boolean(r.share_applications), joinedAt: String(r.joined_at) }; }
 
 // ---------- consent / transparency (student) ----------
 /** Master switch `share`, optional per-field switches (undefined = unchanged). */
-export async function setClassSharingV2(classId: string, share: boolean, options: { companies?: boolean; status?: boolean } = {}): Promise<void> { await call("class_set_sharing_v2", { p_class_id: classId, p_share: share, p_companies: options.companies ?? null, p_status: options.status ?? null }); }
-export async function getMyMemberships(): Promise<StudentMembership[]> { return (await call<Row[] | null>("class_my_classes") ?? []).map(membershipFromRow); }
+export async function setClassSharingV2(classId: string, share: boolean, options: { companies?: boolean; status?: boolean } = {}): Promise<void> { await classChange(() => call("class_set_sharing_v2", { p_class_id: classId, p_share: share, p_companies: options.companies ?? null, p_status: options.status ?? null })); }
+export async function getMyMemberships(): Promise<StudentMembership[]> { const { data, error } = await readMyClasses(); if (error) throw databaseError(error); return ((data as Row[] | null) ?? []).map(membershipFromRow); }
 export async function getVisibilityInfo(): Promise<VisibilityInfo> { const d = (await call<Row | null>("class_visibility_info")) ?? {}; return { teacherSees: (d.teacher_sees ?? []) as string[], teacherNeverSees: (d.teacher_never_sees ?? []) as string[] }; }
 
 // ---------- announcements and nudges ----------
