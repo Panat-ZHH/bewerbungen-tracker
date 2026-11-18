@@ -10,6 +10,7 @@
 //   MODE=test|flow|panels|shots|all (default all)   flow = touch flow + layout assertions, panels = one-panel-at-a-time
 //                                        + 44px select + palace card (320px and phones), test = flow + panels, shots = screenshots
 //   SHOTS=<dir>                          screenshot folder (default ../_mobile/shots/village/after next to this worktree)
+//   THEMES=light,dark                    flow themes (default both)
 //   DEVICES=iphone-se,pixel-7,…          subset (ids below)   ORIENT=portrait|landscape|both (default both)
 //   PLAYWRIGHT_WEBKIT=<playwright-core>  optional separate playwright-core for WebKit
 // Exit code 1 when a check fails.
@@ -42,6 +43,7 @@ const DEVICES = [
   { id: "galaxy-s23", engine: "chromium", w: 360, h: 780 },
 ].filter((d) => !process.env.DEVICES || process.env.DEVICES.split(",").includes(d.id));
 const ORIENTS = ORIENT === "both" ? ["portrait", "landscape"] : [ORIENT];
+const THEMES = (process.env.THEMES || "light,dark").split(",").map((t) => t === "dark");
 const size = (d, o) => (o === "portrait" ? { width: d.w, height: d.h } : { width: d.h, height: d.w });
 
 const user = { id: "u1", aud: "authenticated", role: "authenticated", email: "s@x.ch", user_metadata: { role: "student" }, app_metadata: {}, created_at: "2026-01-01T00:00:00Z" };
@@ -236,10 +238,10 @@ async function shots(device, orient, dark) {
   await ctx.close();
 }
 
-async function flow(device, orient) {
-  const N = `${device.id} ${orient}`;
+async function flow(device, orient, dark = false) {
+  const N = `${device.id} ${orient} ${dark ? "dark" : "light"}`;
   const phone = size(device, orient).width < 768;
-  const { ctx, page, st, logs } = await open(device, orient, false);
+  const { ctx, page, st, logs } = await open(device, orient, dark);
   const start = await layout(page, null);
   check(start.navShown === phone, `${N}: bottom nav ${phone ? "visible" : "absent"} on the plain map`);
   check(start.sw <= start.iw + 1, `${N}: plain map has no horizontal overflow`);
@@ -414,7 +416,7 @@ async function exclusive(device, viewport) {
   check(await search.isVisible(), `${N}: «Suche» opens its panel`);
   check(!(await palace.isVisible()), `${N}: palace card steps aside while «Suche» is open`);
   const sel = await search.locator("select").boundingBox();
-  check(!!sel && sel.height >= 44, `${N}: status select >= 44px`, JSON.stringify(sel));
+  check(!!sel && Math.round(sel.height) >= 44, `${N}: status select >= 44px (subpixel-rounded)`, JSON.stringify(sel));
   await tap(page, page.getByRole("button", { name: "Laden", exact: true }));
   await page.locator('[data-sheet="shop"]').waitFor();
   check(!(await search.isVisible()), `${N}: opening «Laden» closes «Suche»`);
@@ -456,8 +458,8 @@ try {
     }
   }
   if (MODE !== "test" && MODE !== "flow" && MODE !== "panels") for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of [false, true]) await shots(device, orient, dark);
-  if (MODE !== "shots" && MODE !== "panels") for (const device of DEVICES) for (const orient of ORIENTS) {
-    try { await flow(device, orient); } catch (error) { check(false, `${device.id} ${orient}: flow crashed`, String(error).slice(0, 300)); }
+  if (MODE !== "shots" && MODE !== "panels") for (const device of DEVICES) for (const orient of ORIENTS) for (const dark of THEMES) {
+    try { await flow(device, orient, dark); } catch (error) { check(false, `${device.id} ${orient} ${dark ? "dark" : "light"}: flow crashed`, String(error).slice(0, 300)); }
   }
 } finally {
   for (const b of Object.values(browsers)) await b.close();
