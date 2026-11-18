@@ -217,3 +217,10 @@ test("AC-U6 Part B component files: no sharp s, no CHF literals, no flag-off wor
   assert.match(tour, /TOUR_FAMILY_LINK/);
   assert.match(tour, /TOUR_FAMILY_PATH/);
 });
+
+test("fill: the «Dein Kind» fallback is lowercase mid-sentence, real names unchanged (QA m6)", () => {
+  assert.equal(fill(FAMILY_COPY.consent.dialog1, { child: "Dein Kind" }), "Ich bin für dein Kind erziehungsberechtigt und einverstanden, dass dein Kind WendApply mit unserer Familie nutzt.");
+  assert.equal(fill(FAMILY_COPY.consent.title, { child: "Dein Kind" }), "Dein Kind braucht deine Zustimmung");
+  assert.equal(fill("Danach siehst du nichts mehr von {child}.", { child: "Dein Kind" }), "Danach siehst du nichts mehr von deinem Kind.");
+  assert.equal(fill(FAMILY_COPY.consent.dialog1, { child: "Lina" }).includes("für Lina"), true);
+});

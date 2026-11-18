@@ -166,15 +166,18 @@ export function readShare(v: unknown): ShareSettings {
 }
 /**
  * The sign-up default name is the e-mail local part ("sandra.meier77", "lina_2009"): never show it (eltern-04).
- * Real first names have no digits, dots, underscores or @. Then "Dein Kind" / "Elternteil" is shown instead.
+ * Real names have no digits, underscores or @, and a dot only as an initial ("J. Müller", "Müller J."), never inside a
+ * word ("sandra.meier"). Then "Dein Kind" / "Elternteil" is shown instead.
  */
 export function looksLikeLoginName(name: string): boolean {
   const n = name.trim();
-  return !n || n.toLowerCase() === "nutzer" || /[\d._@]/.test(n);
+  return !n || n.toLowerCase() === "nutzer" || /[\d_@]/.test(n) || /\.(?=\S)/.test(n);
 }
+/** Shown instead of a child's login name. Starts a sentence; mid-sentence fill() / childRef() in lib/family-copy.ts lowercase it. */
+export const CHILD_FALLBACK = "Dein Kind";
 export function memberName(raw: unknown, role: FamilyRole): string {
   const n = str(raw).trim();
-  return looksLikeLoginName(n) ? (role === "parent" ? "Elternteil" : "Dein Kind") : n;
+  return looksLikeLoginName(n) ? (role === "parent" ? "Elternteil" : CHILD_FALLBACK) : n;
 }
 export function readMember(v: unknown): FamilyMember | null {
   const r = obj(v);

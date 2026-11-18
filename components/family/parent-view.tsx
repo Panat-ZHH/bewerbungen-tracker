@@ -226,7 +226,7 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
       <Modal open={!!confirm} onClose={() => setConfirm(null)} title={confirm?.kind === "grant" ? "Zustimmung geben?" : confirm?.kind === "withdraw" ? "Zustimmung zurückziehen?" : "Aus der Familie entfernen?"}
         footer={<div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button variant="secondary" onClick={() => setConfirm(null)}>Abbrechen</Button><Button variant={confirm?.kind === "remove" ? "danger" : "primary"} loading={busy} onClick={run}>{confirm?.kind === "grant" ? "Ja, ich stimme zu" : confirm?.kind === "withdraw" ? "Zurückziehen" : "Entfernen"}</Button></div>}>
         {confirm?.kind === "grant" && <div className="space-y-2 text-body"><p>{fill(FAMILY_COPY.consent.dialog1, { child: confirm.child.displayName })}</p><p className="text-muted">{fill(FAMILY_COPY.consent.dialog2, { child: confirm.child.displayName })}</p></div>}
-        {confirm?.kind === "withdraw" && <p className="text-body">Danach siehst du nichts mehr von {confirm.child.displayName}. Das Konto und die Bewerbungen von {confirm.child.displayName} bleiben bestehen.</p>}
+        {confirm?.kind === "withdraw" && <p className="text-body">{fill("Danach siehst du nichts mehr von {child}. Das Konto und die Bewerbungen von {child} bleiben bestehen.", { child: confirm.child.displayName })}</p>}
         {confirm?.kind === "remove" && <p className="text-body">{confirm.child.displayName} verlässt die Familie. Das eigene Konto mit allen Bewerbungen bleibt bestehen, nur das Teilen endet.</p>}
       </Modal>
       <Modal open={!!switchCode} onClose={() => setSwitchCode(null)} title={FAMILY_COPY.switch.parentTitle}

@@ -204,5 +204,22 @@ export const FAMILY_COPY = {
   },
 } as const;
 
-/** Replaces `{key}` placeholders: fill("Schritt {n} von {total}", { n: 1, total: 3 }) -> "Schritt 1 von 3". Unknown keys become "". */
-export const fill = (s: string, v: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k: string) => String(v[k] ?? ""));
+/**
+ * A child's name inside a sentence: real names stay as they are, the "Dein Kind" fallback (CHILD_FALLBACK in family-core)
+ * follows German grammar: "für dein Kind", "von deinem Kind"; at the start of a sentence "Dein Kind". `before` = text in front.
+ */
+export function childRef(name: string, before: string): string {
+  if (name !== "Dein Kind") return name;
+  if (!before.trim() || /[.!?:»«]\s*$/.test(before)) return name;
+  return /\bvon\s*$/i.test(before) ? "deinem Kind" : "dein Kind";
+}
+
+/**
+ * Replaces `{key}` placeholders: fill("Schritt {n} von {total}", { n: 1, total: 3 }) -> "Schritt 1 von 3". Unknown keys become "".
+ * The "Dein Kind" fallback for {child} is lowercased mid-sentence ("für dein Kind", "von deinem Kind"), see childRef.
+ */
+export const fill = (s: string, v: Record<string, string | number>) =>
+  s.replace(/\{(\w+)\}/g, (_, k: string, offset: number) => {
+    const value = String(v[k] ?? "");
+    return k === "child" ? childRef(value, s.slice(0, offset)) : value;
+  });

@@ -153,6 +153,9 @@ test("parent view labels follow lib/status.ts and never show e-mail prefixes (el
   assert.equal(memberName("probe-ux-eltern-paidkid-123", "child"), "Dein Kind");
   assert.equal(memberName("", "child"), "Dein Kind");
   assert.equal(memberName("Anna-Lena", "child"), "Anna-Lena");
+  assert.equal(memberName("J. Müller", "parent"), "J. Müller", "an initial with a dot is a real name (QA m6)");
+  assert.equal(memberName("Müller J.", "parent"), "Müller J.");
+  assert.equal(memberName("sandra.meier", "parent"), "Elternteil");
   assert.equal(readMember({ user_id: "u1", role: "child", display_name: "lina_2009" }).displayName, "Dein Kind");
   assert.equal(CONSENT_LABEL.not_required, "Verbunden");
 });
