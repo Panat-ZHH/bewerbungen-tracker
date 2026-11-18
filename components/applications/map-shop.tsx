@@ -57,7 +57,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
       } catch (reason) {
         if (active && request === operation.current) {
           setupUnavailable.current = isMapShopSetupError(reason);
-          setError(setupUnavailable.current ? "Der Shop ist noch nicht eingerichtet. Das aktualisierte Supabase-Schema muss zuerst eingespielt werden." : "Der Shop konnte nicht geladen werden.");
+          setError(setupUnavailable.current ? "Der Laden konnte nicht geladen werden. Versuch es später nochmals." : "Der Laden konnte nicht geladen werden. Lade die Seite neu.");
         }
       } finally {
         if (pendingLoad.current === promise) pendingLoad.current = null;

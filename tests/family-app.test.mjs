@@ -6,7 +6,7 @@ import {
   isMissingFamilyFeature, birthYearOptions, isValidBirthYear, mayNeedParentalConsent, choiceToAccount, signupMetadata, pendingAccountType,
   isParentMeta, parentGuardRedirect, normalizeInviteCode, isValidInviteCode, formatInviteCode, inviteLink, inviteShareText, readInvite,
   readShare, readMyFamily, childrenOf, parentsOf, seatUsage, sharingActive, nextShare, consentNotice, readChildOverview, groupStatusCounts,
-  planSummary, daysLeft, formatDateCh, familyError, waitlistProblem, DEFAULT_SHARE, SHARE_LABELS, memberName, statusText, CONSENT_LABEL, readMember,
+  planSummary, daysLeft, formatDateCh, familyError, waitlistProblem, DEFAULT_SHARE, SHARE_LABELS, memberName, statusText, CONSENT_LABEL, CONSENT_TONE, readMember,
 } from "../lib/family-core.ts";
 import { loadLib } from "./helpers/load-lib.mjs";
 
@@ -158,6 +158,7 @@ test("parent view labels follow lib/status.ts and never show e-mail prefixes (el
   assert.equal(memberName("sandra.meier", "parent"), "Elternteil");
   assert.equal(readMember({ user_id: "u1", role: "child", display_name: "lina_2009" }).displayName, "Dein Kind");
   assert.equal(CONSENT_LABEL.not_required, "Verbunden");
+  assert.equal(CONSENT_TONE.not_required, CONSENT_TONE.granted, "«Verbunden» has one colour (AUDIT-B P2)");
 });
 
 test("plan summary: trial days, seats, no plan = bald verfügbar", () => {

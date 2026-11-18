@@ -46,7 +46,7 @@ function JoinContent({ code, next }: { code: string; next: string | null }) {
 
   if (preview === undefined) return <Card className="mx-auto max-w-md p-6" aria-busy="true"><Skeleton className="mx-auto h-16 w-16 rounded-full" /><Skeleton className="mx-auto mt-4 h-6 w-1/2" /><Skeleton className="mt-6 h-11" /></Card>;
   const invalidReason = preview && !preview.valid ? errorMessage(new Error(preview.reason ?? "INVALID")) : "";
-  if (!preview || (!preview.valid && !preview.alreadyMember)) return <EmptyState className="mx-auto max-w-md" title={token ? "Einladung nicht gültig" : "Klassencode nicht gefunden"} description={invalidReason || error || (token ? "Diese Einladung ist abgelaufen. Bitte frag nach einem neuen Einladungslink." : "Diesen Klassencode gibt es nicht. Prüfe ihn oder frag deine Lehrperson nach einem neuen.")} action={<ButtonLink href={after} variant="secondary">{next ? "Weiter" : "Zu meinen Klassen"}</ButtonLink>} />;
+  if (!preview || (!preview.valid && !preview.alreadyMember)) return <EmptyState headingLevel={1} className="mx-auto max-w-md" title={token ? "Einladung nicht gültig" : "Klassencode nicht gefunden"} description={invalidReason || error || (token ? "Diese Einladung ist abgelaufen. Bitte frag nach einem neuen Einladungslink." : "Diesen Klassencode gibt es nicht. Prüfe ihn oder frag deine Lehrperson nach einem neuen.")} action={<ButtonLink href={after} variant="secondary">{next ? "Weiter" : "Zu meinen Klassen"}</ButtonLink>} />;
 
   return (
     <Card className="animate-rise relative mx-auto mt-4 max-w-md space-y-5 p-6 shadow-[var(--shadow-lg)] sm:p-8">

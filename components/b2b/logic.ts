@@ -177,7 +177,7 @@ export function share(part: number, whole: number): number { return whole > 0 ? 
  * Meaningful progress, not volume: the furthest step reached (0 = not started … 4 = Lehrstelle).
  * Ten applications without a reply count less than one interview.
  */
-export const PROGRESS_STEPS = ["Noch nicht gestartet", "Bewerbung verschickt", "Gespräch oder Schnuppern", "Zusage erhalten", "Lehrstelle gefunden"] as const;
+export const PROGRESS_STEPS = ["Noch nicht gestartet", "Bewerbung abgeschickt", "Gespräch oder Schnupperlehre", "Zusage erhalten", "Lehrstelle gefunden"] as const;
 export function progressStep(s: Pick<OverviewStudent, "applications" | "interviews" | "trialDays" | "offers" | "placed">): number {
   if (s.placed) return 4;
   if (s.offers > 0) return 3;

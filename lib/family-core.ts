@@ -237,7 +237,7 @@ export function seatUsage(f: MyFamily): { children: { used: number; limit: numbe
 
 // ---------------------------------------------------------------- consent + sharing
 export const CONSENT_LABEL: Record<ConsentStatus, string> = { not_required: "Verbunden", pending: "Wartet auf deine Zustimmung", granted: "Verbunden", withdrawn: "Zustimmung zurückgezogen" };
-export const CONSENT_TONE: Record<ConsentStatus, "neutral" | "info" | "success" | "warning" | "danger"> = { not_required: "neutral", pending: "warning", granted: "success", withdrawn: "neutral" };
+export const CONSENT_TONE: Record<ConsentStatus, "neutral" | "info" | "success" | "warning" | "danger"> = { not_required: "success", pending: "warning", granted: "success", withdrawn: "neutral" }; // same word «Verbunden» = same colour (AUDIT-B P2)
 /** Family sharing works only for active members whose consent is granted or not required (16+). */
 export function sharingActive(m: Pick<FamilyMember, "status" | "consentStatus">): boolean { return m.status === "active" && (m.consentStatus === "granted" || m.consentStatus === "not_required"); }
 export const SHARE_LABELS: { key: keyof ShareSettings; label: string; on: string; off: string }[] = [

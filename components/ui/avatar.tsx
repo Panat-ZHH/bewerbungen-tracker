@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { initialsFromName } from "@/lib/profile-name-utils";
 
@@ -22,6 +23,7 @@ export function Avatar({ name, src, size = "md", className }: { name?: string | 
   const seed = [...(name ?? "?")].reduce((sum, c) => sum + c.charCodeAt(0), 0);
   const [failedSrc, setFailedSrc] = useState<string>();
   const showImage = Boolean(src) && failedSrc !== src;
+  const initials = initialsOf(name);
   return (
     <span
       role="img"
@@ -32,7 +34,10 @@ export function Avatar({ name, src, size = "md", className }: { name?: string | 
         // Plain <img>: avatars come from a user-controlled public bucket with changing ?v= URLs, next/image would add nothing.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src!} alt="" width={pixels[size]} height={pixels[size]} loading="lazy" decoding="async" onError={() => setFailedSrc(src!)} className="h-full w-full object-cover" />
-      ) : initialsOf(name)}
+      ) : initials === "?" ? (
+        // No name yet: a neutral person icon, not a «?» that reads like a help button (AUDIT-B P2).
+        <UserRound aria-hidden className="h-[60%] w-[60%]" strokeWidth={2} />
+      ) : initials}
     </span>
   );
 }

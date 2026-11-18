@@ -171,6 +171,8 @@ export const FAMILY_COPY = {
     // Online payment flag off: nothing to buy yet, so the banner and the plan card point to «Zugang anfragen» (QA M5).
     expiredTextOffline: "Das Familienpaket kannst du noch nicht online buchen. Frag unten Zugang an, dann melden wir uns. Deine Daten sind noch da.",
     expiredPlanOffline: "Deine Testwoche ist vorbei. Frag hier Zugang an, dann melden wir uns bei dir.",
+    // Active/pilot plan while online payment is off: the plan card confirms it instead of offering a request (AUDIT-B P1).
+    planUnlocked: "Euer Familienpaket ist freigeschaltet. Ihr müsst nichts weiter tun.",
     expiredNoticeOffline: "Die Online-Bezahlung ist gerade nicht verfügbar. Du kannst uns auch über die Kontaktseite schreiben.",
     help: "Fragen? Hilfe für Eltern",
     /** Placeholder names (e-mail prefixes) are never shown (eltern-04). */

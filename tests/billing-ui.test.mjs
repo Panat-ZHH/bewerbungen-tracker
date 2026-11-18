@@ -153,7 +153,8 @@ test("/familie plan card: Zugang anfragen when off; phase-driven card for parent
   assert.match(pc, /<FamilyPlanBody familyId=\{familyId\} billing=\{billing\} current=\{current\} open=\{open\} \/>/);
   assert.match(pc, /if \(online && !isParent\)[\s\S]*?FAMILY_COPY\.child\.planActive : FAMILY_COPY\.child\.planNone/, "children: no prices, no payment problems (S8)");
   assert.match(pc, /Zugang anfragen/);
-  assert.match(pc, /\{FREE_NOTICE\}/);
+  assert.match(pc, /\{expired \? FAMILY_COPY\.parent\.expiredNoticeOffline : FREE_NOTICE\}/);
+  assert.match(pc, /: unlocked \? \([\s\S]*?FAMILY_COPY\.parent\.planUnlocked/, "active plan while off: no request box next to «Aktiv»");
   assert.match(pc, /\{!online && <RequestAccessModal/, "the waitlist modal only exists while off");
   assert.doesNotMatch(pc, /BillingReturnNotice/, "the family return notice lives at the top of the page, not in the card");
   const pv = read("components/family/parent-view.tsx");

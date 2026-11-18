@@ -39,7 +39,7 @@ export function paymentOptions(plan: Plan): PaymentMethod[] {
 
 export const PAYMENT_LABEL: Record<PaymentMethod, { title: string; text: string }> = {
   card: { title: "Kreditkarte", text: "Sofort freigeschaltet. Die Zahlung läuft sicher über unseren Zahlungsanbieter." },
-  invoice: { title: "Rechnung", text: `Sie erhalten eine Rechnung per E-Mail, zahlbar innert ${BILLING.invoiceDaysUntilDue} Tagen.` },
+  invoice: { title: "Rechnung", text: `Du bekommst eine Rechnung per E-Mail, zahlbar innert ${BILLING.invoiceDaysUntilDue} Tagen.` },
 };
 
 const PER: Record<BillingInterval, string> = { year: "pro Jahr", month: "pro Monat" };

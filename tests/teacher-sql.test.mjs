@@ -413,3 +413,34 @@ test("direct table access is denied for everybody; internals are not callable", 
   assert.equal((await t.rpc("select * from public.classes")).length, 0);
   assert.equal((await t.rpc("select * from public.class_members")).length, 1);
 });
+
+test("placed counts a shared «contract_signed» like the class page (AUDIT-B P1: home 1 vs class 2); hidden status never counts", async () => {
+  const t = await setupTeacherDb();
+  const c = await seededClasses(t); const a = c["10a"].id;
+  const ins = (id, user, status) => t.admin("insert into public.applications (id, user_id, company, position, category, status, created_at, updated_at) values ($1, $2, 'Vertrag AG', 'Informatiker', 'software', $3, current_date, current_date)", [id, user, status]);
+  await ins("cem-contract", ids.s3, "contract_signed"); // Cem shares stages: counts
+  await ins("dina-contract", ids.s4, "contract_signed"); // Dina hides her status: must not count
+  await ins("anna-contract", ids.s1, "contract_signed"); // Anna already has an offer: still one student
+  await t.as(ids.owner);
+  const dash = (await t.rpc("select public.teacher_dashboard(14) d"))[0].d;
+  const cls = dash.classes.find((x) => x.id === a);
+  assert.equal(dash.totals.placed, 2, "Anna (offer + contract) and Cem (contract)");
+  assert.equal(cls.placed, 2);
+  assert.equal(dash.totals.offers, 1, "offers still counts only «offer»");
+  // Same number as the class page: lib/status.ts isPlacedFromCounts over visible students.
+  const rows = await t.rpc("select * from public.teacher_class_students($1)", [a]);
+  const pagePlaced = rows.filter((r) => !r.hidden && (r.placed || (r.status_counts?.offer ?? 0) > 0 || (r.status_counts?.contract_signed ?? 0) > 0)).length;
+  assert.equal(pagePlaced, cls.placed, "home and class page agree");
+  // The impl stays private and the wrapper keeps the access guard.
+  const [g] = await t.admin(`select has_function_privilege('authenticated', 'public._acc_impl_teacher_dashboard(integer)', 'execute') impl,
+    has_function_privilege('anon', 'public.teacher_dashboard(integer)', 'execute') anon,
+    has_function_privilege('authenticated', 'public.teacher_dashboard(integer)', 'execute') auth,
+    position('_assert_app_access' in (select prosrc from pg_proc where oid = 'public.teacher_dashboard(integer)'::regprocedure)) > 0 guarded,
+    (select prosecdef from pg_proc where oid = 'public._acc_impl_teacher_dashboard(integer)'::regprocedure) secdef,
+    (select proconfig from pg_proc where oid = 'public._acc_impl_teacher_dashboard(integer)'::regprocedure) cfg`);
+  assert.deepEqual(g, { impl: false, anon: false, auth: true, guarded: true, secdef: true, cfg: ["search_path=\"\""] });
+  // Idempotent.
+  await t.apply(t.files.find((f) => f.includes("teacher_dashboard_placed_contract")));
+  await t.as(ids.owner);
+  assert.equal((await t.rpc("select public.teacher_dashboard(14) d"))[0].d.totals.placed, 2);
+});

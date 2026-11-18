@@ -22,7 +22,7 @@ export function ConsentSwitches({ value, disabled, onChange }: { value: ConsentC
   return (
     <>
       <ConsentSwitch label={CONSENT_LABELS.share} description={value.share ? "Deine Lehrperson sieht, wie viele Bewerbungen du hast, wann du zuletzt aktiv warst sowie Bewerbungsdatum und Frist." : "Deine Lehrperson sieht nur deinen Namen."} checked={value.share} disabled={disabled} onChange={(v) => onChange({ share: v })} />
-      <ConsentSwitch label={CONSENT_LABELS.status} description={value.share && value.status ? "Der Stand jeder Bewerbung ist sichtbar (z. B. beworben, Gespräch, Zusage)." : "Der Stand deiner Bewerbungen bleibt verborgen."} checked={value.share && value.status} disabled={disabled || !value.share} onChange={(v) => onChange({ status: v })} />
+      <ConsentSwitch label={CONSENT_LABELS.status} description={value.share && value.status ? "Der Status jeder Bewerbung ist sichtbar (z. B. Abgeschickt, Gespräch, Zusage)." : "Der Status deiner Bewerbungen bleibt verborgen."} checked={value.share && value.status} disabled={disabled || !value.share} onChange={(v) => onChange({ status: v })} />
       <ConsentSwitch label={CONSENT_LABELS.companies} description={value.share && value.companies ? "Firma, Stelle und Ort jeder Bewerbung sind sichtbar." : "Firma, Stelle und Ort bleiben verborgen."} checked={value.share && value.companies} disabled={disabled || !value.share} onChange={(v) => onChange({ companies: v })} />
     </>
   );

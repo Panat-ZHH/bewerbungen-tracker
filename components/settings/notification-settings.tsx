@@ -52,7 +52,7 @@ export function NotificationSettings() {
     <SettingsSection data-testid="notification-settings" title="Benachrichtigungen" description="WendApply erinnert dich an Fristen und daran, nachzufragen, wenn lange nichts passiert ist.">
       {note && <StatusMessage tone={note.tone} className="mb-3"><p>{note.text}</p></StatusMessage>}
       <div className="rows">
-        <Row id="rem-inapp" label="Im Start-Bereich anzeigen" hint="Die Karte «Erinnerungen» auf deiner Startseite." checked={s.inApp} disabled={!loaded} onChange={(v) => update({ ...s, inApp: v })} />
+        <Row id="rem-inapp" label="Im Start-Bereich anzeigen" hint="Der Bereich «Erinnerungen» auf deiner Startseite." checked={s.inApp} disabled={!loaded} onChange={(v) => update({ ...s, inApp: v })} />
         <Row id="rem-mail" label="Täglich per E-Mail" hint="Eine Mail am Morgen, nur wenn etwas ansteht." checked={s.email} disabled={!loaded} onChange={(v) => update({ ...s, email: v })} />
         <Row id="rem-push" label="Benachrichtigung auf diesem Gerät" hint={pushSupported() ? "Eine Benachrichtigung, auch wenn WendApply geschlossen ist." : "Auf diesem Gerät nicht verfügbar."} checked={s.push} onChange={togglePush} disabled={!loaded || !pushSupported()} />
       </div>

@@ -11,7 +11,7 @@ import { joinWaitlist } from "@/lib/family";
 import { FamilyBilling, FamilyPlanBody, familyPhaseBadge, type FamilyBillingState } from "@/components/billing/billing-card";
 import { FAMILY_COPY } from "@/lib/family-copy";
 import { FREE_NOTICE, onlinePaymentEnabled } from "@/components/billing/logic";
-import { familyError, PLAN_STATUS_TONE, planSummary, waitlistProblem, type FamilyPlan, type WaitlistKind } from "@/lib/family-core";
+import { familyError, PLAN_STATUS_TONE, planGivesAccess, planSummary, waitlistProblem, type FamilyPlan, type WaitlistKind } from "@/lib/family-core";
 
 /** Plan states that give the family the package (child view: "Familienpaket aktiv"). The old 30-day "trial" row does not (SPEC §3). */
 const ACCESS_STATES = ["pilot", "active"];
@@ -60,6 +60,7 @@ export function PlanCard({ plan, email, kind = "family", familyId = null, isPare
     );
   }
   const s = planSummary(plan, undefined, { online });
+  const unlocked = planGivesAccess(plan);
   return (
     <section id="abo" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-3 p-5" data-billing-enabled={online ? "on" : "off"}>
       <div className="flex flex-wrap items-center gap-2">
@@ -67,7 +68,10 @@ export function PlanCard({ plan, email, kind = "family", familyId = null, isPare
         {s.status && <Badge tone={plan ? PLAN_STATUS_TONE[plan.status] ?? "neutral" : "info"}>{s.status}</Badge>}
       </div>
       <p className="text-body text-muted">{expired && !online && !plan ? FAMILY_COPY.parent.expiredPlanOffline : s.detail}</p>
-      {online ? <FamilyBilling familyId={familyId} isParent={isParent} enabled /> : (
+      {online ? <FamilyBilling familyId={familyId} isParent={isParent} enabled /> : unlocked ? (
+        // Active/pilot plan while online payment is off: nothing to request or pay, so no «Zugang anfragen» next to «Aktiv» (AUDIT-B P1, QA M5).
+        <p className="flex items-center gap-2 text-small text-muted" data-billing-state="off-unlocked"><CheckCircle2 size={16} aria-hidden className="shrink-0 text-[var(--success-fg)]" />{FAMILY_COPY.parent.planUnlocked}</p>
+      ) : (
         <div className="space-y-2 rounded-[var(--radius-lg)] border-2 border-dashed border-[var(--line)] p-3" data-billing-state="off">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-center gap-2 text-sm font-semibold"><CreditCard size={16} aria-hidden className="shrink-0" />Bezahlung bald verfügbar</p>

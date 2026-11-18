@@ -30,7 +30,7 @@ export function ErrorBanner({ message, onRetry }: { message: string; onRetry?: (
 
 /** Unknown or foreign class/pupil: no retry (it can't help), one way back (lehrperson-23). */
 export function TeacherNotFound({ title, text }: { title: string; text: string }) {
-  return <EmptyState icon={<SearchX size={26} />} title={title} description={text} action={<ButtonLink href="/teacher" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
+  return <EmptyState headingLevel={1} icon={<SearchX size={26} />} title={title} description={text} action={<ButtonLink href="/teacher" variant="secondary">Zu meinen Klassen</ButtonLink>} />;
 }
 
 /** Errors where retrying cannot help (no permission, unknown id). */
