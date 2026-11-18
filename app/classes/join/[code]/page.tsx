@@ -50,7 +50,7 @@ function JoinContent({ code, next }: { code: string; next: string | null }) {
 
   return (
     <Card className="animate-rise relative mx-auto mt-4 max-w-md space-y-5 p-6 shadow-[var(--shadow-lg)] sm:p-8">
-      <span className="sticker tilt-l3 absolute -left-2 -top-3.5"><GraduationCap size={15} strokeWidth={2.4} aria-hidden />Klasseneinladung</span>
+      <span className="sticker tilt-l3 absolute left-3 -top-3.5 sm:-left-2"><GraduationCap size={15} strokeWidth={2.4} aria-hidden />Klasseneinladung</span>
       <div>
         <h1 className="text-title break-words">{preview.name}</h1>
         <p className="mt-2 text-body text-muted">{preview.teacherName}{preview.schoolYear ? ` · Schuljahr ${preview.schoolYear}` : ""}</p>

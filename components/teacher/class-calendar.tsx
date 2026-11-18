@@ -45,7 +45,7 @@ export function ClassCalendar({ classId, archived = false }: { classId: string; 
       <section className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div><h2 className="text-heading flex items-center gap-2"><CalendarDays size={19} strokeWidth={2.2} aria-hidden /> Fristen der Klasse</h2><p className="text-small mt-1 text-muted">{weekLabel(start)}</p></div>
-          <div className="flex gap-2" role="group" aria-label="Woche wechseln">
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Woche wechseln">
             <Button variant="secondary" className="min-h-11 min-w-11 px-0 sm:min-h-11 sm:px-0" aria-label="Vorherige Woche" onClick={() => setStart(addDays(start, -7))}><ChevronLeft size={18} strokeWidth={2.4} /></Button>
             <Button variant="secondary" className="min-h-11 sm:min-h-11" disabled={start === weekStart(today)} onClick={() => setStart(weekStart(today))}>Diese Woche</Button>
             <Button variant="secondary" className="min-h-11 min-w-11 px-0 sm:min-h-11 sm:px-0" aria-label="Nächste Woche" onClick={() => setStart(addDays(start, 7))}><ChevronRight size={18} strokeWidth={2.4} /></Button>
@@ -81,7 +81,7 @@ export function ClassCalendar({ classId, archived = false }: { classId: string; 
       {!archived && (
         <Card className="max-w-2xl space-y-4 p-4 sm:p-5">
           <div><h2 className="text-heading">Neue Frist</h2><p className="text-small mt-1 text-muted">Alle Schülerinnen und Schüler der Klasse sehen die Frist auf ihrer Klassenseite.</p></div>
-          <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" noValidate>
+          <form onSubmit={submit} className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2" noValidate>
             <Field label="Titel" htmlFor="dl-title"><Input id="dl-title" className="text-base! sm:text-base!" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="z. B. Dossier abgeben" maxLength={120} /></Field>
             <Field label="Datum" htmlFor="dl-date"><Input id="dl-date" type="date" className="text-base! sm:text-base!" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
             <Field label="Hinweis (optional)" htmlFor="dl-note" className="sm:col-span-2"><Input id="dl-note" className="text-base! sm:text-base!" value={note} onChange={(e) => setNote(e.target.value)} placeholder="z. B. bis 12 Uhr im Sekretariat" maxLength={300} /></Field>

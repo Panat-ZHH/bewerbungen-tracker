@@ -84,7 +84,7 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
             <div className="flex flex-wrap items-center gap-2">
               {/* Only reached stages, no zero badges in warning colours (lehrperson-22). */}
               {student.interviews > 0 && <Badge tone="coral">{student.interviews} {student.interviews === 1 ? "Gespräch" : "Gespräche"}</Badge>}{student.offers > 0 && <Badge tone="success">{student.offers} {student.offers === 1 ? "Zusage" : "Zusagen"}</Badge>}
-              {student.schnupper > 0 && <Badge tone="info">{student.schnupper} Schnupperlehre{student.schnupper === 1 ? "" : "n"}</Badge>}{student.placed && student.offers === 0 && <Badge tone="success">Lehrvertrag</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
+              {student.schnupper > 0 && <Badge tone="info" className="max-w-full whitespace-normal [overflow-wrap:anywhere]">{student.schnupper} Schnupperlehre{student.schnupper === 1 ? "" : "n"}</Badge>}{student.placed && student.offers === 0 && <Badge tone="success">Lehrvertrag</Badge>}{student.inactive && <Badge tone="warning">Inaktiv</Badge>}
             </div>
             <StatusBar counts={student.statusCounts} total={student.total} legend />
           </div>
@@ -96,14 +96,14 @@ export function StudentTimelineView({ classId, studentId }: { classId: string; s
                   <li key={c.id} className="space-y-3 py-5">
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0"><h2 className="font-display truncate text-xl font-extrabold tracking-[-.02em]">{c.company}</h2>{c.position && <p className="text-small truncate text-muted">{c.position}</p>}</div>
-                      {c.statusLabel && <Badge tone={c.waiting ? "warning" : toneOf(c.status)}>{c.statusLabel}</Badge>}
+                      {c.statusLabel && <Badge className="max-w-full whitespace-normal [overflow-wrap:anywhere]" tone={c.waiting ? "warning" : toneOf(c.status)}>{c.statusLabel}</Badge>}
                     </div>
                     {c.age && <p className={`text-sm font-semibold ${c.waiting ? "text-[var(--warning-fg)]" : ""}`}>{c.age}</p>}
                     <ol className="relative ml-1.5 space-y-2.5 border-l-2 border-dashed border-[var(--outline)] pl-5" aria-label={`Stationen ${c.company}`}>
                       {c.stages.map((st, i) => (
                         <li key={`${st.key}-${i}`} className="relative">
                           <span className={`absolute -left-[1.72rem] top-1 h-3 w-3 rounded-full border-[length:var(--border-w)] border-[var(--outline)] ${i === c.stages.length - 1 ? "bg-[var(--sun)]" : "bg-[var(--paper)]"}`} aria-hidden />
-                          <div className="flex flex-wrap items-center gap-2"><span className="text-small font-bold">{st.label}</span>{st.deadlineState && <Badge tone={DEADLINE_TONE[st.deadlineState]}>{DEADLINE_TEXT[st.deadlineState]}</Badge>}<span className="text-small tabular text-muted">{formatDateCh(st.date)}</span></div>
+                          <div className="flex flex-wrap items-center gap-2"><span className="text-small font-bold">{st.label}</span>{st.deadlineState && <Badge className="max-w-full whitespace-normal [overflow-wrap:anywhere]" tone={DEADLINE_TONE[st.deadlineState]}>{DEADLINE_TEXT[st.deadlineState]}</Badge>}<span className="text-small tabular text-muted">{formatDateCh(st.date)}</span></div>
                         </li>
                       ))}
                     </ol>

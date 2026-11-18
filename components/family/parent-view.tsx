@@ -205,7 +205,7 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
               <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 font-semibold [&::-webkit-details-marker]:hidden">
                 {FAMILY_COPY.parent.seatMore}<ChevronDown size={14} aria-hidden className="shrink-0 transition-transform group-open:rotate-180" />
               </summary>
-              <p>{FAMILY_COPY.seat.fullChild} <Link href="/kontakt" className="inline-flex items-center gap-1 font-semibold underline underline-offset-2"><Mail size={13} aria-hidden />{FAMILY_COPY.parent.contactLink}</Link></p>
+              <p>{FAMILY_COPY.seat.fullChild} <Link href="/kontakt" className="inline-flex min-h-11 items-center gap-1 font-semibold underline underline-offset-2"><Mail size={13} aria-hidden />{FAMILY_COPY.parent.contactLink}</Link></p>
             </details>
           )}
           {current && (

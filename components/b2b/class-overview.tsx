@@ -97,7 +97,7 @@ function StudentLine({ s, classId }: { s: OverviewStudent; classId: string }) {
         {!s.hidden && (
           <div className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 sm:w-[24rem] sm:flex-nowrap">
             <div className="min-w-20 flex-1 basis-40 sm:basis-auto"><ProgressBar size="sm" value={step} max={4} tone={step >= 4 ? "sun" : step >= 2 ? "mint" : "brand"} label={`Fortschritt von ${name}`} valueText={`Schritt ${step} von 4: ${PROGRESS_STEPS[step]}`} /></div>
-            <dl className="tabular flex shrink-0 gap-3 text-xs">
+            <dl className="tabular flex min-w-0 flex-wrap gap-3 text-xs sm:shrink-0">
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Verschickt</dt><dd className="font-bold">{s.applications}</dd></div>
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Gespräche</dt><dd className="font-bold">{s.interviews}</dd></div>
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Schnuppern</dt><dd className="font-bold">{s.trialDays}</dd></div>

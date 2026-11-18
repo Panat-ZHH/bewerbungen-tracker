@@ -31,7 +31,7 @@ export function AnnouncementsPanel({ classId }: { classId: string }) {
   }
 
   return (
-    <div className="grid gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-x-12 gap-y-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
       <Card className="h-fit space-y-3 p-4 sm:p-5">
         <div><h2 className="text-heading">Neue Mitteilung</h2><p className="text-small mt-1 text-muted">Alle Schülerinnen und Schüler der Klasse sehen die Nachricht in ihrer Klassenansicht.</p></div>
         <form onSubmit={submit} className="space-y-3">

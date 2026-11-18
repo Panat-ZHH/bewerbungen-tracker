@@ -23,8 +23,8 @@ import { relativeDays, teacherError } from "./shared";
 
 function StatusBadges({ s }: { s: TeacherStudent }) {
   return (
-    <span className="flex flex-wrap gap-1.5">
-      {s.placed && <Badge tone="success"><CheckCircle2 size={12} className="mr-1" aria-hidden />Zusage oder Lehrvertrag</Badge>}
+    <span className="flex min-w-0 flex-wrap gap-1.5">
+      {s.placed && <Badge tone="success" className="max-w-full whitespace-normal [overflow-wrap:anywhere]"><CheckCircle2 size={12} className="mr-1 shrink-0" aria-hidden />Zusage oder Lehrvertrag</Badge>}
       {s.inactive && <Badge tone="warning">Inaktiv</Badge>}
       {s.hidden && <Badge><EyeOff size={12} className="mr-1" aria-hidden />Teilt nicht</Badge>}
     </span>
@@ -103,9 +103,9 @@ export function StudentsPanel({ cls, students, onChanged }: { cls: DashboardClas
           </label>
           <div className="flex flex-wrap gap-2 lg:ml-auto">
             <Button variant="secondary" className="min-h-11 sm:min-h-11" icon={<BellRing size={15} />} disabled={nudgeable.length === 0} onClick={() => { setNudge(nudgeable); setNudgeError(""); }}>Inaktive erinnern ({nudgeable.length})</Button>
-            <details className="group relative">
+            <details className="group relative max-sm:w-full">
               <summary className="inline-flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold text-muted hover:bg-[var(--hover)] hover:text-[var(--ink)] [&::-webkit-details-marker]:hidden"><Download size={15} aria-hidden />Exportieren<ChevronDown size={14} className="transition-transform group-open:rotate-180" aria-hidden /></summary>
-              <div className="panel absolute right-0 z-20 mt-1 flex w-60 flex-col p-1">
+              <div className="panel z-20 mt-1 flex w-full flex-col p-1 sm:absolute sm:right-0 sm:w-60">
                 <Button variant="ghost" className="min-h-11 justify-start sm:min-h-11" disabled={rows.length === 0} onClick={exportCsv}>Übersicht (CSV)</Button>
                 <Button variant="ghost" className="min-h-11 justify-start sm:min-h-11" disabled={rows.length === 0 || busy} onClick={() => void exportApplications()}>Alle Bewerbungen (CSV)</Button>
               </div>
