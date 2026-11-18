@@ -64,7 +64,7 @@ export const guideSteps: GuideStep[] = [
     id: "bewerbungen", title: "Bewerbung erfassen und Status ändern",
     intro: "Jede Bewerbung hat einen Status. So siehst du immer, wo du stehst und was als Nächstes kommt.",
     steps: [
-      <>Gehe zu {k("Bewerbungen")} und tippe auf {k("Bewerbung hinzufügen")}, oder öffne eine gemerkte Stelle.</>,
+      <>Gehe zu {k("Bewerbungen")} und tippe auf {k("Bewerbung eintragen")}, oder öffne eine gemerkte Stelle.</>,
       <>Trage Firma, Stelle und Ort ein und setze {k("Bewerben bis")}, damit dich WendApply an die Frist erinnert. Ansprechperson und Notizen sind freiwillig.</>,
       <>Unter {k("Status")} wählst du: Gemerkt, In Vorbereitung, Abgeschickt, Schnupperlehre geplant oder gemacht, Eignungstest / Multicheck, Gespräch, Weiteres Gespräch, Zusage, Vertrag unterschrieben, Absage erhalten oder Zurückgezogen.</>,
       <>Auf der Detailseite siehst du die {k("Zeitachse")} und kannst mit {k("Frist im Kalender speichern")} die Frist in deinen Kalender übernehmen.</>,

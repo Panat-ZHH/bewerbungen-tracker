@@ -53,7 +53,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
             {nav.map((n) => <Link key={n.href} href={n.href} className="rounded-full px-3 py-2 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
           </nav>
           <ThemeSwitch />
-          <ButtonLink href="/login" size="sm">Loslegen</ButtonLink>
+          <ButtonLink href="/login" size="sm">Kostenlos testen</ButtonLink>
         </div>
         <nav aria-label="Hauptnavigation (mobil)" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
           {nav.map((n) => <Link key={n.href} href={n.href} className="flex min-h-11 items-center rounded-full px-3 text-[13px] font-semibold whitespace-nowrap text-[var(--ink)]">{n.label}</Link>)}

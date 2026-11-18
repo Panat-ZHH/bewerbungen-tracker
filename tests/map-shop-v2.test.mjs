@@ -91,6 +91,7 @@ test("unknown item errors become a friendly 'bald erhältlich' message", () => {
   assert.equal(shopBuyErrorMessage(invalid), SHOP_ITEM_SOON);
   assert.equal(SHOP_ITEM_SOON, "Dieses Modell ist bald erhältlich.");
   assert.match(shopBuyErrorMessage(new Error("Database error: P0001 | INSUFFICIENT_POINTS")), /nicht genügend Punkte/);
+  assert.match(shopBuyErrorMessage(new Error("INSUFFICIENT_POINTS")), /den Laden\./); assert.doesNotMatch(shopBuyErrorMessage(new Error("INSUFFICIENT_POINTS")), /Shop/);
   assert.match(shopBuyErrorMessage(new Error("offline")), /nicht bestätigt/);
   for (const reason of [null, undefined, "x", { code: "42501" }]) assert.equal(isUnknownShopItemError(reason), false);
 });

@@ -119,3 +119,10 @@ test("public pages do not touch Supabase (they must render without the B2B migra
     assert.doesNotMatch(src, /supabase/i, `${d}/${f}`);
   }
 });
+
+test("glossary (REAUDIT-B F3): /hilfe matches the real UI words, du-form and flag-aware school billing", () => {
+  const s = read("app/hilfe/page.tsx");
+  for (const word of ["«Bewerbung eintragen»", "Firma und Stelle", "Kostenlos testen", "Danach erstellst du", "Probleme bei der Anmeldung", "individuelle Offerte", "PLANS.solo", "FAMILY.priceMonthText", "onlinePaymentEnabled()"]) assert.ok(s.includes(word), word);
+  for (const word of ["Bewerbung hinzufügen", "Betrieb", "Loslegen", "erzeugen Sie", "Schreiben Sie", "beim Login", "individuelles Angebot", "nicht in der App", "CHF 4.90", "CHF 7.90"]) assert.ok(!s.includes(word), word);
+  assert.ok(!read("components/guide/content.tsx").includes("Bewerbung hinzufügen"));
+});

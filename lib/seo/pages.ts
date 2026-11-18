@@ -55,7 +55,7 @@ export const PAGE_SEO = {
   },
   "/hilfe": {
     title: "Hilfe und häufige Fragen",
-    description: "Antworten zu WendApply: erste Schritte für Schülerinnen, Schüler und Lehrpersonen, Preise und Pilot für Schulen, Familien, Datenschutz und Login.",
+    description: "Antworten zu WendApply: erste Schritte für Schülerinnen, Schüler und Lehrpersonen, Preise und Pilot für Schulen, Familien, Datenschutz und Anmeldung.",
     crumb: "Hilfe",
   },
   "/kontakt": {

@@ -387,7 +387,7 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
         )}
         {action === "delete_account" && (
           <>
-            <StatusMessage tone="danger">Endgültig: Dateien, Daten und Login werden gelöscht. Das lässt sich nicht rückgängig machen.</StatusMessage>
+            <StatusMessage tone="danger">Endgültig: Dateien, Daten und das Konto werden gelöscht. Das lässt sich nicht rückgängig machen.</StatusMessage>
             <Field label="E-Mail nochmals eintippen" htmlFor="f-confirm-text" hint={u.email ?? undefined}>
               <Input id="f-confirm-text" type="email" autoComplete="off" value={form.confirm_text} onChange={set("confirm_text")} aria-invalid={invalid("confirm_text")} data-autofocus />
             </Field>

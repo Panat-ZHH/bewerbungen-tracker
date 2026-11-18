@@ -89,7 +89,7 @@ for (const { key, vp } of VIEWPORTS) {
     await page.goto(`${BASE}/teacher/classes/c1`, { waitUntil: "domcontentloaded" });
     check(await visible(page, "Anna Meier", 90000), "class page loads with the student list (students tab stays default)");
     await page.getByRole("tab", { name: /Überblick/ }).click();
-    check(await visible(page, "Klassenstatistik"), "overview tab shows the class statistics");
+    check(await visible(page, "Auswertung der Klasse"), "overview tab shows the class statistics");
     check(await visible(page, "Wer braucht Unterstützung"), "support list is shown");
     check(await visible(page, "Noch keine Bewerbung erfasst"), "reason text for Ben (no_application)");
     check(await visible(page, "Meldet selbst: noch keine Lehrstelle"), "hidden student appears only via self report");
@@ -219,7 +219,7 @@ scope = "not-deployed mobile";
   await page.goto(`${BASE}/teacher/classes/c1`, { waitUntil: "domcontentloaded" });
   await visible(page, "Anna Meier", 60000);
   await page.getByRole("tab", { name: /Überblick/ }).click();
-  check(await visible(page, "Klassenstatistik"), "overview falls back to the existing teacher RPCs");
+  check(await visible(page, "Auswertung der Klasse"), "overview falls back to the existing teacher RPCs");
   check(await visible(page, "Noch keine Bewerbung erfasst"), "fallback derives support reasons");
   check(await visible(page, "Meldet selbst: noch keine Lehrstelle"), "fallback keeps the self report of a hidden student");
   await page.getByRole("tab", { name: /^Mehr/ }).click(); await page.getByRole("tab", { name: /Ziele/ }).click();

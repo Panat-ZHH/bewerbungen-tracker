@@ -26,7 +26,7 @@ export type Package = {
 const core = [
   "Alle Funktionen für Schülerinnen und Schüler",
   "Klassenübersicht und Begleitung für Lehrpersonen",
-  "Klassenziele, Klassendorf und Statistiken",
+  "Klassenziele, Klassendorf und Auswertungen",
   "Datenschutz-Unterlagen inkl. AVV-Vorlage",
 ];
 

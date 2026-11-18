@@ -88,7 +88,7 @@ export function studentCsvColumns(labels: Record<ApplicationStatus, string>): Cs
     { header: "Gespräche", value: (s) => (s.hidden ? "" : s.interviews) },
     { header: "Schnupperlehren", value: (s) => (s.hidden ? "" : s.schnupper) },
     { header: "Zusagen", value: (s) => (s.hidden ? "" : s.offers) },
-    { header: "Lehrstelle gefunden", value: (s) => (s.hidden ? "" : s.placed ? "ja" : "nein") },
+    { header: "Zusage oder Lehrvertrag", value: (s) => (s.hidden ? "" : s.placed ? "ja" : "nein") },
     { header: "Inaktiv", value: (s) => (s.hidden ? "" : s.inactive ? "ja" : "nein") },
     { header: "Letzte Aktivität", value: (s) => (s.hidden ? "" : day(s.lastActivity)) },
     ...(Object.keys(labels) as ApplicationStatus[]).map((status) => ({ header: labels[status], value: (s: TeacherStudent) => (s.hidden ? "" : s.statusCounts[status] ?? 0) })),

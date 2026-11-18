@@ -8,11 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { studentLabel } from "@/lib/teacher-extras";
 import { getClassOverview, type ClassOverview } from "@/lib/b2b/client";
 import { ErrorBanner, relativeDays, teacherError } from "@/components/teacher/shared";
-import { PROGRESS_STEPS, progressStep, share, supportList, supportText, type OverviewStudent } from "./logic";
+import { PROGRESS_LAST_STEP, PROGRESS_STEPS, progressStep, share, supportList, supportText, type OverviewStudent } from "./logic";
 import { ProgressBar } from "./progress-bar";
 
 /**
- * Teacher class overview: class statistics, "Wer braucht Unterstützung" and one line per student with non-confidential
+ * Teacher class overview: «Auswertung der Klasse», "Wer braucht Unterstützung" and one line per student with non-confidential
  * counts only (never companies, positions, notes or documents). Progress is the furthest meaningful step, not the volume.
  */
 export function ClassOverviewPanel({ classId }: { classId: string }) {
@@ -29,15 +29,15 @@ export function ClassOverviewPanel({ classId }: { classId: string }) {
   const a = data.aggregates;
   const stats = [
     { label: "Mindestens eine Bewerbung abgeschickt", value: a.withApplication, tone: "brand" as const },
-    { label: "Vorstellungsgespräch erhalten", value: a.withInterview, tone: "coral" as const },
+    { label: "Gespräch erhalten", value: a.withInterview, tone: "coral" as const },
     { label: "Schnupperlehre gemacht oder geplant", value: a.withTrialDay, tone: "mint" as const },
-    { label: "Lehrstelle gefunden", value: a.placed, tone: "sun" as const },
+    { label: "Zusage oder Lehrvertrag", value: a.placed, tone: "sun" as const },
   ];
 
   return (
     <div className="space-y-10">
       <section aria-labelledby="b2b-stats-h">
-        <h2 id="b2b-stats-h" className="text-heading">Klassenstatistik</h2>
+        <h2 id="b2b-stats-h" className="text-heading">Auswertung der Klasse</h2>
         <p className="text-small mt-1 max-w-2xl text-muted">Anteil der {a.sharing} {a.sharing === 1 ? "Person, die ihre Daten teilt" : "Personen, die ihre Daten teilen"}{a.students > a.sharing ? ` (${a.students - a.sharing} teilen nicht)` : ""}. Gezählt werden Schritte, nicht die Menge an Bewerbungen.</p>
         <dl className="mt-4 grid gap-4 sm:grid-cols-2">
           {stats.map((s) => (
@@ -96,7 +96,7 @@ function StudentLine({ s, classId }: { s: OverviewStudent; classId: string }) {
         </div>
         {!s.hidden && (
           <div className="flex w-full items-center gap-4 sm:w-[24rem]">
-            <div className="min-w-20 flex-1"><ProgressBar size="sm" value={step} max={4} tone={step >= 4 ? "sun" : step >= 2 ? "mint" : "brand"} label={`Fortschritt von ${name}`} valueText={`Schritt ${step} von 4: ${PROGRESS_STEPS[step]}`} /></div>
+            <div className="min-w-20 flex-1"><ProgressBar size="sm" value={step} max={PROGRESS_LAST_STEP} tone={step >= PROGRESS_LAST_STEP ? "sun" : step >= 2 ? "mint" : "brand"} label={`Fortschritt von ${name}`} valueText={`Schritt ${step} von ${PROGRESS_LAST_STEP}: ${PROGRESS_STEPS[step]}`} /></div>
             <dl className="tabular flex shrink-0 gap-3 text-xs">
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Abgeschickt</dt><dd className="font-bold">{s.applications}</dd></div>
               <div className="flex flex-col-reverse items-center"><dt className="text-muted">Gespräche</dt><dd className="font-bold">{s.interviews}</dd></div>
