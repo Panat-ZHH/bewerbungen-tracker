@@ -9,6 +9,7 @@ import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { AdminMe } from "@/lib/admin/types";
 import { supabase } from "@/lib/supabase";
+import { clearSnapshots } from "@/lib/snapshot-cache";
 import { accessToken, adminFetch, errorText, setAdminAuthHandler, type AdminAuthKind } from "./api";
 import { MfaStep } from "./mfa-step";
 import { AdminDashboard } from "./dashboard";
@@ -23,6 +24,7 @@ type Phase =
 
 /** The last real login is older than the admin window (403 reauth_required): end this browser's session and ask for a new login. */
 async function reauth(setPhase: (p: Phase) => void) {
+  clearSnapshots();
   try { await supabase.auth.signOut({ scope: "local" }); } catch { /* the login prompt is shown anyway */ }
   setPhase({ kind: "login", reauth: true });
 }

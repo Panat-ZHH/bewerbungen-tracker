@@ -8,6 +8,7 @@ import { Modal } from "@/components/ui/modal";
 import Link from "next/link";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { supabase } from "@/lib/supabase";
+import { clearSnapshots } from "@/lib/snapshot-cache";
 import { DELETE_CONFIRM_WORD, REAUTH_FLAG, confirmationMatches, deletionItems, isFreshSignIn, teacherWarning, withSupport, type AccountSummary } from "@/lib/account-deletion";
 
 type Identity = { email: string | null; hasPassword: boolean };
@@ -91,6 +92,7 @@ export function DeleteAccountCard() {
         return;
       }
       await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+      clearSnapshots(); // explicit, although clearBrowserData() below removes them too
       clearBrowserData();
       window.location.replace("/login?deleted=1");
     } catch {
