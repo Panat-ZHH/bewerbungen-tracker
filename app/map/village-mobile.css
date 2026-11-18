@@ -1,14 +1,12 @@
 /*
  * Village / island map on phones (global, attribute-scoped; imported by components/applications/map-fullscreen.tsx).
- * - html[data-hide-bottom-nav] (set by useHideBottomNav while a map sheet or the placement tools are open):
- *   the app's bottom tab bar is hidden on phones, the map stage takes its place down to the screen edge and the
- *   overlays keep clear of the home indicator themselves. Nothing changes from 768px (no tab bar there).
+ * - html[data-hide-bottom-nav] (shell contract, set by useHideBottomNav from components/layout/bottom-nav while a map
+ *   sheet or the placement tools are open): the shell (app/globals.css) slides the tab bar out and drops the fullscreen
+ *   <main>'s bottom margin, so the stage reaches the screen edge; here the overlays keep clear of the home indicator.
  * - Touch hardening for the fullscreen map: no page rubber-banding / pull-to-refresh / swipe navigation,
  *   no text selection or iOS long-press callouts on the map chrome (inputs stay selectable).
  */
 @media (max-width: 767px) {
-  html[data-hide-bottom-nav] nav[aria-label="Hauptmenü mobil"] { display: none; }
-  html[data-hide-bottom-nav] main#main { margin-bottom: 0; }
   html[data-hide-bottom-nav] [data-map-fullscreen] { --fs-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
 }
 
