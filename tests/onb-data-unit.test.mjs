@@ -107,6 +107,13 @@ test("cleanText strips invisible/bidi chars, keeps ZWJ emoji, collapses spaces; 
 });
 
 // ---------------- parseFunnelState / toPayload ----------------
+test("L1 firstNameProblem: Hangul fillers / tag characters are not a visible letter; real Hangul and names with tags left over pass", () => {
+  for (const bad of ["\u3164", "\u115F", "\u1160", "\uFFA0", "\u{E0041}\u{E007F}", " \u3164 \u{E0020} "]) assert.equal(v.firstNameProblem(bad), true, JSON.stringify(bad));
+  for (const ok of ["한글", "Mia\u{E0068}", "\u3164Ben", "李", "Zoë"]) assert.equal(v.firstNameProblem(ok), false, JSON.stringify(ok));
+  assert.equal(v.cleanText("Mia\u{E0068}\u{E0069}\u{E007F}"), "Mia");
+  assert.equal(v.validatePayload(student({ firstName: "\u3164" }), NOW).field, "firstName");
+});
+
 test("parseFunnelState: TTL, future, malformed, wrong version; coercion", () => {
   const now = Date.now();
   const base = { ...v.emptyFunnelState(now), role: "student", firstName: "Lea" };
@@ -197,14 +204,16 @@ test("apply: nothing pending → none, no RPC", async () => {
   assert.equal(ap.hasPendingFunnel({ user_metadata: { wa_funnel: { v: 1 } } }), true);
 });
 
-test("apply: local copy sent as payload; on success local copy cleared, metadata cleared, goal cached, redirect from class code", async () => {
+const createdNow = () => new Date(Date.now() + 5_000).toISOString();
+
+test("apply: own local copy (Google: account created after the funnel started) sent as payload; cleared, goal cached, redirect from class code", async () => {
   const calls = []; const updates = [];
   globalThis.__supabaseStub = {
     rpc: async (n, a) => { calls.push([n, a]); return { data: { applied: true, role: "student", role_mismatch: false, under_16: true }, error: null }; },
     updateUser: async (attrs) => { updates.push(attrs); return { data: { user: null }, error: null }; },
   };
   st.writeFunnelState(validState());
-  const out = await ap.applyFunnelIfPending({ user: { id: "u1", user_metadata: { wa_funnel: { v: 1 } } } });
+  const out = await ap.applyFunnelIfPending({ user: { id: "u1", created_at: createdNow(), user_metadata: {} } });
   assert.equal(out.status, "applied"); assert.equal(out.redirect, "/classes/join/KLASSE1?next=%2Fdashboard");
   assert.equal(calls[0][0], "funnel_apply"); assert.equal(calls[0][1].p_answers.firstName, "Lea"); assert.equal("classCode" in calls[0][1].p_answers, false);
   assert.equal(updates[0].data.wa_funnel, null); assert.equal(updates[0].data.role, "student"); assert.equal(updates[0].data.role_confirmed, true);
@@ -226,17 +235,91 @@ test("apply: half-finished local copy without metadata is dropped, not sent; err
   assert.deepEqual(await ap.applyFunnelIfPending({ user: { id: "u1", user_metadata: {} } }), { status: "none" });
   assert.equal(calls.length, 0); assert.equal(st.readFunnelState(), null);
   st.writeFunnelState(validState());
-  const out = await ap.applyFunnelIfPending({ user: { id: "u1", user_metadata: {} } });
+  const out = await ap.applyFunnelIfPending({ user: { id: "u1", created_at: createdNow(), user_metadata: {} } });
   assert.equal(out.status, "error"); assert.equal(out.kind, "rate_limit");
   assert.ok(st.readFunnelState(), "kept for the retry");
   assert.equal(ap.applyErrorKind({ message: "INVALID_FUNNEL", details: "firstName" }), "invalid");
 });
 
-test("apply: skipped mode sends {v, role, skipped}", async () => {
+test("apply: skipped mode sends {v, role, skipped} from the authenticated funnel (/start?nach=google); elsewhere nothing", async () => {
   const calls = [];
   globalThis.__supabaseStub = { rpc: async (n, a) => { calls.push(a); return { data: { applied: true, role: "teacher", role_mismatch: false, under_16: false }, error: null }; }, updateUser: async () => ({ data: {}, error: null }) };
-  const out = await ap.applyFunnelIfPending({ user: { id: "u1", user_metadata: {} }, skipped: true, role: "staff" });
-  assert.equal(out.status, "applied"); assert.deepEqual(calls[0].p_answers, { v: 1, role: "staff", skipped: true });
+  const old = { id: "u1", created_at: "2026-01-01T00:00:00Z", user_metadata: {} };
+  assert.deepEqual(await ap.applyFunnelIfPending({ user: old, skipped: true, role: "staff" }), { status: "none" });
+  assert.equal(calls.length, 0);
+  window.location = { pathname: "/start", search: "?schritt=name&nach=google" };
+  try {
+    const out = await ap.applyFunnelIfPending({ user: old, skipped: true, role: "staff" });
+    assert.equal(out.status, "applied"); assert.deepEqual(calls[0].p_answers, { v: 1, role: "staff", skipped: true });
+  } finally { delete window.location; }
+});
+
+// ---- QA-ONB M1: shared computer (Lena's abandoned funnel, Ben logs in) ----
+test("M1 pickFunnelSource: metadata wins (server copy, local ignored); no metadata → local only if created_at ≥ startedAt − 60 s", () => {
+  const t0 = Date.parse("2026-11-19T10:00:00Z");
+  const lena = { ...validState(), firstName: "Lena", startedAt: t0, updatedAt: t0 + 120_000 };
+  const iso = (ms) => new Date(ms).toISOString();
+  // metadata copy exists → always the server copy, whatever the local copy says
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: true, local: lena, createdAt: iso(t0 - 3 * 86400000), explicit: false }), { kind: "server", ownLocal: false });
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: true, local: lena, createdAt: iso(t0 + 300_000), explicit: false }), { kind: "server", ownLocal: true });
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: true, local: null, createdAt: iso(t0), explicit: false }), { kind: "server", ownLocal: false });
+  assert.equal(ap.pickFunnelSource({ hasMeta: true, local: lena, createdAt: iso(t0), explicit: false, skipped: true, role: "staff" }).kind, "server");
+  // no metadata: account older than the funnel (Ben, 3 days) → nothing sent, local copy cleared
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 3 * 86400000), explicit: false }), { kind: "none", clearLocal: true });
+  // boundary: 60 s slack (clock skew between browser and GoTrue)
+  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 60_000), explicit: false }).kind, "local");
+  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 60_001), explicit: false }).kind, "none");
+  // Google sign-up after the funnel (even days later) → own copy
+  const g = ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 + 2 * 86400000), explicit: false });
+  assert.equal(g.kind, "local"); assert.equal(g.payload.firstName, "Lena");
+  // authenticated funnel (/start?nach=google, answers typed after the account existed) → own copy
+  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 86400000), explicit: true }).kind, "local");
+  // missing / bad created_at → never trust the local copy
+  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: undefined, explicit: false }).kind, "none");
+  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: "nope", explicit: false }).kind, "none");
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: null, createdAt: iso(t0), explicit: false }), { kind: "none", clearLocal: false });
+});
+
+test("M1 apply: Ben (3 days, no metadata) on Lena's computer → no RPC, Lena's copy gone, role untouched", async () => {
+  const calls = []; const updates = [];
+  globalThis.__supabaseStub = { rpc: async (n, a) => { calls.push(a); return { data: { applied: true, role: "teacher", role_mismatch: false, under_16: false }, error: null }; }, updateUser: async (x) => { updates.push(x); return { data: {}, error: null }; } };
+  st.writeFunnelState({ ...validState(), firstName: "Lena" });
+  const ben = { id: "ben", created_at: new Date(Date.now() - 3 * 86400000).toISOString(), user_metadata: { role: "student" } };
+  assert.equal(ap.hasPendingFunnel(ben), true, "the copy triggers the call that clears it");
+  assert.deepEqual(await ap.applyFunnelIfPending({ user: ben }), { status: "none" });
+  assert.equal(calls.length, 0); assert.equal(updates.length, 0);
+  assert.equal(st.readFunnelState(), null);
+  assert.equal(ap.hasPendingFunnel(ben), false);
+  // staff variant (A2): no RPC either
+  st.writeFunnelState({ ...v.emptyFunnelState(), role: "staff", staffAccess: "licence" });
+  assert.deepEqual(await ap.applyFunnelIfPending({ user: ben }), { status: "none" });
+  assert.equal(calls.length, 0);
+});
+
+test("M1 apply: account with its own metadata copy + someone else's local copy → p_answers null, no local redirect/goal from the foreign copy", async () => {
+  const calls = []; const updates = [];
+  globalThis.__supabaseStub = {
+    rpc: async (n, a) => { calls.push(a); return { data: { applied: true, role: "student", role_mismatch: false, under_16: true }, error: null }; },
+    updateUser: async (x) => { updates.push(x); return { data: {}, error: null }; },
+  };
+  st.writeFunnelState({ ...validState(), firstName: "Lena", weeklyGoal: 7 });
+  const own = student({ firstName: "Noah", weeklyGoal: 2 });
+  const noah = { id: "noah", created_at: new Date(Date.now() - 2 * 86400000).toISOString(), user_metadata: { wa_funnel: own } };
+  const out = await ap.applyFunnelIfPending({ user: noah });
+  assert.equal(out.status, "applied"); assert.equal(out.redirect, null, "no class-code redirect from Lena's copy");
+  assert.equal(calls[0].p_answers, null);
+  assert.equal(updates[0].data.wa_funnel, null);
+  assert.equal(st.readFunnelState(), null, "foreign copy cleared");
+  assert.equal(window.localStorage.getItem("wendapply-weekly-goal"), "2", "goal cache from the account's own copy");
+});
+
+test("M1 apply: own e-mail sign-up on the same device (metadata + own local copy) → server copy, redirect from own copy kept", async () => {
+  const calls = [];
+  globalThis.__supabaseStub = { rpc: async (n, a) => { calls.push(a); return { data: { applied: true, role: "student", role_mismatch: false, under_16: true }, error: null }; }, updateUser: async () => ({ data: {}, error: null }) };
+  st.writeFunnelState(validState());
+  const out = await ap.applyFunnelIfPending({ user: { id: "u2", created_at: createdNow(), user_metadata: { wa_funnel: student() } } });
+  assert.equal(calls[0].p_answers, null);
+  assert.equal(out.status, "applied"); assert.equal(out.redirect, "/classes/join/KLASSE1?next=%2Fdashboard");
 });
 
 // ---------------- tour state ----------------

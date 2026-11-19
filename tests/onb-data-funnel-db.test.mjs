@@ -181,6 +181,12 @@ const BAD = [
   ["name only invisible", student({ firstName: "​‮" }), "firstName"],
   ["name number", student({ firstName: 5 }), "firstName"],
   ["name C1 control", student({ firstName: "Mi\u0085a" }), "firstName"],
+  // QA-ONB L1: letters that render blank (Hangul fillers) and tag characters are stripped → no visible letter left
+  ["name Hangul filler U+3164", student({ firstName: "\u3164" }), "firstName"],
+  ["name Hangul fillers U+115F U+1160", student({ firstName: "\u115F\u1160" }), "firstName"],
+  ["name halfwidth filler U+FFA0", student({ firstName: " \uFFA0 " }), "firstName"],
+  ["name tag chars only", student({ firstName: "\u{E0041}\u{E0042}\u{E007F}" }), "firstName"],
+  ["name fillers + tags + spaces", student({ firstName: "\u3164 \u{E0001} \u115F" }), "firstName"],
   ["year string", student({ birthYear: String(Y - 14) }), "birthYear"],
   ["year fraction", student({ birthYear: Y - 14 + 0.5 }), "birthYear"],
   ["year too young", student({ birthYear: Y - 7 }), "birthYear"],
@@ -240,7 +246,8 @@ test("every validation rule rejects with INVALID_FUNNEL (detail = field only), n
 test("parity: lib/funnel/validate.ts gives the same verdict and field as funnel_apply for the whole corpus", async () => {
   const GOOD = [student(), student({ professions: [], unsure: true, startYear: undefined }), student({ place: null, help: null }), parent(), parent({ help: [] }),
     { v: 1, role: "staff", skipped: true }, { v: 1, role: "parent", skipped: true }, student({ firstName: "  Zoë   Anna ", place: " Bülach " }),
-    student({ firstName: "👩‍💻 Lea" }), student({ firstName: "Ali‏" }), student({ professions: ["Koch", "koch", "KOCH"] }), student({ firstName: "李" })];
+    student({ firstName: "👩‍💻 Lea" }), student({ firstName: "Ali‏" }), student({ professions: ["Koch", "koch", "KOCH"] }), student({ firstName: "李" }),
+    student({ firstName: "Mia\u{E0068}\u{E0069}" }), student({ firstName: "\u3164Ben" }), student({ firstName: "한글" })];
   for (const payload of GOOD) {
     await clearRl();
     const u = await user(next(), { meta: {} });
@@ -263,6 +270,47 @@ test("cleaning: invisible chars stripped, whitespace collapsed, professions dedu
   assert.equal(p.first_name, "Mia Lou"); assert.equal(p.location, "Bülach");
   assert.deepEqual(p.desired_professions, ["Koch / Köchin", "Maurer:in"]);
   assert.equal(validate.cleanText("‮Mia​  Lou "), "Mia Lou");
+});
+
+test("L1: Hangul fillers and tag characters are stripped from every text field (SQL = JS)", async () => {
+  await clearRl();
+  const u = await user(next(), { meta: {} });
+  await apply(u, student({ firstName: "Mia\u{E0068}\u{E0069}\u{E007F}", place: "\u3164Bülach\uFFA0", professions: ["Koch\u115F", "\u1160Maurer:in"] }));
+  const p = await profile(u);
+  assert.equal(p.first_name, "Mia"); assert.equal(p.location, "Bülach"); assert.deepEqual(p.desired_professions, ["Koch", "Maurer:in"]);
+  assert.equal((await roleRow(u)).display_name, "Mia");
+  const corpus = ["\u3164", "\u115F\u1160", "a\uFFA0b", "Mia\u{E0000}\u{E0020}\u{E007F}", "한글 \u3164 Lea", "👩‍💻 Lea", "Ali\u200C", "x\u{E0080}"];
+  for (const raw of corpus) {
+    const [{ c }] = await admin("select public._funnel_clean($1) as c", [raw]);
+    assert.equal(c, validate.cleanText(raw), `clean parity: ${JSON.stringify(raw)}`);
+  }
+});
+
+test("M1: the account's metadata copy beats p_answers (shared computer); JSON-null metadata = no copy", async () => {
+  await clearRl();
+  // Ben signed up by e-mail (own copy in metadata); the browser sends Lena's leftover answers
+  const ben = await user(next(), { meta: { role: "student", wa_funnel: student({ firstName: "Ben", birthYear: Y - 15, weeklyGoal: 2 }) } });
+  const r = await apply(ben, student({ firstName: "Lena", birthYear: Y - 13, weeklyGoal: 8 }));
+  assert.equal(r.applied, true);
+  const p = await profile(ben);
+  assert.equal(p.first_name, "Ben"); assert.equal(p.weekly_goal, 2);
+  assert.equal((await roleRow(ben)).display_name, "Ben");
+  // a parent's own copy beats a staff payload: the role comes from the account's copy, never from the browser
+  const mum = await user(next(), { meta: { wa_funnel: parent({ firstName: "Sandra" }) } });
+  const r2 = await apply(mum, { v: 1, role: "staff", skipped: true });
+  assert.equal(r2.applied, true); assert.equal(r2.role, "parent");
+  assert.equal((await profile(mum)).account_type, "parent");
+  assert.notEqual((await roleRow(mum)).role, "teacher");
+  // the client clears the copy with updateUser({ wa_funnel: null }) → JSON null → the browser copy counts (Google path)
+  const g = await user(next(), { meta: { wa_funnel: null } });
+  const r3 = await apply(g, student({ firstName: "Gian" }));
+  assert.equal(r3.applied, true); assert.equal((await profile(g)).first_name, "Gian");
+  // no copy at all (Google): p_answers as before
+  const h = await user(next(), { meta: {} });
+  assert.equal((await apply(h, parent({ firstName: "Hans" }))).applied, true);
+  // an invalid own copy is still refused even if the browser sends a valid one (no fallback to the browser copy)
+  const bad = await user(next(), { meta: { wa_funnel: student({ weeklyGoal: 11 }) } });
+  assert.match(await code(apply(bad, student())), /INVALID_FUNNEL/);
 });
 
 test("start year is dropped without professions (unsure)", async () => {

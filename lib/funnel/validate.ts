@@ -12,8 +12,11 @@ import {
  * Invisible / direction-changing characters removed before any check (same set as sec-release's _strip_invisible_columns and
  * public._funnel_clean): C0 controls, DEL, ALM, MVS, ZWSP, LRM/RLM, bidi embeddings/overrides/isolates, word joiner + invisible
  * operators, BOM, interlinear annotation. ZWJ (emoji sequences) and ZWNJ (Persian, Indic) are kept.
+ * QA-ONB L1 (migration 20261119110000): also the Hangul fillers U+115F, U+1160, U+3164, U+FFA0 (Unicode letters that render
+ * blank, so «ㅤ» passed the letter check) and the tag characters U+E0000–U+E007F (invisible, can hide text after a name).
+ * After this strip every remaining \p{L} is a visible letter → the LETTER rule below = «at least one visible letter».
  */
-export const INVISIBLE = /[\u0001-\u001F\u007F؜᠎​‎‏‪-‮⁠-⁤⁦-⁩﻿￹-￻]/g;
+export const INVISIBLE = /[\u0001-\u001F\u007F؜᠎​‎‏‪-‮⁠-⁤⁦-⁩﻿￹-￻\u115F\u1160\u3164\uFFA0\u{E0000}-\u{E007F}]/gu;
 /** Control characters the strip does not remove (NUL, C1 range): refused on the RAW value, before cleaning (server: same). */
 const CONTROL = /[\u0000\u0080-\u009F]/;
 const LETTER = /\p{L}/u;
@@ -37,7 +40,7 @@ const nullish = (v: unknown) => v === undefined || v === null;
 export function birthYearRange(now: Date = new Date()) { const y = now.getFullYear(); return { min: y - 100, max: y - 8 }; }
 export function startYearRange(now: Date = new Date()) { const y = now.getFullYear(); return { min: y - 1, max: y + 4 }; }
 
-/** First name rule (all roles): 1–40 characters after cleaning, no control characters, at least one letter. */
+/** First name rule (all roles): 1–40 characters after cleaning, no control characters, at least one visible letter. */
 export function firstNameProblem(raw: unknown): boolean {
   if (typeof raw !== "string" || CONTROL.test(raw)) return true;
   const v = cleanText(raw);
