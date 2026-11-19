@@ -74,7 +74,7 @@ export function TeacherDashboardView() {
   const firstClass = (data?.classes ?? []).find((c) => !c.archived);
   return (
     <div>
-      <PageHeader title="Meine Klassen" description={<>So weit sind deine Klassen mit der Lehrstellensuche.<LicenceLine /></>} actions={<Button variant={mode === "no-students" && firstClass ? "secondary" : "primary"} className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
+      <PageHeader title="Meine Klassen" description={<>So weit sind deine Klassen mit der Lehrstellensuche.<LicenceLine /></>} actions={<Button data-tour="lehrperson-new-class" variant={mode === "no-students" && firstClass ? "secondary" : "primary"} className="min-h-11 sm:min-h-11" icon={<Plus size={16} />} onClick={() => setOpen(true)}>Klasse erstellen</Button>} />
       <SchoolAdminLink className="mb-8" />
       {error && <ErrorBanner message={error} onRetry={load} />}
       {!data && !error && <div className="space-y-3"><Skeleton className="h-24 rounded-[var(--radius-lg)]" />{[0, 1, 2].map((i) => <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />)}</div>}
@@ -104,7 +104,7 @@ export function TeacherDashboardView() {
 
           {mode !== "no-class" && mode !== "no-students" && <AttentionPanel prefetched={attention} />}
 
-          <section aria-label="Klassen">
+          <section aria-label="Klassen" data-tour="lehrperson-classes">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <h2 className="text-heading">Klassen</h2>
               <Segmented className="[&_button]:min-h-11" label="Klassen anzeigen" value={showArchived} onChange={setShowArchived} options={[{ value: "active", label: "Aktiv", count: active.length }, { value: "archived", label: "Archiv", icon: <Archive size={13} />, count: archived.length }]} />
@@ -138,7 +138,7 @@ export function TeacherDashboardView() {
             )}
           </section>
 
-          <section aria-label="Bewerbungsfristen der Schüler:innen">
+          <section aria-label="Bewerbungsfristen der Schüler:innen" data-tour="lehrperson-deadlines">
             <h2 className="text-heading">Bewerbungsfristen der Schüler:innen <span className="text-small font-normal text-muted">(nächste 14 Tage)</span></h2>
             {data.deadlines.length === 0 ? (
               <p className="text-small mt-2 flex items-center gap-2 text-muted"><CalendarClock size={17} aria-hidden /> Keine Bewerbungsfristen in den nächsten 14 Tagen.</p>

@@ -22,7 +22,7 @@ export function WeeklyGoal({ applications }: { applications: Application[] }) {
   const change = (delta: number) => { const next = clampGoal(goal + delta); setGoal(next); writeGoal(next); };
   const stepButton = "flex h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] active:translate-y-px disabled:opacity-40";
   return (
-    <section className="panel relative p-4 sm:p-5" aria-label="Wochenziel">
+    <section className="panel relative p-4 sm:p-5" aria-label="Wochenziel" data-tour="schueler-weekly-goal" data-tour-value={goal}>
       {reached && <span className="sticker sticker-mint animate-sticker absolute -right-2 -top-3" style={{ "--tilt": "5deg" } as React.CSSProperties}>Geschafft!</span>}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

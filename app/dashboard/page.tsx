@@ -74,7 +74,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="skeleton mt-4 h-7 w-64 max-w-full" role="status" aria-label="Dein nächster Schritt wird geladen" />
         ) : !error && (
-          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5">
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5" data-tour="schueler-next-step">
             {!isNew && <p className="font-display max-w-xl text-xl font-semibold leading-snug tracking-[-.01em] sm:text-2xl" data-testid="next-step">{step.text}</p>}
             {!isNew && <ButtonLink href={step.href} variant="sun" className="w-fit shrink-0" data-primary-action="" icon={<ArrowRight size={16} strokeWidth={2.4} />}>{step.cta}</ButtonLink>}
           </div>
@@ -164,7 +164,7 @@ const FIRST_STEPS = [
 /** New users: no numbers at all. The three steps ARE the page: a plain numbered list with huge numerals and a doodle. */
 function FirstSteps() {
   return (
-    <section className="animate-rise mt-8 grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" aria-labelledby="first-steps-h">
+    <section className="animate-rise mt-8 grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" aria-labelledby="first-steps-h" data-tour="schueler-next-step">
       <div className="min-w-0">
         <h2 id="first-steps-h" className="text-heading">So startest du in drei Schritten</h2>
         <p className="mt-1 text-body text-muted">Du musst nicht alles auf einmal wissen – Firma und Stelle reichen.</p>
