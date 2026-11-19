@@ -95,7 +95,6 @@ for (const { key, vp } of VPS) {
     check(!!s.card && s.card.left >= 0 && s.card.right <= s.vw + 1 && s.card.top >= 0 && s.card.bottom <= s.vh + 1, "card fully on screen", JSON.stringify(s.card));
     check(!(await btn(page, "Zurück").count()), "step 1 has no «Zurück»");
     check(await card(page).getByRole("button", { name: /Tour überspringen/ }).count() > 0, "step 1 offers «Tour überspringen»");
-    check(await page.locator('[data-testid="trial-banner"]').count() >= 0, "trial banner untouched (inline content)");
     await shot(page, `${key}-schueler-1`);
     await btn(page, "Weiter").click(); await settle(page);
     s = await info(page);
