@@ -192,7 +192,7 @@ test("FINDINGS 1: Google signup as parent is applied in /auth/callback, the pick
   } finally { delete globalThis.window; }
 });
 
-test("Google signup as teacher without licence lands on /schullizenz; nothing known → picker (asked once)", async () => {
+test("Google signup as teacher without licence lands on /schullizenz; nothing known → the funnel asks (onboarding 2026-11-19)", async () => {
   globalThis.window = fakeWindow();
   try {
     role.storePendingSignup("teacher", null);
@@ -206,12 +206,12 @@ test("Google signup as teacher without licence lands on /schullizenz; nothing kn
     assert.equal(await role.resolveLanding(null), "/schullizenz");
     assert.equal(meta.role, "teacher");
 
-    // A second fresh account without any pending choice and no server knowledge: the picker asks.
+    // A second fresh account without any pending choice and no server knowledge: the funnel asks (replaces the old /auth/role picker).
     client.clearAccessCache(); role.clearRoleCache();
     meta = {};
     globalThis.__supabaseStub.rpc = async (name) => name === "my_access" ? { data: null, error: { code: "PGRST202" } } : { data: null, error: null };
     globalThis.__supabaseStub.getUser = async () => ({ data: { user: { id: "n1", user_metadata: {} } }, error: null });
-    assert.equal(await role.resolveLanding(null), "/auth/role");
+    assert.equal(await role.resolveLanding(null), "/start?schritt=rolle&nach=google");
   } finally { delete globalThis.window; }
 });
 
@@ -308,7 +308,8 @@ test("G8 + G23: new school student → class code step; teacher-only ?next= is d
   assert.equal(await role.resolveLanding("/teacher/classes"), "/onboarding/klasse");
   client.clearAccessCache(); role.clearRoleCache();
   globalThis.__supabaseStub.getUser = async () => ({ data: { user: { id: "s6", user_metadata: { role: "student", class_code_asked: true } } }, error: null });
-  assert.equal(await role.resolveLanding("/teacher/classes"), "/onboarding");
+  // The old /onboarding wizard is retired (SPEC-FLOW D7): the product tour starts on the dashboard.
+  assert.equal(await role.resolveLanding("/teacher/classes"), "/dashboard");
 });
 
 test("G17: invite links come before the tour", async () => {
