@@ -122,6 +122,7 @@ test("gate: new student (no profile row) goes to the dashboard (tour is an overl
   stubbed();
   assert.equal(await role.resolveLanding(null), "/onboarding/klasse");
   role.clearRoleCache();
+  // The old /onboarding wizard is retired (onboarding funnel 2026-11-19, SPEC-FLOW D7): the product tour runs on the dashboard.
   stubbed({ meta: { role: "student", class_code_asked: true } });
   assert.equal(await role.resolveLanding(null), "/dashboard");
   role.clearRoleCache();
@@ -160,7 +161,11 @@ test("gate: teachers and role choice are untouched", async () => {
   assert.equal(await role.resolveLanding("/dashboard"), "/teacher");
   role.clearRoleCache();
   stubbed({ meta: {} });
-  assert.equal(await role.resolveLanding("/classes/join/X"), role.funnelGoogleHref("/classes/join/X"), "no role yet: funnel in authenticated mode (old role picker retired)");
+  // No role, nothing known: the funnel asks (replaces /auth/role); allow-listed invite paths survive, garbage ones are dropped.
+  assert.equal(await role.resolveLanding("/classes/join/tok123"), "/start?schritt=rolle&nach=google&next=%2Fclasses%2Fjoin%2Ftok123");
+  role.clearRoleCache();
+  stubbed({ meta: {} });
+  assert.equal(await role.resolveLanding("/classes/join/X"), "/start?schritt=rolle&nach=google");
   role.clearRoleCache();
   stubbed({ meta: null });
   assert.equal(await role.resolveLanding(null), "/login");

@@ -18,11 +18,13 @@ SELECT and DELETE are unchanged.
 | applications | gated | gated | – (delete stays allowed) |
 | application_documents | gated | gated | – |
 | cvs (documents) | gated | trigger `cvs_zz_access_gate` | without access only "clearing": file_name/storage_path/file_type/file_size → null, status → 'Draft', updated_at free |
-| profiles | gated | trigger `profiles_zz_access_gate` | without access only "clearing" to the values of `CLEARED_PROFILE` (lib/storage.ts) – covers "Meine Daten löschen", removeAvatar and the delete→blank trigger of 20261117163000 |
+| profiles | gated | trigger `profiles_zz_access_gate` | without access only "clearing" to the values of `CLEARED_PROFILE` (lib/storage.ts) – covers "Meine Daten löschen", removeAvatar and the delete→blank trigger of 20261117163000; since 20261119100000 also `weekly_goal` → null, `help_wishes` → '{}' |
 | push_subscriptions | gated | gated | API `/api/reminders/push` POST also answers 402; DELETE (unsubscribe) allowed |
 | reminder_settings | gated | gated | switching e-mail AND push off is always allowed |
 | calendar_feeds | gated | gated | – (ICS feed reads unchanged) |
 | class_goals | gated | gated | teacher-only table |
+
+`product_tour_state` (20261119100000): SELECT own row only, no client write grants (writes via `tour_state_set`).
 
 All other public tables have no client write policy (writes only through definer RPCs / service role).
 
@@ -47,7 +49,7 @@ Helper: `public._acc_wrap(name, args, mode)` (service/migration use only).
   class_deadline_list, class_goal_progress (`_acc_assert_teacher(p_class_id)`).
 - Student content: map_claim_application_rewards, map_island_unlock, map_move_object, map_shop_buy, map_shop_place
   (village, shop, coins, rewards), social_send_request, social_find_by_code, social_respond_request, social_update_profile,
-  profile_set_display_name, student_onboarding_save, family_child_overview (parent's view of the child).
+  profile_set_display_name, student_onboarding_save, weekly_goal_set (20261119100000), family_child_overview (parent's view of the child).
 - AI usage: the edge function `ai-review` checks `has_app_access` itself (402 `paywall`) – its writes run as service role.
 
 ## 4. Deliberately NOT gated (reason)
@@ -62,7 +64,8 @@ Helper: `public._acc_wrap(name, args, mode)` (service/migration use only).
 | school_admin_my_schools, school_admin_overview, school_detach_class, school_remove_teacher | school admins see licence state / clean up without a licence |
 | class_delete, class_leave, class_remove_student, class_remove_coteacher, class_invite_revoke, class_deadline_delete, social_remove_friend | removing / deleting own data is always allowed |
 | class_set_sharing, class_set_sharing_v2, social_set_share_companies, social_set_share_outcomes, profile_set_under_16 | privacy switches |
-| onboarding_tour_set, mark_notification_read | UI state only |
+| onboarding_tour_set, mark_notification_read, tour_state_set | UI state only (tour_state_set: 20261119100000, product tour must save behind the paywall / licence gate) |
+| funnel_apply | 20261119100000: saves the sign-up answers right after account creation – also for unlicensed teachers and expired trials; validates + rate-limits itself, apply-once (docs/onboarding/DATA.md) |
 | reads: class_my_classes, my_class_deadlines, my_notifications, my_self_reports, my_view_log, map_shop_state, map_islands_state, map_friend_island, social_list, social_friends_overview, social_my_profile, social_avatars, social_get_share_companies, social_get_share_outcomes, profile_name_status, school_student_count, is_* helpers | reading own data stays allowed |
 | my_access, has_app_access, _assert_app_access, am_i_platform_admin, waitlist_join | the access model itself / public waitlist |
 

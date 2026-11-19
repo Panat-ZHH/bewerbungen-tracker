@@ -14,7 +14,7 @@ import {
  * operators, BOM, interlinear annotation. ZWJ (emoji sequences) and ZWNJ (Persian, Indic) are kept.
  */
 export const INVISIBLE = /[\u0001-\u001F\u007F؜᠎​‎‏‪-‮⁠-⁤⁦-⁩﻿￹-￻]/g;
-/** Other control characters that survive the strip (C1 range, NUL): the server refuses them (`[[:cntrl:]]`). */
+/** Control characters the strip does not remove (NUL, C1 range): refused on the RAW value, before cleaning (server: same). */
 const CONTROL = /[\u0000\u0080-\u009F]/;
 const LETTER = /\p{L}/u;
 
@@ -39,9 +39,9 @@ export function startYearRange(now: Date = new Date()) { const y = now.getFullYe
 
 /** First name rule (all roles): 1–40 characters after cleaning, no control characters, at least one letter. */
 export function firstNameProblem(raw: unknown): boolean {
-  if (typeof raw !== "string") return true;
+  if (typeof raw !== "string" || CONTROL.test(raw)) return true;
   const v = cleanText(raw);
-  return charLength(v) < 1 || charLength(v) > FUNNEL_LIMITS.firstName || CONTROL.test(v) || !LETTER.test(v);
+  return charLength(v) < 1 || charLength(v) > FUNNEL_LIMITS.firstName || !LETTER.test(v);
 }
 /** Professions: dedupe case-insensitively (first spelling wins), cleaned. */
 export function dedupeProfessions(list: string[]): string[] {
@@ -71,8 +71,7 @@ export function validatePayload(p: unknown, now: Date = new Date()): ValidationR
     if (!isSchoolLevel(a.schoolLevel)) return fail("schoolLevel");
     if (!isCanton(a.canton)) return fail("canton");
     if (typeof a.place === "string") {
-      const place = cleanText(a.place);
-      if (charLength(place) > FUNNEL_LIMITS.place || CONTROL.test(place)) return fail("place");
+      if (CONTROL.test(a.place) || charLength(cleanText(a.place)) > FUNNEL_LIMITS.place) return fail("place");
     } else if (!nullish(a.place)) return fail("place");
     if (!nullish(a.unsure) && typeof a.unsure !== "boolean") return fail("unsure");
     let profs: string[] = [];
@@ -81,7 +80,7 @@ export function validatePayload(p: unknown, now: Date = new Date()): ValidationR
       for (const e of a.professions) {
         if (typeof e !== "string") return fail("professions");
         const len = charLength(cleanText(e));
-        if (len < 1 || len > FUNNEL_LIMITS.profession) return fail("professions");
+        if (CONTROL.test(e) || len < 1 || len > FUNNEL_LIMITS.profession) return fail("professions");
       }
       profs = dedupeProfessions(a.professions as string[]);
     }

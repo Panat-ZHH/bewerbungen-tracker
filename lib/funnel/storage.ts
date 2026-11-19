@@ -25,9 +25,11 @@ export function readFunnelState(now = Date.now()): FunnelStateV1 | null {
   return parsed;
 }
 
-/** Saves the answers (sets updatedAt). */
+/** Saves the answers (sets updatedAt). Only the known state keys are written (parseFunnelState rebuilds the object), so an
+ *  e-mail, password or token accidentally spread into the state never reaches localStorage. */
 export function writeFunnelState(state: FunnelStateV1, now = Date.now()): void {
-  const next: FunnelStateV1 = { ...state, updatedAt: now };
+  const next = parseFunnelState({ ...state, updatedAt: now }, now, isSafeNext);
+  if (!next) return;
   memory = next;
   try { store("local")?.setItem(FUNNEL_KEY, JSON.stringify(next)); } catch { /* full / blocked: memory copy stays */ }
 }
