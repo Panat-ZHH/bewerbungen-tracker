@@ -69,3 +69,15 @@ test("stub world: users, profiles and lookups", () => {
   assert.equal(w.tourOf("a@b.ch", "schueler"), null);
   assert.equal(w.profileOf("nope@b.ch"), null);
 });
+
+test("stub world: confirmation link follows the sign-up's emailRedirectTo like GoTrue", () => {
+  const w = createOnbWorld({ base: "http://localhost:3245" });
+  const u = w.addUser({ email: "neu@b.ch", role: null });
+  assert.equal("role" in u.user_metadata, false, "a user created without a role carries none (Google sign-up)");
+  w.signups.push({ email: "neu@b.ch", redirect: "http://localhost:3245/auth/callback?next=%2Ffamilie&quelle=email", userId: u.id });
+  const link = new URL(w.confirmLink());
+  assert.equal(link.pathname, "/auth/callback");
+  assert.equal(link.searchParams.get("quelle"), "email");
+  assert.equal(link.searchParams.get("next"), "/familie");
+  assert.equal(link.searchParams.get("code"), `confirm-${u.id}`);
+});
