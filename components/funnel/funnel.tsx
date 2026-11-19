@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -84,6 +84,8 @@ export function Funnel() {
   const [returnToPlan, setReturnToPlan] = useState(false);
   const [wegSeen, setWegSeen] = useState(false);
   const [sessionSave, setSessionSave] = useState(false);
+  // Role preselected from an invite link (SPEC-FLOW §1.2): shown once on `rolle` («one tap Weiter»), not yet an answer.
+  const [rolePreset, setRolePreset] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const visited = useRef<StepSlug[]>([]);
   // Step shown last + slide direction, adjusted during render (React «storing information from previous renders»).
@@ -92,6 +94,7 @@ export function Funnel() {
   const familyInvite = useMemo(() => presetFromNext(state.next).familyInvite, [state.next]);
   const finePointer = useMemo(() => typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches, []);
 
+  const wide = useMediaQuery("(min-width: 1024px)");
   const ready = boot.kind === "ready";
   const opts: PathOptions = useMemo(() => (boot.kind === "ready" ? { google: boot.google, roleLocked: boot.roleLocked } : {}), [boot]);
   const google = boot.kind === "ready" && boot.google;
@@ -138,6 +141,7 @@ export function Funnel() {
           roleLocked = true;
         }
       }
+      setRolePreset(!base.role && !!preset.role && !roleLocked);
       setState(merged);
       setBoot({ kind: "ready", google: googleParam && !!user, roleLocked, resumable: canResume(saved) && storageAvailable() ? saved : null });
     })();
@@ -145,7 +149,12 @@ export function Funnel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once per mode; step changes are handled below
   }, [googleParam]);
 
-  const step: StepSlug = useMemo(() => (ready ? resolveStep(requested ?? (google ? null : "weg"), state, opts) : "weg"), [ready, requested, state, opts, google]);
+  const step: StepSlug = useMemo(() => {
+    if (!ready) return "weg";
+    const resolved = resolveStep(requested ?? (google ? null : "weg"), state, opts);
+    const steps = stepsFor(state.role, state.staffAccess, opts);
+    return rolePreset && steps.includes("rolle") && steps.indexOf(resolved) > steps.indexOf("rolle") ? "rolle" : resolved;
+  }, [ready, requested, state, opts, google, rolePreset]);
 
   // Wrong / not-yet-allowed slug in the URL → replace with the step we show (never a 404).
   useEffect(() => {
@@ -208,6 +217,7 @@ export function Funnel() {
       });
       return;
     }
+    if (from === "rolle") setRolePreset(false);
     saveFunnelState({ ...s, step: from, updatedAt: Date.now() });
     if (returnToPlan && from !== "plan") { setReturnToPlan(false); go("plan"); return; }
     const { next: target } = neighbours(from, s, opts);
@@ -248,6 +258,8 @@ export function Funnel() {
 
   if (step === "weg") {
     const resumable = boot.resumable && !resumeDismissed ? boot.resumable : null;
+    // One CTA in the DOM (unique selectors, one primary): static in the left column ≥ 1024, sticky bar below.
+    const cta = resumable ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} /> : <StartCta onStart={() => go("rolle")} login={login} />;
     return (
       <Shell>
         <FunnelTopBar showLogo loginHref={login} />
@@ -258,15 +270,11 @@ export function Funnel() {
             </h1>
             <p className="max-w-[46ch] text-[17px] leading-relaxed">WendApply begleitet dich bei jedem Schritt. Beantworte ein paar kurze Fragen, dann bekommst du deinen Plan.</p>
             <ul className="flex flex-wrap gap-x-4 gap-y-1 text-small text-muted" data-testid="funnel-facts"><li>2 Minuten</li><li>7 Tage gratis testen</li><li>Ohne Kreditkarte</li></ul>
-            <div className="hidden lg:block lg:max-w-[360px]">
-              {resumable ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} /> : <StartCta onStart={() => go("rolle")} login={login} />}
-            </div>
+            {wide && <div className="lg:max-w-[360px]">{cta}</div>}
           </div>
           <JourneyPath animate={!wegSeen && !resumable} className="mx-auto w-full max-w-[420px] lg:max-w-[520px]" />
         </div>
-        <div className={cn(styles.actionBar, "lg:hidden")}>
-          {resumable ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} /> : <StartCta onStart={() => go("rolle")} login={login} />}
-        </div>
+        {!wide && <div className={styles.actionBar}>{cta}</div>}
       </Shell>
     );
   }
@@ -349,5 +357,14 @@ function ResumeCard({ state, onResume, onRestart }: { state: FunnelStateV1; onRe
         <Button size="lg" variant="secondary" onClick={onRestart} data-testid="funnel-resume-restart">Neu beginnen</Button>
       </div>
     </section>
+  );
+}
+
+/** Media query as state (client only; the funnel renders after boot, so the server value is never shown). */
+function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (onChange) => { const m = window.matchMedia(query); m.addEventListener("change", onChange); return () => m.removeEventListener("change", onChange); },
+    () => window.matchMedia(query).matches,
+    () => false,
   );
 }
