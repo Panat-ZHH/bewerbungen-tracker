@@ -138,7 +138,7 @@ function SettingsBody() {
             </div>
           </SettingsSection>
 
-          {student && <TourReplaySection />}
+          <TourReplaySection />
 
           <SettingsSection title="Daten & Datenschutz" titleTestId="section-my-data" description="Du kannst deine Daten jederzeit herunterladen und löschen.">
             <p className="text-body text-muted">{EXPORT_TEXT[kind ?? "student"]}</p>

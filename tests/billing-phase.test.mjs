@@ -213,9 +213,8 @@ test("AC-U6 Part B component files: no sharp s, no CHF literals, no flag-off wor
     assert.doesNotMatch(await read(f), /bald verfügbar|Zugang anfragen|Warteliste|freigeschaltet/i, f);
   // The student never calls the billing API (S8 / AC-S5)
   for (const f of ["components/family/student-start.tsx", "components/family/child-view.tsx"]) assert.doesNotMatch(await read(f), /fetchBillingStatus|\/api\/billing|FamilyBilling/, f);
-  const tour = await read("components/onboarding/student-onboarding.tsx");
-  assert.match(tour, /TOUR_FAMILY_LINK/);
-  assert.match(tour, /TOUR_FAMILY_PATH/);
+  // The old student wizard (and its «Eltern verbinden» link) was replaced by the spotlight tour (onb-tour, SPEC-FLOW §6.7):
+  // the family is now reached via «Mehr» – the last tour step names it.
 });
 
 test("fill: the «Dein Kind» fallback is lowercase mid-sentence, real names unchanged (QA m6)", () => {

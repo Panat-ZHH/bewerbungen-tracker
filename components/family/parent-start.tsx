@@ -72,7 +72,7 @@ function CreateFamily({ onChanged }: { onChanged: () => void }) {
   }
   return (
     <div className="space-y-4">
-      <form onSubmit={create} aria-labelledby="create-family" className="panel-flat space-y-4 p-5" noValidate>
+      <form onSubmit={create} aria-labelledby="create-family" className="panel-flat space-y-4 p-5" noValidate data-tour="eltern-invite-child">
         <div className="space-y-1">
           <h2 id="create-family" className="text-heading"><Users size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{FAMILY_COPY.step1.title}</h2>
           <p className="text-body text-muted">{FAMILY_COPY.step1.text}</p>

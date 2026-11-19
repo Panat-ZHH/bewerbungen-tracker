@@ -84,7 +84,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
           {school.region && <span className="text-small text-muted">{school.region}</span>}
           {l && <Badge tone={STATUS_TONE[status ?? ""] ?? "neutral"}>{statusLabel(status)}</Badge>}
         </div>
-        {!expired && <p role="status" data-testid="school-status-line" className={`status status-${line.tone} text-sm`}>{line.text}</p>}
+        {!expired && <p role="status" data-testid="school-status-line" data-tour="schule-status" className={`status status-${line.tone} text-sm`}>{line.text}</p>}
         <p className="text-small flex items-start gap-2 text-muted"><ShieldCheck size={15} className="mt-0.5 shrink-0" aria-hidden /><span><strong className="font-semibold text-[var(--ink)]">Datenschutz:</strong> Als Schuladmin siehst du nur Zahlen pro Klasse, und nur von Schüler:innen, die ihre Daten teilen – keine Namen von Schüler:innen, keine Bewerbungen oder Firmen. Unter drei Personen bleiben die Zahlen ausgeblendet.</span></p>
       </div>
 
@@ -106,7 +106,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
       )}
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
-        <div className="panel-flat space-y-3 p-5">
+        <div className="panel-flat space-y-3 p-5" data-tour="schule-licence">
           <h3 className="text-heading">Lizenz</h3>
           {!l ? <p className="text-sm text-muted">Für diese Schule ist noch keine Lizenz hinterlegt.</p> : isPilot ? (
             <div className="space-y-2 text-sm">
@@ -145,7 +145,7 @@ function SchoolBlock({ school, first, onChanged }: { school: SchoolOverview; fir
           )}
           {school.classes !== null && <AttachClassForm schoolId={school.id} full={full} onDone={onChanged} />}
         </section>
-        <section aria-labelledby={`teachers-${school.id}`}>
+        <section aria-labelledby={`teachers-${school.id}`} data-tour="schule-teachers">
           <h3 id={`teachers-${school.id}`} className="text-heading flex items-center gap-2"><Users size={18} aria-hidden /> Lehrpersonen {school.teachers && <Badge>{school.teachers.length}</Badge>}</h3>
           <p className="text-small mt-1 text-muted">Lehrpersonen eurer Schule nutzen WendApply über eure Lizenz. Ihre Klassen zählen zur Lizenz, sobald sie hier zugeordnet sind.</p>
           {school.teachers === null ? <p className="text-small mt-2 text-muted">Die Liste der Lehrpersonen ist noch nicht verfügbar.</p> : school.teachers.length === 0 ? <p className="text-small mt-2 text-muted">Noch keine Lehrperson aktiv.</p> : (
