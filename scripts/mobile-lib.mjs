@@ -82,7 +82,7 @@ export const PERSONAS = [
     ["home", "/"], ["preise", "/preise"], ["schulen", "/schulen"], ["familien", "/familien"], ["pilot", "/pilot"], ["kontakt", "/kontakt"],
     ["hilfe", "/hilfe"], ["anleitung", "/anleitung"], ["impressum", "/impressum"], ["datenschutz", "/datenschutz"], ["datenschutz-jugend", "/datenschutz-jugend"],
     ["datenschutz-schulen", "/datenschutz-schulen"], ["datenschutz-uebersicht", "/datenschutz-uebersicht"], ["avv", "/avv"], ["hosting", "/hosting"],
-    ["loeschkonzept", "/loeschkonzept"], ["schullizenz", "/schullizenz"], ["bewerbung-check", "/bewerbung-check"], ["login", "/login"], ["login-reset", "/login/reset"],
+    ["loeschkonzept", "/loeschkonzept"], ["schullizenz", "/schullizenz"], ["bewerbung-check", "/bewerbung-check"], ["login", "/login"], ["login-reset", "/login/reset"], ["start", "/start"], ["start-bestaetigen", "/start/bestaetigen"],
     ["not-found", "/gibt-es-nicht-404"],
   ] },
   { key: "public-codes", role: "public", user: null, needsUsers: true, pages: [

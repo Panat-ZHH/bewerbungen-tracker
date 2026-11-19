@@ -220,12 +220,13 @@ test("source contract: family UI only uses the family RPCs, never the tables; no
   assert.match(all, /Zugang anfragen/);
   const settings = await read("app/settings/page.tsx");
   assert.match(settings, /exportMyFamilyData\(\)\.catch/);
-  const signup = await read("app/login/page.tsx");
-  assert.match(signup, /signupMetadata\(role, birthYear\)/);
+  // Sign-up is the funnel's last screen now (SPEC-FLOW D3); invite presets live in funnel-core.
+  const signup = await read("components/funnel/account.tsx");
+  assert.match(signup, /signupMetadata\(choice, state\.birthYear\)/);
   const shell = await read("components/layout/workspace-shell.tsx");
   assert.match(shell, /const studentNav = \[\.\.\.navigation, familyItem\]/, "every student (also in a class) gets the family item (P9)");
   assert.match(shell, /loginNextFor\(pathname, window\.location\.search, window\.location\.hash\)/, "login redirect keeps query + hash (P7)");
   assert.match(shell, /storePendingInvite\(familyCode, "family"\)/, "a family invite survives the signup (P5)");
-  assert.match(signup, /emailRedirectTo: confirmRedirect\(\)/, "confirmation link returns to this origin with ?next= (P5)");
-  assert.match(signup, /signupPreset\(/, "family invite links preselect the signup role (P6)");
+  assert.match(signup, /emailRedirectTo: callbackUrl\(state\.next, \{ email: true \}\)/, "confirmation link returns to this origin with ?next= (P5)");
+  assert.match(await read("components/funnel/funnel.tsx"), /presetFromNext\(/, "family invite links preselect the signup role (P6)");
 });
