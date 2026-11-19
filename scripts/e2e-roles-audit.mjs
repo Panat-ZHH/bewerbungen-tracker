@@ -55,7 +55,8 @@ const L = (path) => new RegExp(`/login\\?next=${encodeURIComponent(path).replace
 function expected(persona, path) {
   if (persona === "anon") return path === "/dashboard" ? /^\/login$/ : L(path); // /dashboard is the default landing, no ?next
   // Settings (export / delete) stay reachable before a role is chosen (access model G10); everything else asks for the role.
-  if (persona === "norole") return path === "/settings" ? "/settings" : /^\/auth\/role/;
+  // Onboarding funnel (SPEC-FLOW D4): the first role question is the funnel step /start?schritt=rolle&nach=google (was /auth/role).
+  if (persona === "norole") return path === "/settings" ? "/settings" : /^\/start\?schritt=rolle&nach=google/;
   const studentOnly = STUDENT_PAGES.includes(path);
   if (persona === "student") {
     if (path === "/classes/c1") return "/classes"; // pupils see their classes on /classes, not the teacher class view (UX schueler-23)
