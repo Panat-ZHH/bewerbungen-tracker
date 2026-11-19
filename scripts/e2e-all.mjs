@@ -152,15 +152,11 @@ flow("login", () => ({ authed: false }), async (t) => {
   t.check("login: wrong password shows a friendly error message", await alert.waitFor({ timeout: 10000 }).then(() => true, () => false), await alert.innerText().catch(() => "no alert"));
   await t.shot("error");
   await t.clean("login after failed attempt");
-  await page.getByRole("button", { name: "Konto erstellen" }).click();
-  t.check("signup: role choice offered", await page.getByText("Schüler:in").first().isVisible() && await page.getByText("Lehrperson").first().isVisible());
-  const passwords = page.locator("input#password, input#confirm-password");
-  if (await passwords.count() >= 2) {
-    await page.getByLabel("E-Mail-Adresse").fill("neu@beispiel.ch");
-    await passwords.nth(0).fill("geheim123"); await passwords.nth(1).fill("anders456");
-    await page.locator("form").getByRole("button", { name: /Konto erstellen/ }).click();
-    t.check("signup: password mismatch is reported", await t.text(/Passwörter stimmen nicht überein/, 5000));
-  } else t.skip("signup: password mismatch", "confirm password field not found");
+  // Onboarding funnel (SPEC-FLOW D3): /login is login only; «Konto erstellen» is a link into the funnel /start.
+  t.check("login only: no role choice / second password on /login", !(await page.getByText(/Passwort wiederholen|Ich bin/).count()) && (await page.locator("input#confirm-password").count()) === 0);
+  await page.getByTestId("login-to-start").click();
+  await page.waitForURL(/\/start/, { timeout: 20000 }).catch(() => undefined);
+  t.check("«Konto erstellen» opens the sign-up funnel /start", /\/start/.test(page.url()), page.url());
   await page.goto(base(t) + "/applications", { waitUntil: "domcontentloaded" });
   await page.waitForURL(/\/login/, { timeout: 20000 }).catch(() => undefined);
   await t.settle(800);
