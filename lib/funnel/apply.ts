@@ -79,7 +79,9 @@ export const LOCAL_COPY_SLACK_MS = 60_000;
  * - No metadata (Google sign-up): the local copy only if the account was created after this funnel started
  *   (`created_at >= startedAt − 60 s`), or if `explicit` = the signed-in user is pressing «Plan speichern» / «Überspringen»
  *   in the authenticated funnel right now (`/start?…&nach=google`, answers typed after the account existed). Otherwise the
- *   local copy is cleared and nothing is sent.
+ *   local copy is never sent: the call goes out with `p_answers: null` (the server has no copy of this account → nothing is
+ *   applied; an older account answers not_new / already_done, which keeps the «Du hast schon ein Konto» notice of the Google
+ *   path, SPEC-DATA §3.2) and the local copy is cleared afterwards.
  * `ownLocal` = the local copy may drive the redirect after the save (class code, family step, invite).
  */
 export type FunnelSource =
@@ -103,10 +105,10 @@ export function pickFunnelSource(input: {
     return role ? { kind: "local", payload: { v: 1, role, skipped: true }, ownLocal: true } : { kind: "none", clearLocal: false };
   }
   if (!local) return { kind: "none", clearLocal: false };
-  if (!ownLocal) return { kind: "none", clearLocal: true };
   const payload = toPayload(local);
-  // A local copy that is not complete/valid (abandoned half-way) is not sent.
+  // A local copy that is not complete/valid (abandoned half-way) is not sent – and needs no call at all.
   if (!payload || !validatePayload(payload).ok) return { kind: "none", clearLocal: true };
+  if (!ownLocal) return { kind: "server", ownLocal: false };
   return { kind: "local", payload, ownLocal: true };
 }
 
@@ -154,7 +156,12 @@ export async function applyFunnelIfPending(opts: { user?: User | null; skipped?:
   if (result.applied) {
     update.role = serverRole; update.role_confirmed = true;
     if (result.role === "parent") { update.account_type = "parent"; update.account_type_synced = true; }
-    else if (result.role === "student") update.account_type_synced = true;
+    else if (result.role === "student") {
+      update.account_type_synced = true;
+      // The funnel's «Klasse» step was answered on this device (a code → redirect to the join page): never ask it again
+      // on /onboarding/klasse (Google sign-up has no account_type in the metadata; SPEC-FLOW D7, «nothing asked twice»).
+      if (ownLocal?.role === "student") update.class_code_asked = true;
+    }
   }
   if (result.applied || hasMeta) { try { await supabase.auth.updateUser({ data: update }); } catch { /* next start */ } }
 

@@ -203,7 +203,7 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
 
   function funnelApply(u, body) {
     const p = body?.p_answers ?? body?.answers ?? (body && "v" in body ? body : null);
-    const answers = p ?? u.user_metadata.wa_funnel ?? null;
+    const answers = u.user_metadata.wa_funnel ?? p ?? null; // migration 20261119110000: the account's own copy wins (QA-ONB M1)
     const prof = world.profiles.get(u.id) || addProfile(u);
     const serverRole = u.role === "teacher" ? "teacher" : (u.user_metadata.account_type === "parent" ? "parent" : "student");
     if (world.failApply) return { __error: "INVALID_FUNNEL", status: 400 };
