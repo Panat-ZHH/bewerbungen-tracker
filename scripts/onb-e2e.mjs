@@ -125,7 +125,8 @@ for (const [id, role, extra] of [
   check(/\/auth\/callback/.test(su?.redirect || ""), "emailRedirectTo = /auth/callback", su?.redirect);
   check(await page.evaluate((k) => sessionStorage.getItem(k) !== null && localStorage.getItem(k) === null, FUNNEL_CONFIRM_KEY), "confirm record in sessionStorage only");
   // confirm in the same browser
-  await page.goto(world.confirmLink());
+  // WebKit can still be finishing the client navigation to /start/bestaetigen → retry once instead of failing the case.
+  await page.goto(world.confirmLink()).catch(async () => { await page.waitForTimeout(1500); await page.goto(world.confirmLink()); });
   const landing = role === "student" ? (a.classCode ? /^\/classes\/join\// : /^\/dashboard/) : role === "parent" ? /^\/familie/ : /^\/(schullizenz|teacher)/;
   check(await waitPath(page, landing, 40000), `lands on ${landing} (${page.url()})`);
   const applies = world.calls("funnel_apply");
