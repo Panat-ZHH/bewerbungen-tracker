@@ -625,17 +625,18 @@ def("start-screen0-server-html", async (dev) => {
   check(/Dein Weg – von der Bewerbung bis zum/.test(html), "server HTML has the «Dein Weg» heading");
   check(/data-step="weg"/.test(html) && /data-testid="journey-path"/.test(html), "server HTML has screen 0 + journey path");
   check(/href="\/start\?schritt=rolle"/.test(html), "server «Los geht’s» is a link to /start?schritt=rolle (works before JS)");
-  // The client takes over without a hydration error and without moving the heading.
+  check((html.match(/data-testid="funnel-start"/g) || []).length === 1, "exactly one «Los geht’s» in the HTML (no second streamed copy)");
+  // The page hydrates in place: no hydration error, the heading does not move when the boot finishes.
   const world = createOnbWorld({ base: BASE });
   const { ctx, page, errors } = await open(world, dev);
   await page.goto(`${BASE}/start`, { waitUntil: "commit" });
   await page.locator("h1").first().waitFor();
   const before = await page.locator("h1").first().boundingBox();
-  await page.waitForFunction(() => !document.querySelector("[data-weg-ssr]"), null, { timeout: 30000 }).catch(() => {});
-  check(await page.evaluate(() => !document.querySelector("[data-weg-ssr]")), "client funnel replaced the server copy");
+  await page.waitForLoadState("networkidle").catch(() => {}); await page.waitForTimeout(1500);
+  check(await page.evaluate(() => !document.documentElement.hasAttribute("data-funnel-deep")), "no deep-link guard left on screen 0");
   const after = await page.locator("h1").first().boundingBox();
   check(before && after && Math.abs(before.y - after.y) < 1 && Math.abs(before.height - after.height) < 1, "heading did not move at the swap", JSON.stringify({ before, after }));
-  check(await page.getByTestId("funnel-start").count() === 1, "exactly one «Los geht’s»");
+  check(await page.getByTestId("funnel-start").count() === 1 && await page.getByTestId("journey-path").count() === 1, "exactly one «Los geht’s» + one journey in the DOM");
   check(!errors.some((e) => /hydrat/i.test(e)), "no hydration error", errors.join(" | "));
   // Deep link: the intro never shows for a later step.
   await page.goto(`${BASE}/start?schritt=rolle`, { waitUntil: "commit" });
