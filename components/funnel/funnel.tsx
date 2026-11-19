@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { resolveLanding, hasExplicitRole } from "@/lib/role";
 import { safeNextPath } from "@/lib/ux";
+import { funnelNextPath } from "@/lib/funnel/next";
 import type { FunnelStateV1 } from "@/lib/funnel/types";
 import { cn } from "@/lib/utils";
 import {
@@ -15,8 +14,9 @@ import {
   stepsFor, type PathOptions, type StepSlug,
 } from "./funnel-core";
 import { clearFunnelState, loadFunnelState, saveFunnelState, storageAvailable } from "./store";
-import { JourneyPath, JourneyTile } from "./journey-path";
-import { ActionBar, BottomBar, FunnelTopBar, StepHeading } from "./ui";
+import { JourneyTile } from "./journey-path";
+import { ActionBar, FunnelTopBar, StepHeading } from "./ui";
+import { StartCta, WegScreen } from "./weg-screen";
 import {
   BirthYearScreen, ChildScreen, FamilyScreen, HelpScreen, NameScreen, PlaceScreen, ProfessionScreen, RoleScreen, SchoolScreen, StaffScreen,
   WeeklyGoalScreen, type ScreenProps,
@@ -94,12 +94,18 @@ export function Funnel() {
   const familyInvite = useMemo(() => presetFromNext(state.next).familyInvite, [state.next]);
   const finePointer = useMemo(() => typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches, []);
 
-  const wide = useMediaQuery("(min-width: 1024px)");
+  // Screen 0 was server-rendered (app/start/page.tsx fallback) and is still in the DOM while this first render runs: the
+  // client copy replaces it and continues its draw-in where it is (ms since navigation start) instead of starting over.
+  const [ssrSkipMs] = useState(() => (typeof document !== "undefined" && document.querySelector("[data-weg-ssr]") ? performance.now() : 0));
   const ready = boot.kind === "ready";
   const opts: PathOptions = useMemo(() => (boot.kind === "ready" ? { google: boot.google, roleLocked: boot.roleLocked } : {}), [boot]);
   const google = boot.kind === "ready" && boot.google;
   const next = state.next ?? urlNext;
-  const saver = useFunnelSave(next, { announceExisting: true });
+  // Only allow-listed app paths after the save (QA L2: `?next=%2F%2Fevil.example` + immediate session → /dashboard).
+  const saver = useFunnelSave(funnelNextPath(next), { announceExisting: true });
+
+  // The deep-link guard of the server copy (inline script in app/start/page.tsx) is no longer needed once this runs.
+  useEffect(() => { document.documentElement.removeAttribute("data-funnel-deep"); }, []);
 
   // ---- boot: saved answers, session check (logged-in people never see the funnel) ----
   useEffect(() => {
@@ -251,7 +257,20 @@ export function Funnel() {
   };
 
   // ---- render ----
-  if (!ready || saver.phase !== "idle" || sessionSave) {
+  // Before the boot finished, screen 0 is shown exactly like the server copy (no «Einen Moment …» flash, M2) when it is the
+  // likely target; the boot may still swap the CTA for the resume card or navigate away (logged in).
+  const wegFirst = !ready && !googleParam && (requested === null || requested === "weg");
+  const idle = saver.phase === "idle" && !sessionSave;
+  if (idle && (wegFirst || (ready && step === "weg"))) {
+    const resumable = ready && boot.resumable && !resumeDismissed ? boot.resumable : null;
+    const login = google ? null : loginHref(next);
+    const cta = resumable
+      ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} />
+      : <StartCta href={stepHref("rolle", { google, next: urlNext })} login={login} />;
+    return <WegScreen cta={cta} login={login} animate={!wegSeen && !resumable} animateSkipMs={wegSeen ? 0 : ssrSkipMs} headingRef={headingRef} />;
+  }
+
+  if (!ready || !idle) {
     return (
       <Shell>
         <main className="flex min-h-[60dvh] items-center justify-center">
@@ -266,29 +285,6 @@ export function Funnel() {
   const steps = stepsFor(state.role, state.staffAccess, opts);
   const progress = progressOf(step, steps);
   const login = google ? null : loginHref(next);
-
-  if (step === "weg") {
-    const resumable = boot.resumable && !resumeDismissed ? boot.resumable : null;
-    // One CTA in the DOM (unique selectors, one primary): static in the left column ≥ 1024, sticky bar below.
-    const cta = resumable ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} /> : <StartCta onStart={() => go("rolle")} login={login} />;
-    return (
-      <Shell>
-        <FunnelTopBar showLogo loginHref={login} />
-        <main className="grid gap-6 pt-2 lg:grid-cols-[1fr_minmax(0,520px)] lg:items-center lg:gap-12 lg:pt-8" data-testid="funnel-step-weg" data-step="weg">
-          <div className="space-y-5 lg:space-y-6">
-            <h1 ref={headingRef} tabIndex={-1} className="text-[2rem] font-extrabold leading-[1.05] tracking-[-.03em] outline-none lg:text-[clamp(3rem,4.6vw,4.25rem)]">
-              Dein Weg – von der Bewerbung bis zum <span className="marker">unterschriebenen Lehrvertrag</span>
-            </h1>
-            <p className="max-w-[46ch] text-[17px] leading-relaxed">WendApply begleitet dich bei jedem Schritt. Beantworte ein paar kurze Fragen, dann bekommst du deinen Plan.</p>
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-small text-muted" data-testid="funnel-facts"><li>2 Minuten</li><li>7 Tage gratis testen</li><li>Ohne Kreditkarte</li></ul>
-            {wide && <div className="lg:max-w-[360px]">{cta}</div>}
-          </div>
-          <JourneyPath animate={!wegSeen && !resumable} className="mx-auto w-full max-w-[420px] lg:max-w-[520px]" />
-        </main>
-        {!wide && <BottomBar testId="funnel-start-bar">{cta}</BottomBar>}
-      </Shell>
-    );
-  }
 
   const { title, help } = heading(step, state);
   const Screen = SCREENS[step];
@@ -348,15 +344,6 @@ function Shell({ children }: { children: ReactNode }) {
   );
 }
 
-function StartCta({ onStart, login }: { onStart: () => void; login: string | null }) {
-  return (
-    <div>
-      <Button size="lg" full onClick={onStart} data-testid="funnel-start" className="min-h-[52px] text-[17px]">Los geht’s<ArrowRight size={18} strokeWidth={2.4} aria-hidden /></Button>
-      {login && <p className="mt-2 text-center text-small text-muted lg:text-left">Schon ein Konto? <Link href={login} className="inline-flex min-h-11 items-center font-semibold text-[var(--ink)] underline decoration-2 underline-offset-4">Anmelden</Link></p>}
-    </div>
-  );
-}
-
 function ResumeCard({ state, onResume, onRestart }: { state: FunnelStateV1; onResume: () => void; onRestart: () => void }) {
   const title = STEP_TITLE[state.step as StepSlug] ?? "Dein Weg";
   return (
@@ -368,14 +355,5 @@ function ResumeCard({ state, onResume, onRestart }: { state: FunnelStateV1; onRe
         <Button size="lg" variant="secondary" onClick={onRestart} data-testid="funnel-resume-restart">Neu beginnen</Button>
       </div>
     </section>
-  );
-}
-
-/** Media query as state (client only; the funnel renders after boot, so the server value is never shown). */
-function useMediaQuery(query: string): boolean {
-  return useSyncExternalStore(
-    (onChange) => { const m = window.matchMedia(query); m.addEventListener("change", onChange); return () => m.removeEventListener("change", onChange); },
-    () => window.matchMedia(query).matches,
-    () => false,
   );
 }

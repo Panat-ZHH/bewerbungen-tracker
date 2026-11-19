@@ -3,7 +3,7 @@
 import { AuthFrame } from "@/components/onboarding/auth-frame";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { Info } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ButtonLink } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
@@ -56,7 +56,8 @@ export default function AuthCallbackPage() {
     supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!active) return;
       if (data.session) { signedIn(data.session.user.user_metadata); return; }
-      // E-mail link opened in another browser: GoTrue only redirects with a code after a successful verify → the address is confirmed.
+      // E-mail link opened in another browser (no PKCE verifier here) – or a made-up / stale code: the exchange gave no session,
+      // so this page cannot know whether the address is confirmed (QA L5). Neutral copy, same for every code (no enumeration).
       if (fromEmail) { setView({ kind: "confirmed" }); return; }
       if (sessionError) return fail(oauthErrorMessage(`error_description=${sessionError.message}`) ?? authMessage(sessionError));
       fail("Die Anmeldung ist abgelaufen oder wurde in einem anderen Browser gestartet. Bitte versuch es noch einmal.");
@@ -76,8 +77,8 @@ export default function AuthCallbackPage() {
         </div>
       ) : view.kind === "confirmed" ? (
         <div className="panel space-y-4 p-5 sm:p-7" data-testid="callback-confirmed">
-          <StatusMessage tone="success" icon={<CheckCircle2 />}>Deine E-Mail-Adresse ist bestätigt.</StatusMessage>
-          <p className="text-body">Melde dich jetzt mit deiner E-Mail-Adresse und deinem Passwort an.</p>
+          <StatusMessage tone="info" icon={<Info />}>Wenn du den Link aus unserer E-Mail geöffnet hast, ist deine Adresse bestätigt. Melde dich jetzt an.</StatusMessage>
+          <p className="text-body">Ist sie noch nicht bestätigt, kannst du beim Anmelden eine neue E-Mail anfordern.</p>
           <ButtonLink href={loginHref(next) === "/login" ? "/login?anmelden=1" : loginHref(next)} size="lg" full data-testid="callback-login">Anmelden</ButtonLink>
         </div>
       ) : view.kind === "expired" ? (

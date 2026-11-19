@@ -21,11 +21,11 @@
 .you { font: 700 12px var(--font-body), system-ui, sans-serif; fill: #16140f; }
 
 @media (prefers-reduced-motion: no-preference) {
-  .animate .road { stroke-dasharray: 900; stroke-dashoffset: 900; animation: jp-draw 700ms cubic-bezier(.2,.7,.2,1) 0ms forwards; }
-  .animate .stop { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: jp-pop 280ms cubic-bezier(.34,1.4,.64,1) forwards; animation-delay: calc(150ms + var(--i) * 90ms); }
-  .animate .label { opacity: 0; animation: jp-fade 200ms ease-out forwards; animation-delay: calc(330ms + var(--i) * 90ms); }
-  .animate .pin { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: jp-drop 300ms cubic-bezier(.34,1.4,.64,1) 900ms forwards; }
-  .animate .spark { opacity: 0; transform-box: fill-box; transform-origin: center; animation: jp-spark 400ms ease-out 1000ms forwards; }
+  .animate .road { stroke-dasharray: 900; stroke-dashoffset: 900; animation: jp-draw 700ms cubic-bezier(.2,.7,.2,1) calc(0ms - var(--jp-skip, 0ms)) forwards; }
+  .animate .stop { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: jp-pop 280ms cubic-bezier(.34,1.4,.64,1) forwards; animation-delay: calc(150ms + var(--i) * 90ms - var(--jp-skip, 0ms)); }
+  .animate .label { opacity: 0; animation: jp-fade 200ms ease-out forwards; animation-delay: calc(330ms + var(--i) * 90ms - var(--jp-skip, 0ms)); }
+  .animate .pin { opacity: 0; transform-box: fill-box; transform-origin: 50% 100%; animation: jp-drop 300ms cubic-bezier(.34,1.4,.64,1) calc(900ms - var(--jp-skip, 0ms)) forwards; }
+  .animate .spark { opacity: 0; transform-box: fill-box; transform-origin: center; animation: jp-spark 400ms ease-out calc(1000ms - var(--jp-skip, 0ms)) forwards; }
 }
 @keyframes jp-draw { to { stroke-dashoffset: 0; } }
 @keyframes jp-pop { from { opacity: 0; transform: translateY(6px) scale(.85); } to { opacity: 1; transform: none; } }
@@ -60,3 +60,19 @@
   .actionInner { max-width: none; margin: 0; }
   .actionSpacer { display: none; }
 }
+
+/* ---------- screen 0 «Dein Weg» (weg-screen.tsx): same markup on the server and the client ---------- */
+/* Phones: the whole journey (incl. «Du bist hier» at the start) fits between the text and the fixed CTA bar (QA L3). */
+@media (max-width: 1023px) { .fit { max-height: max(260px, calc(100dvh - 500px)); } }
+/* Phones: the left column dissolves into the grid so the order is text, journey, spacer (the CTA bar itself is fixed). */
+@media (max-width: 1023px) {
+  .wegLeft { display: contents; }
+  .wegPath { order: 1; }
+  .wegSpacer { order: 2; }
+}
+/* ≥ 1024: the same CTA element sits static under the text (as before: max 360 px, 24 px above). */
+@media (min-width: 1024px) { .wegBar { max-width: 360px; padding-top: 24px; } }
+/* Server copy: hidden while a deep link (?schritt=…, ?nach=google) waits for the funnel (inline script in app/start/page.tsx). */
+.wegSsrWait { display: none; }
+:global(html[data-funnel-deep]) .wegSsr { display: none; }
+:global(html[data-funnel-deep]) .wegSsrWait { display: flex; }

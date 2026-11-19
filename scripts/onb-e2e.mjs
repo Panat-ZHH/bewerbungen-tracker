@@ -230,7 +230,7 @@ def("confirm-other-browser", async (dev) => {
   // browser B: no PKCE verifier, no localStorage answers
   const B = await open(world, dev, { tag: "B" });
   await B.page.goto(world.confirmLink());
-  check(await vis(B.page.getByText(/E-Mail-Adresse ist bestätigt/), 30000), "other browser: «Deine E-Mail-Adresse ist bestätigt …»");
+  check(await vis(B.page.getByText(/Wenn du den Link aus unserer E-Mail geöffnet hast, ist deine Adresse bestätigt/), 30000), "other browser: neutral «Wenn du den Link … geöffnet hast, ist deine Adresse bestätigt» (QA L5: never a plain «bestätigt» without a session)");
   await B.page.getByRole("link", { name: /^Anmelden/ }).or(B.page.getByRole("button", { name: /^Anmelden/ })).first().click();
   check(await waitPath(B.page, /^\/login/), "→ /login");
   // in the stub the user is confirmed once the link was opened (GoTrue verifies before the redirect)
