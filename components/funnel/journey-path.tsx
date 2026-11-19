@@ -12,15 +12,16 @@ const ROAD = "M80 402 C 160 400, 250 380, 250 345 C 250 300, 100 310, 100 275 C 
  * houses with ink contour, cobblestone road, label chips with a hard shadow). Inline SVG, no image request, no WebGL.
  * Ported from _onboarding/wireframes/journey.html (SPEC-FLOW §3.3). The draw-in animation runs once (≤ 1.2 s) and only with
  * prefers-reduced-motion: no-preference; `animate={false}` renders the final state (returning to the screen via «Zurück»).
+ * `fit` = on phones the whole path (start included) fits above the bottom bar on a 390 × 844 screen (QA L3).
  */
-export function JourneyPath({ animate = true, className }: { animate?: boolean; className?: string }) {
+export function JourneyPath({ animate = true, fit = false, className }: { animate?: boolean; fit?: boolean; className?: string }) {
   const raw = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const id = (name: string) => `jp-${raw}-${name}`;
   const house = `#${id("house")}`;
   const tree = `#${id("tree")}`;
   return (
     <figure className={cn("m-0", className)} data-testid="journey-path">
-      <svg viewBox="0 -28 360 468" role="img" aria-labelledby={id("title")} className={cn(styles.journey, animate && styles.animate)}>
+      <svg viewBox="0 -16 360 450" role="img" aria-labelledby={id("title")} className={cn(styles.journey, animate && styles.animate, fit && styles.fit)}>
         <title id={id("title")}>{`Weg mit sechs Etappen: ${JOURNEY_MILESTONES.join(", ")}`}</title>
         <defs>
           {/* isometric house: origin = front corner on the ground. --roof = status colour of the milestone */}

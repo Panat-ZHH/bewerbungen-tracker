@@ -230,7 +230,7 @@ def("confirm-other-browser", async (dev) => {
   // browser B: no PKCE verifier, no localStorage answers
   const B = await open(world, dev, { tag: "B" });
   await B.page.goto(world.confirmLink());
-  check(await vis(B.page.getByText(/E-Mail-Adresse ist bestätigt/), 30000), "other browser: «Deine E-Mail-Adresse ist bestätigt …»");
+  check(await vis(B.page.getByText(/Wenn du den Link aus unserer E-Mail geöffnet hast, ist deine Adresse bestätigt/), 30000), "other browser: neutral «Wenn du den Link … geöffnet hast, ist deine Adresse bestätigt» (QA L5: never a plain «bestätigt» without a session)");
   await B.page.getByRole("link", { name: /^Anmelden/ }).or(B.page.getByRole("button", { name: /^Anmelden/ })).first().click();
   check(await waitPath(B.page, /^\/login/), "→ /login");
   // in the stub the user is confirmed once the link was opened (GoTrue verifies before the redirect)
@@ -606,7 +606,7 @@ def("keyboard-funnel-desktop", async (dev) => {
   const world = createOnbWorld({ base: BASE });
   const { ctx, page } = await open(world, dev);
   await page.goto(`${BASE}/start`);
-  await page.getByRole("button", { name: /Los geht/ }).first().focus();
+  await page.getByTestId("funnel-start").focus();
   await page.keyboard.press("Enter");
   await waitSlug(page, "rolle"); await page.waitForTimeout(400);
   check(await page.evaluate(() => document.activeElement?.tagName === "H1"), "focus on H1 after step change", await page.evaluate(() => document.activeElement?.outerHTML?.slice(0, 120)));
@@ -617,6 +617,76 @@ def("keyboard-funnel-desktop", async (dev) => {
   check(slugOf(page) !== "rolle", `Enter advances (${slugOf(page)})`);
   await ctx.close();
 }, { devices: ["desktop1280"] });
+
+// ------------------------------------------------------------------------------------------------ fix loop 1 (QA-ONB M2, L2, L3, L5)
+def("start-screen0-server-html", async (dev) => {
+  // M2: screen 0 is in the server HTML (LCP text without JS), not «Einen Moment …».
+  const html = await (await fetch(`${BASE}/start`)).text();
+  check(/Dein Weg – von der Bewerbung bis zum/.test(html), "server HTML has the «Dein Weg» heading");
+  check(/data-step="weg"/.test(html) && /data-testid="journey-path"/.test(html), "server HTML has screen 0 + journey path");
+  check(/href="\/start\?schritt=rolle"/.test(html), "server «Los geht’s» is a link to /start?schritt=rolle (works before JS)");
+  check((html.match(/data-testid="funnel-start"/g) || []).length === 1, "exactly one «Los geht’s» in the HTML (no second streamed copy)");
+  // The page hydrates in place: no hydration error, the heading does not move when the boot finishes.
+  const world = createOnbWorld({ base: BASE });
+  const { ctx, page, errors } = await open(world, dev);
+  await page.goto(`${BASE}/start`, { waitUntil: "commit" });
+  await page.locator("h1").first().waitFor();
+  const before = await page.locator("h1").first().boundingBox();
+  await page.waitForLoadState("networkidle").catch(() => {}); await page.waitForTimeout(1500);
+  check(await page.evaluate(() => !document.documentElement.hasAttribute("data-funnel-deep")), "no deep-link guard left on screen 0");
+  const after = await page.locator("h1").first().boundingBox();
+  check(before && after && Math.abs(before.y - after.y) < 1 && Math.abs(before.height - after.height) < 1, "heading did not move at the swap", JSON.stringify({ before, after }));
+  check(await page.getByTestId("funnel-start").count() === 1 && await page.getByTestId("journey-path").count() === 1, "exactly one «Los geht’s» + one journey in the DOM");
+  check(!errors.some((e) => /hydrat/i.test(e)), "no hydration error", errors.join(" | "));
+  // Deep link: the intro never shows for a later step.
+  await page.goto(`${BASE}/start?schritt=rolle`, { waitUntil: "commit" });
+  const introSeen = await page.evaluate(() => new Promise((res) => {
+    let seen = false; const t0 = performance.now();
+    const tick = () => { const h = [...document.querySelectorAll("h1")].find((e) => e.offsetParent !== null); if (h && /Dein Weg/.test(h.textContent || "")) seen = true; if (performance.now() - t0 < 4000) requestAnimationFrame(tick); else res(seen); };
+    tick();
+  }));
+  check(!introSeen, "deep link ?schritt=rolle never shows the «Dein Weg» intro");
+  check(await waitSlug(page, "rolle"), "deep link lands on rolle");
+  await ctx.close();
+}, { devices: ["pixel7", "desktop1280"] });
+
+def("start-path-visible-390", async (dev) => {
+  // L3: at 390 × 844 the start of the path («Du bist hier», «Berufe entdecken») is above the fixed CTA bar.
+  const world = createOnbWorld({ base: BASE });
+  const { ctx, page } = await open(world, dev, { viewport: { width: 390, height: 844 } });
+  await page.goto(`${BASE}/start`);
+  await page.getByTestId("funnel-start").waitFor(); await page.waitForTimeout(1500);
+  const bar = await page.getByTestId("funnel-start-bar").boundingBox();
+  for (const label of ["Du bist hier", "Berufe entdecken", "Schnuppern"]) {
+    const box = await page.locator("[data-testid=journey-path] text", { hasText: label }).first().boundingBox();
+    check(box && bar && box.y + box.height <= bar.y + 22 && box.y >= 0, `«${label}» visible above the CTA bar without scrolling`, JSON.stringify({ box, bar }));
+  }
+  await ctx.close();
+}, { devices: ["iphone15", "pixel7"] });
+
+def("next-allowlist-immediate-session", async (dev) => {
+  // L2: auto-confirm (immediate session) + a `next` outside the funnel allow-list → the save lands on /dashboard.
+  const world = createOnbWorld({ base: BASE, confirm: false });
+  const { ctx, page } = await open(world, dev);
+  await page.goto(`${BASE}/start?next=${encodeURIComponent("/%2F%2Fevil.example")}`);
+  await walk(page, "student", ANSWERS.student);
+  await fillKonto(page, `l2-${Date.now()}@beispiel.ch`);
+  check(await waitPath(page, /^\/dashboard/, 40000), "lands on /dashboard", page.url());
+  check(!/evil/.test(page.url()), "never the raw next", page.url());
+  await ctx.close();
+}, { devices: ["desktop1280"] });
+
+def("callback-made-up-code-neutral", async (dev) => {
+  // L5: a made-up code from an «e-mail» link gives no session → neutral copy, never a plain «bestätigt».
+  const world = createOnbWorld({ base: BASE });
+  const { ctx, page } = await open(world, dev);
+  await page.goto(`${BASE}/auth/callback?code=ausgedacht-123&quelle=email`);
+  check(await vis(page.getByTestId("callback-confirmed"), 30000), "callback shows the login hint");
+  check(await vis(page.getByText(/Wenn du den Link aus unserer E-Mail geöffnet hast, ist deine Adresse bestätigt\. Melde dich jetzt an\./)), "neutral copy");
+  check(!(await page.getByText(/Deine E-Mail-Adresse ist bestätigt/).isVisible().catch(() => false)), "no unconditional «Deine E-Mail-Adresse ist bestätigt.»");
+  check(await vis(page.getByTestId("callback-login")), "«Anmelden» button");
+  await ctx.close();
+}, { devices: ["pixel7"] });
 
 // ------------------------------------------------------------------------------------------------ run
 try {

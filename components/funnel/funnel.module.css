@@ -60,3 +60,19 @@
   .actionInner { max-width: none; margin: 0; }
   .actionSpacer { display: none; }
 }
+
+/* ---------- screen 0 «Dein Weg» (weg-screen.tsx): same markup on the server and the client ---------- */
+/* Phones: the whole journey (incl. «Du bist hier» at the start) fits between the text and the fixed CTA bar (QA L3). */
+@media (max-width: 1023px) { .fit { max-height: max(260px, calc(100dvh - 500px)); } }
+/* Phones: the left column dissolves into the grid so the order is text, journey, spacer (the CTA bar itself is fixed). */
+@media (max-width: 1023px) {
+  .wegLeft { display: contents; }
+  .wegPath { order: 1; }
+  .wegSpacer { order: 2; }
+}
+/* ≥ 1024: the same CTA element sits static under the text (as before: max 360 px, 24 px above). */
+@media (min-width: 1024px) { .wegBar { max-width: 360px; padding-top: 24px; } }
+/* Screen 0 before the query is known: hidden while a deep link (?schritt=…, ?nach=google) waits for the funnel (head script in app/layout.tsx). */
+.wegSsrWait { display: none; }
+:global(html[data-funnel-deep]) .wegSsr { display: none; }
+:global(html[data-funnel-deep]) .wegSsrWait { display: flex; }

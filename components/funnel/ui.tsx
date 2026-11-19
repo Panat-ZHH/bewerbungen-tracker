@@ -61,7 +61,7 @@ export const StepHeading = forwardRef<HTMLHeadingElement, { title: ReactNode; he
  * (SPEC-FLOW §2.1). Fixed + a measured spacer instead of `position: sticky`: body is a non-scrolling overflow container
  * (globals.css `overflow-x: hidden`), which makes sticky a no-op on this page.
  */
-export function BottomBar({ children, testId }: { children: ReactNode; testId?: string }) {
+export function BottomBar({ children, testId, className, spacerClassName }: { children: ReactNode; testId?: string; className?: string; spacerClassName?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(0);
   useEffect(() => {
@@ -73,8 +73,8 @@ export function BottomBar({ children, testId }: { children: ReactNode; testId?: 
   }, []);
   return (
     <>
-      <div aria-hidden className={styles.actionSpacer} style={{ height }} />
-      <div ref={ref} className={styles.actionBar} data-testid={testId}><div className={styles.actionInner}>{children}</div></div>
+      <div aria-hidden className={cn(styles.actionSpacer, spacerClassName)} style={{ height }} />
+      <div ref={ref} className={cn(styles.actionBar, className)} data-testid={testId}><div className={styles.actionInner}>{children}</div></div>
     </>
   );
 }
