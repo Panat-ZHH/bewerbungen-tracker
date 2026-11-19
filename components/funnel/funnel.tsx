@@ -189,15 +189,17 @@ export function Funnel() {
     if (!ready) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Not on `weg`: the intro must not overwrite the saved step (resume card after a reload, SPEC-FLOW §4.9).
-    writeTimer.current = setTimeout(() => { if (step !== "weg") saveFunnelState({ ...state, step }); }, 300);
-    // Leaving the tab right after «Weiter» (phone swipe-close) must not lose the step (B4): flush now.
-    const flush = () => { if (writeTimer.current) clearTimeout(writeTimer.current); if (step !== "weg") saveFunnelState({ ...state, step }); };
-    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
-    window.addEventListener("pagehide", flush);
+    // Only a write that is still waiting is flushed: a cleared state (save done, «Neu beginnen») is never written back.
+    let pending = step !== "weg";
+    const write = () => { if (!pending) return; pending = false; saveFunnelState({ ...state, step }); };
+    writeTimer.current = setTimeout(write, 300);
+    // Leaving the tab right after «Weiter» (phone swipe-close) must not lose the step (B4): flush the waiting write now.
+    const onVisibility = () => { if (document.visibilityState === "hidden") write(); };
+    window.addEventListener("pagehide", write);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       if (writeTimer.current) clearTimeout(writeTimer.current);
-      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("pagehide", write);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [ready, state, step]);
