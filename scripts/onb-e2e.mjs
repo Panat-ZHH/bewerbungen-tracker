@@ -434,7 +434,7 @@ def("tour-esc-finish-replay", async (dev) => {
   const replay = page.getByRole("link", { name: /Tour wiederholen/ }).or(page.getByRole("button", { name: /Tour wiederholen/ })).first();
   check(await vis(replay, 15000), "«Tour wiederholen» in Einstellungen");
   await replay.click();
-  check(await waitPath(page, /^\/dashboard\?.*tour=1/), `→ /dashboard?tour=1 (${page.url()})`);
+  check(await waitPath(page, /^\/dashboard/), `→ /dashboard (?tour=1 is dropped from the URL by the launcher) (${page.url()})`);
   check(await vis(tourDialog(page), 15000), "manual start despite «skipped»");
   // finish: click Weiter until Fertig
   for (let i = 0; i < 12; i++) {
