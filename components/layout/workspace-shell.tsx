@@ -17,7 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { signOutEverywhere } from "@/lib/sign-out";
-import { cachedRole, clearPendingSignup, clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
+import { cachedRole, clearPendingSignup, clearRoleCache, guardRedirect, homeFor, keepTourParam, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
 import { FAMILY_PATH, familyInviteCodeFromPath, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
@@ -179,7 +179,8 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
         const notice = wrongRoleNotice(resolved === "teacher" ? "teacher" : parentAccount ? "parent" : "student", path);
         if (notice) toast({ message: notice, tone: "info", duration: 8000 });
         setRole(null);
-        router.replace(target);
+        // «Tour wiederholen» opened on another role's page (e.g. /dashboard?tour=1 as a parent): keep ?tour=1 on the way.
+        router.replace(keepTourParam(target, window.location.search));
       } else setRole(resolved);
     });
     return () => { alive = false; };

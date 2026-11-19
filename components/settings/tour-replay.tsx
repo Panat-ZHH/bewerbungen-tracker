@@ -4,27 +4,29 @@ import { useEffect, useState } from "react";
 import { Compass } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { SettingsSection } from "@/components/settings/section";
-import { tourHref } from "@/lib/onboarding-tour-core";
+import { useAccess } from "@/components/access/access-provider";
+import { isParentAccount, isSchoolAdmin } from "@/lib/access/gate";
 import { loadMyRole } from "@/lib/role";
 import { supabase } from "@/lib/supabase";
-import { safeNextPath } from "@/lib/ux";
+import { replayHref, tourFor, type TourId } from "@/components/tour/tour-core";
 
-/** Students only: opens the first-login tour again (replay mode: nothing is reset, closing it returns here). */
+/** «Tour wiederholen» for every role (SPEC-FLOW §6.6): opens the role's start page with ?tour=1. Nothing is reset. */
 export function TourReplaySection() {
-  const [student, setStudent] = useState(false);
+  const { access, loading } = useAccess();
+  const [tour, setTour] = useState<TourId | null>(null);
   useEffect(() => {
+    if (loading) return;
     let alive = true;
     supabase.auth.getUser().then(async ({ data }) => {
       if (!data.user) return;
       const { role } = await loadMyRole(data.user);
-      if (alive) setStudent(role === "student");
-    }).catch(() => {});
+      if (alive) setTour(tourFor({ role, parent: role !== "teacher" && isParentAccount(data.user.user_metadata, access), schoolAdmin: isSchoolAdmin(access) }));
+    }).catch(() => { if (alive) setTour("schueler"); });
     return () => { alive = false; };
-  }, []);
-  if (!student) return null;
+  }, [access, loading]);
   return (
-    <SettingsSection title="Einführung" titleTestId="section-tour" description="Die kurze Tour nach deiner ersten Anmeldung. Deine Daten bleiben, wie sie sind.">
-      <ButtonLink href={tourHref(safeNextPath, null, true)} variant="secondary" className="sm:min-h-11" icon={<Compass size={16} />}>Einführung nochmals ansehen</ButtonLink>
+    <SettingsSection title="Tour" titleTestId="section-tour" description="Lass dir die wichtigsten Stellen in der App noch einmal zeigen.">
+      <ButtonLink href={replayHref(tour ?? "schueler")} variant="secondary" className="sm:min-h-11" icon={<Compass size={16} />} aria-disabled={tour ? undefined : true} data-testid="tour-replay">Tour wiederholen</ButtonLink>
     </SettingsSection>
   );
 }

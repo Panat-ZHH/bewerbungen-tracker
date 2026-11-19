@@ -8,7 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   endState, FUNNEL_KEY, hasTourParam, MANUAL_KEY, SESSION_DONE_KEY, startDecision, stripTourParam, TOUR_START_PATH, tourFor, type TourId,
 } from "./tour-core";
-import { saveTourState, shouldAutoStart } from "./tour-state";
+import { retryPendingTourSaves, saveTourState, shouldAutoStart } from "./tour-state";
 import type { TourEnd } from "./tour-overlay";
 
 const TourOverlay = dynamic(() => import("./tour-overlay"), { ssr: false });
@@ -25,6 +25,8 @@ function modalOpen() {
   return !!document.querySelector('[role="dialog"][aria-modal="true"]:not([data-tour-card])') || document.body.classList.contains("sheet-open");
 }
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+/** A save that failed on this device earlier is retried once per tab and user (lib/tour/state local fallback). */
+let retriedFor: string | null = null;
 
 export interface TourLauncherProps {
   role: "student" | "teacher";
@@ -41,6 +43,12 @@ export function TourLauncher({ role, parent, schoolAdmin, gate, userId }: TourLa
   const tour: TourId = tourFor({ role, parent, schoolAdmin });
   const start = TOUR_START_PATH[tour];
   const [run, setRun] = useState<{ mode: "manual" | "auto" } | null>(null);
+
+  useEffect(() => {
+    if (retriedFor === userId) return;
+    retriedFor = userId;
+    void retryPendingTourSaves(userId).catch(() => undefined);
+  }, [userId]);
 
   // ?tour=1 on any app page = «Tour wiederholen»: remember it for this tab, drop it from the URL, go to the role's start page.
   useEffect(() => {
@@ -80,7 +88,7 @@ export function TourLauncher({ role, parent, schoolAdmin, gate, userId }: TourLa
 
   // A gate that appears during the tour (trial ended) or leaving the page closes it silently: nothing stored, next time again.
   const visible = !!run && gate === "page" && pathname === start;
-  useEffect(() => { if (run && !visible) setRun(null); }, [run, visible]);
+  if (run && !visible) setRun(null); // adjust state while rendering (no effect round trip)
 
   const onEnd = useCallback((how: TourEnd, step: number) => {
     const mode = run?.mode ?? "auto";

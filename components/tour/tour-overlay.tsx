@@ -232,13 +232,17 @@ export default function TourOverlay({ tour, userId, onEnd }: { tour: TourId; use
     };
   }, [target]);
 
-  // Card size for the placement (re-measured whenever the content or the width changes).
+  // Card size for the placement: the ResizeObserver reports the first size right after observe() and every later change.
   useLayoutEffect(() => {
     const card = cardRef.current;
-    if (!card) return;
-    const r = card.getBoundingClientRect();
-    setCardSize((s) => (s && Math.abs(s.width - r.width) < 1 && Math.abs(s.height - r.height) < 1 ? s : { width: r.width, height: r.height }));
-  });
+    if (!card || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      const r = card.getBoundingClientRect();
+      setCardSize((s) => (s && Math.abs(s.width - r.width) < 1 && Math.abs(s.height - r.height) < 1 ? s : { width: r.width, height: r.height }));
+    });
+    ro.observe(card);
+    return () => ro.disconnect();
+  }, [steps, index]);
 
   const cut = rect && vp ? cutoutRect(rect, vp) : null;
   const nav = !!target?.closest(".bottom-nav");
