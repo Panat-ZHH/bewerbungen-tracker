@@ -77,13 +77,16 @@ await scenario("onboarding", async () => {
 await scenario("role-picker", async () => {
   for (const [dark, tag] of [[false, "light"], [true, "dark"]]) {
     const { ctx, page, state } = await session({ role: "student", meta: { full_name: "Lena Müller", avatar_url: "x" }, opts: rpcOpts(), vp: { w: 375, h: 812, dark } });
-    await page.goto(BASE + "/dashboard"); await page.waitForURL("**/auth/role**");
-    check(path(page) === "/auth/role", `Google user without role is asked once (${tag})`);
-    await page.getByRole("radio", { name: /^Lehrperson/ }).check({ force: true }); await shot(page, `role-picker-${tag}`);
+    // Onboarding funnel (SPEC-FLOW D4): the first-time role question is the funnel's «rolle» step in authenticated mode.
+    await page.goto(BASE + "/dashboard"); await page.waitForURL("**/start?schritt=rolle**nach=google**");
+    check(path(page) === "/start" && new URL(page.url()).searchParams.get("nach") === "google", `Google user without role is asked once, in the funnel (${tag})`);
+    await page.locator('[data-step="rolle"]').waitFor(); await shot(page, `role-picker-${tag}`);
+    // «Rolle ändern» (?wechseln=1, G7) still uses the old picker and set_my_role.
+    await page.goto(BASE + "/auth/role?wechseln=1");
+    await page.getByRole("radio", { name: /^Lehrperson/ }).check({ force: true });
     await page.getByRole("radio", { name: /Schüler:in mit Klasse/ }).check({ force: true }); await page.getByRole("button", { name: "Weiter" }).click();
-    // a freshly chosen student starts the first-login tour (components/onboarding/student-onboarding.tsx)
-    await page.waitForURL("**/onboarding**");
-    check(state.calls.some((c) => c.rpc === "set_my_role" && c.body.p_role === "student"), `set_my_role called, then the onboarding tour (${tag})`);
+    await page.waitForURL((u) => !u.pathname.startsWith("/auth/role"), { timeout: 30000 });
+    check(state.calls.some((c) => c.rpc === "set_my_role" && c.body.p_role === "student"), `«Rolle ändern» calls set_my_role and leaves the picker (${tag})`);
     await ctx.close();
   }
 });
