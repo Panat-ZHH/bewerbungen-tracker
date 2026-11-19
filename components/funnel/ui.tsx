@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { forwardRef, useId, type KeyboardEvent, type ReactNode } from "react";
+import { forwardRef, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { BrandMark } from "@/components/ui/brand-mark";
@@ -56,13 +56,36 @@ export const StepHeading = forwardRef<HTMLHeadingElement, { title: ReactNode; he
   },
 );
 
-/** Sticky bottom bar on phones, static under the input from 1024 (SPEC-FLOW §2.1). */
+/**
+ * Bottom action bar: fixed to the viewport bottom on phones/tablets (safe-area aware), static under the content from 1024
+ * (SPEC-FLOW §2.1). Fixed + a measured spacer instead of `position: sticky`: body is a non-scrolling overflow container
+ * (globals.css `overflow-x: hidden`), which makes sticky a no-op on this page.
+ */
+export function BottomBar({ children, testId }: { children: ReactNode; testId?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <>
+      <div aria-hidden className={styles.actionSpacer} style={{ height }} />
+      <div ref={ref} className={styles.actionBar} data-testid={testId}><div className={styles.actionInner}>{children}</div></div>
+    </>
+  );
+}
+
+/** Primary «Weiter» (+ «Zurück» on desktop, «Überspringen» on optional screens) in the bottom bar. */
 export function ActionBar({ primary, onPrimary, primaryLoading, onBack, skip, primaryTestId = "funnel-next", primaryIcon = true, children }: {
   primary: string; onPrimary: () => void; primaryLoading?: boolean; onBack?: (() => void) | null; skip?: { label?: string; onSkip: () => void } | null;
   primaryTestId?: string; primaryIcon?: boolean; children?: ReactNode;
 }) {
   return (
-    <div className={styles.actionBar}>
+    <BottomBar testId="funnel-action-bar">
       <div className="flex items-center gap-3">
         {onBack && <Button type="button" variant="ghost" size="lg" onClick={onBack} className="hidden lg:inline-flex" data-testid="funnel-back-desktop"><ArrowLeft size={16} strokeWidth={2.4} aria-hidden />Zurück</Button>}
         <Button type="button" size="lg" full onClick={onPrimary} loading={primaryLoading} data-testid={primaryTestId} className="min-h-[52px] lg:w-auto lg:min-w-56 lg:flex-none">
@@ -75,7 +98,7 @@ export function ActionBar({ primary, onPrimary, primaryLoading, onBack, skip, pr
         </p>
       )}
       {children}
-    </div>
+    </BottomBar>
   );
 }
 

@@ -16,7 +16,7 @@ import {
 } from "./funnel-core";
 import { clearFunnelState, loadFunnelState, saveFunnelState, storageAvailable } from "./store";
 import { JourneyPath, JourneyTile } from "./journey-path";
-import { ActionBar, FunnelTopBar, StepHeading } from "./ui";
+import { ActionBar, BottomBar, FunnelTopBar, StepHeading } from "./ui";
 import {
   BirthYearScreen, ChildScreen, FamilyScreen, HelpScreen, NameScreen, PlaceScreen, ProfessionScreen, RoleScreen, SchoolScreen, StaffScreen,
   WeeklyGoalScreen, type ScreenProps,
@@ -274,7 +274,7 @@ export function Funnel() {
           </div>
           <JourneyPath animate={!wegSeen && !resumable} className="mx-auto w-full max-w-[420px] lg:max-w-[520px]" />
         </div>
-        {!wide && <div className={styles.actionBar}>{cta}</div>}
+        {!wide && <BottomBar testId="funnel-start-bar">{cta}</BottomBar>}
       </Shell>
     );
   }

@@ -46,12 +46,17 @@
 @keyframes step-in-back { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
 @keyframes check-in { from { transform: scale(.4); } to { transform: scale(1); } }
 
-/* ---------- sticky action bar on phones (safe-area aware); static from 1024 ---------- */
+/* ---------- bottom action bar: fixed on phones (safe-area aware), static from 1024 (see BottomBar in ui.tsx) ---------- */
 .actionBar {
-  position: sticky; bottom: 0; z-index: 10;
-  padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(to bottom, transparent, var(--paper) 28%);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+  padding: 16px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+  background: linear-gradient(to bottom, transparent, var(--paper) 22px);
 }
+.actionInner { max-width: 560px; margin: 0 auto; }
+.actionSpacer { display: block; }
+@media (min-width: 768px) { .actionBar { padding-left: 24px; padding-right: 24px; } }
 @media (min-width: 1024px) {
   .actionBar { position: static; background: none; padding: 32px 0 0; }
+  .actionInner { max-width: none; margin: 0; }
+  .actionSpacer { display: none; }
 }
