@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createMockSupabase, SUPABASE_URL } from "./lib/mock-supabase.mjs";
+import { ANSWERS, advance, fillKonto, primary, slugOf, waitPath, walk } from "./onb-driver.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const pwPath = [process.env.PLAYWRIGHT, join(homedir(), "Projects/bewerbungen-tracker-wt/audit-tools/node_modules/playwright-core/index.mjs")].find((p) => p && existsSync(p));
@@ -51,12 +52,38 @@ const vis = (page, sel, timeout = 30000) => page.locator(sel).first().waitFor({ 
 const none = async (page, sel, settle = 2500) => { await page.waitForTimeout(settle); return (await page.locator(sel).count()) === 0; };
 
 /** One browser context with the mock, my_access() = st.access (number = HTTP error like 404 PGRST202). */
-async function open({ role = "student", access = A(), meta, authed = true, viewport = { width: 1280, height: 800 }, scheme = "light", extra } = {}) {
+async function open({ role = "student", access = A(), meta, authed = true, fresh = false, viewport = { width: 1280, height: 800 }, scheme = "light", extra } = {}) {
   const ctx = await browser.newContext({ viewport, colorScheme: scheme, isMobile: viewport.width < 600, hasTouch: viewport.width < 600 });
   const mock = createMockSupabase({ role, authed });
   if (meta) mock.state.user.user_metadata = meta;
   await mock.install(ctx);
-  const st = { access, checkout: [] };
+  const st = { access, checkout: [], funnel: [], signups: [], accountType: null, funnelDone: false };
+  if (fresh) {
+    // A brand-new account (sign-up scenarios): no class yet, created when GoTrue hands out the first session.
+    mock.state.memberships = [];
+    await ctx.route(`${SUPABASE_URL}/auth/v1/token**`, (r) => { mock.state.user.created_at = new Date().toISOString(); return r.fallback(); });
+    await ctx.route(`${SUPABASE_URL}/auth/v1/signup**`, (r) => { const b = r.request().postDataJSON() ?? {}; st.signups.push({ email: b.email, data: b.data, redirect: new URL(r.request().url()).searchParams.get("redirect_to") }); return r.fallback(); });
+    // What the OAuth return found in storage, before the app consumed it (wa_pending_signup «used once»).
+    await ctx.addInitScript(() => { if (location.pathname === "/auth/callback") { const v = localStorage.getItem("wa_pending_signup") ?? sessionStorage.getItem("wa_pending_signup"); if (v) sessionStorage.setItem("e2e_pending_at_callback", v); } });
+  }
+  // funnel_apply like the server (supabase/migrations/20261119100000_onboarding_funnel.sql): once per new account (< 14 days,
+  // not done yet); p_answers or the metadata copy; staff → set_my_role('teacher'); student/parent → account_set_type(parent |
+  // school_student when in a class | independent_student); established teacher roles are never changed.
+  await ctx.route(`${SUPABASE_URL}/rest/v1/rpc/funnel_apply`, (r) => {
+    const body = r.request().postDataJSON() ?? {};
+    st.funnel.push(body);
+    const user = mock.state.user;
+    const roleOf = () => (mock.state.role === "teacher" ? "teacher" : st.accountType === "parent" ? "parent" : "student");
+    const a = body.p_answers ?? user.user_metadata?.wa_funnel ?? null;
+    if (st.funnelDone) return json(r, 200, { applied: false, reason: "already_done", role: roleOf() });
+    if (!user.created_at || Date.now() - Date.parse(user.created_at) > 14 * 864e5) return json(r, 200, { applied: false, reason: "not_new", role: roleOf() });
+    if (!a) return json(r, 200, { applied: false, reason: "no_answers", role: roleOf() });
+    if (!["student", "parent", "staff"].includes(a.role)) return json(r, 400, { code: "P0001", message: "INVALID_FUNNEL", details: "role", hint: null });
+    if (a.role === "staff") mock.state.role = "teacher";
+    else if (mock.state.role !== "teacher") st.accountType = a.role === "parent" ? "parent" : mock.state.memberships.length ? "school_student" : "independent_student";
+    st.funnelDone = true;
+    return json(r, 200, { applied: true, role: roleOf(), role_mismatch: false, under_16: Number.isInteger(a.birthYear) && new Date().getFullYear() - a.birthYear - 1 < 16 });
+  });
   await ctx.route(`${SUPABASE_URL}/rest/v1/rpc/my_access`, (r) => typeof st.access === "number" ? json(r, st.access, { code: "PGRST202", message: "Could not find the function public.my_access" }) : json(r, 200, st.access));
   await ctx.route(`${SUPABASE_URL}/rest/v1/rpc/paywall_probe`, (r) => json(r, 400, { code: "P0001", message: "PAYWALL", details: null, hint: null }));
   // Restrictive RLS policy of the backend (20261118020000_access_guards.sql): PostgREST answers 403 / 42501 naming the policy.
@@ -89,88 +116,157 @@ async function shots(name, path, opts, sel) {
   }
 }
 
-/** Signup tab → role card → (Jahrgang) → "Weiter mit Google"; returns the visited paths. */
-async function googleSignup(page, label, { birthYear } = {}) {
-  await page.goto(`${BASE}/login`);
-  const tab = page.getByRole("button", { name: "Konto erstellen" }).last();
-  if (await tab.isVisible().catch(() => false)) await tab.click();
-  await page.locator("label", { hasText: label }).first().click();
-  if (birthYear) await page.locator("#signup-birth-year").selectOption(String(birthYear));
+/**
+ * Sign-up = the funnel (SPEC-FLOW D3; /login is login only). Walks `/start[?next=…]` as `role` up to «konto», ticks the
+ * consent and clicks «Mit Google weiter» (OAuth simulated: authorize → /auth/callback?code=…). Returns the visited paths
+ * from the click on (the OAuth return, the saving screen and the landing).
+ */
+async function funnelGoogle(page, role, answers, { start = "/start", until = "konto", beforeKonto } = {}) {
+  if (!page.url().includes("/start")) await page.goto(`${BASE}${start}`);
+  await walk(page, role, answers, until);
+  if (beforeKonto) await beforeKonto();
+  if (slugOf(page) !== "konto") await walk(page, role, answers, "konto");
+  if (slugOf(page) !== "konto") throw new Error(`funnel did not reach «konto» (${page.url()})`);
+  await page.getByRole("checkbox", { name: /Datenschutz/ }).first().check({ force: true });
   const seen = [];
   page.on("framenavigated", (f) => { if (f === page.mainFrame()) seen.push(new URL(f.url()).pathname); });
-  await page.getByRole("button", { name: /Weiter mit Google/ }).click();
+  await page.getByRole("button", { name: /Mit Google weiter/ }).first().click();
   return seen;
 }
+/** wa_pending_signup as the OAuth return found it (recorded by an init script before the app runs) and as it is now. */
+async function pendingSignup(page) {
+  return page.evaluate(() => ({
+    atReturn: sessionStorage.getItem("e2e_pending_at_callback"),
+    now: localStorage.getItem("wa_pending_signup") ?? sessionStorage.getItem("wa_pending_signup"),
+  }));
+}
 const ROLE_PICKER = "Wie nutzt du WendApply?";
+const OLD_PICKER = (seen) => !seen.includes("/auth/role");
+/** Funnel answers that reached the server (funnel_apply with the local copy, or the metadata copy). */
+const sentAnswers = (st) => st.funnel.map((b) => b.p_answers).filter(Boolean);
 
 const scenarios = {
-  // ------------------------------------------------------------ A: Google signup keeps the role (FINDINGS 1, G5)
+  // ------------------------------------------------------------ A: sign-up keeps the role (FINDINGS 1, G5) and invite links (G17, G18)
+  // Since the onboarding release the sign-up is the funnel /start: the role is chosen there once, carried through Google
+  // (wa_pending_signup + the local funnel copy) and saved by funnel_apply right after the OAuth return.
   async A1() {
-    const { ctx, page, mock } = await open({ authed: false, meta: {}, access: TRIAL({ account_type: "parent" }) });
-    const seen = await googleSignup(page, "Elternteil");
+    const { ctx, page, mock, st } = await open({ authed: false, meta: {}, fresh: true, access: TRIAL({ account_type: "parent" }) });
+    const seen = await funnelGoogle(page, "parent", ANSWERS.parent);
     await page.waitForURL(/\/familie/, { timeout: 60000 }).catch(() => {});
     check(page.url().includes("/familie"), `Google parent lands on /familie (${page.url()})`);
-    check(!seen.includes("/auth/role") && await none(page, `text=${ROLE_PICKER}`, 300), `role picker never shown (${seen.join(" > ")})`);
+    check(OLD_PICKER(seen) && !seen.includes("/onboarding") && await none(page, `text=${ROLE_PICKER}`, 300), `role picker never shown (${seen.join(" > ")})`);
+    check(!seen.includes("/start"), `role not asked again after the OAuth return (no /start?nach=google) (${seen.join(" > ")})`);
     const meta = mock.state.user.user_metadata;
     check(meta.role === "student" && meta.account_type === "parent" && meta.role_confirmed === true, `role + account_type stored (${JSON.stringify(meta)})`);
-    check(mock.rpcCalls("account_set_type").some((c) => c.body.p_type === "parent"), "account_set_type(parent) called");
+    check(sentAnswers(st).some((a) => a.role === "parent") && st.accountType === "parent", `server stored the parent role (funnel_apply role=parent → account_type ${st.accountType})`);
+    check(st.funnel.length === 1, `funnel_apply called once (${st.funnel.length})`);
     check(await vis(page, '[data-testid="trial-banner"]'), "trial banner on /familie");
     // eltern-02: on /familie the plan card (#abo) is on the same page, so the banner carries no action of its own.
     check(await page.locator('[data-testid="trial-banner"] a').count() === 0, "parent banner on /familie: no own action (eltern-02)");
-    check(await page.evaluate(() => localStorage.getItem("wa_pending_signup") === null && sessionStorage.getItem("wa_pending_signup") === null), "wa_pending_signup used once");
+    const pending = await pendingSignup(page);
+    check(pending.atReturn !== null && pending.now === null, `wa_pending_signup used once (at return ${pending.atReturn}, now ${pending.now})`);
     await ctx.close();
   },
   async A2() {
-    const { ctx, page, mock } = await open({ authed: false, meta: {}, access: TRIAL({ account_type: "independent_student" }) });
-    await page.goto(`${BASE}/login`);
-    await page.getByRole("button", { name: "Konto erstellen" }).last().click();
-    await page.locator("label", { hasText: "privat" }).first().click();
-    await page.getByRole("button", { name: /Weiter mit Google/ }).click();
-    check(await vis(page, "text=Bitte wähle deinen Jahrgang", 5000), "Google blocked until Jahrgang is chosen");
+    const { ctx, page, mock, st } = await open({ authed: false, meta: {}, fresh: true, access: TRIAL({ account_type: "independent_student" }) });
     const year = new Date().getFullYear() - 15;
-    await page.locator("#signup-birth-year").selectOption(String(year));
-    await page.getByRole("button", { name: /Weiter mit Google/ }).click();
-    await page.waitForURL(/\/onboarding/, { timeout: 60000 }).catch(() => {});
-    check(new URL(page.url()).pathname === "/onboarding", `Google private student → /onboarding (${page.url()})`);
-    const meta = mock.state.user.user_metadata;
-    check(meta.account_type === "independent_student" && meta.birth_year === year, `account_type + birth_year kept (${JSON.stringify(meta)})`);
+    await page.goto(`${BASE}/start`);
+    await walk(page, "student", ANSWERS.student, "jahrgang");
+    // The birth year is required before the funnel goes on (and so before «Mit Google weiter» exists).
+    await page.locator("h1").first().waitFor({ timeout: 15000 });
+    await primary(page).click();
+    check(await vis(page, "text=Wähl dein Geburtsjahr.", 5000) && slugOf(page) === "jahrgang", "Google blocked until Jahrgang is chosen");
+    const seen = await funnelGoogle(page, "student", { ...ANSWERS.student, birthYear: year });
+    await page.waitForURL((u) => u.pathname === "/dashboard", { timeout: 60000 }).catch(() => {});
+    // The old /onboarding wizard is retired (SPEC-FLOW D7): the product tour starts on the dashboard.
+    check(new URL(page.url()).pathname === "/dashboard", `Google private student → /dashboard (tour) (${page.url()})`);
+    check(OLD_PICKER(seen) && !seen.includes("/start") && !seen.includes("/onboarding/klasse"), `no role picker, no second question (${seen.join(" > ")})`);
+    const sent = sentAnswers(st).find((a) => a.role === "student");
+    check(sent?.birthYear === year && st.accountType === "independent_student", `account_type + birth_year kept (sent ${JSON.stringify(sent && { role: sent.role, birthYear: sent.birthYear })}, account_type ${st.accountType})`);
+    check(mock.state.user.user_metadata.role === "student" && mock.state.user.user_metadata.role_confirmed === true, `role confirmed (${JSON.stringify(mock.state.user.user_metadata)})`);
+    const pending = await pendingSignup(page);
+    check(pending.atReturn !== null && pending.now === null, "wa_pending_signup used once");
     await ctx.close();
   },
   async A3() {
-    const { ctx, page, mock } = await open({ authed: false, meta: {}, access: A({ has_access: false, state: "licence_required", role: "teacher" }) });
-    const seen = await googleSignup(page, "Lehrperson");
+    const { ctx, page, mock, st } = await open({ authed: false, meta: {}, fresh: true, access: A({ has_access: false, state: "licence_required", role: "teacher" }) });
+    const seen = await funnelGoogle(page, "staff", ANSWERS.staff);
     await page.waitForURL(/\/schullizenz/, { timeout: 60000 }).catch(() => {});
     check(page.url().includes("/schullizenz"), `Google teacher without licence → /schullizenz (${page.url()})`);
-    check(!seen.includes("/auth/role"), "no role picker");
-    check(mock.state.role === "teacher", "set_my_role(teacher)");
+    check(OLD_PICKER(seen) && !seen.includes("/start"), `no role picker (${seen.join(" > ")})`);
+    check(sentAnswers(st).some((a) => a.role === "staff") && mock.state.role === "teacher", "set_my_role(teacher) via funnel_apply(staff)");
+    check(mock.state.user.user_metadata.role === "teacher", `teacher role in the metadata (${JSON.stringify(mock.state.user.user_metadata)})`);
     check(await vis(page, '[data-testid="licence-gate"]'), "licence gate shown");
     await ctx.close();
   },
   async A4() {
-    const { ctx, page } = await open({ authed: false, meta: {}, access: TRIAL() , extra: async (_c, mock) => { mock.state.memberships = []; } });
-    const seen = await googleSignup(page, "Schüler:in mit Klasse");
-    await page.waitForURL(/\/onboarding\/klasse/, { timeout: 60000 }).catch(() => {});
-    check(page.url().includes("/onboarding/klasse"), `Google school student → class code step (${page.url()})`);
-    check(!seen.includes("/auth/role"), "no role picker");
-    await page.getByRole("button", { name: /noch keinen Code/ }).click();
-    await page.waitForURL(/\/onboarding(\?|$)/, { timeout: 30000 }).catch(() => {});
-    check(new URL(page.url()).pathname === "/onboarding", "'Ich habe noch keinen Code' → tour");
+    // Class invite link while logged out (G18): /classes/join/<code> → /login → funnel with Schüler:in preset + the code prefilled.
+    const { ctx, page, st } = await open({ authed: false, meta: {}, fresh: true, access: TRIAL() });
+    await page.goto(`${BASE}/classes/join/KLAS7Q2`);
+    check(await waitPath(page, /^\/start\?next=%2Fclasses%2Fjoin%2FKLAS7Q2/, 60000), `class invite → funnel with next (${page.url()})`);
+    await walk(page, "student", ANSWERS.student, "rolle");
+    check(await page.locator('[data-testid="funnel-role"] input[value="student"]').isChecked().catch(() => false), "role preset from the link: Schüler:in");
+    await walk(page, "student", ANSWERS.student, "schule");
+    check(await page.locator("#funnel-class-code").inputValue().catch(() => "") === "KLAS7Q2", "class code prefilled from the link");
+    const seen = await funnelGoogle(page, "student", ANSWERS.student);
+    await page.waitForURL(/\/classes\/join\/KLAS7Q2/, { timeout: 60000 }).catch(() => {});
+    check(page.url().includes("/classes/join/KLAS7Q2"), `Google school student → class join first (${page.url()})`);
+    check(OLD_PICKER(seen) && !seen.includes("/onboarding/klasse"), `no role picker, class code not asked again (${seen.join(" > ")})`);
+    check(sentAnswers(st).some((a) => a.role === "student") && !JSON.stringify(st.funnel).includes("KLAS7Q2"), "funnel_apply(student) without the transient class code");
+    // The existing join form (G8 consent): real name if the class needs it, age band, then «Klasse beitreten».
+    await page.getByRole("button", { name: "Klasse beitreten" }).waitFor({ timeout: 30000 });
+    if (await page.locator("#join-first").isVisible().catch(() => false)) { await page.locator("#join-first").fill("Lena"); await page.locator("#join-last").fill("Muster"); }
+    await page.locator("label", { hasText: "Unter 16" }).first().click();
+    await page.getByRole("button", { name: "Klasse beitreten" }).click();
+    await page.getByRole("link", { name: "Weiter" }).or(page.getByRole("button", { name: "Weiter" })).first().click({ timeout: 30000 }).catch(() => {});
+    await page.waitForURL((u) => u.pathname === "/dashboard", { timeout: 30000 }).catch(() => {});
+    check(new URL(page.url()).pathname === "/dashboard", `joined → /dashboard (tour) (${page.url()})`);
     await ctx.close();
   },
   async A5() {
     const next = "/familie/einladung/ABCD1234?fuer=kind";
-    const { ctx, page, mock } = await open({ authed: false, meta: {}, access: TRIAL({ account_type: "independent_student" }) });
+    const { ctx, page, mock, st } = await open({ authed: false, meta: {}, fresh: true, access: TRIAL({ account_type: "independent_student" }) });
     await page.goto(`${BASE}/login?next=${encodeURIComponent(next)}`);
-    check(await vis(page, '[data-testid="family-signup-hint"]'), "invite hint + signup tab opened (G18)");
-    check(await page.getByRole("button", { name: /^Konto erstellen/ }).first().isVisible(), "signup mode (submit says 'Konto erstellen')");
-    await page.locator("#signup-birth-year").selectOption(String(new Date().getFullYear() - 15));
-    const seen = [];
-    page.on("framenavigated", (f) => { if (f === page.mainFrame()) seen.push(new URL(f.url()).pathname); });
-    await page.getByRole("button", { name: /Weiter mit Google/ }).click();
+    check(await waitPath(page, /^\/start\?/, 30000) && new URL(page.url()).searchParams.get("next") === next, `invite link → sign-up funnel with next (G18) (${page.url()})`);
+    await walk(page, "student", ANSWERS.student, "rolle");
+    check(await page.locator('[data-testid="funnel-role"] input[value="student"]').isChecked().catch(() => false), "role preset from the link: Schüler:in (fuer=kind)");
+    let hint = false;
+    const seen = await funnelGoogle(page, "student", ANSWERS.student, {
+      until: "dabei",
+      beforeKonto: async () => {
+        hint = await vis(page, '[data-testid="funnel-family-invited"]', 15000);
+        await advance(page, "dabei");
+      },
+    });
+    check(hint, "invite hint shown («Du trittst nach dem Start der Familie bei …») (G18)");
     await page.waitForURL((u) => u.pathname.startsWith("/familie/einladung"), { timeout: 60000 }).catch(() => {});
     check(page.url().includes("/familie/einladung/ABCD1234"), `invite first, before the tour (G17) (${page.url()})`);
-    check(!seen.includes("/auth/role"), "no role picker for invite signups");
-    check(mock.state.user.user_metadata.account_type === "independent_student", "invite preset applied (private student)");
+    check(OLD_PICKER(seen) && !seen.includes("/start"), `no role picker for invite signups (${seen.join(" > ")})`);
+    check(st.accountType === "independent_student" && mock.state.user.user_metadata.role_confirmed === true, `invite preset applied (private student, ${st.accountType})`);
+    await ctx.close();
+  },
+  async A6() {
+    // Parent invite link + e-mail sign-up: role preset Elternteil, hint on «kind», the role and next travel with the sign-up.
+    const next = "/familie/einladung/ABCD1234";
+    const { ctx, page, st } = await open({ authed: false, meta: {}, fresh: true, access: TRIAL({ account_type: "parent" }) });
+    await page.goto(`${BASE}/login?next=${encodeURIComponent(next)}`);
+    check(await waitPath(page, /^\/start\?/, 30000) && new URL(page.url()).searchParams.get("next") === next, `parent invite link → funnel with next (${page.url()})`);
+    await walk(page, "parent", ANSWERS.parent, "rolle");
+    check(await page.locator('[data-testid="funnel-role"] input[value="parent"]').isChecked().catch(() => false), "role preset from the link: Elternteil");
+    await walk(page, "parent", ANSWERS.parent, "kind");
+    check(await vis(page, '[data-testid="funnel-kid-invited"]', 15000), "invite hint shown on «kind» (G18)");
+    await advance(page, "kind");
+    await walk(page, "parent", ANSWERS.parent, "konto");
+    const seen = [];
+    page.on("framenavigated", (f) => { if (f === page.mainFrame()) seen.push(new URL(f.url()).pathname); });
+    await fillKonto(page, "probe-onb-parent@wendapply-probe.invalid");
+    await page.waitForURL(/\/start\/bestaetigen/, { timeout: 30000 }).catch(() => {});
+    check(page.url().includes("/start/bestaetigen"), `e-mail sign-up → confirm screen (${page.url()})`);
+    const su = st.signups.at(-1);
+    check(su?.data?.role === "student" && su?.data?.account_type === "parent" && su?.data?.wa_funnel?.role === "parent", `sign-up metadata carries the role (${JSON.stringify(su?.data && { role: su.data.role, account_type: su.data.account_type, funnel: su.data.wa_funnel?.role })})`);
+    const redirect = su?.redirect ? new URL(su.redirect) : null;
+    check(redirect?.pathname === "/auth/callback" && redirect.searchParams.get("next") === next, `confirmation link returns to the invite (${su?.redirect})`);
+    check(OLD_PICKER(seen), "no role picker");
     await ctx.close();
   },
   // ------------------------------------------------------------ B/C: banners
