@@ -1,28 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Minus, Plus } from "lucide-react";
-import { clampGoal, readGoal, readProgress, subscribeProgress, weekStart, writeGoal } from "@/lib/rewards";
+import { clampGoal, loadWeeklyGoal, readGoal, readProgress, saveWeeklyGoal, subscribeProgress, weekStart } from "@/lib/rewards";
 import type { Application } from "@/types";
 
-/** Weekly goal: applications sent this week (stored locally + derived from appliedAt). The goal itself is a local setting. */
+/** Weekly goal: applications sent this week (stored locally + derived from appliedAt). The goal is profiles.weekly_goal (set in the
+ *  funnel or here); the local copy renders first so there is no flash, then the stored value replaces it. */
 export function WeeklyGoal({ applications }: { applications: Application[] }) {
   const [goal, setGoal] = useState(3);
   const [local, setLocal] = useState(0);
+  // The user changed the goal before the stored value arrived: keep their choice.
+  const touched = useRef(false);
   useEffect(() => {
     const sync = () => setLocal(readProgress().applied);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is only readable after mount
     setGoal(readGoal()); sync();
-    return subscribeProgress(sync);
+    let alive = true;
+    void loadWeeklyGoal().then((stored) => { if (alive && !touched.current) setGoal(stored); });
+    const unsubscribe = subscribeProgress(sync);
+    return () => { alive = false; unsubscribe(); };
   }, []);
   const start = weekStart();
   const fromData = applications.filter((a) => a.appliedAt && a.appliedAt >= start).length;
   const done = Math.max(local, fromData);
   const reached = done >= goal;
-  const change = (delta: number) => { const next = clampGoal(goal + delta); setGoal(next); writeGoal(next); };
+  const change = (delta: number) => { const next = clampGoal(goal + delta); touched.current = true; setGoal(next); saveWeeklyGoal(next); };
   const stepButton = "flex h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)] active:translate-y-px disabled:opacity-40";
   return (
-    <section className="panel relative p-4 sm:p-5" aria-label="Wochenziel">
+    <section className="panel relative p-4 sm:p-5" aria-label="Wochenziel" data-tour="schueler-weekly-goal" data-tour-value={goal}>
       {reached && <span className="sticker sticker-mint animate-sticker absolute -right-2 -top-3" style={{ "--tilt": "5deg" } as React.CSSProperties}>Geschafft!</span>}
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

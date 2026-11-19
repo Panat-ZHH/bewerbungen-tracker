@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { LoginLink } from "@/components/public/login-link";
+import { LOGIN_HREF, LOGIN_LABEL, SIGNUP_HREF, SIGNUP_LABEL } from "@/components/public/marketing";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
-import { ArrowRight, Download } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { PublicShell, Section } from "@/components/public/public-shell";
 import { Faq } from "@/components/public/faq";
@@ -28,10 +29,10 @@ export default function AnleitungPage() {
           <h1 id="hero-h" className="text-hero">So funktioniert <span className="marker">WendApply</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Von der ersten Suche bis zur Zusage: Hier siehst du Schritt für Schritt, was WendApply kann und wie du es als App auf dein Handy oder deinen Computer holst.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <LoginLink size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>App öffnen</LoginLink>
-            <ButtonLink href="#installieren" size="lg" variant="secondary" icon={<Download size={18} strokeWidth={2.4} aria-hidden />}>Als App installieren</ButtonLink>
+            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="hero-signup">{SIGNUP_LABEL}</LoginLink>
+            <LoginLink href={LOGIN_HREF} size="lg" variant="secondary" data-testid="hero-login">{LOGIN_LABEL}</LoginLink>
           </div>
-          <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig.</p>
+          <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig: <Link className="font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4" href="#installieren">Als App installieren</Link></p>
         </div>
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <GuideShot src="/landing/04-dashboard-light.webp" darkSrc="/landing/04-dashboard-dark.webp" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />
@@ -112,11 +113,12 @@ export default function AnleitungPage() {
         <div className="relative rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] px-6 py-10 text-[var(--on-sun)] shadow-[var(--shadow-lg)] sm:px-12 sm:py-14">
           <DoodleSparkle className="absolute right-6 top-6 h-8 w-8 sm:right-10" />
           <h2 id="cta-h" className="text-display max-w-2xl">Bereit? Deine erste Bewerbung wartet.</h2>
-          <p className="mt-4 max-w-xl text-base">Konto erstellen dauert eine Minute. Danach kannst du WendApply jederzeit als App installieren.</p>
+          <p className="mt-4 max-w-xl text-base">7 Tage gratis testen. Ohne Kreditkarte. Danach kannst du WendApply jederzeit als App installieren.</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <LoginLink size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>App öffnen</LoginLink>
+            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="cta-signup">{SIGNUP_LABEL}</LoginLink>
             <ButtonLink href="#installieren" size="lg" variant="secondary" className="!border-[var(--outline-fill)]">Als App installieren</ButtonLink>
           </div>
+          <p className="mt-4 text-sm">Schon ein Konto? <Link className="inline-flex min-h-11 items-center font-semibold underline decoration-2 underline-offset-4" href={LOGIN_HREF} prefetch={false} data-testid="cta-login">{LOGIN_LABEL}</Link></p>
           <div className="pointer-events-none absolute bottom-6 right-8 hidden items-end gap-1 md:flex" aria-hidden>
             <DoodleTrail className="h-12 w-36" />
             <DoodlePlane className="mb-6 h-12 w-16" />

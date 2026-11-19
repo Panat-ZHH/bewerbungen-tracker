@@ -27,12 +27,12 @@ const UNGATED = new Set(`_assert_app_access account_delete_summary account_set_t
   billing_status_for_school billing_status_for_user class_deadline_delete class_delete class_invite_accept class_invite_preview class_invite_revoke
   class_join class_leave class_my_classes class_preview class_remove_coteacher class_remove_student class_set_sharing class_set_sharing_v2
   export_my_data family_create family_create_invite family_export_my_data family_get_my family_join family_leave family_remove_member
-  family_set_consent family_set_share has_app_access invite_context is_class_member is_class_teacher is_family_parent is_school_admin
+  family_set_consent family_set_share funnel_apply has_app_access invite_context is_class_member is_class_teacher is_family_parent is_school_admin
   map_friend_island map_islands_state map_shop_state mark_notification_read my_access my_class_deadlines my_notifications my_self_reports
   my_view_log onboarding_tour_set profile_name_status profile_set_under_16 school_admin_my_schools school_admin_overview school_detach_class
   school_remove_teacher school_student_count set_my_role social_avatars social_friends_overview social_get_share_companies
   social_get_share_outcomes social_list social_my_profile social_remove_friend social_set_share_companies social_set_share_outcomes
-  waitlist_join`.split(/\s+/).filter(Boolean));
+  tour_state_set waitlist_join`.split(/\s+/).filter(Boolean));
 const TEACHER_MODE = new Set(["class_announcement_list", "class_deadline_list", "class_goal_progress"]);
 
 async function wrapped() {

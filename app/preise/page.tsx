@@ -9,7 +9,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { PublicShell, Section } from "@/components/public/public-shell";
 import { CtaBand } from "@/components/public/cta-band";
 import { Faq, type FaqItem } from "@/components/public/faq";
-import { FAMILY, MAIL, PACKAGES, PILOT, chf, perStudentMonth, perStudentYear } from "@/components/public/marketing";
+import { FAMILY, LOGIN_HREF, LOGIN_LABEL, MAIL, PACKAGES, PILOT, SIGNUP_HREF, SIGNUP_LABEL, chf, perStudentMonth, perStudentYear, withNext } from "@/components/public/marketing";
 import { FREE_NOTICE, PAYMENT_LABEL, buyHref, familyPlan, intervalPriceText, onlinePaymentEnabled, priceText, savingText } from "@/components/billing/logic";
 
 
@@ -93,7 +93,10 @@ export default function PreisePage() {
           <ul className="space-y-2 text-[15px]">
             {["Alle Funktionen: Lehrstellensuche, Bewerbungen, KI-Check, Dorf", "7 Tage gratis testen, ohne Karte", "Monatlich kündbar"].map((f) => <li key={f} className="flex gap-2.5"><Check size={18} strokeWidth={2.8} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" />{f}</li>)}
           </ul>
-          <LoginLink href="/login?next=%2Fabo" variant="sun" icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />}>Gratis testen</LoginLink>
+          <div className="flex flex-col items-start gap-1 md:items-center">
+            <LoginLink href={withNext(SIGNUP_HREF, "/abo")} icon={<ArrowRight size={16} strokeWidth={2.4} aria-hidden />} data-testid="preise-solo-signup">{SIGNUP_LABEL}</LoginLink>
+            <p className="text-small text-muted">Schon ein Konto? <Link className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4" href={withNext(LOGIN_HREF, "/abo")} prefetch={false} data-testid="preise-solo-login">{LOGIN_LABEL}</Link></p>
+          </div>
         </div>
         <div className="panel relative mt-6 grid gap-6 p-6 sm:p-7 md:grid-cols-[1fr_1.2fr_auto] md:items-center" aria-labelledby="pkg-family">
           <span className="sticker tilt-r absolute -top-3.5 right-5 text-sm">{online ? "Online buchbar" : FAMILY.status}</span>

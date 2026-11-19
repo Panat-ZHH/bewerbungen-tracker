@@ -17,7 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { signOutEverywhere } from "@/lib/sign-out";
-import { cachedRole, clearPendingSignup, clearRoleCache, guardRedirect, homeFor, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
+import { cachedRole, clearPendingSignup, clearRoleCache, guardRedirect, homeFor, keepTourParam, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
 import { FAMILY_PATH, familyInviteCodeFromPath, loginNextFor, parentGuardRedirect } from "@/lib/family-core";
@@ -30,6 +30,8 @@ import { clearAccessCache } from "@/lib/access/client";
 import { accessView, isParentAccount, isSchoolAdmin } from "@/lib/access/gate";
 import { toast } from "@/lib/toast";
 import { clearPendingInvite } from "@/components/friends/shared";
+import { NAV_MORE, navTour } from "@/components/tour/tour-core";
+import { TourLauncher } from "@/components/tour/tour-launcher";
 
 type NavItem = { label: string; href: string; icon: typeof Search; keys: string[]; prefixes?: string[] };
 
@@ -177,7 +179,8 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
         const notice = wrongRoleNotice(resolved === "teacher" ? "teacher" : parentAccount ? "parent" : "student", path);
         if (notice) toast({ message: notice, tone: "info", duration: 8000 });
         setRole(null);
-        router.replace(target);
+        // «Tour wiederholen» opened on another role's page (e.g. /dashboard?tour=1 as a parent): keep ?tour=1 on the way.
+        router.replace(keepTourParam(target, window.location.search));
       } else setRole(resolved);
     });
     return () => { alive = false; };
@@ -287,6 +290,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
                 <Link
                   key={href}
                   href={href}
+                  data-tour={navTour(href)}
                   title={label}
                   aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : label}
                   aria-current={selected ? "page" : undefined}
@@ -304,7 +308,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
 
           <div className="flex shrink-0 items-center gap-1">
             {!compact && <NotificationsBell />}
-            <button type="button" onClick={() => setMenuDesktop(true)} aria-haspopup="dialog" aria-expanded={menuDesktop} aria-label="Konto und mehr" title="Konto und mehr" className="hidden h-11 items-center gap-1.5 rounded-full pl-1 pr-3 text-[13.5px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
+            <button type="button" data-tour={NAV_MORE} onClick={() => setMenuDesktop(true)} aria-haspopup="dialog" aria-expanded={menuDesktop} aria-label="Konto und mehr" title="Konto und mehr" className="hidden h-11 items-center gap-1.5 rounded-full pl-1 pr-3 text-[13.5px] font-medium text-[var(--muted)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)] md:flex">
               <Avatar name={displayName || null} src={myAvatar} size="sm" />
               <span className="max-w-full truncate">Mehr</span>
             </button>
@@ -330,7 +334,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
             const selected = isSelected(item);
             return (
               <li key={href} className="min-w-[44px] flex-auto">
-                <Link href={href} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+                <Link href={href} data-tour={navTour(href)} aria-label={href === "/friends" && requestCount > 0 ? `${label}, ${badgeLabel(requestCount)}` : undefined} aria-current={selected ? "page" : undefined} className={`group flex h-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] tracking-tight transition-transform active:translate-y-0.5 ${selected ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
                   <span className={`relative flex h-[28px] w-[min(48px,100%)] items-center justify-center rounded-full transition-colors duration-150 ${selected ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><Icon size={20} strokeWidth={2} />{href === "/friends" && <RequestBadge count={requestCount} className="-top-1 right-0" />}<NoticeBadge enabled={!isTeacher && href === "/classes"} className="-top-1 right-0" /></span>
                   <span className="max-w-full truncate max-[340px]:text-[10px]">{label}</span>
                 </Link>
@@ -338,7 +342,7 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
             );
           })}
           <li className="min-w-[44px] flex-auto">
-            <button type="button" onClick={() => setMoreOpen("mobile")} aria-haspopup="dialog" aria-expanded={moreOpen === "mobile"} className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
+            <button type="button" data-tour={NAV_MORE} onClick={() => setMoreOpen("mobile")} aria-haspopup="dialog" aria-expanded={moreOpen === "mobile"} className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-[2px] text-[11px] leading-[14px] max-[340px]:text-[10px] transition-transform active:translate-y-0.5 ${moreActive ? "font-bold text-[var(--ink)]" : "font-medium text-[var(--muted)]"}`}>
               <span className={`relative flex h-[28px] w-[min(48px,100%)] items-center justify-center rounded-full transition-colors duration-150 ${moreActive ? "bg-[var(--sun-soft)] text-[var(--ink)]" : "group-active:bg-[var(--hover)]"}`}><MoreHorizontal size={20} strokeWidth={2} /><NoticeBadge enabled={!compact && !primary.some((p) => p.href === "/classes")} className="-top-1 right-0" />{inClass && <RequestBadge count={requestCount} className="-top-1 right-0" />}</span>
               <span className="max-w-full truncate">Mehr</span>
             </button>
@@ -373,6 +377,8 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
           <LogOut size={17} /> Abmelden
         </button>
       </Modal>
+      {/* Product tour (SPEC-FLOW §6): decides itself whether to run; the overlay is loaded only then. */}
+      <TourLauncher role={role} parent={isParent} schoolAdmin={isAdminOnly} gate={gate} userId={user.id} />
     </div>
   );
 }

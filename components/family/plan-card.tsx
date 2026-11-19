@@ -38,7 +38,7 @@ export function PlanCard({ plan, email, kind = "family", familyId = null, isPare
   if (online && isParent && billing && familyId) {
     const badge = familyPhaseBadge(billing.activationPending ? null : billing.phase);
     return (
-      <section id="abo" aria-labelledby="family-plan" className={`panel-flat scroll-mt-24 space-y-3 p-5 ${current ? "outline outline-2 outline-offset-2 outline-[var(--brand)]" : ""}`} data-billing-enabled="on">
+      <section id="abo" data-tour="eltern-plan" aria-labelledby="family-plan" className={`panel-flat scroll-mt-24 space-y-3 p-5 ${current ? "outline outline-2 outline-offset-2 outline-[var(--brand)]" : ""}`} data-billing-enabled="on">
         <div className="flex flex-wrap items-center gap-2">
           <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{current && billing.phase !== "past_due" && billing.phase !== "unpaid" ? FAMILY_COPY.step3.title : "Familienpaket"}</h2>
           {badge && <Badge tone={badge.tone}>{badge.label}</Badge>}
@@ -50,7 +50,7 @@ export function PlanCard({ plan, email, kind = "family", familyId = null, isPare
   if (online && !isParent) {
     const active = !!plan && ACCESS_STATES.includes(plan.state ?? plan.status);
     return (
-      <section id="abo" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-2 p-5" data-billing-enabled="on" data-billing-state="child">
+      <section id="abo" data-tour="eltern-plan" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-2 p-5" data-billing-enabled="on" data-billing-state="child">
         <div className="flex flex-wrap items-center gap-2">
           <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Familienpaket</h2>
           {active && <Badge tone="success">{FAMILY_COPY.badge.active}</Badge>}
@@ -62,7 +62,7 @@ export function PlanCard({ plan, email, kind = "family", familyId = null, isPare
   const s = planSummary(plan, undefined, { online });
   const unlocked = planGivesAccess(plan);
   return (
-    <section id="abo" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-3 p-5" data-billing-enabled={online ? "on" : "off"}>
+    <section id="abo" data-tour="eltern-plan" aria-labelledby="family-plan" className="panel-flat scroll-mt-24 space-y-3 p-5" data-billing-enabled={online ? "on" : "off"}>
       <div className="flex flex-wrap items-center gap-2">
         <h2 id="family-plan" className="text-heading"><Sparkles size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{s.title}</h2>
         {s.status && <Badge tone={plan ? PLAN_STATUS_TONE[plan.status] ?? "neutral" : "info"}>{s.status}</Badge>}

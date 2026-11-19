@@ -10,7 +10,7 @@ import { PublicShell, Section } from "@/components/public/public-shell";
 import { Screenshot } from "@/components/public/screenshot";
 import { AuthRedirect } from "@/components/public/auth-redirect";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleSparkle, DoodleTrail } from "@/components/ui/doodles";
-import { BRAND_TAGLINE, PILOT, POSITIONING } from "@/components/public/marketing";
+import { BRAND_TAGLINE, LOGIN_HREF, LOGIN_LABEL, PILOT, POSITIONING, SIGNUP_HREF, SIGNUP_LABEL } from "@/components/public/marketing";
 
 export const metadata: Metadata = publicMetadata({ canonical: "/" });
 
@@ -41,10 +41,11 @@ export default function LandingPage() {
           <h1 id="hero-h" className="text-hero">Von der ersten Bewerbung bis zur <span className="marker">Zusage</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
           <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Stellen finden, Bewerbungen und Fristen verwalten und bei Bedarf mit deiner Lehrperson teilen. Alles an einem Ort. 7 Tage gratis testen, mit Schullizenz für dich gratis.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <LoginLink size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Kostenlos testen</LoginLink>
+            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="hero-signup">{SIGNUP_LABEL}</LoginLink>
             <ButtonLink href="/schulen" size="lg" variant="secondary">Für Schulen</ButtonLink>
           </div>
-          <p className="text-small mt-5 max-w-md text-muted">Anmeldung mit E-Mail oder Google. Dein Konto kannst du jederzeit selbst löschen. <Link className={link} href="/anleitung">So funktioniert’s</Link></p>
+          <p className="text-small mt-4 text-muted">Schon ein Konto? <Link className={`${link} inline-flex min-h-11 items-center`} href={LOGIN_HREF} prefetch={false} data-testid="hero-login">{LOGIN_LABEL}</Link></p>
+          <p className="text-small mt-1 max-w-md text-muted">Mit E-Mail oder Google. Dein Konto kannst du jederzeit selbst löschen. <Link className={link} href="/anleitung">So funktioniert’s</Link></p>
         </div>
         <div className="relative mx-auto w-full max-w-md lg:max-w-none">
           <Screenshot name="04-dashboard" alt="Startseite von WendApply: Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />
@@ -117,11 +118,12 @@ export default function LandingPage() {
         <div className="relative rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] px-6 py-10 text-[var(--on-sun)] shadow-[var(--shadow-lg)] sm:px-12 sm:py-14">
           <DoodleSparkle className="absolute right-6 top-6 h-8 w-8 sm:right-10" />
           <h2 id="cta-h" className="text-display max-w-2xl">Bereit für die erste Bewerbung?</h2>
-          <p className="mt-4 max-w-xl text-base">Konto erstellen dauert eine Minute. Schulen testen WendApply im {PILOT.days}-Tage-Pilot mit {PILOT.classes}.</p>
+          <p className="mt-4 max-w-xl text-base">7 Tage gratis testen. Ohne Kreditkarte. Schulen testen WendApply im {PILOT.days}-Tage-Pilot mit {PILOT.classes}.</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <LoginLink size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Kostenlos testen</LoginLink>
+            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="cta-signup">{SIGNUP_LABEL}</LoginLink>
             <ButtonLink href="/schulen" size="lg" variant="secondary" className="!border-[var(--outline-fill)]">Für Schulen</ButtonLink>
           </div>
+          <p className="mt-4 text-sm">Schon ein Konto? <Link className="inline-flex min-h-11 items-center font-semibold underline decoration-2 underline-offset-4" href={LOGIN_HREF} prefetch={false} data-testid="cta-login">{LOGIN_LABEL}</Link></p>
           <div className="pointer-events-none absolute bottom-6 right-8 hidden items-end gap-1 md:flex" aria-hidden>
             <DoodleTrail className="h-12 w-36" />
             <DoodlePlane className="mb-6 h-12 w-16" />

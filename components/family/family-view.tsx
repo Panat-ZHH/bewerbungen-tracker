@@ -50,7 +50,7 @@ export function FamilyView({ initialCode = "" }: { initialCode?: string }) {
 
   return (
     <div className="space-y-6" data-family-state={state}>
-      <PageHeader title={<>Meine <span className="marker">Familie</span></>} description={isParent ? FAMILY_COPY.page.leadParent : FAMILY_COPY.page.leadChild} />
+      <PageHeader title={<span data-tour="eltern-family">Meine <span className="marker">Familie</span></span>} description={isParent ? FAMILY_COPY.page.leadParent : FAMILY_COPY.page.leadChild} />
       {error && (
         <div className="space-y-3">
           <StatusMessage tone="danger"><strong className="block">{FAMILY_COPY.page.loadError}</strong>{error}</StatusMessage>

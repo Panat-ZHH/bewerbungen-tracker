@@ -129,7 +129,7 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
   });
 
   const stepCard = action === "invite_child" || action === "wait_child" ? (
-    <section aria-labelledby="step-child" className="panel-flat space-y-3 p-5 outline outline-2 outline-offset-2 outline-[var(--brand)]" data-current-step="child">
+    <section aria-labelledby="step-child" className="panel-flat space-y-3 p-5 outline outline-2 outline-offset-2 outline-[var(--brand)]" data-current-step="child" data-tour="eltern-invite-child">
       <h2 id="step-child" className="text-heading"><UserPlus size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />{FAMILY_COPY.step2.title}</h2>
       <p className="text-body text-muted">{FAMILY_COPY.step2.text}</p>
       <InvitePanel direction="parent_invites_child" initialInvite={invite} onCreated={setLocalInvite} primary={!expiredCta && !requestPrimary} hideTitle />
@@ -209,7 +209,7 @@ export function ParentView({ family, email, onChanged, initialCode = "" }: { fam
             </details>
           )}
           {current && (
-            <div className="border-t-2 border-dashed border-[var(--line)] pt-4" aria-live="polite">
+            <div className="border-t-2 border-dashed border-[var(--line)] pt-4" aria-live="polite" data-tour="eltern-overview">
               <h3 className="mb-3 text-heading">Überblick: {current.displayName}</h3>
               {sharingActive(current) ? <ChildOverview key={current.userId} childId={current.userId} name={current.displayName} /> : (
                 <p className="text-body text-muted">{current.consentStatus === "pending" ? fill(FAMILY_COPY.parent.childUnder16Hidden, { child: current.displayName }) : current.status === "pending" ? FAMILY_COPY.parent.inviteOpen : FAMILY_COPY.parent.sharingPaused}</p>

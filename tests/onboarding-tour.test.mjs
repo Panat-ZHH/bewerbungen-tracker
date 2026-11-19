@@ -194,21 +194,16 @@ test("saveTourStep and loadTourStatus never throw", async () => {
 });
 
 // ---------------------------------------------------------------- source checks (UI contract)
-test("tour UI: one flow, skip on every step, replay entry in the settings, German copy without Eszett", async () => {
-  const ui = await readFile(new URL("../components/onboarding/student-onboarding.tsx", import.meta.url), "utf8");
-  const progress = await readFile(new URL("../components/onboarding/tour-progress.tsx", import.meta.url), "utf8");
+test("old wizard removed (SPEC-FLOW §6.7): /onboarding redirects, «Tour wiederholen» for every role in the settings", async () => {
+  const page = await readFile(new URL("../app/onboarding/page.tsx", import.meta.url), "utf8");
   const settings = await readFile(new URL("../app/settings/page.tsx", import.meta.url), "utf8");
   const replay = await readFile(new URL("../components/settings/tour-replay.tsx", import.meta.url), "utf8");
-  for (const source of [ui, progress, replay]) assert.doesNotMatch(source, /ß/);
-  assert.match(ui, /"Überspringen"/);
-  assert.equal((ui.match(/\{skipLink\(/g) ?? []).length, 3, "one «Überspringen» link on each of the 3 steps");
-  assert.match(ui, /headingRef\.current\?\.focus\(\)/, "focus moves to the new title");
-  assert.match(ui, /saveFirstApplication/);
-  assert.doesNotMatch(ui, /\/bewerbung-check|KI-Check|Insel|Münzen/, "no KI-Check step, glossary terms Dorf/Punkte");
-  assert.match(ui, /"Fertig"/);
-  assert.match(progress, /role="progressbar"/);
-  assert.match(progress, /motion-safe:transition/);
-  assert.match(settings, /<TourReplaySection \/>/);
-  assert.match(replay, /Einführung nochmals ansehen/);
-  assert.doesNotMatch(ui, /#[0-9a-f]{3,6}\b|rgb\(/i, "tokens only");
+  assert.match(page, /studentWizardRedirect/);
+  assert.doesNotMatch(page, /StudentOnboarding/);
+  for (const gone of ["student-onboarding.tsx", "tour-progress.tsx"])
+    await assert.rejects(readFile(new URL(`../components/onboarding/${gone}`, import.meta.url)), `${gone} deleted`);
+  assert.match(settings, /^\s*<TourReplaySection \/>/m, "no student-only gate");
+  assert.match(replay, /Tour wiederholen/);
+  assert.match(replay, /replayHref/);
+  assert.doesNotMatch(replay, /ß/);
 });

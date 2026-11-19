@@ -10,6 +10,9 @@ export const TAGLINE = "Den Bewerbungsprozess sichtbar, planbar und motivierend 
 export const BRAND_TAGLINE = `WendApply · ${TAGLINE}`;
 export const POSITIONING = "WendApply hilft Sekundarschulen, den Bewerbungsprozess ihrer Schülerinnen und Schüler übersichtlich zu organisieren und durch Gamification die Eigeninitiative zu fördern.";
 
+/** Signup/login entry points of the public site (own tiny module so the client-side mobile menu does not pull in the plans). */
+export { SIGNUP_HREF, LOGIN_HREF, SIGNUP_LABEL, LOGIN_LABEL, withNext } from "./auth-links.ts";
+
 /** The one contact address of the public site (Kontakt, Hilfe, demos, offers, pilot). public-shell.tsx re-exports it. */
 export const CONTACT_EMAIL = "info.wendico@gmail.com";
 

@@ -7,6 +7,7 @@ import { choiceToAccount, decodePendingSignup, encodePendingSignup, FAMILY_PATH,
 import { syncPendingAccountType } from "@/lib/family";
 import { loadMyAccess } from "@/lib/access/client";
 import { accessLanding, isEnforced, isParentAccount, isSchoolAdmin, LICENCE_PATH } from "@/lib/access/gate";
+import { funnelNextPath } from "@/lib/funnel/next";
 
 /** Pure routing rules (unit tested in tests/role.test.mjs). */
 export const TEACHER_HOME = "/teacher";
@@ -14,6 +15,10 @@ export const STUDENT_HOME = "/dashboard";
 export const ROLE_PICKER_PATH = "/auth/role";
 export const ONBOARDING_PATH = "/teacher/onboarding";
 export const STUDENT_ONBOARDING_PATH = "/onboarding";
+/** Sign-up funnel (onb-funnel). `nach=google` = authenticated completion mode for accounts without answers (SPEC-FLOW D4). */
+export const FUNNEL_PATH = "/start";
+/** Accounts younger than this without funnel/onboarding are "new" (same window as funnel_apply's apply-once rule). */
+export const FUNNEL_NEW_ACCOUNT_MS = 14 * 24 * 3600 * 1000;
 
 /** Routes that only make sense for students. Teachers are sent to /teacher. */
 const STUDENT_ONLY = ["/dashboard", "/applications", "/map", "/cvs", "/search", "/analytics", "/friends", "/bewerbung-check", "/onboarding"];
@@ -77,8 +82,56 @@ export function wrongRoleNotice(kind: "student" | "parent" | "teacher", pathname
   return null;
 }
 
-/** `?next=` aware path to the role picker. */
+/** `?next=` aware path to the role picker (retired: /auth/role redirects to funnelGoogleHref). */
 export function rolePickerHref(next?: string | null) { const safe = safeNextPath(next); return safe && safe !== "/" ? `${ROLE_PICKER_PATH}?next=${encodeURIComponent(safe)}` : ROLE_PICKER_PATH; }
+/** The funnel in authenticated mode for a signed-in account without a role/answers: `/start?schritt=rolle&nach=google[&next=]`. */
+export function funnelGoogleHref(next?: string | null, step: "rolle" | "plan" = "rolle") {
+  const safe = funnelNextPath(next);
+  return `${FUNNEL_PATH}?schritt=${step}&nach=google${safe ? `&next=${encodeURIComponent(safe)}` : ""}`;
+}
+/** Where /auth/role (old role picker) sends people now. */
+export const rolePickerRedirect = (next?: string | null) => funnelGoogleHref(next);
+/** Where /onboarding (old student wizard) sends people now: the dashboard; `?replay=1` (old settings link) starts the tour. */
+export function studentWizardRedirect(search?: string | null): string {
+  const p = new URLSearchParams(String(search ?? "").replace(/^\?/, ""));
+  return p.get("replay") === "1" || p.get("tour") === "1" ? `${STUDENT_HOME}?tour=1` : STUDENT_HOME;
+}
+
+/**
+ * Does a signed-in account with no explicit role still need the funnel? Only NEW accounts (< 14 days) that have neither a
+ * saved funnel nor the old onboarding, no pending sign-up choice (Google from the funnel) and are no school admins.
+ * Older accounts keep the old rule (server-known account type, never asked again).
+ */
+export function needsFunnel(input: {
+  createdAt: string | null | undefined; profile: { funnel_completed_at?: string | null; onboarding_completed_at?: string | null } | null;
+  pendingChoice: boolean; schoolAdmin: boolean; now?: number;
+}): boolean {
+  if (input.pendingChoice || input.schoolAdmin) return false;
+  if (input.profile?.funnel_completed_at || input.profile?.onboarding_completed_at) return false;
+  const created = Date.parse(String(input.createdAt ?? ""));
+  if (!Number.isFinite(created)) return false;
+  return (input.now ?? Date.now()) - created < FUNNEL_NEW_ACCOUNT_MS;
+}
+
+/**
+ * «Tour wiederholen» links point at /dashboard?tour=1 (Hilfe page: role unknown). Maps a `?tour=1` target to the start page
+ * of the user's own tour (parent → /familie?tour=1, teacher → /teacher?tour=1, school admin → /schul-admin?tour=1).
+ * Returns null when `next` does not ask for the tour.
+ */
+export function tourStartTarget(next: string | null | undefined, kind: "student" | "parent" | "teacher" | "school_admin"): string | null {
+  const safe = safeNextPath(next);
+  if (!safe) return null;
+  const q = safe.indexOf("?");
+  if (q < 0 || new URLSearchParams(safe.slice(q + 1).split("#")[0]).get("tour") !== "1") return null;
+  const home = kind === "parent" ? FAMILY_PATH : kind === "teacher" ? TEACHER_HOME : kind === "school_admin" ? "/schul-admin" : STUDENT_HOME;
+  return `${home}?tour=1`;
+}
+/** Keeps `?tour=1` when a role guard redirects (e.g. a teacher opening /dashboard?tour=1 → /teacher?tour=1). */
+export function keepTourParam(redirect: string, search: string | null | undefined): string {
+  const p = new URLSearchParams(String(search ?? "").replace(/^\?/, ""));
+  if (p.get("tour") !== "1" || /[?&]tour=1\b/.test(redirect)) return redirect;
+  return `${redirect}${redirect.includes("?") ? "&" : "?"}tour=1`;
+}
 
 // ---- Supabase-backed helpers (client only) ----
 type Cached = { userId: string; role: UserRole; displayName: string };
@@ -188,14 +241,31 @@ export async function resolveLanding(next?: string | null): Promise<string> {
   const { data } = await supabase.auth.getUser();
   let user = data.user;
   if (!user) return "/login";
+  // Funnel answers waiting (local copy or the sign-up metadata copy): save them first (idempotent, never throws).
+  // The UI pages (/auth/callback, /login) usually did this already with a saving screen; this is the safety net.
+  const { hasPendingFunnel, applyFunnelIfPending } = await import("@/lib/funnel/apply");
+  if (hasPendingFunnel(user)) {
+    const outcome = await applyFunnelIfPending({ user });
+    if (outcome.status === "applied" || outcome.status === "skipped") {
+      clearRoleCache();
+      user = (await supabase.auth.getUser()).data.user ?? user;
+      if (outcome.status === "applied" && outcome.redirect) next = outcome.redirect;
+    }
+  }
   if (needsRoleChoice(user)) {
+    // New account without a role and without answers (e.g. «Weiter mit Google» on /login): the funnel asks, never the old picker.
+    if (await accountNeedsFunnel(user, next)) return funnelGoogleHref(next);
     const applied = await applyKnownRole(user, next).catch(() => null);
-    if (!applied || needsRoleChoice(applied)) return rolePickerHref(next);
+    if (!applied || needsRoleChoice(applied)) return funnelGoogleHref(next);
     user = applied;
   } else clearPendingSignup();
   await syncPendingAccountType(user);
   const { role } = await loadMyRole(user);
   const access = await loadMyAccess({ userId: user.id }).catch(() => null);
+  // «Tour wiederholen» (?tour=1): the start page of the user's own tour.
+  const tourKind = isSchoolAdmin(access) && role !== "teacher" ? "school_admin" : role === "teacher" ? "teacher" : isParentAccount(user.user_metadata, access) ? "parent" : "student";
+  const tourTarget = tourStartTarget(next, tourKind);
+  if (tourTarget && !(isEnforced(access) && accessLanding(access) === LICENCE_PATH)) return tourTarget;
   // School admins: their school area, never the student tour (G6). Licensed or not: /schul-admin shows the licence state.
   if (isSchoolAdmin(access) && role !== "teacher") return "/schul-admin";
   // Teachers without a licence: the licence page instead of an empty teacher area (G9).
@@ -209,7 +279,8 @@ export async function resolveLanding(next?: string | null): Promise<string> {
     const keep = safeNextPath(next) && !guardRedirect("student", safeNextPath(next)!) ? next : null;
     // "Schule" signup: ask for the class code once before the tour (G8).
     if (needsClassCodeStep(user.user_metadata, access) && !(await isInAnyClass())) return classCodeHref(keep);
-    return studentOnboardingHref(keep);
+    // The old /onboarding wizard is retired (SPEC-FLOW D7): the product tour starts on the dashboard.
+    return landingPath(role, keep);
   }
   return landingPath(role, next);
 }
@@ -233,4 +304,16 @@ async function readTourStatus(userId: string): Promise<TourStatus> {
     const { data, error } = await supabase.from("profiles").select("onboarding_tour_completed_at,onboarding_tour_step").eq("user_id", userId).maybeSingle();
     return interpretTourRow(data as { onboarding_tour_completed_at: string | null; onboarding_tour_step: number | null } | null, error);
   } catch { return UNKNOWN_TOUR; }
+}
+
+/** needsFunnel() with the server facts (own profile row, school admin). Read errors → false (keep the old behaviour). */
+async function accountNeedsFunnel(user: User, next?: string | null): Promise<boolean> {
+  try {
+    const pendingChoice = !!knownSignupChoice(readPendingSignup(), safeNextPath(next));
+    if (pendingChoice) return false;
+    const { data, error } = await supabase.from("profiles").select("funnel_completed_at,onboarding_completed_at").eq("user_id", user.id).maybeSingle();
+    if (error) return false;
+    const access = await loadMyAccess({ userId: user.id }).catch(() => null);
+    return needsFunnel({ createdAt: user.created_at, profile: data as { funnel_completed_at?: string | null; onboarding_completed_at?: string | null } | null, pendingChoice, schoolAdmin: isSchoolAdmin(access) });
+  } catch { return false; }
 }

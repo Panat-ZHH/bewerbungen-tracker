@@ -37,6 +37,14 @@ Die folgende Liste beruht auf dem tatsächlichen Datenmodell der App.
 
 - Vorname, Nachname, Kontakt-E-Mail, Telefon, Wohnort, Webseite, LinkedIn-Adresse, Profilbild.
 
+**Einstieg beim Konto erstellen und Ziele** (seit November 2026, **prüfen lassen**)
+
+- Vor dem Konto erstellen stellen wir ein paar kurze Fragen. Schülerinnen und Schüler: Rolle, Vorname, **Geburtsjahr** (nur das Jahr, kein Datum), Schulstufe bzw. Klasse, Kanton und optional Ort, optional Wunschberufe und Lehrbeginn, **Wochenziel** (wie viele Bewerbungen du pro Woche schicken willst) und optional **Hilfe-Wünsche** (z. B. Lebenslauf, Briefe, Schnupperlehre). Eltern: Rolle, Vorname und optional, wobei sie begleiten möchten. Lehrpersonen und Schulen: nur die Rolle.
+- Zweck: Mit dem Geburtsjahr prüfen wir, ob für das Teilen mit Eltern oder der Klasse eine Einwilligung nötig ist (unter 16). Ziele, Wochenziel und Hilfe-Wünsche brauchen wir, damit Suche, Startseite und Tipps zu deinem Plan passen.
+- Bis du auf «Konto erstellen» tippst, bleiben die Antworten nur in deinem Browser (lokaler Speicher, höchstens 14 Tage, mit «Neu beginnen» sofort gelöscht). E-Mail-Adresse und Passwort speichern wir dort nie. Erst mit «Konto erstellen» schicken wir die Antworten zusammen mit deiner E-Mail-Adresse an WendApply und speichern sie in deinem Konto. Bei der Anmeldung mit E-Mail liegt dabei kurz eine Kopie in den Kontodaten beim Authentifizierungsdienst, damit die Bestätigung auch auf einem anderen Gerät klappt. Diese Kopie löschen wir, sobald die Antworten gespeichert sind.
+- **Tour-Status:** ob du die kurze Einführung in der App abgeschlossen oder übersprungen hast (mit Zeitpunkt), damit sie nicht immer wieder startet.
+- Alles davon kannst du in der App ändern. Beim Löschen deines Kontos werden auch diese Angaben gelöscht.
+
 **Bewerbungen (Kern der App)**
 
 - Firma, Stelle, Ort, Link zum Inserat, Quelle, Kategorie, Lohnangaben, Frist, Status (z. B. offen, beworben, Gespräch, Zusage, Absage), Zeitpunkte, Notizen, Stellenbeschrieb, verwendete Unterlage, Passungswert.
@@ -58,7 +66,7 @@ Die folgende Liste beruht auf dem tatsächlichen Datenmodell der App.
 **Technische Daten**
 
 - Beim Aufruf der App verarbeiten Hosting-Anbieter technisch notwendige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browser). Siehe Abschnitt 8.
-- Im Browser speichern wir lokal: die Anmeldesitzung, die Farbeinstellung (hell/dunkel) und zuletzt verwendete Job-Suchen.
+- Im Browser speichern wir lokal: die Anmeldesitzung, die Farbeinstellung (hell/dunkel), zuletzt verwendete Job-Suchen und, bis zum Konto erstellen, deine Antworten aus dem Einstieg (siehe oben).
 
 **Was wir nicht tun:** Wir setzen **keine Werbe- oder Analyse-Tracker** ein (kein Google Analytics, keine Werbenetzwerke), laden **keine externen Schriftarten** und verkaufen keine Daten. Besonders schützenswerte Personendaten (z. B. Gesundheit, Religion) verlangen wir **nicht**; über Freitextfelder und hochgeladene Dateien können Nutzende solche Angaben aber selbst eintragen (**prüfen lassen**, ob ein Hinweis in der App genügt).
 
