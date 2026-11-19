@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Menu, X } from "lucide-react";
 import { ThemeSwitch } from "./theme-switch";
+import { LOGIN_HREF, LOGIN_LABEL, SIGNUP_HREF, SIGNUP_LABEL } from "./auth-links";
 import "./mobile-menu.css";
 
 type NavItem = { href: string; label: string };
@@ -81,7 +82,11 @@ export function PublicMobileMenu({ items }: { items: NavItem[] }) {
               ))}
             </ul>
           </nav>
-          <LoginLink size="lg" full className="mt-4" onClick={() => { navigating.current = true; setOpen(false); }} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Kostenlos testen</LoginLink>
+          {/* Primary first, quiet login second (SPEC-FLOW §5.3). */}
+          <div className="mt-4 grid gap-2">
+            <LoginLink href={SIGNUP_HREF} size="lg" full onClick={() => { navigating.current = true; setOpen(false); }} icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="menu-signup">{SIGNUP_LABEL}</LoginLink>
+            <LoginLink href={LOGIN_HREF} variant="secondary" size="lg" full onClick={() => { navigating.current = true; setOpen(false); }} data-testid="menu-login">{LOGIN_LABEL}</LoginLink>
+          </div>
         </div>
       </dialog>
     </>

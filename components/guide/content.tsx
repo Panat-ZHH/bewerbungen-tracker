@@ -31,12 +31,12 @@ export const guideSteps: GuideStep[] = [
     id: "konto", title: "Konto erstellen",
     intro: "Du brauchst nur eine E-Mail-Adresse oder ein Google-Konto.",
     steps: [
-      <>Öffne <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/login">wendapply.ch/login</a> und wähle {k("Konto erstellen")}, oder melde dich mit {k("Weiter mit Google")} an.</>,
-      <>Mit E-Mail: Adresse und Passwort (mindestens 6 Zeichen) eingeben und danach den Link in der Bestätigungs-E-Mail antippen.</>,
-      <>Unter {k("Ich bin")} wählst du {k("Schüler:in")}. Lehrpersonen wählen {k("Lehrperson")}.</>,
-      <>Eine kurze Einführung führt dich durch {k("Willkommen")}, {k("Profil & Ziele")}, {k("Erste Bewerbung")} und {k("KI-Check")}. Jeder Schritt lässt sich überspringen.</>,
+      <>Tipp auf der Website auf {k("Kostenlos testen")}. Wähle, wer du bist: {k("Schüler:in")}, {k("Elternteil")} oder {k("Lehrperson oder Schule")}.</>,
+      <>Beantworte ein paar kurze Fragen, zum Beispiel Vorname, Wunschberuf und wie viele Bewerbungen du pro Woche schicken willst. Am Schluss siehst du {k("Dein Plan")}.</>,
+      <>Erst auf der letzten Seite erstellst du das Konto: mit E-Mail-Adresse und Passwort ({k("Konto erstellen")}) oder mit Google. Mit E-Mail tippst du danach auf den Link in der Bestätigungs-E-Mail.</>,
+      <>In der App zeigt dir eine kurze Tour die wichtigsten Bereiche. Du kannst sie jederzeit überspringen.</>,
     ],
-    tip: <>Die Einführung kannst du jederzeit in den Einstellungen mit {k("Einführung nochmals ansehen")} wiederholen.</>,
+    tip: <>Schon ein Konto? Dann auf <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/login">{"Anmelden"}</a>. Die Tour kannst du in den Einstellungen wiederholen.</>,
   },
   {
     id: "profil", title: "Profil ausfüllen",
