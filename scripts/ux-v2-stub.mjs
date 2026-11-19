@@ -5,8 +5,8 @@ export const SHOTS = process.env.OUT || `${process.env.HOME}/Projects/bewerbunge
 const SUPA = "http://localhost:54321";
 const iso = (d) => new Date(Date.now() + d * 864e5).toISOString().slice(0, 10);
 
-export function makeUser(role = "student") {
-  const user = { id: role === "teacher" ? "t1" : "u1", aud: "authenticated", role: "authenticated", email: `${role}@beispiel.ch`, user_metadata: { role }, app_metadata: {}, created_at: "2026-01-01T00:00:00Z" };
+export function makeUser(role = "student", createdAt = "2026-01-01T00:00:00Z") {
+  const user = { id: role === "teacher" ? "t1" : "u1", aud: "authenticated", role: "authenticated", email: `${role}@beispiel.ch`, user_metadata: { role }, app_metadata: {}, created_at: createdAt };
   return { user, session: { access_token: "a.b.c", refresh_token: "r", token_type: "bearer", expires_in: 99999, expires_at: Math.floor(Date.now() / 1000) + 99999, user } };
 }
 export function seedApps() {
@@ -21,7 +21,7 @@ const CVS = [{ id: "cv1", user_id: "u1", name: "Technik", type: "developer", sta
 /** opts: role, authed, apps (array), failWrites (status code), failReads, social ('empty'|'full'), calls[] */
 export async function installStub(ctx, opts = {}) {
   const { role = "student", authed = true } = opts;
-  const who = makeUser(role);
+  const who = makeUser(role, opts.createdAt);
   const state = { apps: opts.apps ?? seedApps(), calls: [], profile: null, cvs: structuredClone(CVS) };
   if (authed) await ctx.addInitScript((s) => localStorage.setItem("sb-localhost-auth-token", JSON.stringify(s)), who.session);
   await ctx.route("**/api/job-search", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ results: [{ title: "Informatiker/in EFZ", company: "Swisscom", location: "Zürich", url: "https://example.com/1", source: "jobs.ch" }], nextCursor: null, updates: [], complete: true }) }));
