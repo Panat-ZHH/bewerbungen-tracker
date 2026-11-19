@@ -87,3 +87,11 @@ independent_student + birth year from `raw_user_meta_data` into `profiles`, not 
   blocked > person grant > school (licence or grant) > staff licence_required > subscriptions > grace > trial.
 - **Writes**: service role only (admin API after the platform-admin guard; audit row before every change). Clients cannot read
   `school_access_grants` and cannot write any grant column (tests/free-access-db.test.mjs, with Supabase default privileges).
+
+## Onboarding funnel (20261119100000)
+
+- New `profiles` columns `weekly_goal`, `help_wishes`, `funnel_completed_at`, `funnel_version`; table `product_tour_state`; RPCs
+  `funnel_apply` (ungated), `tour_state_set` (ungated), `weekly_goal_set` (paywall-wrapped), `privacy_release_unconfirmed_trial`
+  (service role). The access decision (`app_access`) is unchanged; the funnel can never grant access, a licence or a school-admin role.
+- `_access_gate_clear_update` and `_profiles_delete_keeps_account` replaced with the same body plus the two new personal columns.
+- Full contract, rollback and sec-release merge note: `docs/onboarding/DATA.md`.
