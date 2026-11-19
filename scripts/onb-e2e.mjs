@@ -324,6 +324,7 @@ def("google-funnel-boundary", async (dev) => {
   check(world.calls("funnel_apply").some((c) => c.body?.p_answers?.role === "student"), "funnel_apply with the local answers after OAuth return");
   check(prof?.weekly_goal === ANSWERS.student.weeklyGoal, "Google user: weekly goal saved");
   check((await ls(page, FUNNEL_KEY)) === null, "local copy deleted");
+  check((await page.evaluate(() => sessionStorage.getItem("wendapply.funnel.oauth"))) === null, "funnel-OAuth marker removed after the save (QA-ONB-2 N1)");
   check(errors.length === 0, "no console/page errors", errors.join(" | "));
   await ctx.close();
 });
@@ -708,6 +709,41 @@ def("shared-device-funnel-not-applied", async (dev) => {
     check(world.profileOf(email)?.first_name === "Ben", `${role}: B's first name unchanged`, String(world.profileOf(email)?.first_name));
     check(!/^\/teacher/.test(new URL(page.url()).pathname), `${role}: B not sent to the teacher area`, page.url());
     check((await page.evaluate(() => localStorage.getItem("wendapply.funnel.v1"))) === null, `${role}: A's local copy cleared`);
+    await ctx.close();
+  }
+}, { devices: ["desktop1280", "pixel7"] });
+
+def("shared-device-login-google-new-account", async (dev) => {
+  // QA-ONB-2 N1: person A (Lena) walks the funnel to «Konto erstellen» and leaves; person B opens /login and takes «Weiter mit
+  // Google» with a Google account that has no WendApply account yet (created now, i.e. after A's funnel started). Only the funnel's
+  // own Google button marks the OAuth as «from the funnel» → B's new account never receives A's answers or role.
+  for (const role of ["student", "staff"]) {
+    const world = createOnbWorld({ base: BASE });
+    const { ctx, page } = await open(world, dev);
+    await page.goto(`${BASE}/start`);
+    await vis(page.getByRole("heading", { name: /Dein Weg/ }), 60000);
+    await walk(page, role, role === "student" ? { ...ANSWERS.student, firstName: "Lena" } : ANSWERS.staff);
+    check(slugOf(page) === "konto", `${role}: A reached «Konto erstellen»`, page.url());
+    check((await ls(page, FUNNEL_KEY)) !== null, `${role}: A's local copy exists`);
+    await page.goto(`${BASE}/login?anmelden=1`);
+    const google = page.getByRole("button", { name: /Google/ }).first();
+    await google.waitFor({ timeout: 60000 }); await page.waitForTimeout(3000);
+    await google.click();
+    check(await waitPath(page, /^\/(start|dashboard|familie|teacher|schullizenz|onboarding)/, 40000), `${role}: B signed in (${page.url()})`);
+    await page.waitForTimeout(2500);
+    const calls = world.calls("funnel_apply");
+    check(calls.every((c) => c?.body?.p_answers == null), `${role}: funnel_apply never carries A's answers`, JSON.stringify(calls.map((c) => c?.body?.p_answers ?? null)));
+    const b = world.current;
+    const prof = b && world.profiles.get(b.id);
+    check(!prof?.first_name || prof.first_name !== "Lena", `${role}: B's new account is not «Lena»`, String(prof?.first_name));
+    check(!prof?.funnel_completed_at, `${role}: no funnel applied to B`);
+    const path = new URL(page.url()).pathname;
+    check(!/^\/(teacher|schullizenz)/.test(path), `${role}: B not sent to the teacher area / licence gate`, page.url());
+    check(/^\/start/.test(path) && /schritt=rolle/.test(page.url()) && /nach=google/.test(page.url()), `${role}: B (new, role-less) → /start?schritt=rolle&nach=google`, page.url());
+    check(!(await page.getByText(/Lena/).first().isVisible().catch(() => false)), `${role}: no «Lena» on B's screen`);
+    const copy = await funnelState(page);
+    check(!copy || (copy.firstName !== "Lena" && copy.role === null), `${role}: B's funnel starts empty (A's copy cleared)`, JSON.stringify(copy)?.slice(0, 160));
+    check((await page.evaluate(() => sessionStorage.getItem("wendapply.funnel.oauth"))) === null, `${role}: no funnel-OAuth marker left`);
     await ctx.close();
   }
 }, { devices: ["desktop1280", "pixel7"] });
