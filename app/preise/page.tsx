@@ -6,7 +6,7 @@ import { faqJsonLd, pricingJsonLd } from "@/lib/seo/site";
 import { PublicShell } from "@/components/public/public-shell";
 import { ButtonLink, Checks, FinalCta, MoreLink, PageHero, SiteSection } from "@/components/public/site-ui";
 import { Faq, type FaqItem } from "@/components/public/faq";
-import { FAMILY, MAIL, PACKAGES, PILOT, SIGNUP_HREF, SOLO, TRIAL_DAYS, chf, perStudentMonth } from "@/components/public/marketing";
+import { FAMILY, LOGIN_HREF, MAIL, PACKAGES, PILOT, SIGNUP_HREF, SOLO, TRIAL_DAYS, chf, perStudentMonth } from "@/components/public/marketing";
 import { FREE_NOTICE, PAYMENT_LABEL, buyHref, familyPlan, intervalPriceText, onlinePaymentEnabled } from "@/components/billing/logic";
 import { PLANS } from "@/lib/billing/plans";
 
@@ -64,7 +64,9 @@ export default function PreisePage() {
               <p className="s-price" data-solo-price><span className="s-price-num">{SOLO.priceMonthText}</span><span className="s-small">pro Monat</span></p>
               <p className="s-small" style={{ margin: "6px 0 0" }}>oder {SOLO.priceYearText} pro Jahr (du sparst {SOLO.savingText})</p>
               <Checks plain items={["Alle Funktionen ohne Einschränkung", "Monatlich oder jährlich", "Kündbar auf Ende der Laufzeit"]} />
-              <div className="s-plan-cta"><ButtonLink href="/login?next=%2Fabo" variant="secondary" full>{online ? "Abo wählen" : "Kostenlos testen"}</ButtonLink></div>
+              <div className="s-plan-cta">{online
+                ? <ButtonLink href={`${LOGIN_HREF}?next=%2Fabo`} variant="secondary" full>Abo wählen</ButtonLink>
+                : <ButtonLink href={`${SIGNUP_HREF}?next=%2Fabo`} variant="secondary" full>Kostenlos testen</ButtonLink>}</div>
             </li>
             <li className="s-plan s-plan-featured" aria-labelledby="pkg-family">
               <span className="s-badge">Für Eltern</span>

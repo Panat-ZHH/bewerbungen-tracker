@@ -7,7 +7,7 @@ import { Download } from "lucide-react";
 import { PublicShell, Section } from "@/components/public/public-shell";
 import { Faq } from "@/components/public/faq";
 import { BrowserShot, ButtonLink, FinalCta } from "@/components/public/site-ui";
-import { SIGNUP_HREF } from "@/components/public/marketing";
+import { LOGIN_HREF, SIGNUP_HREF } from "@/components/public/marketing";
 import { Toc } from "@/components/guide/toc";
 import { InstallSection } from "@/components/guide/install-section";
 import { GuideShot } from "@/components/guide/guide-shot";
@@ -27,10 +27,10 @@ export default function AnleitungPage() {
           <h1 id="hero-h" className="s-h1 s-h1-sm">So funktioniert WendApply.</h1>
           <p className="s-lead">Von der ersten Suche bis zur Zusage: Hier siehst du Schritt für Schritt, was WendApply kann und wie du es als App auf dein Handy oder deinen Computer holst.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <ButtonLink href="/login" size="lg">App öffnen</ButtonLink>
-            <ButtonLink href="#installieren" size="lg" variant="secondary" icon={<Download size={18} strokeWidth={2.4} aria-hidden />}>Als App installieren</ButtonLink>
+            <ButtonLink href={SIGNUP_HREF} size="lg">Kostenlos testen</ButtonLink>
+            <ButtonLink href={LOGIN_HREF} size="lg" variant="secondary">Anmelden</ButtonLink>
           </div>
-          <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig.</p>
+          <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig: <Link className="s-link" href="#installieren"><Download size={14} strokeWidth={2.4} aria-hidden className="mr-1 inline" />Als App installieren</Link></p>
         </div>
         <div className="s-desk-only s-desk-block">
           <BrowserShot name="04-dashboard" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" />

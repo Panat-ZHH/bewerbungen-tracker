@@ -119,7 +119,7 @@ export const SOLO = {
 /** Length of the free trial week for new pupil and parent accounts (docs/access/SPEC.md §1). */
 export const TRIAL_DAYS = 7;
 
-/** Primary CTA of the public site ("Kostenlos testen"). The login page opens the sign-up form for mode=signup (falls back to the
- * normal login form while that parameter is not supported yet). Secondary CTA "Anmelden" goes to LOGIN_HREF. */
-export const SIGNUP_HREF = "/login?mode=signup";
+/** Primary CTA of the public site ("Kostenlos testen"): the sign-up funnel /start (onboarding branch onb-funnel; /login?mode=signup
+ * redirects there for old links). Secondary CTA "Anmelden" goes to LOGIN_HREF (plain login). Never one combined button. */
+export const SIGNUP_HREF = "/start";
 export const LOGIN_HREF = "/login";

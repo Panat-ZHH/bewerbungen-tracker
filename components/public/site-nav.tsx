@@ -37,7 +37,7 @@ export function SiteNav({ items, loginHref, signupHref, logo, themeSwitch }: { i
         </nav>
         <div className="s-header-cta">
           {themeSwitch}
-          <Link href={loginHref} className="s-btn s-btn-ghost">Anmelden</Link>
+          <Link href={loginHref} className="s-btn s-btn-secondary">Anmelden</Link>
           <Link href={signupHref} className="s-btn s-btn-primary">Kostenlos testen</Link>
         </div>
         <Link href={loginHref} className="s-header-login s-header-login-m">Anmelden</Link>

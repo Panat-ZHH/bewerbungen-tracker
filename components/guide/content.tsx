@@ -31,12 +31,11 @@ export const guideSteps: GuideStep[] = [
     id: "konto", title: "Konto erstellen",
     intro: "Du brauchst nur eine E-Mail-Adresse oder ein Google-Konto.",
     steps: [
-      <>Öffne <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/login">wendapply.ch/login</a> und wähle {k("Konto erstellen")}, oder melde dich mit {k("Weiter mit Google")} an.</>,
-      <>Mit E-Mail: Adresse und Passwort (mindestens 6 Zeichen) eingeben und danach den Link in der Bestätigungs-E-Mail antippen.</>,
-      <>Unter {k("Ich bin")} wählst du {k("Schüler:in")}. Lehrpersonen wählen {k("Lehrperson")}.</>,
-      <>Eine kurze Einführung führt dich durch {k("Willkommen")}, {k("Profil & Ziele")}, {k("Erste Bewerbung")} und {k("KI-Check")}. Jeder Schritt lässt sich überspringen.</>,
+      <>Öffne {k("Mein Profil")}: am Computer oben rechts über dein Profilbild, auf dem Handy über {k("Mehr")}.</>,
+      <>Trage Vorname, Wohnort, Schule, {k("Klasse / Schulstufe")} und deinen Wunschberuf ein.</>,
+      <>Unter {k("Profilbild")} kannst du ein Bild hochladen oder direkt ein {k("Foto aufnehmen")} (PNG, JPEG oder WebP, max. 5 MB). Ohne Bild zeigt WendApply deine Initialen.</>,
+      <>Speichere mit {k("Änderungen speichern")}.</>,
     ],
-    tip: <>Die Einführung kannst du jederzeit in den Einstellungen mit {k("Einführung nochmals ansehen")} wiederholen.</>,
   },
   {
     id: "profil", title: "Profil ausfüllen",
