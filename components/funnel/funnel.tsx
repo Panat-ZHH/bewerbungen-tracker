@@ -86,8 +86,8 @@ export function Funnel() {
   const [sessionSave, setSessionSave] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const visited = useRef<StepSlug[]>([]);
-  const lastStep = useRef<StepSlug | null>(null);
-  const direction = useRef<"forward" | "back">("forward");
+  // Step shown last + slide direction, adjusted during render (React «storing information from previous renders»).
+  const [shown, setShown] = useState<{ step: StepSlug | null; dir: "forward" | "back" }>({ step: null, dir: "forward" });
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const familyInvite = useMemo(() => presetFromNext(state.next).familyInvite, [state.next]);
   const finePointer = useMemo(() => typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches, []);
@@ -154,32 +154,34 @@ export function Funnel() {
     if (shown !== step) router.replace(stepHref(step, { google, next: urlNext }), { scroll: false });
   }, [ready, requested, step, google, urlNext, router]);
 
-  // Step change: remember it, focus the H1, scroll to top.
+  if (ready && shown.step !== step) {
+    const steps = stepsFor(state.role, state.staffAccess, opts);
+    const dir = shown.step && steps.indexOf(step) < steps.indexOf(shown.step) ? "back" : "forward";
+    if (shown.step === "weg") setWegSeen(true);
+    setShown({ step, dir });
+    setErrors({});
+  }
+
+  // Step change: remember it in the visit list, focus the H1, scroll to top (not on the very first screen).
+  const focusedStep = useRef<StepSlug | null>(null);
   useEffect(() => {
-    if (!ready) return;
-    const prev = lastStep.current;
-    if (prev !== step) {
-      const steps = stepsFor(state.role, state.staffAccess, opts);
-      direction.current = prev && steps.indexOf(step) < steps.indexOf(prev) ? "back" : "forward";
-      if (prev === "weg") setWegSeen(true); // eslint-disable-line react-hooks/set-state-in-effect -- remembers that the intro ran
-      lastStep.current = step;
-      if (visited.current[visited.current.length - 1] !== step) visited.current.push(step);
-      setErrors({});
-      if (prev) {
-        headingRef.current?.focus({ preventScroll: true });
-        window.scrollTo({ top: 0 });
-      }
+    if (!ready || focusedStep.current === step) return;
+    const first = focusedStep.current === null;
+    focusedStep.current = step;
+    if (visited.current[visited.current.length - 1] !== step) visited.current.push(step);
+    if (!first) {
+      headingRef.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0 });
     }
-    setState((s) => (s.step === step ? s : { ...s, step }));
-  }, [ready, step, state.role, state.staffAccess, opts]);
+  }, [ready, step]);
 
   // Persist (debounced 300 ms; never e-mail/password – the state type has no such field).
   useEffect(() => {
     if (!ready) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
-    writeTimer.current = setTimeout(() => { if (state.role || state.step !== "weg") saveFunnelState(state); }, 300);
+    writeTimer.current = setTimeout(() => { if (state.role || step !== "weg") saveFunnelState({ ...state, step }); }, 300);
     return () => { if (writeTimer.current) clearTimeout(writeTimer.current); };
-  }, [ready, state]);
+  }, [ready, state, step]);
 
   const update = useCallback((patch: Partial<FunnelStateV1>) => {
     setState((s) => ({ ...s, ...patch, updatedAt: Date.now() }));
@@ -205,7 +207,7 @@ export function Funnel() {
       });
       return;
     }
-    saveFunnelState({ ...s, updatedAt: Date.now() });
+    saveFunnelState({ ...s, step: from, updatedAt: Date.now() });
     if (returnToPlan && from !== "plan") { setReturnToPlan(false); go("plan"); return; }
     const { next: target } = neighbours(from, s, opts);
     if (target) go(target);
@@ -233,7 +235,7 @@ export function Funnel() {
         <div className="flex min-h-[60dvh] items-center justify-center">
           {saver.phase === "idle" && !sessionSave ? (
             <p role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einen Moment …</p>
-          ) : <SavingView phase={saver.phase === "idle" ? "saving" : saver.phase} errorKind={saver.errorKind} onRetry={saver.save} onSkip={saver.skip} />}
+          ) : <SavingView phase={saver.phase === "idle" ? "saving" : saver.phase} errorKind={saver.errorKind} onRetry={() => saver.save()} onSkip={saver.skip} />}
         </div>
       </Shell>
     );
@@ -272,7 +274,7 @@ export function Funnel() {
   const Screen = SCREENS[step];
   const prev = neighbours(step, state, opts).prev;
   const onBack = prev && !(google && prev === "weg") ? back : null;
-  const animClass = direction.current === "back" ? styles.stepBack : styles.stepForward;
+  const animClass = shown.dir === "back" ? styles.stepBack : styles.stepForward;
   const decor = DECOR[step];
 
   // primary button per step
@@ -309,7 +311,7 @@ export function Funnel() {
           <ActionBar primary={primary} onPrimary={onPrimary} onBack={onBack}
             skip={isSkippable(step) ? { onSkip: () => { update(step === "dabei" ? { family: "spaeter" } : { help: [] }); const t = neighbours(step, state, opts).next; if (t) go(returnToPlan ? "plan" : t); } } : null}>
             {google && step === (opts.roleLocked ? "name" : "rolle") && opts.roleLocked && (
-              <p className="mt-1 text-center lg:text-left"><button type="button" data-testid="funnel-other-device-skip" onClick={() => { saveFunnelState({ ...state, updatedAt: Date.now() }); void saver.save(); }} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline decoration-[var(--line)] decoration-2 underline-offset-4">Überspringen</button></p>
+              <p className="mt-1 text-center lg:text-left"><button type="button" data-testid="funnel-other-device-skip" onClick={() => { void saver.save({ skipped: true, role: state.role }); }} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline decoration-[var(--line)] decoration-2 underline-offset-4">Überspringen</button></p>
             )}
           </ActionBar>
         )}

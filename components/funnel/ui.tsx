@@ -113,7 +113,7 @@ export function ChoiceTiles<T extends string>({ legend, options, value, onChange
           const on = isOn(v);
           return (
             <label key={v} data-value={v} data-selected={on || undefined}
-              onPointerUp={(e) => { if (onPointerPick && e.pointerType !== "" && !multi) onPointerPick(v); }}
+              onPointerUp={(e) => { if (onPointerPick && !multi && e.button === 0) onPointerPick(v); }}
               className={cn(
                 "relative flex cursor-pointer items-center gap-3 rounded-[var(--radius-lg)] border-[length:var(--border-w)] px-4 py-3 focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-[var(--focus-ring)] active:translate-y-px",
                 styles.tile, tall ? "min-h-[88px]" : "min-h-16",
