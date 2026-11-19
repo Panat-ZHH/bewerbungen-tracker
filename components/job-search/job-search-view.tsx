@@ -342,7 +342,7 @@ export function JobSearchView() {
         </section>
       </div>
 
-      <Modal open={sheetOpen} onClose={() => setSheetOpen(false)} title="Filter" footer={<div className="flex w-full gap-2"><Button type="button" variant="ghost" onClick={clearFilters}>Zurücksetzen</Button><Button type="button" className="flex-1" onClick={() => setSheetOpen(false)}>Fertig</Button></div>}>
+      <Modal open={sheetOpen} onClose={() => setSheetOpen(false)} title="Filter" footer={<div className="flex w-full flex-wrap gap-2"><Button type="button" variant="ghost" className="min-w-0 flex-1 basis-[8rem]" onClick={clearFilters}>Zurücksetzen</Button><Button type="button" className="min-w-0 flex-1 basis-[8rem]" onClick={() => setSheetOpen(false)}>Fertig</Button></div>}>
         {sheetOpen && panel("m")}
       </Modal>
     </WorkspaceShell>
