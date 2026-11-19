@@ -1,121 +1,104 @@
 import Link from "next/link";
-import { LoginLink } from "./login-link";
 import type { ReactNode } from "react";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { ThemeSwitch } from "./theme-switch";
-import { PublicMobileMenu } from "./mobile-menu";
-import "./public.css";
-import { BRAND_TAGLINE, CONTACT_EMAIL, LOGIN_HREF, LOGIN_LABEL, SIGNUP_HREF, SIGNUP_LABEL } from "./marketing";
+import { SiteNav } from "./site-nav";
+import { SiteSection } from "./site-ui";
+import { BRAND_TAGLINE, CONTACT_EMAIL, LOGIN_HREF, SIGNUP_HREF } from "./marketing";
+import "./site.css";
 
 export { CONTACT_EMAIL };
 
+/** Header navigation (max. 5 items, copy deck §1.1). Mobile: same items in the menu panel. */
 const nav = [
+  { href: "/funktionen", label: "Funktionen" },
+  { href: "/familien", label: "Für Eltern" },
   { href: "/schulen", label: "Für Schulen" },
-  { href: "/familien", label: "Familien" },
   { href: "/preise", label: "Preise" },
-  { href: "/pilot", label: "Pilot" },
-  { href: "/anleitung", label: "Anleitung" },
-  { href: "/hilfe", label: "Hilfe" },
-  { href: "/kontakt", label: "Kontakt" },
+  { href: "/faq", label: "FAQ" },
 ];
 
-const product = [
-  { href: "/schulen", label: "Für Schulen" },
-  { href: "/familien", label: "Für Familien" },
-  { href: "/preise", label: "Preise" },
-  { href: "/pilot", label: "30-Tage-Pilot" },
-  { href: "/anleitung", label: "Anleitung" },
-  { href: "/hilfe", label: "Hilfe" },
-  { href: "/kontakt", label: "Kontakt" },
+/** Footer sitemap (copy deck §1.2). */
+const footer: { title: string; links: { href: string; label: string }[] }[] = [
+  { title: "WendApply", links: [
+    { href: "/funktionen", label: "Funktionen" },
+    { href: "/preise", label: "Preise" },
+    { href: "/anleitung", label: "Anleitung" },
+    { href: "/faq", label: "FAQ" },
+    { href: "/hilfe", label: "Hilfe" },
+  ] },
+  { title: "Für wen", links: [
+    { href: "/funktionen#stellen", label: "Schülerinnen und Schüler" },
+    { href: "/familien", label: "Eltern" },
+    { href: "/schulen", label: "Schulen und Lehrpersonen" },
+    { href: "/pilot", label: "30-Tage-Pilot" },
+  ] },
+  { title: "Über WendApply", links: [
+    { href: "/ueber-uns", label: "Über uns" },
+    { href: "/kontakt", label: "Kontakt" },
+    { href: "/impressum", label: "Impressum" },
+  ] },
+  { title: "Datenschutz", links: [
+    { href: "/datenschutz-uebersicht", label: "Datenschutz im Überblick" },
+    { href: "/datenschutz", label: "Datenschutzerklärung" },
+    { href: "/datenschutz-jugend", label: "Datenschutz für Jugendliche" },
+    { href: "/datenschutz-schulen", label: "Datenschutz für Schulen" },
+    { href: "/hosting", label: "Hosting" },
+    { href: "/avv", label: "AVV-Vorlage" },
+    { href: "/loeschkonzept", label: "Löschkonzept" },
+  ] },
 ];
 
-const legal = [
-  { href: "/impressum", label: "Impressum" },
-  { href: "/datenschutz-uebersicht", label: "Datenschutz im Überblick" },
-  { href: "/datenschutz", label: "Datenschutzerklärung" },
-  { href: "/datenschutz-schulen", label: "Datenschutz für Schulen" },
-  { href: "/datenschutz-jugend", label: "Datenschutz für Jugendliche" },
-  { href: "/hosting", label: "Hosting" },
-  { href: "/avv", label: "AVV-Vorlage" },
-  { href: "/loeschkonzept", label: "Löschkonzept" },
-];
-
-/** Page frame for all public (no-login) pages: skip link, header, main, footer. Light and dark via the app's theme tokens. */
+/** Page frame for all public (no-login) pages: skip link, header, main, footer. Calm website look scoped under .site (site.css). */
 export function PublicShell({ children }: { children: ReactNode }) {
   return (
-    <div className="public-site workspace-bg flex min-h-[100dvh] flex-col text-[var(--ink)]">
-      <a href="#inhalt" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-full focus:bg-[var(--surface)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:border-[length:var(--border-w)] focus:border-[var(--outline)] focus:shadow-[var(--shadow-md)]">Zum Inhalt springen</a>
-      <header className="app-bar app-bar-top public-header sticky top-0 z-40">
-        <div className="public-header-row mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 py-2.5 max-[359px]:gap-x-1.5">
-          <Link href="/" className="mr-auto flex min-h-11 min-w-0 items-center gap-2.5 rounded-full max-[359px]:gap-2" aria-label="WendApply, zur Startseite">
-            <BrandMark size={34} priority />
-            {/* Phones < 480 px: the wordmark gives way so logo · Anmelden · Kostenlos testen · Menü fit one row (SPEC-FLOW §5.3). */}
-            <span className="font-display text-xl font-extrabold tracking-[-.03em] max-[479px]:sr-only">WendApply</span>
-          </Link>
-          <nav aria-label="Hauptnavigation" className="hidden items-center gap-0.5 lg:flex">
-            {nav.map((n) => <Link key={n.href} href={n.href} className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
-          </nav>
-          <div className="hidden lg:block"><ThemeSwitch /></div>
-          {/* Two separate entries (SPEC-FLOW §5): quiet «Anmelden» for existing users, primary «Kostenlos testen» starts the funnel.
-              Desktop: outline button. Phone/tablet: text link (hidden below 360 px, where it stays in the menu sheet). */}
-          <LoginLink href={LOGIN_HREF} variant="secondary" size="sm" className="hidden min-h-11 lg:inline-flex" data-testid="header-login">{LOGIN_LABEL}</LoginLink>
-          <LoginLink href={LOGIN_HREF} variant="ghost" size="sm" className="min-h-11 px-2.5 text-sm max-[359px]:hidden lg:hidden" data-testid="header-login-mobile">{LOGIN_LABEL}</LoginLink>
-          <LoginLink href={SIGNUP_HREF} size="sm" className="min-h-11 max-[359px]:px-3" data-testid="header-signup">{SIGNUP_LABEL}</LoginLink>
-          <PublicMobileMenu items={nav} />
-        </div>
+    <div className="site">
+      <a href="#inhalt" className="s-skip">Zum Inhalt springen</a>
+      <header className="s-header">
+        <SiteNav items={nav} loginHref={LOGIN_HREF} signupHref={SIGNUP_HREF}
+          logo={<Link href="/" className="s-logo" aria-label="WendApply, zur Startseite"><BrandMark size={32} priority /><span>WendApply</span></Link>}
+          themeSwitch={<ThemeSwitch />} />
       </header>
-      <main id="inhalt" className="flex-1">{children}</main>
-      <footer className="app-bar app-bar-bottom">
-        <div className="public-footer-grid mx-auto grid w-full max-w-6xl gap-8 py-10 sm:grid-cols-[1.2fr_1fr_1.4fr]">
-          <div>
-            <div className="flex items-center gap-2.5 font-display text-lg font-extrabold tracking-[-.03em]"><BrandMark size={30} /> WendApply</div>
-            <p className="mt-3 max-w-xs text-sm font-semibold">{BRAND_TAGLINE}</p>
-            <p className="text-small mt-2 max-w-xs text-muted">Entwickelt in der Schweiz von Wendico.</p>
-            <nav aria-label="Konto" className="mt-3">
-              <ul className="flex flex-wrap gap-x-5 text-sm font-semibold">
-                <li><LoginLink href={LOGIN_HREF} variant="ghost" size="md" className="!px-0 !text-sm hover:!bg-transparent">{LOGIN_LABEL}</LoginLink></li>
-                <li><LoginLink href={SIGNUP_HREF} variant="ghost" size="md" className="!px-0 !text-sm hover:!bg-transparent">{SIGNUP_LABEL}</LoginLink></li>
-              </ul>
-            </nav>
+      <main id="inhalt" tabIndex={-1}>{children}</main>
+      <footer className="s-footer">
+        <div className="s-wrap">
+          <div className="s-footer-grid">
+            <div className="s-footer-brand">
+              <Link href="/" className="s-logo" aria-label="WendApply, zur Startseite"><BrandMark size={28} /><span>WendApply</span></Link>
+              <p className="s-fine" style={{ marginTop: 12, maxWidth: "30ch" }}>{BRAND_TAGLINE}</p>
+            </div>
+            {footer.map((col) => (
+              <nav key={col.title} aria-labelledby={`f-${col.title}`}>
+                <h2 id={`f-${col.title}`}>{col.title}</h2>
+                <ul>{col.links.map((l) => <li key={l.href}><Link href={l.href}>{l.label}</Link></li>)}</ul>
+              </nav>
+            ))}
           </div>
-          <nav aria-label="Produkt">
-            <ul className="public-footer-links grid gap-x-6 text-sm sm:grid-cols-1">
-              {product.map((l) => <li key={l.href}><Link href={l.href} className="inline-flex min-h-11 min-w-11 items-center text-[var(--muted)] underline-offset-4 hover:text-[var(--ink)] hover:underline">{l.label}</Link></li>)}
-            </ul>
-          </nav>
-          <nav aria-label="Rechtliches und Datenschutz">
-            <ul className="public-footer-links grid gap-x-6 text-sm">
-              {legal.map((l) => <li key={l.href}><Link href={l.href} className="inline-flex min-h-11 min-w-11 items-center text-[var(--muted)] underline-offset-4 hover:text-[var(--ink)] hover:underline">{l.label}</Link></li>)}
-            </ul>
-          </nav>
+          <div className="s-footer-base">
+            <p style={{ margin: 0 }}>© {new Date().getFullYear()} WendApply ist ein Angebot der Wendico KLG, Gütighausen. Keine Werbung. Keine Analyse-Tracker.</p>
+            <ThemeSwitch />
+          </div>
         </div>
-        <div className="public-footer-base border-t-2 border-dashed border-[var(--line)] pt-4 text-center text-xs text-muted">© {new Date().getFullYear()} Wendico · WendApply</div>
       </footer>
     </div>
   );
 }
 
-/** Shared section wrapper. */
+/** Shared section wrapper (kept for /anleitung and /datenschutz-uebersicht). */
 export function Section({ id, title, intro, children, tint }: { id?: string; title: ReactNode; intro?: string; children: ReactNode; tint?: boolean }) {
-  return (
-    <section id={id} aria-labelledby={id ? `${id}-h` : undefined} className={tint ? "border-y-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface-2)]" : ""}>
-      <div className="mx-auto w-full max-w-6xl px-4 py-14 sm:px-6 sm:py-20">
-        <h2 id={id ? `${id}-h` : undefined} className="text-title max-w-3xl">{title}</h2>
-        {intro && <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">{intro}</p>}
-        <div className="mt-8 sm:mt-10">{children}</div>
-      </div>
-    </section>
-  );
+  return <SiteSection id={id} title={title} intro={intro} tint={tint}>{children}</SiteSection>;
 }
 
-/** Simple long-text page (Impressum, Kontakt, …). */
+/** Simple long-text page (Impressum, Hilfe, …): one h1, optional intro, calm prose. */
 export function TextPage({ title, intro, children }: { title: ReactNode; intro?: string; children: ReactNode }) {
   return (
     <PublicShell>
-      <article className="mx-auto w-full max-w-3xl px-4 py-12 sm:px-6 sm:py-16">
-        <h1 className="text-display">{title}</h1>
-        {intro && <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">{intro}</p>}
-        <div className="mt-8 space-y-8 text-[15px] leading-relaxed">{children}</div>
+      <article className="s-hero">
+        <div className="s-wrap s-narrow">
+          <h1 className="s-h1 s-h1-sm">{title}</h1>
+          {intro && <p className="s-lead">{intro}</p>}
+          <div className="s-prose" style={{ marginTop: 48 }}>{children}</div>
+        </div>
       </article>
     </PublicShell>
   );

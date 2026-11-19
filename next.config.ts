@@ -4,6 +4,18 @@ import { securityHeaders } from "./lib/security-headers";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Website aliases (copy deck §1.3): the canonical URLs stay /familien and /schulen; these names only forward permanently.
+  async redirects() {
+    return [
+      { source: "/fuer-eltern", destination: "/familien", permanent: true },
+      { source: "/eltern", destination: "/familien", permanent: true },
+      { source: "/fuer-schulen", destination: "/schulen", permanent: true },
+      { source: "/lehrpersonen", destination: "/schulen", permanent: true },
+      { source: "/funktion", destination: "/funktionen", permanent: true },
+      { source: "/ueber", destination: "/ueber-uns", permanent: true },
+      { source: "/haeufige-fragen", destination: "/faq", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

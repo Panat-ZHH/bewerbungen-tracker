@@ -2,7 +2,7 @@
 
 import { Moon, Sun } from "lucide-react";
 
-/** Compact light/dark switch for the public header. Same storage key as the app's ThemeToggle. */
+/** Compact light/dark switch for the public header and footer. Same storage key as the app's ThemeToggle. */
 export function ThemeSwitch() {
   function toggle() {
     const root = document.documentElement;
@@ -13,9 +13,9 @@ export function ThemeSwitch() {
     window.setTimeout(() => root.classList.remove("theme-switching"), 300);
   }
   return (
-    <button type="button" onClick={toggle} aria-label="Zwischen hellem und dunklem Design wechseln" className="inline-flex h-11 w-11 items-center justify-center rounded-full text-[var(--ink)] transition-colors hover:bg-[var(--hover)]">
-      <Moon size={19} strokeWidth={2.2} aria-hidden className="[[data-theme=dark]_&]:hidden" />
-      <Sun size={19} strokeWidth={2.2} aria-hidden className="hidden [[data-theme=dark]_&]:block" />
+    <button type="button" onClick={toggle} aria-label="Zwischen hellem und dunklem Design wechseln" className="s-theme">
+      <Moon size={18} strokeWidth={2} aria-hidden className="[[data-theme=dark]_&]:hidden" />
+      <Sun size={18} strokeWidth={2} aria-hidden className="hidden [[data-theme=dark]_&]:block" />
     </button>
   );
 }

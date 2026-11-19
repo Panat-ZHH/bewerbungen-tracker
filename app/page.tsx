@@ -1,135 +1,142 @@
 import type { Metadata } from "next";
-import { LoginLink } from "@/components/public/login-link";
+import Link from "next/link";
 import { publicMetadata } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { homeJsonLd } from "@/lib/seo/site";
-import Link from "next/link";
-import { ArrowRight, Check, Eye, Lock, MapPin, ShieldCheck, Trash2, UserRound } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
-import { PublicShell, Section } from "@/components/public/public-shell";
-import { Screenshot } from "@/components/public/screenshot";
+import { PublicShell } from "@/components/public/public-shell";
 import { AuthRedirect } from "@/components/public/auth-redirect";
-import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleSparkle, DoodleTrail } from "@/components/ui/doodles";
-import { BRAND_TAGLINE, LOGIN_HREF, LOGIN_LABEL, PILOT, POSITIONING, SIGNUP_HREF, SIGNUP_LABEL } from "@/components/public/marketing";
+import { BrowserShot, ButtonLink, Checks, FinalCta, MoreLink, PhoneShot, Shot, SiteSection, Stage, Tiles } from "@/components/public/site-ui";
+import { Faq } from "@/components/public/faq";
+import { pickFaq } from "@/components/public/faq-content";
+import { LOGIN_HREF, PILOT, SIGNUP_HREF, TRIAL_DAYS } from "@/components/public/marketing";
 
 export const metadata: Metadata = publicMetadata({ canonical: "/" });
 
-const steps = [
-  { n: "1", title: "Stellen finden und merken", text: "Suche Lehrstellen und Schnupperlehren, entdecke Betriebe auf der Karte und merke dir, was dich interessiert." },
-  { n: "2", title: "Bewerbungen im Griff", text: "Trage deine Bewerbungen ein und halte Status, Fristen und Notizen an einem Ort fest. So geht nichts unter." },
-  { n: "3", title: "Gemeinsam dranbleiben", text: "Tritt der Klasse bei und entscheide selbst, was deine Lehrperson sieht. So bekommst du Hilfe, wenn du sie brauchst." },
+/** Three product rows (text + real screenshot), replacing the old three-column step grid. */
+const rows = [
+  { id: "finden", title: "Stellen finden und merken", text: "Such Lehrstellen und Schnupperlehren von Yousty, jobs.ch und jobup.ch auf einmal. Was dich interessiert, merkst du mit einem Tipp.",
+    list: ["Mehrere Stellenbörsen in einer Suche", "Lehrbetriebe auf der Karte finden"],
+    shot: "m-search", alt: "Lehrstellensuche in WendApply: Suche nach Informatik-Lehrstellen mit Filtern für Ort und Umkreis und Treffern aus mehreren Stellenbörsen" },
+  { id: "bewerbungen", title: "Bewerbungen im Griff", text: "Jede Bewerbung hat ihren Status, ihre Frist und deine Notizen. WendApply erinnert dich, bevor eine Frist abläuft.",
+    list: ["Status, Frist und Notizen für jede Bewerbung", "Erinnerungen per E-Mail oder als Benachrichtigung"],
+    shot: "m-applications", alt: "Bewerbungsliste in WendApply mit Filtern und Bewerbungen bei erfundenen Lehrbetrieben, jede mit ihrem Status" },
+  { id: "dranbleiben", title: "Dranbleiben", text: "Jede Bewerbung baut ein Haus in deinem Dorf. Und wenn du willst, sehen deine Lehrperson oder deine Eltern deinen Fortschritt.",
+    list: ["Dein Weg zur Lehrstelle auf einer Seite", "Du entscheidest, wer was sieht"],
+    shot: "m-dashboard", alt: "Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen" },
+];
+
+const audiences = [
+  { title: "Für dich", text: "Alle Bewerbungen, Fristen und Dokumente an einem Ort. Du entscheidest, wer was sieht.", href: "/funktionen", link: "Funktionen" },
+  { title: "Für Eltern", text: "Sehen, wo dein Kind steht, ohne täglich nachzufragen. Dein Kind entscheidet, was es teilt.", href: "/familien", link: "Für Eltern" },
+  { title: "Für Lehrpersonen", text: "Den Fortschritt der Klasse auf einen Blick. Ohne zusätzliche Listen.", href: "/schulen#lehrpersonen", link: "Für Lehrpersonen" },
+  { title: "Für Schulen", text: `Eine Schullizenz für die ganze Schule. Für Schülerinnen und Schüler gratis. Testen im ${PILOT.days}-Tage-Pilot.`, href: "/schulen", link: "Für Schulen" },
 ];
 
 const trust = [
-  { icon: Eye, title: "Du bestimmst, was geteilt wird", text: "Beim Klassenbeitritt siehst du mit Haken und Kreuz genau, was deine Lehrperson sieht und was nicht." },
-  { icon: Lock, title: "Nur mit Anmeldung", text: "Deine Bewerbungen sind privat. Ohne deine Freigabe sieht sie niemand." },
-  { icon: Trash2, title: "Konto jederzeit löschen", text: "In den Einstellungen löschst du dein Konto samt allen Daten selbst, ohne Umweg." },
-  { icon: ShieldCheck, title: "Entwickelt in der Schweiz", text: "WendApply stammt von der Wendico KLG aus Gütighausen ZH. Details stehen in unserer Datenschutzerklärung." },
+  { title: "Du bestimmst, was geteilt wird", text: "Vor dem Klassenbeitritt siehst du genau, was deine Lehrperson sieht. Notizen und Dokumente bleiben immer privat." },
+  { title: "Datenbank in der EU", text: "Deine Daten liegen in einem Rechenzentrum in Irland. Welche Dienstleister beteiligt sind, steht auf der Seite Hosting." },
+  { title: "Keine Werbung, kein Tracking", text: "WendApply zeigt keine Werbung, nutzt keine Analyse-Tracker und verkauft keine Daten." },
+  { title: "Jederzeit löschen", text: "Du kannst deine Daten exportieren und dein Konto in den Einstellungen selbst löschen." },
 ];
 
-const stepTone = ["text-[var(--brand)]", "text-[var(--coral)]", "text-[var(--success-line)]"];
-const link = "font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]";
+const faq = pickFaq(["Was kostet WendApply?", "Was sieht meine Lehrperson?", "Was passiert nach der Gratis-Testwoche?"]);
 
 export default function LandingPage() {
   return (
     <PublicShell>
       <JsonLd data={homeJsonLd()} />
       <AuthRedirect />
-      <section aria-labelledby="hero-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-16 pt-10 sm:px-6 sm:pb-24 sm:pt-16 lg:grid-cols-[1.2fr_.8fr] lg:gap-10">
-        <div className="animate-lift">
-          <p className="mb-5 max-w-xl text-sm font-semibold uppercase tracking-[.08em] text-muted">{BRAND_TAGLINE}</p>
-          <h1 id="hero-h" className="text-hero">Von der ersten Bewerbung bis zur <span className="marker">Zusage</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Stellen finden, Bewerbungen und Fristen verwalten und bei Bedarf mit deiner Lehrperson teilen. Alles an einem Ort. 7 Tage gratis testen, mit Schullizenz für dich gratis.</p>
-          <div className="mt-8 flex flex-wrap items-center gap-3">
-            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="hero-signup">{SIGNUP_LABEL}</LoginLink>
-            <ButtonLink href="/schulen" size="lg" variant="secondary">Für Schulen</ButtonLink>
+
+      <section aria-labelledby="hero-h" className="s-hero">
+        <div className="s-wrap s-grid-2 s-wide-left">
+          <div>
+            <span className="s-kicker">Für die Lehrstellensuche in der Schweiz</span>
+            <h1 id="hero-h" className="s-h1">Von der ersten Bewerbung bis zur Zusage.</h1>
+            <p className="s-lead">Stellen finden, Bewerbungen und Fristen an einem Ort festhalten und dranbleiben. Allein, mit deinen Eltern oder mit deiner Klasse.</p>
+            <div className="s-actions">
+              <ButtonLink href={SIGNUP_HREF} size="lg" prefetch={false} data-testid="hero-signup">Kostenlos testen</ButtonLink>
+              <MoreLink href="/schulen">Für Schulen und Lehrpersonen</MoreLink>
+            </div>
+            <p className="s-small" style={{ margin: "12px 0 0" }}>Schon ein Konto? <Link className="s-link" href={LOGIN_HREF} prefetch={false} data-testid="hero-login">Anmelden</Link></p>
+            <p className="s-small s-hero-note">{TRIAL_DAYS} Tage gratis, ohne Zahlungsangaben. Hat deine Schule eine Schullizenz, ist WendApply für dich gratis.</p>
           </div>
-          <p className="text-small mt-4 text-muted">Schon ein Konto? <Link className={`${link} inline-flex min-h-11 items-center`} href={LOGIN_HREF} prefetch={false} data-testid="hero-login">{LOGIN_LABEL}</Link></p>
-          <p className="text-small mt-1 max-w-md text-muted">Mit E-Mail oder Google. Dein Konto kannst du jederzeit selbst löschen. <Link className={link} href="/anleitung">So funktioniert’s</Link></p>
-        </div>
-        <div className="relative mx-auto w-full max-w-md lg:max-w-none">
-          <Screenshot name="04-dashboard" alt="Startseite von WendApply: Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />
-          <span className="sticker tilt-l3 absolute -left-2 -top-4 text-sm sm:-left-5">7 Tage gratis testen</span>
-          <span className="sticker sticker-mint tilt-r absolute -bottom-4 right-3 text-sm"><Check size={14} strokeWidth={3} aria-hidden />Zusage!</span>
-          <DoodleArrow className="absolute -left-16 top-1/3 hidden h-12 w-16 text-[var(--ink)] lg:block" />
+          <div className="s-hero-visual s-desk-only">
+            <Stage duo>
+              <PhoneShot name="m-search" small alt="" className="s-phone-back" />
+              <PhoneShot name="m-dashboard" alt="Startseite von WendApply: der Weg zur Lehrstelle mit gemerkten und abgeschickten Bewerbungen, Gesprächen und Zusagen und den nächsten Fristen" />
+            </Stage>
+          </div>
         </div>
       </section>
 
-      <Section id="so-gehts" title={<>In drei Schritten von der Suche zur <span className="marker">Zusage</span></>} tint>
-        <ol className="grid gap-x-10 gap-y-8 md:grid-cols-3">
-          {steps.map((s, i) => (
-            <li key={s.n} className={i === 1 ? "md:mt-10" : i === 2 ? "md:mt-20" : ""}>
-              <span aria-hidden className={`num-display block ${stepTone[i]}`}>{s.n}</span>
-              <h3 className="text-heading mt-3">{s.title}</h3>
-              <p className="text-body mt-2 text-muted">{s.text}</p>
-            </li>
+      <section id="so-gehts" aria-labelledby="so-gehts-h" className="s-section">
+        <div className="s-wrap">
+          <div className="s-head">
+            <span className="s-kicker">So funktioniert es</span>
+            <h2 id="so-gehts-h" className="s-h2">Alles für die Lehrstellensuche an einem Ort</h2>
+          </div>
+          {rows.map((r, i) => (
+            <div key={r.id} id={r.id} className={`s-grid-2 s-row ${i % 2 ? "s-flip" : ""}`}>
+              <div>
+                <h3 className="s-h2 s-h2-sm">{r.title}</h3>
+                <p className="s-lead">{r.text}</p>
+                <Checks items={r.list} />
+              </div>
+              <Stage short><PhoneShot name={r.shot} alt={r.alt} /></Stage>
+            </div>
           ))}
-        </ol>
-      </Section>
-
-      <Section id="schueler" title="Finden, bewerben, dranbleiben" intro="Du suchst eine Lehrstelle oder eine Schnupperlehre? WendApply hilft dir, deine Bewerbungen zu organisieren und den Überblick zu behalten, auch wenn es viele werden.">
-        <div className="grid items-center gap-10 lg:grid-cols-[.85fr_1.15fr]">
-          <ul className="rows">
-            {[
-              [MapPin, "Stellen suchen und Betriebe auf der Karte entdecken"],
-              [UserRound, "Alle Bewerbungen mit Status, Frist und Notizen an einem Ort"],
-              [Eye, "Fristen immer im Blick, damit keine Bewerbung untergeht"],
-            ].map(([Icon, text]) => {
-              const I = Icon as typeof MapPin;
-              return <li key={text as string} className="flex items-start gap-3.5 py-4"><I size={22} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /><span className="text-base font-medium">{text as string}</span></li>;
-            })}
-          </ul>
-          <Screenshot name="05-search" alt="Lehrstellensuche in WendApply: Suche nach «Informatiker» mit Filtern für Ort, Kanton und Art der Stelle und passenden Lehrstellen aus mehreren Stellenbörsen" width={1600} height={1280} className="tilt-l" />
+          <div className="s-actions">
+            <MoreLink href="/funktionen">Alle Funktionen</MoreLink>
+            <MoreLink href="/anleitung">Zur Anleitung</MoreLink>
+          </div>
         </div>
-      </Section>
+      </section>
 
-      <Section id="lehrpersonen" title="Den Stand der Klasse sehen, ohne Nachfragen" intro="Eine Übersicht zeigt, wer wo steht. Es zählen nur die Angaben von Schülerinnen und Schülern, die sie ausdrücklich teilen." tint>
-        <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_.85fr]">
-          <Screenshot name="24-teacher-dashboard" alt="Lehrpersonen-Übersicht in WendApply: Bewerbungen, Gespräche und Zusagen aller Klassen, Schülerinnen und Schüler, die Aufmerksamkeit brauchen, und die Klassenliste" width={1600} height={1280} />
+      <SiteSection id="fuer-wen" title="Für alle, die bei der Lehrstellensuche mithelfen">
+        <Tiles items={audiences} />
+      </SiteSection>
+
+      <section id="lehrpersonen" aria-labelledby="lehrpersonen-h" className="s-section">
+        <div className="s-wrap s-grid-2 s-flip">
           <div>
-            <ul className="rows text-base font-medium">
-              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Klasse in unter einer Minute erstellen und per Link, Code oder QR-Code einladen</li>
-              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Sehen, wer Hilfe braucht, ohne zusätzliche Listen zu führen</li>
-              <li className="flex gap-3.5 py-4"><Check size={22} strokeWidth={2.6} aria-hidden className="mt-0.5 shrink-0 text-[var(--brand)]" /> Gemeinsame Klassenziele und Auswertungen für die Begleitung</li>
-            </ul>
-            <p className="text-body mt-6 text-muted">{POSITIONING}</p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <ButtonLink href="/schulen" variant="secondary" size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />}>Mehr für Schulen</ButtonLink>
-              <ButtonLink href="/preise" variant="ghost" size="lg">Preise</ButtonLink>
-              <ButtonLink href="/pilot" variant="ghost" size="lg">{PILOT.days}-Tage-Pilot</ButtonLink>
+            <span className="s-kicker">Für Lehrpersonen</span>
+            <h2 id="lehrpersonen-h" className="s-h2">Den Fortschritt der Klasse sehen, ohne nachzufragen</h2>
+            <p className="s-lead">Die Übersicht zeigt, wer wo steht. Gezählt wird nur, was Schülerinnen und Schüler ausdrücklich freigeben.</p>
+            <Checks items={["Klasse erstellen und per Link, Klassencode oder QR-Code einladen", "Sehen, wer Unterstützung braucht, ohne zusätzliche Listen", "Fristen und Mitteilungen an die ganze Klasse"]} />
+            <div className="s-actions">
+              <ButtonLink href="/schulen" variant="secondary">Für Schulen</ButtonLink>
+              <MoreLink href="/preise#schulen">Preise</MoreLink>
             </div>
           </div>
-        </div>
-      </Section>
-
-      <Section id="vertrauen" title={<>Deine Daten <span className="marker">gehören dir</span></>}>
-        <ul className="grid gap-x-12 sm:grid-cols-2">
-          {trust.map(({ icon: Icon, title: t, text }) => (
-            <li key={t} className="flex gap-4 border-t-2 border-dashed border-[var(--line)] py-5">
-              <Icon size={24} strokeWidth={2.2} aria-hidden className="mt-0.5 shrink-0 text-[var(--ink)]" />
-              <div><h3 className="text-heading">{t}</h3><p className="text-body mt-1 text-muted">{text}</p></div>
-            </li>
-          ))}
-        </ul>
-        <p className="text-small mt-5 text-muted">Mehr dazu: <Link className={link} href="/datenschutz-uebersicht">Datenschutz im Überblick</Link> · <Link className={link} href="/datenschutz">Datenschutzerklärung</Link> · <Link className={link} href="/datenschutz-jugend">Datenschutz einfach erklärt</Link></p>
-      </Section>
-
-      <section aria-labelledby="cta-h" className="mx-auto w-full max-w-6xl overflow-x-clip px-4 pb-16 sm:px-6 sm:pb-24">
-        <div className="relative rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] px-6 py-10 text-[var(--on-sun)] shadow-[var(--shadow-lg)] sm:px-12 sm:py-14">
-          <DoodleSparkle className="absolute right-6 top-6 h-8 w-8 sm:right-10" />
-          <h2 id="cta-h" className="text-display max-w-2xl">Bereit für die erste Bewerbung?</h2>
-          <p className="mt-4 max-w-xl text-base">7 Tage gratis testen. Ohne Kreditkarte. Schulen testen WendApply im {PILOT.days}-Tage-Pilot mit {PILOT.classes}.</p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="cta-signup">{SIGNUP_LABEL}</LoginLink>
-            <ButtonLink href="/schulen" size="lg" variant="secondary" className="!border-[var(--outline-fill)]">Für Schulen</ButtonLink>
-          </div>
-          <p className="mt-4 text-sm">Schon ein Konto? <Link className="inline-flex min-h-11 items-center font-semibold underline decoration-2 underline-offset-4" href={LOGIN_HREF} prefetch={false} data-testid="cta-login">{LOGIN_LABEL}</Link></p>
-          <div className="pointer-events-none absolute bottom-6 right-8 hidden items-end gap-1 md:flex" aria-hidden>
-            <DoodleTrail className="h-12 w-36" />
-            <DoodlePlane className="mb-6 h-12 w-16" />
-          </div>
+          <Shot caption="Die Klassenübersicht zeigt nur freigegebene Angaben.">
+            <Stage browser><BrowserShot name="24-teacher-dashboard" alt="Übersicht für Lehrpersonen: Bewerbungen, Gespräche und Zusagen der Klasse, wer Unterstützung braucht, und die Klassenliste" /></Stage>
+          </Shot>
         </div>
       </section>
+
+      <SiteSection id="vertrauen" kicker="Datenschutz" title="Deine Daten gehören dir">
+        <ul className="s-cols">
+          {trust.map((t) => <li key={t.title}><h3 className="s-h3">{t.title}</h3><p className="s-text">{t.text}</p></li>)}
+        </ul>
+        <p className="s-small" style={{ marginTop: 24 }}>Mehr dazu: <Link className="s-link" href="/datenschutz-uebersicht">Datenschutz im Überblick</Link> · <Link className="s-link" href="/datenschutz-jugend">Datenschutz einfach erklärt</Link></p>
+      </SiteSection>
+
+      <section id="fragen" aria-labelledby="fragen-h" className="s-section">
+        <div className="s-wrap s-grid-2" style={{ alignItems: "start" }}>
+          <div>
+            <h2 id="fragen-h" className="s-h2">Häufige Fragen</h2>
+            <p className="s-lead">Kosten, Testwoche und wer was sieht: das Wichtigste in Kürze.</p>
+            <div className="s-actions"><MoreLink href="/faq">Alle Fragen</MoreLink></div>
+          </div>
+          <Faq items={faq} />
+        </div>
+      </section>
+
+      <FinalCta title="Bereit für die erste Bewerbung?" text={`Ein Konto ist in einer Minute erstellt. Die ersten ${TRIAL_DAYS} Tage sind gratis.`}>
+        <ButtonLink href={SIGNUP_HREF} size="lg" prefetch={false} data-testid="cta-signup">Kostenlos testen</ButtonLink>
+        <ButtonLink href={LOGIN_HREF} size="lg" variant="secondary" prefetch={false} data-testid="cta-login">Anmelden</ButtonLink>
+        <MoreLink href="/schulen">Für Schulen</MoreLink>
+      </FinalCta>
     </PublicShell>
   );
 }

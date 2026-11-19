@@ -30,10 +30,11 @@ test("family package: 1 student + 1 parent account, CHF 7.90/month or CHF 79/yea
 test("Familien page covers offer, 4 steps, minors' privacy, FAQ and waitlist CTA", () => {
   const p = read("app/familien/page.tsx");
   for (const t of ["Konto erstellen", "Kind einladen", "Einwilligung", "Fortschritt sehen"]) assert.ok(p.includes(`title: "${t}"`), t);
-  for (const t of ["Datenminimierung", "Einwilligung unter 16", "Das Kind entscheidet", "Export und Löschung", "Keine Werbung", "DSG", "DSGVO"]) assert.ok(p.includes(t), t);
+  // Copy deck §5 (website redesign): minors' privacy as four plain sentences.
+  for (const t of ["Nur nötige Daten", "Einwilligung der Eltern für Kinder unter 16", "Keine Werbung, kein Verkauf von Daten", "exportieren, die Familie verlassen und ihr Konto löschen", "Was du siehst und was nicht"]) assert.ok(p.includes(t), t);
   assert.match(p, /canonical: "\/familien"/);
   assert.match(p, /id="warteliste"/);
-  assert.match(p, /Zugang anfragen/);
+  assert.match(p, /Auf die Warteliste/);
   assert.match(p, /<Faq items=\{faq\}/);
 });
 
