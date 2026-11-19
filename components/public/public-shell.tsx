@@ -5,7 +5,7 @@ import { BrandMark } from "@/components/ui/brand-mark";
 import { ThemeSwitch } from "./theme-switch";
 import { PublicMobileMenu } from "./mobile-menu";
 import "./public.css";
-import { BRAND_TAGLINE, CONTACT_EMAIL } from "./marketing";
+import { BRAND_TAGLINE, CONTACT_EMAIL, LOGIN_HREF, LOGIN_LABEL, SIGNUP_HREF, SIGNUP_LABEL } from "./marketing";
 
 export { CONTACT_EMAIL };
 
@@ -55,7 +55,11 @@ export function PublicShell({ children }: { children: ReactNode }) {
             {nav.map((n) => <Link key={n.href} href={n.href} className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
           </nav>
           <div className="hidden lg:block"><ThemeSwitch /></div>
-          <LoginLink size="sm" className="min-h-11 max-[359px]:px-3">Kostenlos testen</LoginLink>
+          {/* Two separate entries (SPEC-FLOW §5): quiet «Anmelden» for existing users, primary «Kostenlos testen» starts the funnel.
+              Desktop: outline button. Phone/tablet: text link (hidden below 360 px, where it stays in the menu sheet). */}
+          <LoginLink href={LOGIN_HREF} variant="secondary" size="sm" className="hidden min-h-11 lg:inline-flex" data-testid="header-login">{LOGIN_LABEL}</LoginLink>
+          <LoginLink href={LOGIN_HREF} variant="ghost" size="sm" className="min-h-11 px-2.5 text-sm max-[359px]:hidden lg:hidden" data-testid="header-login-mobile">{LOGIN_LABEL}</LoginLink>
+          <LoginLink href={SIGNUP_HREF} size="sm" className="min-h-11 max-[359px]:px-3" data-testid="header-signup">{SIGNUP_LABEL}</LoginLink>
           <PublicMobileMenu items={nav} />
         </div>
       </header>
@@ -66,6 +70,12 @@ export function PublicShell({ children }: { children: ReactNode }) {
             <div className="flex items-center gap-2.5 font-display text-lg font-extrabold tracking-[-.03em]"><BrandMark size={30} /> WendApply</div>
             <p className="mt-3 max-w-xs text-sm font-semibold">{BRAND_TAGLINE}</p>
             <p className="text-small mt-2 max-w-xs text-muted">Entwickelt in der Schweiz von Wendico.</p>
+            <nav aria-label="Konto" className="mt-3">
+              <ul className="flex flex-wrap gap-x-5 text-sm font-semibold">
+                <li><LoginLink href={LOGIN_HREF} variant="ghost" size="md" className="!px-0 !text-sm hover:!bg-transparent">{LOGIN_LABEL}</LoginLink></li>
+                <li><LoginLink href={SIGNUP_HREF} variant="ghost" size="md" className="!px-0 !text-sm hover:!bg-transparent">{SIGNUP_LABEL}</LoginLink></li>
+              </ul>
+            </nav>
           </div>
           <nav aria-label="Produkt">
             <ul className="public-footer-links grid gap-x-6 text-sm sm:grid-cols-1">

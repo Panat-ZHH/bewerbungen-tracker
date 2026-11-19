@@ -29,7 +29,7 @@ test("family package: 1 student + 1 parent account, CHF 7.90/month or CHF 79/yea
 
 test("Familien page covers offer, 4 steps, minors' privacy, FAQ and waitlist CTA", () => {
   const p = read("app/familien/page.tsx");
-  for (const t of ["Registrieren", "Kind einladen", "Einwilligung", "Fortschritt sehen"]) assert.ok(p.includes(`title: "${t}"`), t);
+  for (const t of ["Konto erstellen", "Kind einladen", "Einwilligung", "Fortschritt sehen"]) assert.ok(p.includes(`title: "${t}"`), t);
   for (const t of ["Datenminimierung", "Einwilligung unter 16", "Das Kind entscheidet", "Export und Löschung", "Keine Werbung", "DSG", "DSGVO"]) assert.ok(p.includes(t), t);
   assert.match(p, /canonical: "\/familien"/);
   assert.match(p, /id="warteliste"/);

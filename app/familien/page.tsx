@@ -37,7 +37,7 @@ const parents: Item[] = [
 ];
 
 const steps: Item[] = [
-  { icon: UserPlus, title: "Registrieren", text: "Elternteil oder Jugendliche:r erstellt ein Konto. Wir fragen nur das Geburtsjahr, nicht das genaue Datum." },
+  { icon: UserPlus, title: "Konto erstellen", text: "Elternteil oder Jugendliche:r erstellt ein Konto. Wir fragen nur das Geburtsjahr, nicht das genaue Datum." },
   { icon: MailPlus, title: "Kind einladen", text: "Sie erstellen einen Einladungscode (7 Tage gültig, nur einmal nutzbar). Ihr Kind kann umgekehrt auch Sie einladen." },
   { icon: BadgeCheck, title: "Einwilligung", text: "Ist Ihr Kind unter 16, geben Sie als Elternteil die Einwilligung. Erst dann wird geteilt, was Ihr Kind freigibt." },
   { icon: Footprints, title: "Fortschritt sehen", text: "Sie sehen den freigegebenen Fortschritt: Anzahl und Status der Bewerbungen, das Dorf und, falls freigegeben, die Liste." },

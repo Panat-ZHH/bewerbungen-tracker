@@ -5,7 +5,7 @@ import { faqJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
 import { Faq, type FaqItem } from "@/components/public/faq";
 import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
-import { FAMILY, PACKAGES, PILOT, chf } from "@/components/public/marketing";
+import { FAMILY, LOGIN_HREF, PACKAGES, PILOT, SIGNUP_HREF, chf } from "@/components/public/marketing";
 import { PAYMENT_LABEL, onlinePaymentEnabled } from "@/components/billing/logic";
 import { PLANS, formatChf } from "@/lib/billing/plans";
 
@@ -19,7 +19,7 @@ const link = "font-medium text-[var(--brand)] underline underline-offset-4";
 
 const groups: { id: string; title: string; items: FaqItem[] }[] = [
   { id: "schueler", title: "Erste Schritte für Schülerinnen und Schüler", items: [
-    { q: "Wie starte ich?", a: <>Auf <Link className={link} href="/login" prefetch={false}>Kostenlos testen</Link> ein Konto erstellen und «Schüler:in mit Klasse» oder «Schüler:in privat» wählen. Danach kannst du Stellen suchen und deine erste Bewerbung eintragen.</> },
+    { q: "Wie starte ich?", a: <>Tipp auf <Link className={link} href={SIGNUP_HREF} prefetch={false}>Kostenlos testen</Link> und beantworte ein paar Fragen. Ganz am Schluss erstellst du dein Konto. Hast du schon ein Konto? Dann <Link className={link} href={LOGIN_HREF} prefetch={false}>Anmelden</Link>.</> },
     { q: "Wie trage ich eine Bewerbung ein?", a: "Im Bereich «Bewerbungen» auf «Bewerbung eintragen» tippen, Firma und Stelle eingeben, Status und Frist festlegen. Du kannst jederzeit Notizen ergänzen und den Status ändern." },
     { q: "Wie trete ich der Klasse bei?", a: "Deine Lehrperson gibt dir einen Link, einen Code oder einen QR-Code. Öffne den Link oder gib den Code im Bereich «Klassen» ein. Vor dem Beitritt siehst du genau, was die Lehrperson sehen wird." },
     { q: "Was ist der Bewerbungs-Check?", a: <>Im <Link className={link} href="/bewerbung-check">Bewerbungs-Check</Link> lädst du deinen Brief als PDF oder Word-Datei hoch. Eine KI gibt dir Punkte und Tipps mit Beispielsätzen. Deine Datei wird nicht gespeichert, nur das Ergebnis. Eine KI kann sich irren: Lass deinen Brief auch von einer Lehrperson oder deinen Eltern lesen.</> },
