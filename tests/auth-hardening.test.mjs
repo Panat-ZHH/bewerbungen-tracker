@@ -88,7 +88,7 @@ test("'Passwort ändern' uses the same policy", () => {
 });
 
 test("signup and reset pages enforce the policy (no 6-character minimum left)", () => {
-  for (const file of ["app/login/page.tsx", "app/login/reset/page.tsx"]) {
+  for (const file of ["components/funnel/account.tsx", "app/login/reset/page.tsx"]) { // sign-up = the funnel's last screen
     const src = readFileSync(new URL(`../${file}`, import.meta.url), "utf8");
     assert.match(src, /newPasswordProblem\(/, file);
     assert.doesNotMatch(src, /minLength=\{6\}|mindestens sechs|Mindestens 6/, file);

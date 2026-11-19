@@ -227,13 +227,18 @@ test("server already knows the account type (FINDINGS 2): no picker even without
   assert.equal(meta.account_type, "parent");
 });
 
-test("login page stores the role before 'Weiter mit Google' and the callback runs resolveLanding", () => {
-  const login = readFileSync(new URL("../app/login/page.tsx", import.meta.url), "utf8");
-  const fn = login.slice(login.indexOf("async function signInWithProvider"), login.indexOf("async function forgotPassword"));
+test("funnel stores the role before 'Mit Google weiter' and the callback saves the plan, then runs resolveLanding", () => {
+  // Sign-up moved from /login to the funnel /start (SPEC-FLOW D3/D4): the role travels with storePendingSignup there.
+  const account = readFileSync(new URL("../components/funnel/account.tsx", import.meta.url), "utf8");
+  const fn = account.slice(account.indexOf("async function google"), account.indexOf("const hint = passwordHint"));
   assert.ok(fn.indexOf("storePendingSignup(") > 0 && fn.indexOf("storePendingSignup(") < fn.indexOf("signInWithOAuth"), "stored before the redirect");
+  const login = readFileSync(new URL("../app/login/page.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(login, /Gratis für Schüler/);
+  assert.doesNotMatch(login, /supabase\.auth\.signUp\(/, "/login is login only");
   const callback = readFileSync(new URL("../app/auth/callback/page.tsx", import.meta.url), "utf8");
-  assert.match(callback, /resolveLanding\(/);
+  assert.match(callback, /useFunnelSave\(/);
+  const saving = readFileSync(new URL("../components/funnel/saving.tsx", import.meta.url), "utf8");
+  assert.match(saving, /resolveLanding\(/);
 });
 
 test("shell + teacher layout use the gate; family trial row no longer grants access (no 30-day trial)", () => {
@@ -333,7 +338,8 @@ test("G10: shell lets /settings through without a role; G16 wrong-role notices; 
   assert.match(role.wrongRoleNotice("teacher", "/familie/einladung/ABCD1234"), /Familien/);
   assert.equal(role.wrongRoleNotice("student", "/classes/join/AB12"), null);
   const login = readFileSync(new URL("../app/login/page.tsx", import.meta.url), "utf8");
-  assert.match(login, /isInvitePath\(.*setMode\("signup"\)/s);
+  // G18 now: invite links without a session open the funnel (role preset from the link), not a signup tab.
+  assert.match(login, /isInvitePath\(safe\).*router\.replace\(startHref\(safe\)\)/s);
 });
 
 test("G20: parent routing uses the server account type once known", () => {
