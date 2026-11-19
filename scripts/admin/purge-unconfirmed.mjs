@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 // Lists (default) or deletes (--apply) sign-ups that were NEVER confirmed and NEVER signed in, older than N days (SPEC-DATA §3.11).
-// Not scheduled: Panat decides the period (proposal 7 days). Uses the service role server-side; prints only counts and masked
-// e-mails, never keys, never user ids, never metadata.
+// MANUAL TOOL. The automatic daily purge (03:17 UTC, 7 days, approved by Panat 2026-11-19) runs inside the database via pg_cron:
+// admin.purge_unconfirmed_users(false, 7) in supabase/migrations/20261119120000_purge_unconfirmed_7d.sql. Same rule (never
+// confirmed by e-mail or phone, never signed in, older than the period; default 7 days), same RPC privacy_release_unconfirmed_trial
+// and same audit action. The database job additionally KEEPS every account that has real data (any row referencing the user,
+// uploaded files, Stripe customer, edited profile, admin-granted access) – this script does not check that, so look at its
+// dry-run list before using --apply. Uses the service role server-side; prints only counts and masked e-mails, never keys,
+// never user ids, never metadata.
 //
 //   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=... node scripts/admin/purge-unconfirmed.mjs [--days 7] [--apply]
 //   (NEXT_PUBLIC_SUPABASE_URL and SR are accepted as well.)
