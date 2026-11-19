@@ -101,6 +101,9 @@ try {
       await page.screenshot({ path: `${OUT}/${r}-konto.png` });
       await fillKonto(page, email, { password: PW });
       check(await waitPath(page, /^\/start\/bestaetigen/, 30000), "→ /start/bestaetigen", page.url());
+      const h1Box = await page.getByRole("heading", { name: /Schau in dein Postfach/ }).first().boundingBox({ timeout: 15000 }).catch(() => null);
+      check(!!h1Box && h1Box.width > 120 && h1Box.height < 200, "«Schau in dein Postfach» heading laid out (not one letter per line)", JSON.stringify(h1Box));
+      await page.screenshot({ path: `${OUT}/${r}-bestaetigen.png` });
       const status = await confirmByLink(email);
       check(status >= 300 && status < 400, "confirmation link verified (redirect)", `status ${status}`);
       // same browser: log in → applyFunnelIfPending
