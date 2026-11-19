@@ -224,6 +224,8 @@ begin
   if not v_skip then
     -- first name (all roles)
     if jsonb_typeof(a -> 'firstName') is distinct from 'string' then raise exception 'INVALID_FUNNEL' using detail = 'firstName'; end if;
+    -- C1 controls (U+0080–009F) are refused on the raw value (some of them count as whitespace for \s)
+    if (a ->> 'firstName') ~ '[\u0080-\u009F]' then raise exception 'INVALID_FUNNEL' using detail = 'firstName'; end if;
     v_first := public._funnel_clean(a ->> 'firstName');
     if char_length(v_first) not between 1 and 40 or v_first ~ '[[:cntrl:]]' or v_first !~ '[[:alpha:]]' then
       raise exception 'INVALID_FUNNEL' using detail = 'firstName';
@@ -242,6 +244,7 @@ begin
       if v_canton is null or not (v_canton = any (cantons)) then raise exception 'INVALID_FUNNEL' using detail = 'canton'; end if;
 
       if jsonb_typeof(a -> 'place') = 'string' then
+        if (a ->> 'place') ~ '[\u0080-\u009F]' then raise exception 'INVALID_FUNNEL' using detail = 'place'; end if;
         v_place := nullif(public._funnel_clean(a ->> 'place'), '');
         if char_length(coalesce(v_place, '')) > 60 or v_place ~ '[[:cntrl:]]' then raise exception 'INVALID_FUNNEL' using detail = 'place'; end if;
       elsif a ? 'place' and a -> 'place' <> 'null'::jsonb then raise exception 'INVALID_FUNNEL' using detail = 'place';
@@ -253,7 +256,8 @@ begin
         if jsonb_typeof(a -> 'professions') <> 'array' or jsonb_array_length(a -> 'professions') > 3 then
           raise exception 'INVALID_FUNNEL' using detail = 'professions'; end if;
         for e in select * from jsonb_array_elements(a -> 'professions') loop
-          if jsonb_typeof(e) <> 'string' or char_length(public._funnel_clean(e #>> '{}')) not between 1 and 60 then
+          if jsonb_typeof(e) <> 'string' or char_length(public._funnel_clean(e #>> '{}')) not between 1 and 60
+            or (e #>> '{}') ~ '[\u0080-\u009F]' or public._funnel_clean(e #>> '{}') ~ '[[:cntrl:]]' then
             raise exception 'INVALID_FUNNEL' using detail = 'professions'; end if;
         end loop;
         select coalesce(array_agg(s.x order by s.i), '{}') into v_profs from (

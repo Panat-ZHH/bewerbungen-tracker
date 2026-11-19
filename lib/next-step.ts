@@ -43,8 +43,15 @@ export function firstName(name?: string | null): string {
 }
 
 /** Exactly one next step, picked by urgency. `today` as YYYY-MM-DD. Warm, "du", Swiss spelling. */
-export function nextStep(applications: Pick<Application, "id" | "company" | "status" | "deadline">[], today: string): NextStep {
-  if (applications.length === 0) return { text: "Bereit für deine erste Bewerbung?", href: "/applications/new", cta: "Erste Bewerbung eintragen" };
+/** Help wishes from the funnel (profiles.help_wishes) that change the FIRST step of a new user (SPEC-DATA §4). */
+export type NextStepHelp = { help?: readonly string[] | null; hasCv?: boolean };
+export function nextStep(applications: Pick<Application, "id" | "company" | "status" | "deadline">[], today: string, opts: NextStepHelp = {}): NextStep {
+  if (applications.length === 0) {
+    const help = opts.help ?? [];
+    if (help.includes("lebenslauf") && opts.hasCv === false) return { text: "Mit einem Lebenslauf bist du bereit für die erste Bewerbung.", href: "/cvs", cta: "Lebenslauf erstellen" };
+    if (help.includes("schnuppern")) return { text: "Eine Schnupperlehre zeigt dir, ob der Beruf zu dir passt.", href: "/search?q=Schnupperlehre", cta: "Schnupperlehre suchen" };
+    return { text: "Bereit für deine erste Bewerbung?", href: "/applications/new", cta: "Erste Bewerbung eintragen" };
+  }
   const by = (...list: ApplicationStatus[]) => applications.filter((a) => list.includes(a.status));
   const talks = by("interview", "final_interview");
   if (talks.length) return { text: talks.length === 1 ? `Dein Gespräch bei ${talks[0].company} steht an. Bereite dich vor!` : `${talks.length} Gespräche stehen an. Bereite dich vor!`, href: talks.length === 1 ? `/applications/${talks[0].id}` : "/applications", cta: talks.length === 1 ? "Gespräch ansehen" : "Gespräche ansehen" };
