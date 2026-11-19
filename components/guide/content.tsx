@@ -31,11 +31,12 @@ export const guideSteps: GuideStep[] = [
     id: "konto", title: "Konto erstellen",
     intro: "Du brauchst nur eine E-Mail-Adresse oder ein Google-Konto.",
     steps: [
-      <>Öffne {k("Mein Profil")}: am Computer oben rechts über dein Profilbild, auf dem Handy über {k("Mehr")}.</>,
-      <>Trage Vorname, Wohnort, Schule, {k("Klasse / Schulstufe")} und deinen Wunschberuf ein.</>,
-      <>Unter {k("Profilbild")} kannst du ein Bild hochladen oder direkt ein {k("Foto aufnehmen")} (PNG, JPEG oder WebP, max. 5 MB). Ohne Bild zeigt WendApply deine Initialen.</>,
-      <>Speichere mit {k("Änderungen speichern")}.</>,
+      <>Tipp auf der Website auf {k("Kostenlos testen")}. Wähle, wer du bist: {k("Schüler:in")}, {k("Elternteil")} oder {k("Lehrperson oder Schule")}.</>,
+      <>Beantworte ein paar kurze Fragen, zum Beispiel Vorname, Wunschberuf und wie viele Bewerbungen du pro Woche schicken willst. Am Schluss siehst du {k("Dein Plan")}.</>,
+      <>Erst auf der letzten Seite erstellst du das Konto: mit E-Mail-Adresse und Passwort ({k("Konto erstellen")}) oder mit Google. Mit E-Mail tippst du danach auf den Link in der Bestätigungs-E-Mail.</>,
+      <>In der App zeigt dir eine kurze Tour die wichtigsten Bereiche. Du kannst sie jederzeit überspringen.</>,
     ],
+    tip: <>Schon ein Konto? Dann auf <a className="font-semibold text-[var(--brand)] underline underline-offset-4" href="/login">{"Anmelden"}</a>. Die Tour kannst du in den Einstellungen wiederholen.</>,
   },
   {
     id: "profil", title: "Profil ausfüllen",
