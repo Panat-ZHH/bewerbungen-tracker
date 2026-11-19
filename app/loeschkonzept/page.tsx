@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
-import { SiteLegalPage } from "@/components/public/site-legal";
+import { LegalPage } from "@/components/legal/legal-page";
 
 export const metadata: Metadata = publicMetadata({ canonical: "/loeschkonzept" });
 
 export default function Page() {
-  return <><JsonLd data={publicBreadcrumb("/loeschkonzept")} /><SiteLegalPage docKey="loeschkonzept" /></>;
+  return <><JsonLd data={publicBreadcrumb("/loeschkonzept")} /><LegalPage docKey="loeschkonzept" /></>;
 }

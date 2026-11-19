@@ -20,8 +20,8 @@ test("marketing.ts re-exports the entry constants", () => {
 });
 
 const PLACES = {
-  // Website redesign: the header row and the mobile menu panel live in site-nav.tsx (public-shell passes both hrefs).
-  "components/public/site-nav.tsx": ["header-login", "header-login-mobile", "header-signup", "header-signup-mobile", "menu-signup", "menu-login"],
+  "components/public/public-shell.tsx": ["header-login", "header-login-mobile", "header-signup"],
+  "components/public/mobile-menu.tsx": ["menu-signup", "menu-login"],
   "app/page.tsx": ["hero-signup", "hero-login", "cta-signup", "cta-login"],
   "app/anleitung/page.tsx": ["hero-signup", "hero-login", "cta-signup", "cta-login"],
   "app/preise/page.tsx": ["preise-solo-signup", "preise-solo-login"],
@@ -31,13 +31,12 @@ test("every public entry place has both a signup and a login link", () => {
   for (const [file, ids] of Object.entries(PLACES)) {
     const s = read(file);
     for (const id of ids) assert.ok(s.includes(`data-testid="${id}"`), `${file}: ${id}`);
-    if (file.endsWith("site-nav.tsx")) assert.ok(s.includes("href={signupHref}") && s.includes("href={loginHref}") && s.includes("SIGNUP_LABEL") && s.includes("LOGIN_LABEL"), `${file} uses both hrefs + labels`);
-    else assert.ok(s.includes("SIGNUP_HREF") && s.includes("LOGIN_HREF"), `${file} uses both constants`);
+    assert.ok(s.includes("SIGNUP_HREF") && s.includes("LOGIN_HREF"), `${file} uses both constants`);
   }
 });
 
 test("no combined or forbidden CTA labels left on the public site", () => {
-  const files = [...Object.keys(PLACES), "components/public/public-shell.tsx", "app/hilfe/page.tsx", "app/familien/page.tsx", "components/public/cta-band.tsx", "components/guide/content.tsx"];
+  const files = [...Object.keys(PLACES), "app/hilfe/page.tsx", "app/familien/page.tsx", "components/public/cta-band.tsx", "components/guide/content.tsx"];
   for (const f of files) {
     const s = read(f);
     for (const bad of [">Loslegen<", ">App öffnen<", ">Gratis testen<", "Registrieren", "mode=signup"]) assert.ok(!s.includes(bad), `${f}: ${bad}`);

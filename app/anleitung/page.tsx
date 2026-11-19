@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
+import { LoginLink } from "@/components/public/login-link";
+import { LOGIN_HREF, LOGIN_LABEL, SIGNUP_HREF, SIGNUP_LABEL } from "@/components/public/marketing";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
 import { faqJsonLd } from "@/lib/seo/site";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
 import { PublicShell, Section } from "@/components/public/public-shell";
 import { Faq } from "@/components/public/faq";
-import { BrowserShot, ButtonLink, FinalCta } from "@/components/public/site-ui";
-import { LOGIN_HREF, SIGNUP_HREF } from "@/components/public/marketing";
+import { DoodleBurst, DoodlePlane, DoodleSparkle, DoodleTrail } from "@/components/ui/doodles";
 import { Toc } from "@/components/guide/toc";
 import { InstallSection } from "@/components/guide/install-section";
 import { GuideShot } from "@/components/guide/guide-shot";
@@ -22,22 +24,23 @@ export default function AnleitungPage() {
       <JsonLd data={faqJsonLd(faq)} />
 
       <section aria-labelledby="hero-h" className="mx-auto grid w-full max-w-6xl items-center gap-12 overflow-x-clip px-4 pb-14 pt-10 sm:px-6 sm:pb-20 sm:pt-16 lg:grid-cols-[1.1fr_.9fr] lg:gap-10">
-        <div className="animate-rise">
-          <span className="s-kicker">Anleitung</span>
-          <h1 id="hero-h" className="s-h1 s-h1-sm">So funktioniert WendApply.</h1>
-          <p className="s-lead">Von der ersten Suche bis zur Zusage: Hier siehst du Schritt für Schritt, was WendApply kann und wie du es als App auf dein Handy oder deinen Computer holst.</p>
+        <div className="animate-lift">
+          <p className="sticker sticker-paper tilt-l mb-5 text-sm">Anleitung</p>
+          <h1 id="hero-h" className="text-hero">So funktioniert <span className="marker">WendApply</span>.<DoodleBurst className="ml-2 inline-block h-[.45em] w-[.45em] -translate-y-[.15em] text-[var(--coral)]" /></h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted">Von der ersten Suche bis zur Zusage: Hier siehst du Schritt für Schritt, was WendApply kann und wie du es als App auf dein Handy oder deinen Computer holst.</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <ButtonLink href={SIGNUP_HREF} size="lg" prefetch={false} data-testid="hero-signup">Kostenlos testen</ButtonLink>
-            <ButtonLink href={LOGIN_HREF} size="lg" variant="secondary" prefetch={false} data-testid="hero-login">Anmelden</ButtonLink>
+            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="hero-signup">{SIGNUP_LABEL}</LoginLink>
+            <LoginLink href={LOGIN_HREF} size="lg" variant="secondary" data-testid="hero-login">{LOGIN_LABEL}</LoginLink>
           </div>
-          <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig: <Link className="s-link" href="#installieren"><Download size={14} strokeWidth={2.4} aria-hidden className="mr-1 inline" />Als App installieren</Link></p>
+          <p className="text-small mt-5 max-w-md text-muted">7 Tage gratis testen, mit Schullizenz gratis. Kein App Store nötig: <Link className="font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4" href="#installieren">Als App installieren</Link></p>
         </div>
-        <div className="s-desk-only s-desk-block">
-          <BrowserShot name="04-dashboard" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" />
+        <div className="relative mx-auto w-full max-w-md lg:max-w-none">
+          <GuideShot src="/landing/04-dashboard-light.webp" darkSrc="/landing/04-dashboard-dark.webp" alt="Startseite von WendApply: Weg zur Lehrstelle mit Bewerbungen nach Status, zuletzt geänderte Bewerbungen und bald fällige Fristen" width={1600} height={1280} priority className="tilt-r" />
+          <span className="sticker sticker-mint tilt-l3 absolute -bottom-4 left-3 text-sm">Auch als App</span>
         </div>
       </section>
 
-      <Section id="funktionen" title="Alles für deine Lehrstellensuche" intro="Das steckt in WendApply. Jede Karte führt dich zum passenden Schritt in der Anleitung." tint>
+      <Section id="funktionen" title={<>Alles für deine <span className="marker">Lehrstellensuche</span></>} intro="Das steckt in WendApply. Jede Karte führt dich zum passenden Schritt in der Anleitung." tint>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {features.map(({ icon: Icon, title: t, text, step }) => (
             <li key={t}>
@@ -84,7 +87,7 @@ export default function AnleitungPage() {
         </div>
       </section>
 
-      <Section id="installieren" title="WendApply als App installieren" intro="WendApply ist eine Web-App: Du lädst nichts aus dem App Store, sondern legst sie direkt aus dem Browser auf deinen Home-Bildschirm, ins Dock oder ins Startmenü. Sie öffnet sich dann im eigenen Fenster wie jede andere App." tint>
+      <Section id="installieren" title={<>WendApply als <span className="marker">App</span> installieren</>} intro="WendApply ist eine Web-App: Du lädst nichts aus dem App Store, sondern legst sie direkt aus dem Browser auf deinen Home-Bildschirm, ins Dock oder ins Startmenü. Sie öffnet sich dann im eigenen Fenster wie jede andere App." tint>
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
           <InstallSection />
           <div className="space-y-4 text-[15px] leading-relaxed">
@@ -106,11 +109,22 @@ export default function AnleitungPage() {
         </div>
       </Section>
 
-      <FinalCta title="Bereit? Deine erste Bewerbung wartet." text="Konto erstellen dauert eine Minute. Danach kannst du WendApply jederzeit als App installieren.">
-        <ButtonLink href={SIGNUP_HREF} size="lg" prefetch={false} data-testid="cta-signup">Kostenlos testen</ButtonLink>
-        <ButtonLink href={LOGIN_HREF} size="lg" variant="secondary" prefetch={false} data-testid="cta-login">Anmelden</ButtonLink>
-        <ButtonLink href="#installieren" size="lg" variant="ghost">Als App installieren</ButtonLink>
-      </FinalCta>
+      <section aria-labelledby="cta-h" className="mx-auto w-full max-w-6xl overflow-x-clip px-4 pb-16 sm:px-6 sm:pb-24">
+        <div className="relative rounded-[var(--radius-xl)] border-[length:var(--border-w)] border-[var(--outline-fill)] bg-[var(--sun)] px-6 py-10 text-[var(--on-sun)] shadow-[var(--shadow-lg)] sm:px-12 sm:py-14">
+          <DoodleSparkle className="absolute right-6 top-6 h-8 w-8 sm:right-10" />
+          <h2 id="cta-h" className="text-display max-w-2xl">Bereit? Deine erste Bewerbung wartet.</h2>
+          <p className="mt-4 max-w-xl text-base">7 Tage gratis testen. Ohne Kreditkarte. Danach kannst du WendApply jederzeit als App installieren.</p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <LoginLink href={SIGNUP_HREF} size="lg" icon={<ArrowRight size={18} strokeWidth={2.4} aria-hidden />} data-testid="cta-signup">{SIGNUP_LABEL}</LoginLink>
+            <ButtonLink href="#installieren" size="lg" variant="secondary" className="!border-[var(--outline-fill)]">Als App installieren</ButtonLink>
+          </div>
+          <p className="mt-4 text-sm">Schon ein Konto? <Link className="inline-flex min-h-11 items-center font-semibold underline decoration-2 underline-offset-4" href={LOGIN_HREF} prefetch={false} data-testid="cta-login">{LOGIN_LABEL}</Link></p>
+          <div className="pointer-events-none absolute bottom-6 right-8 hidden items-end gap-1 md:flex" aria-hidden>
+            <DoodleTrail className="h-12 w-36" />
+            <DoodlePlane className="mb-6 h-12 w-16" />
+          </div>
+        </div>
+      </section>
     </PublicShell>
   );
 }

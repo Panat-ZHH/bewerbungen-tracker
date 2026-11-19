@@ -80,7 +80,7 @@ export const modeOf = (v) => (v.theme === "dark" ? "dark" : "") + (v.scale && v.
 export const PERSONAS = [
   { key: "public", role: "public", user: null, pages: [
     ["home", "/"], ["preise", "/preise"], ["schulen", "/schulen"], ["familien", "/familien"], ["pilot", "/pilot"], ["kontakt", "/kontakt"],
-    ["hilfe", "/hilfe"], ["anleitung", "/anleitung"], ["funktionen", "/funktionen"], ["faq", "/faq"], ["ueber-uns", "/ueber-uns"], ["impressum", "/impressum"], ["datenschutz", "/datenschutz"], ["datenschutz-jugend", "/datenschutz-jugend"],
+    ["hilfe", "/hilfe"], ["anleitung", "/anleitung"], ["impressum", "/impressum"], ["datenschutz", "/datenschutz"], ["datenschutz-jugend", "/datenschutz-jugend"],
     ["datenschutz-schulen", "/datenschutz-schulen"], ["datenschutz-uebersicht", "/datenschutz-uebersicht"], ["avv", "/avv"], ["hosting", "/hosting"],
     ["loeschkonzept", "/loeschkonzept"], ["schullizenz", "/schullizenz"], ["bewerbung-check", "/bewerbung-check"], ["login", "/login"], ["login-reset", "/login/reset"], ["start", "/start"], ["start-bestaetigen", "/start/bestaetigen"],
     ["not-found", "/gibt-es-nicht-404"],
@@ -128,7 +128,7 @@ export function coveredRoutes(personas = PERSONAS) {
 }
 
 // ------------------------------------------------------------------------------------------------ ownership
-const PUBLIC_RE = /^\/($|funktionen|faq|ueber-uns|preise|schulen|familien|pilot|kontakt|hilfe|anleitung|impressum|datenschutz|avv|hosting|loeschkonzept|schullizenz|bewerbung-check|gibt-es-nicht)/;
+const PUBLIC_RE = /^\/($|preise|schulen|familien|pilot|kontakt|hilfe|anleitung|impressum|datenschutz|avv|hosting|loeschkonzept|schullizenz|bewerbung-check|gibt-es-nicht)/;
 /** Owner from the brief's ownership list. Shell-level selectors (nav, header, app bars, viewport) always go to SHELL. */
 export function ownerFor(role, path, selector = "") {
   if (/app-bar|Hauptmenü|^viewport|bottom-nav|nextjs/i.test(selector)) return role === "public" ? "PUBLIC" : "SHELL";

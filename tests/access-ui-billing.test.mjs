@@ -2,7 +2,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
-import { SOLO } from "../components/public/marketing.ts";
 import { loadLib } from "./helpers/load-lib.mjs";
 
 const gate = await loadLib("access/gate");
@@ -69,12 +68,9 @@ test("G22: in-app checkout off is no dead end", () => {
 
 test("G19 copy: 7-day trial + Einzelabo + Familienpaket; no 'free for students' claims outside the school-licence context", () => {
   const preise = read("app/preise/page.tsx");
-  // Website redesign: numbers come from the catalogue constants (TRIAL_DAYS, SOLO from PLANS.solo), never typed in.
-  assert.match(preise, /\{TRIAL_DAYS\} Tage gratis testen/);
-  assert.match(preise, /\{SOLO\.priceMonthText\}/);
-  assert.match(preise, /\{SOLO\.priceYearText\} pro Jahr/);
-  assert.equal(SOLO.priceMonthText, "CHF 4.90");
-  assert.equal(SOLO.priceYearText, "CHF 49");
+  assert.match(preise, /7 Tage gratis testen/);
+  assert.match(preise, /CHF 4\.90/);
+  assert.match(preise, /CHF 49 pro Jahr/);
   assert.match(preise, /data-family-price/);
   assert.doesNotMatch(preise, /Für Schüler kostenlos/);
   const claims = [

@@ -1,55 +1,32 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { publicMetadata, publicBreadcrumb } from "@/lib/seo/pages";
 import { JsonLd } from "@/components/seo/json-ld";
-import { PublicShell } from "@/components/public/public-shell";
-import { ButtonLink } from "@/components/public/site-ui";
-import { CONTACT_EMAIL, MAIL } from "@/components/public/marketing";
+import Link from "next/link";
+import { Mail } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
+import { CONTACT_EMAIL, TextPage } from "@/components/public/public-shell";
 
 export const metadata: Metadata = publicMetadata({ canonical: "/kontakt" });
 
-/** Contact by e-mail only (there is no contact form or contact API; behaviour unchanged). */
 export default function KontaktPage() {
   return (
-    <PublicShell>
+    <TextPage title={<>Wir freuen uns auf Ihre <span className="marker">Nachricht</span></>} intro="Fragen, Feedback oder ein Pilot für Ihre Schule? Schreiben Sie uns, wir antworten in der Regel innert weniger Werktage.">
       <JsonLd data={publicBreadcrumb("/kontakt")} />
-      <section aria-labelledby="kontakt-h" className="s-hero">
-        <div className="s-wrap s-narrow">
-          <span className="s-kicker">Kontakt</span>
-          <h1 id="kontakt-h" className="s-h1 s-h1-sm">Kontakt</h1>
-          <p className="s-lead">Eine E-Mail genügt, oder ruf uns an. Wir antworten in der Regel innert weniger Werktage.</p>
-          <ul className="s-boxes" style={{ marginTop: 48 }}>
-            <li>
-              <h2 className="s-h3">E-Mail</h2>
-              <p className="s-text"><a className="s-link" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
-              <div className="s-actions" style={{ marginTop: 16 }}><ButtonLink href={`mailto:${CONTACT_EMAIL}`}>E-Mail schreiben</ButtonLink></div>
-            </li>
-            <li>
-              <h2 className="s-h3" id="telefon-adresse">Telefon und Adresse</h2>
-              <p className="s-text">Telefon: <a className="s-link" href="tel:+41795041005">+41 79 504 10 05</a></p>
-              <address className="s-text" style={{ fontStyle: "normal" }}>Wendico KLG<br />Im Hofacker 3<br />8478 Gütighausen<br />Schweiz</address>
-            </li>
-            <li>
-              <h2 className="s-h3">Für Schulen</h2>
-              <p className="s-text">Möchten Sie WendApply kennenlernen? Wir zeigen es Ihnen live und besprechen einen Pilot.</p>
-              <div className="s-actions" style={{ marginTop: 16 }}>
-                <ButtonLink href={MAIL.demo} variant="secondary">Demo vereinbaren</ButtonLink>
-                <ButtonLink href={MAIL.pilot} variant="ghost">Pilot anfragen</ButtonLink>
-              </div>
-            </li>
-            <li>
-              <h2 className="s-h3">Hilfe zur App</h2>
-              <p className="s-text">Probleme bei der Anmeldung oder mit der App? In der Hilfe findest du die häufigsten Lösungen.</p>
-              <div className="s-actions" style={{ marginTop: 16 }}><ButtonLink href="/hilfe" variant="secondary">Zur Hilfe</ButtonLink></div>
-            </li>
-            <li>
-              <h2 className="s-h3">Datenschutz</h2>
-              <p className="s-text">Fragen zum Datenschutz oder zur Löschung von Daten: siehe <Link className="s-link" href="/datenschutz">Datenschutzerklärung</Link>.</p>
-            </li>
-          </ul>
-          <p className="s-small" style={{ marginTop: 32 }}>Anbieterin: Wendico KLG, Gütighausen. Siehe <Link className="s-link" href="/impressum">Impressum</Link>.</p>
-        </div>
-      </section>
-    </PublicShell>
+      <div className="panel max-w-md p-6">
+        <h2 className="text-heading">E-Mail</h2>
+        <p className="mt-1"><a className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline underline-offset-4 [overflow-wrap:anywhere]" href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a></p>
+        <ButtonLink href={`mailto:${CONTACT_EMAIL}`} className="mt-4" icon={<Mail size={16} aria-hidden />}>E-Mail schreiben</ButtonLink>
+      </div>
+      <section aria-labelledby="telefon-adresse"><h2 id="telefon-adresse" className="text-heading">Telefon und Adresse</h2>
+        <p className="mt-2">Telefon: <a className="text-[var(--brand)] underline underline-offset-4" href="tel:+41795041005">+41 79 504 10 05</a></p>
+        <address className="mt-2 not-italic text-muted">Wendico KLG<br />Im Hofacker 3<br />8478 Gütighausen<br />Schweiz</address></section>
+      <section aria-labelledby="anliegen"><h2 id="anliegen" className="text-heading">Wofür Sie uns schreiben können</h2>
+        <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted marker:text-[var(--brand)]">
+          <li>Pilot für Ihre Schule: <Link className="underline underline-offset-4" href="/schulen">Für Schulen</Link></li>
+          <li>Probleme bei der Anmeldung oder mit der App: zuerst <Link className="underline underline-offset-4" href="/hilfe">Hilfe</Link>, dann gerne per E-Mail</li>
+          <li>Fragen zum Datenschutz oder Löschung von Daten: <Link className="underline underline-offset-4" href="/datenschutz">Datenschutzerklärung</Link></li>
+        </ul></section>
+      <p className="text-small text-muted">Anbieterin: siehe <Link className="underline underline-offset-4" href="/impressum">Impressum</Link>.</p>
+    </TextPage>
   );
 }

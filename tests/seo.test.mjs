@@ -57,7 +57,7 @@ test("page metadata: canonical, index, Open Graph de_CH with 1200x630 image, Twi
   assert.equal(publicMetadata({ canonical: "/familien" }).openGraph.images[0].url, "/og/og-familien.png");
   assert.equal(publicMetadata({ canonical: "/" }).openGraph.images[0].url, "/og/og-default.png");
   assert.deepEqual(publicMetadata({ canonical: "/" }).title, { absolute: PAGE_SEO["/"].title });
-  assert.match(PAGE_SEO["/preise"].description, new RegExp(`CHF ${Math.min(...PACKAGES.map((p) => p.pricePerYear))}`));
+  assert.match(PAGE_SEO["/preise"].title, new RegExp(`CHF ${Math.min(...PACKAGES.map((p) => p.pricePerYear))}`));
 });
 
 test("root layout: metadataBase, de-CH, noindex by default; 404 is noindex", () => {

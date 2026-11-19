@@ -9,8 +9,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { OFFER } from "./offer.ts";
-import { CONTACT_EMAIL, PACKAGES } from "../../components/public/marketing.ts";
-import { PLANS } from "../billing/plans.ts";
+import { CONTACT_EMAIL } from "../../components/public/marketing.ts";
 
 export const SITE_URL = "https://wendapply.ch";
 export const SITE_NAME = "WendApply";
@@ -109,43 +108,6 @@ export function softwareApplicationJsonLd() {
       url: abs(OFFER.url),
       availability: "https://schema.org/InStock",
     },
-  };
-}
-
-/** One Offer per plan and billing interval, prices read from the catalogue (lib/billing/plans.ts). No VAT wording (not registered). */
-function planOffer(name: string, price: number, unit: "MON" | "ANN", description: string) {
-  return {
-    "@type": "Offer",
-    name,
-    description,
-    price: price.toFixed(2),
-    priceCurrency: "CHF",
-    url: abs("/preise"),
-    availability: "https://schema.org/InStock",
-    priceSpecification: { "@type": "UnitPriceSpecification", price: price.toFixed(2), priceCurrency: "CHF", unitCode: unit, unitText: unit === "MON" ? "Monat" : "Jahr" },
-  };
-}
-
-/** /preise: the app with every public price (Einzelabo, Familienpaket, school packages) as an offer list. */
-export function pricingJsonLd() {
-  const solo = PLANS.solo, family = PLANS.family;
-  const offers = [
-    planOffer(`${solo.name} pro Monat`, solo.priceChfPerMonth ?? 0, "MON", "1 Schülerkonto, monatlich kündbar auf Ende der Laufzeit."),
-    planOffer(`${solo.name} pro Jahr`, solo.priceChfPerYear ?? 0, "ANN", "1 Schülerkonto, jährliche Zahlung."),
-    planOffer(`${family.name} pro Monat`, family.priceChfPerMonth ?? 0, "MON", "1 Schülerkonto und 1 Elternkonto."),
-    planOffer(`${family.name} pro Jahr`, family.priceChfPerYear ?? 0, "ANN", "1 Schülerkonto und 1 Elternkonto, jährliche Zahlung."),
-    ...PACKAGES.map((p) => planOffer(`Schullizenz ${p.name}`, p.pricePerYear, "ANN", `Für Schulen, bis ${p.maxStudents} Schülerinnen und Schüler, Lehrpersonen inbegriffen.`)),
-  ];
-  return {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "@id": APP_ID,
-    name: SITE_NAME,
-    url: SITE_URL,
-    applicationCategory: "EducationalApplication",
-    operatingSystem: "Web, iOS, Android (PWA)",
-    publisher: { "@id": ORG_ID },
-    offers,
   };
 }
 

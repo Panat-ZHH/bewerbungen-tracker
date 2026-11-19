@@ -15,7 +15,7 @@ export const metadata: Metadata = publicMetadata({ canonical: "/hilfe" });
 const online = onlinePaymentEnabled();
 const SOLO = { name: PLANS.solo.name, month: formatChf(PLANS.solo.priceChfPerMonth ?? 0), year: formatChf(PLANS.solo.priceChfPerYear ?? 0) };
 
-const link = "s-link";
+const link = "font-medium text-[var(--brand)] underline underline-offset-4";
 
 const groups: { id: string; title: string; items: FaqItem[] }[] = [
   { id: "schueler", title: "Erste Schritte für Schülerinnen und Schüler", items: [
@@ -40,7 +40,7 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
     { q: "Sehen Mitschülerinnen und Mitschüler meine Bewerbungen?", a: "Nein. Klassenziele und Klassendorf zeigen keine vertraulichen Bewerbungsdetails. Lehrpersonen sehen nur, was du für die Klasse freigibst." },
   ] },
   { id: "familien", title: "Familien und Eltern", items: [
-    { q: "Gibt es WendApply auch für Familien?", a: <>Ja. Das {FAMILY.name} für 1 Elternteil und 1 Kind kostet {FAMILY.priceMonthText} pro Monat oder {FAMILY.priceYearText} pro Jahr. Ein Elternteil bucht es, dann gilt es auch für das Kind. Mehr unter <Link className={link} href="/familien">Für Eltern</Link>.</> },
+    { q: "Gibt es WendApply auch für Familien?", a: <>Ja. Das {FAMILY.name} für 1 Elternteil und 1 Kind kostet {FAMILY.priceMonthText} pro Monat oder {FAMILY.priceYearText} pro Jahr. Ein Elternteil bucht es, dann gilt es auch für das Kind. Mehr unter <Link className={link} href="/familien">Für Familien</Link>.</> },
     { q: "Was sehen Eltern?", a: "Nur das, was das Kind freigibt: standardmässig Fortschritt und Dorf, die Bewerbungsliste nur auf Wunsch. Notizen und Dokumente bleiben privat. Das Kind kann das Teilen jederzeit beenden." },
     { q: "Braucht es eine Einwilligung der Eltern?", a: "Für Kinder unter 16 ja, bevor etwas mit dem Elternkonto geteilt wird. Die App selbst kann das Kind auch ohne Einwilligung nutzen." },
   ] },
@@ -59,13 +59,12 @@ const groups: { id: string; title: string; items: FaqItem[] }[] = [
 
 export default function HilfePage() {
   return (
-    <TextPage title="Hilfe zur App" intro="Antworten auf die wichtigsten Fragen zur Arbeit mit WendApply. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
+    <TextPage title={<>Häufige <span className="marker">Fragen</span></>} intro="Antworten auf die wichtigsten Fragen. Nichts gefunden? Dann schreib uns über die Seite Kontakt.">
       <JsonLd data={publicBreadcrumb("/hilfe")} />
       <JsonLd data={faqJsonLd(groups.flatMap((g) => g.items))} />
-      <p className="s-note">Fragen vor der Anmeldung? Die <Link className={link} href="/faq">häufigen Fragen</Link> beantworten Kosten, Testwoche und Datenschutz.</p>
-      <p className="s-note">Neu hier? Die <Link className={link} href="/anleitung">Schritt-für-Schritt-Anleitung</Link> erklärt alle Funktionen und wie du WendApply als App installierst. Schon ein Konto? <Link className={link} href="/dashboard?tour=1" prefetch={false}>Tour in der App wiederholen</Link></p>
-      <nav aria-label="Themen" className="s-chips">
-        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="s-chip">{g.title.replace("Erste Schritte für ", "Start: ").replace("Schulen, Preise und Pilot", "Schulen und Preise")}</a>)}
+      <p className="panel-flat px-4 py-3.5 text-[15px]">Neu hier? Die <Link className={link} href="/anleitung">Schritt-für-Schritt-Anleitung</Link> erklärt alle Funktionen und wie du WendApply als App installierst. Schon ein Konto? <Link className={link} href="/dashboard?tour=1">Tour in der App wiederholen</Link></p>
+      <nav aria-label="Themen" className="flex flex-wrap gap-2">
+        {groups.map((g) => <a key={g.id} href={`#${g.id}`} className="inline-flex min-h-10 items-center rounded-full border-[length:var(--border-w)] border-[var(--outline)] bg-[var(--surface)] px-3.5 text-[13px] font-semibold hover:bg-[var(--sun)] hover:text-[var(--on-sun)] pointer-coarse:min-h-11">{g.title.replace("Erste Schritte für ", "Start: ").replace("Schulen, Preise und Pilot", "Schulen und Preise")}</a>)}
       </nav>
       {groups.map((g) => (
         <section key={g.id} id={g.id} aria-labelledby={`${g.id}-h`} className="scroll-mt-24">

@@ -17,8 +17,8 @@ function maySignIn(): boolean {
 
 /**
  * Renders nothing. Signed-in visitors of "/" are sent to their role's home (dashboard / teacher area); logged-out visitors stay.
- * The Supabase client and the role rules are dynamic imports, loaded only when a session is possible, so first-time visitors
- * of the landing page do not download and run them (mobile LCP / TBT).
+ * The Supabase client is loaded only when a session is possible, so first-time visitors of the landing page do not download
+ * and run it (mobile LCP / TBT).
  */
 export function AuthRedirect() {
   const router = useRouter();
