@@ -67,3 +67,22 @@ export function clearConfirmRecord(): void {
   memoryConfirm = null;
   try { store("session")?.removeItem(FUNNEL_CONFIRM_KEY); } catch { /* ignore */ }
 }
+
+// ---- «Mit Google weiter» started in the funnel (QA-ONB-2 N1, sessionStorage only) ----
+// The funnel's own Google button writes `startedAt` of the copy it signs up with; /login's Google button removes it. sessionStorage
+// survives the same-tab OAuth round trip and is per tab, so another person's /login tab never carries it. No memory fallback on
+// purpose: blocked storage = no marker = the local copy is not trusted for a new Google account (privacy first).
+export const FUNNEL_OAUTH_KEY = "wendapply.funnel.oauth";
+export function markFunnelOAuth(startedAt: number): void {
+  try { store("session")?.setItem(FUNNEL_OAUTH_KEY, String(startedAt)); } catch { /* blocked: no marker */ }
+}
+/** The marker value (a startedAt) or null. */
+export function readFunnelOAuth(): number | null {
+  let raw: string | null = null;
+  try { raw = store("session")?.getItem(FUNNEL_OAUTH_KEY) ?? null; } catch { raw = null; }
+  if (raw === null || !/^\d{1,16}$/.test(raw)) return null;
+  return Number(raw);
+}
+export function clearFunnelOAuth(): void {
+  try { store("session")?.removeItem(FUNNEL_OAUTH_KEY); } catch { /* ignore */ }
+}

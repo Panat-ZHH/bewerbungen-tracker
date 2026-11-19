@@ -213,8 +213,10 @@ test("apply: own local copy (Google: account created after the funnel started) s
     updateUser: async (attrs) => { updates.push(attrs); return { data: { user: null }, error: null }; },
   };
   st.writeFunnelState(validState());
+  st.markFunnelOAuth(st.readFunnelState().startedAt); // «Mit Google weiter» in the funnel of this tab (QA-ONB-2 N1)
   const out = await ap.applyFunnelIfPending({ user: { id: "u1", created_at: createdNow(), user_metadata: {} } });
   assert.equal(out.status, "applied"); assert.equal(out.redirect, "/classes/join/KLASSE1?next=%2Fdashboard");
+  assert.equal(st.readFunnelOAuth(), null, "marker removed once the call has an answer");
   assert.equal(calls[0][0], "funnel_apply"); assert.equal(calls[0][1].p_answers.firstName, "Lea"); assert.equal("classCode" in calls[0][1].p_answers, false);
   assert.equal(updates[0].data.wa_funnel, null); assert.equal(updates[0].data.role, "student"); assert.equal(updates[0].data.role_confirmed, true);
   assert.equal(updates[0].data.class_code_asked, true, "Google pupil: the funnel asked the Klasse step → never /onboarding/klasse again (fix-test A2)");
@@ -236,9 +238,11 @@ test("apply: half-finished local copy without metadata is dropped, not sent; err
   assert.deepEqual(await ap.applyFunnelIfPending({ user: { id: "u1", user_metadata: {} } }), { status: "none" });
   assert.equal(calls.length, 0); assert.equal(st.readFunnelState(), null);
   st.writeFunnelState(validState());
+  st.markFunnelOAuth(st.readFunnelState().startedAt);
   const out = await ap.applyFunnelIfPending({ user: { id: "u1", created_at: createdNow(), user_metadata: {} } });
   assert.equal(out.status, "error"); assert.equal(out.kind, "rate_limit");
   assert.ok(st.readFunnelState(), "kept for the retry");
+  assert.equal(st.readFunnelOAuth(), st.readFunnelState().startedAt, "marker kept for the retry");
   assert.equal(ap.applyErrorKind({ message: "INVALID_FUNNEL", details: "firstName" }), "invalid");
 });
 
@@ -265,44 +269,87 @@ test("M1 pickFunnelSource: metadata wins (server copy, local ignored); no metada
   assert.deepEqual(ap.pickFunnelSource({ hasMeta: true, local: lena, createdAt: iso(t0 + 300_000), explicit: false }), { kind: "server", ownLocal: true });
   assert.deepEqual(ap.pickFunnelSource({ hasMeta: true, local: null, createdAt: iso(t0), explicit: false }), { kind: "server", ownLocal: false });
   assert.equal(ap.pickFunnelSource({ hasMeta: true, local: lena, createdAt: iso(t0), explicit: false, skipped: true, role: "staff" }).kind, "server");
-  // no metadata: account older than the funnel (Ben, 3 days) → the local copy is never sent (p_answers null; cleared after)
-  assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 3 * 86400000), explicit: false }), { kind: "server", ownLocal: false });
-  // boundary: 60 s slack (clock skew between browser and GoTrue)
-  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 60_000), explicit: false }).kind, "local");
-  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 60_001), explicit: false }).kind, "server");
-  // Google sign-up after the funnel (even days later) → own copy
-  const g = ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 + 2 * 86400000), explicit: false });
+  // no metadata, no funnel-OAuth marker: account older than the funnel (Ben, 3 days) → nothing sent, the copy is dropped
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 3 * 86400000), explicit: false }), { kind: "none", clearLocal: true });
+  // marker + boundary: 60 s slack (clock skew between browser and GoTrue); marker + older account → server (not_new notice)
+  const fromFunnel = { hasMeta: false, local: lena, explicit: false, oauthFromFunnel: true };
+  assert.equal(ap.pickFunnelSource({ ...fromFunnel, createdAt: iso(t0 - 60_000) }).kind, "local");
+  assert.deepEqual(ap.pickFunnelSource({ ...fromFunnel, createdAt: iso(t0 - 60_001) }), { kind: "server", ownLocal: false });
+  // QA-ONB-2 N1 – a new Google account created after the funnel started:
+  const newAccount = iso(t0 + 2 * 86400000);
+  //   no marker (Google from /login on a shared device) → none, the foreign copy is cleared
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: newAccount, explicit: false }), { kind: "none", clearLocal: true });
+  assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: newAccount, explicit: false, oauthFromFunnel: false }), { kind: "none", clearLocal: true });
+  //   marker == startedAt (the funnel's own «Mit Google weiter») → own copy
+  const g = ap.pickFunnelSource({ ...fromFunnel, createdAt: newAccount });
   assert.equal(g.kind, "local"); assert.equal(g.payload.firstName, "Lena");
+  //   marker + old account (existing Google user who walked the funnel) → server, p_answers null → not_new notice
+  assert.deepEqual(ap.pickFunnelSource({ ...fromFunnel, createdAt: iso(t0 - 60 * 86400000) }), { kind: "server", ownLocal: false });
   // authenticated funnel (/start?nach=google, answers typed after the account existed) → own copy
   assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 86400000), explicit: true }).kind, "local");
-  // missing / bad created_at → never trust the local copy
-  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: undefined, explicit: false }).kind, "server");
-  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: "nope", explicit: false }).kind, "server");
+  // missing / bad created_at → never trust the local copy (even with the marker)
+  assert.equal(ap.pickFunnelSource({ ...fromFunnel, createdAt: undefined }).kind, "server");
+  assert.equal(ap.pickFunnelSource({ ...fromFunnel, createdAt: "nope" }).kind, "server");
+  assert.equal(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: undefined, explicit: false }).kind, "none");
   // skipped outside the authenticated funnel with a foreign copy → nothing
   assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: lena, createdAt: iso(t0 - 86400000), explicit: false, skipped: true, role: "staff" }), { kind: "none", clearLocal: true });
   assert.deepEqual(ap.pickFunnelSource({ hasMeta: false, local: null, createdAt: iso(t0), explicit: false }), { kind: "none", clearLocal: false });
 });
 
-test("M1 apply: Ben (3 days, no metadata) on Lena's computer → only p_answers null, Lena's copy gone, role/metadata untouched", async () => {
+test("M1 apply: Ben (3 days, no metadata) on Lena's computer → no call, Lena's copy gone, role/metadata untouched", async () => {
   const calls = []; const updates = [];
   globalThis.__supabaseStub = { rpc: async (n, a) => { calls.push(a); return { data: { applied: false, reason: "no_answers", role: "student" }, error: null }; }, updateUser: async (x) => { updates.push(x); return { data: {}, error: null }; } };
   st.writeFunnelState({ ...validState(), firstName: "Lena" });
   const ben = { id: "ben", created_at: new Date(Date.now() - 3 * 86400000).toISOString(), user_metadata: { role: "student" } };
   assert.equal(ap.hasPendingFunnel(ben), true, "the copy triggers the call that clears it");
   const out = await ap.applyFunnelIfPending({ user: ben });
-  assert.equal(out.status, "skipped"); assert.equal(out.result.reason, "no_answers");
-  assert.deepEqual(calls, [{ p_answers: null }]); assert.equal(updates.length, 0, "no role/metadata update");
+  assert.deepEqual(out, { status: "none" });
+  assert.deepEqual(calls, []); assert.equal(updates.length, 0, "no role/metadata update");
   assert.equal(st.readFunnelState(), null);
   assert.equal(ap.hasPendingFunnel(ben), false);
   // staff variant (A2): never role staff on the wire
   st.writeFunnelState({ ...v.emptyFunnelState(), role: "staff", staffAccess: "licence" });
   await ap.applyFunnelIfPending({ user: ben });
-  assert.deepEqual(calls[1], { p_answers: null });
-  // an old Google account (60 days) that walked the funnel: not_new → the «schon ein Konto» notice still works
+  assert.deepEqual(calls, []);
+  // an old Google account (60 days) that walked the funnel and pressed its «Mit Google weiter» (marker): not_new → the
+  // «schon ein Konto» notice still works
   globalThis.__supabaseStub.rpc = async (n, a) => { calls.push(a); return { data: { applied: false, reason: "not_new", role: "student" }, error: null }; };
   st.writeFunnelState(validState());
+  st.markFunnelOAuth(st.readFunnelState().startedAt);
   const old = await ap.applyFunnelIfPending({ user: { id: "old", created_at: "2026-09-01T00:00:00Z", user_metadata: {} } });
-  assert.equal(old.status, "skipped"); assert.equal(old.result.reason, "not_new"); assert.equal(calls[2].p_answers, null);
+  assert.equal(old.status, "skipped"); assert.equal(old.result.reason, "not_new"); assert.deepEqual(calls, [{ p_answers: null }]);
+  assert.equal(st.readFunnelOAuth(), null);
+});
+
+test("N1 apply: brand-new Google account via /login on a device with Lena's complete copy → no call, copy + stale marker cleared", async () => {
+  const calls = []; const updates = [];
+  globalThis.__supabaseStub = { rpc: async (n, a) => { calls.push(a); return { data: { applied: true, role: "student", role_mismatch: false, under_16: true }, error: null }; }, updateUser: async (x) => { updates.push(x); return { data: {}, error: null }; } };
+  const stranger = { id: "new", created_at: createdNow(), user_metadata: {} };
+  // no marker (the /login Google button removes it)
+  st.writeFunnelState({ ...validState(), firstName: "Lena" });
+  assert.deepEqual(await ap.applyFunnelIfPending({ user: stranger }), { status: "none" });
+  assert.deepEqual(calls, []); assert.deepEqual(updates, []); assert.equal(st.readFunnelState(), null);
+  // a marker from another funnel copy (other startedAt) is not this copy's OAuth either
+  st.writeFunnelState({ ...validState(), firstName: "Lena" });
+  st.markFunnelOAuth(st.readFunnelState().startedAt - 1);
+  assert.deepEqual(await ap.applyFunnelIfPending({ user: stranger }), { status: "none" });
+  assert.deepEqual(calls, []); assert.equal(st.readFunnelState(), null); assert.equal(st.readFunnelOAuth(), null, "stale marker removed");
+  // staff copy: same
+  st.writeFunnelState({ ...v.emptyFunnelState(), role: "staff", staffAccess: "licence" });
+  assert.deepEqual(await ap.applyFunnelIfPending({ user: stranger }), { status: "none" });
+  assert.deepEqual(calls, []);
+});
+
+test("N1 storage: funnel-OAuth marker round trip; junk ignored; blocked storage → no marker", () => {
+  assert.equal(st.FUNNEL_OAUTH_KEY, "wendapply.funnel.oauth");
+  st.markFunnelOAuth(1763546400000); assert.equal(window.sessionStorage.getItem("wendapply.funnel.oauth"), "1763546400000");
+  assert.equal(st.readFunnelOAuth(), 1763546400000);
+  st.clearFunnelOAuth(); assert.equal(st.readFunnelOAuth(), null);
+  window.sessionStorage.setItem("wendapply.funnel.oauth", "1e12"); assert.equal(st.readFunnelOAuth(), null);
+  window.sessionStorage.setItem("wendapply.funnel.oauth", ""); assert.equal(st.readFunnelOAuth(), null);
+  const saved = globalThis.window;
+  globalThis.window = { get localStorage() { throw new Error("SecurityError"); }, get sessionStorage() { throw new Error("SecurityError"); } };
+  try { st.markFunnelOAuth(5); assert.equal(st.readFunnelOAuth(), null); st.clearFunnelOAuth(); } finally { globalThis.window = saved; }
 });
 
 test("M1 apply: account with its own metadata copy + someone else's local copy → p_answers null, no local redirect/goal from the foreign copy", async () => {
