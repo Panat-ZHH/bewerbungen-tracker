@@ -19,6 +19,7 @@ import { AuthBrand } from "@/components/onboarding/auth-frame";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleTrail } from "@/components/ui/doodles";
 import { toast } from "@/lib/toast";
 import { applyPending, callbackUrl } from "@/components/funnel/store";
+import { clearFunnelOAuth } from "@/lib/funnel/storage";
 import { ALREADY_ACCOUNT_TOAST } from "@/components/funnel/saving";
 
 /** `/start` with the safe `?next=` (the funnel is the only way to create an account, SPEC-FLOW D3). */
@@ -119,6 +120,8 @@ export default function LoginPage() {
     setError(""); setSuccess("");
     // A new Google account without funnel answers is sent to /start?schritt=rolle&nach=google by resolveLanding (SPEC-FLOW D4).
     clearPendingSignup();
+    // Google from /login is never «from the funnel»: a funnel copy on this device (maybe someone else's) is not applied (QA-ONB-2 N1).
+    clearFunnelOAuth();
     setLoading(true);
     try {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: callbackUrl(next) } });

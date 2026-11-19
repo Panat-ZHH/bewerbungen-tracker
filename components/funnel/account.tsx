@@ -17,6 +17,7 @@ import { PROFESSION_SUGGESTIONS } from "@/lib/onboarding-core";
 import { cantonByCode } from "@/lib/geo/cantons";
 import { FAMILY } from "@/components/public/marketing";
 import type { FunnelStateV1 } from "@/lib/funnel/types";
+import { markFunnelOAuth } from "@/lib/funnel/storage";
 import { emailError, mayNeedParentalConsent, planRows, planSummaryLine, signupChoiceOf, type StepSlug } from "./funnel-core";
 import { buildPayload, callbackUrl, readConfirmRecord, saveFunnelState, writeConfirmRecord } from "./store";
 
@@ -151,6 +152,8 @@ export function AccountScreen({ state, onSession }: { state: FunnelStateV1; onSe
     setBusy("google"); setErrors({});
     saveFunnelState(state);
     storePendingSignup(choice, state.birthYear);
+    // This tab's OAuth comes from this funnel copy (QA-ONB-2 N1): only then may a new Google account take the local answers.
+    markFunnelOAuth(state.startedAt);
     try {
       const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: callbackUrl(state.next) } });
       if (error) { setBusy(""); setErrors({ form: networkOr(error) }); }

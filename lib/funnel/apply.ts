@@ -1,6 +1,7 @@
 // Saves the funnel answers once a session exists (SPEC-DATA §3.1 step 6, §3.3). Owner: onb-data.
-// Shared computers (QA-ONB M1): a local copy is only ever sent for an account that has no sign-up copy of its own and was created
-// after that funnel started; everything else uses the account's own server copy or nothing (pickFunnelSource).
+// Shared computers (QA-ONB M1, QA-ONB-2 N1): a local copy is only ever sent for an account that has no sign-up copy of its own,
+// whose Google sign-in was started from that very funnel copy in this tab and that was created after that funnel started (or by
+// the signed-in user's own click in /start?…&nach=google); everything else uses the account's own server copy or nothing.
 // Runs in /auth/callback (before resolveLanding, with the saving UI), /login after a password login, the `nach=google`
 // final screen and once per app start (only when a local copy or the metadata copy `wa_funnel` exists – zero cost otherwise).
 // Idempotent: funnel_apply applies once per account; a second call returns already_done.
@@ -12,7 +13,7 @@ import { writeGoal } from "@/lib/rewards-core";
 import { PENDING_SIGNUP_KEY } from "@/lib/family-core";
 import type { ApplyOutcome, FunnelApplyResult, FunnelPayloadV1, FunnelStateV1 } from "./types.ts";
 import { toPayload, validatePayload } from "./validate.ts";
-import { clearConfirmRecord, clearFunnelState, readFunnelState } from "./storage.ts";
+import { clearConfirmRecord, clearFunnelOAuth, clearFunnelState, readFunnelOAuth, readFunnelState } from "./storage.ts";
 import { funnelRedirect } from "./next.ts";
 
 /** Same key as lib/onboarding.ts PREFILL_KEY (not imported: lib/onboarding imports lib/role, which imports this lazily). */
@@ -73,15 +74,17 @@ function applyLocally(state: FunnelStateV1 | null, payload: FunnelPayloadV1 | nu
 export const LOCAL_COPY_SLACK_MS = 60_000;
 
 /**
- * Which copy of the answers is sent (QA-ONB M1 – shared computer). Pure, unit-tested.
+ * Which copy of the answers is sent (QA-ONB M1 + QA-ONB-2 N1 – shared computer). Pure, unit-tested.
  * - The account has its own sign-up copy (`wa_funnel` metadata) → always the server copy (`p_answers: null`); the local copy
  *   is ignored (it may be another person's) and cleared after the call.
- * - No metadata (Google sign-up): the local copy only if the account was created after this funnel started
- *   (`created_at >= startedAt − 60 s`), or if `explicit` = the signed-in user is pressing «Plan speichern» / «Überspringen»
- *   in the authenticated funnel right now (`/start?…&nach=google`, answers typed after the account existed). Otherwise the
- *   local copy is never sent: the call goes out with `p_answers: null` (the server has no copy of this account → nothing is
- *   applied; an older account answers not_new / already_done, which keeps the «Du hast schon ein Konto» notice of the Google
- *   path, SPEC-DATA §3.2) and the local copy is cleared afterwards.
+ * - No metadata (Google): the local copy only if `explicit` = the signed-in user is pressing «Plan speichern» / «Überspringen»
+ *   in the authenticated funnel right now (`/start?…&nach=google`), or if `oauthFromFunnel` = this tab started «Mit Google
+ *   weiter» in the funnel with exactly this copy (sessionStorage marker == `local.startedAt`) AND the account was created
+ *   after this funnel started (`created_at >= startedAt − 60 s`).
+ *   - Marker, but an older account (an existing Google user who walked the funnel) → `server` with `p_answers: null`: nothing
+ *     is applied, the server answers not_new / already_done → «Du hast schon ein Konto» notice (SPEC-DATA §3.2).
+ *   - No marker (Google from /login, a stranger's abandoned copy on this device) → `none` + clear the copy: nothing is sent,
+ *     and a new role-less account goes to `/start?schritt=rolle&nach=google`, which starts empty.
  * `ownLocal` = the local copy may drive the redirect after the save (class code, family step, invite).
  */
 export type FunnelSource =
@@ -91,13 +94,15 @@ export type FunnelSource =
 
 export function pickFunnelSource(input: {
   hasMeta: boolean; local: FunnelStateV1 | null; createdAt: string | null | undefined; explicit: boolean;
-  skipped?: boolean; role?: FunnelStateV1["role"];
+  oauthFromFunnel?: boolean; skipped?: boolean; role?: FunnelStateV1["role"];
 }): FunnelSource {
   const { hasMeta, local, explicit } = input;
+  const oauthFromFunnel = input.oauthFromFunnel === true;
   const created = Date.parse(input.createdAt ?? "");
   const localIsOlderThanAccount = !!local && Number.isFinite(created) && created >= local.startedAt - LOCAL_COPY_SLACK_MS;
-  const ownLocal = !!local && (explicit || localIsOlderThanAccount);
-  if (hasMeta) return { kind: "server", ownLocal };
+  // With its own metadata copy the local copy only steers the redirect (unchanged from M1).
+  if (hasMeta) return { kind: "server", ownLocal: !!local && (explicit || localIsOlderThanAccount) };
+  const ownLocal = !!local && (explicit || (oauthFromFunnel && localIsOlderThanAccount));
   if (input.skipped) {
     // «Überspringen» on the cross-device notice: an explicit action of the signed-in user (role only).
     if (!explicit && !ownLocal) return { kind: "none", clearLocal: !!local };
@@ -108,8 +113,9 @@ export function pickFunnelSource(input: {
   const payload = toPayload(local);
   // A local copy that is not complete/valid (abandoned half-way) is not sent – and needs no call at all.
   if (!payload || !validatePayload(payload).ok) return { kind: "none", clearLocal: true };
-  if (!ownLocal) return { kind: "server", ownLocal: false };
-  return { kind: "local", payload, ownLocal: true };
+  if (ownLocal) return { kind: "local", payload, ownLocal: true };
+  // Funnel Google path, existing account → p_answers null (not_new notice). Anything else: a foreign copy → drop it, no call.
+  return oauthFromFunnel ? { kind: "server", ownLocal: false } : { kind: "none", clearLocal: true };
 }
 
 /** The authenticated funnel (`/start?…&nach=google`) saving on a click of the signed-in user (not an implicit login/app-start save). */
@@ -139,8 +145,12 @@ export async function applyFunnelIfPending(opts: { user?: User | null; skipped?:
   const meta = user.user_metadata as Record<string, unknown> | undefined;
   const hasMeta = !!meta?.wa_funnel && typeof meta.wa_funnel === "object";
 
-  const source = pickFunnelSource({ hasMeta, local, createdAt: user.created_at, explicit: inAuthenticatedFunnel(), skipped: opts.skipped, role: opts.role });
-  if (source.kind === "none") { if (source.clearLocal) clearLocal(); return { status: "none" }; }
+  // «Mit Google weiter» from the funnel in this tab with this very copy (QA-ONB-2 N1)? Removed once this call has an answer;
+  // kept on an error so the retry («Nochmals versuchen», next app start) still knows where the OAuth came from.
+  const marker = readFunnelOAuth();
+  const oauthFromFunnel = marker !== null && !!local && marker === local.startedAt;
+  const source = pickFunnelSource({ hasMeta, local, createdAt: user.created_at, explicit: inAuthenticatedFunnel(), oauthFromFunnel, skipped: opts.skipped, role: opts.role });
+  if (source.kind === "none") { clearFunnelOAuth(); if (source.clearLocal) clearLocal(); return { status: "none" }; }
   const payload: FunnelPayloadV1 | null = source.kind === "local" ? source.payload : null;
   const ownLocal = source.ownLocal ? local : null;
 
@@ -149,6 +159,7 @@ export async function applyFunnelIfPending(opts: { user?: User | null; skipped?:
   if (error) return { status: "error", kind: applyErrorKind(error) };
   const result = parseResult(data);
   if (!result) return { status: "error", kind: "unknown" };
+  clearFunnelOAuth();
 
   // The metadata copy is never needed again (applied or not): clear it. Routing sugar for the old role logic too.
   const serverRole = result.role === "teacher" || result.role === "school_admin" ? "teacher" : "student";

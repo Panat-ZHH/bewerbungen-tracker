@@ -11,6 +11,7 @@ import { authMessage, oauthErrorMessage, safeNextPath } from "@/lib/ux";
 import { SavingView, useFunnelSave } from "@/components/funnel/saving";
 import { loginHref } from "@/components/funnel/funnel-core";
 import { loadFunnelState } from "@/components/funnel/store";
+import { readFunnelOAuth } from "@/lib/funnel/storage";
 
 type View = { kind: "signing-in" } | { kind: "error"; message: string } | { kind: "confirmed" } | { kind: "expired" } | { kind: "saving"; plan: boolean };
 
@@ -36,8 +37,12 @@ export default function AuthCallbackPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client
     setNext(safe);
     const fail = (message: string) => { if (active) setView({ kind: "error", message }); };
-    // «Dein Plan wird gespeichert …» only when answers are waiting (local copy or the sign-up metadata copy).
-    const signedIn = (meta?: Record<string, unknown> | null) => { if (active) setView({ kind: "saving", plan: !!loadFunnelState() || !!meta?.wa_funnel }); };
+    // «Dein Plan wird gespeichert …» only when answers are waiting: the sign-up metadata copy, or a local copy whose Google
+    // sign-in started in the funnel of this tab (QA-ONB-2 N1: a foreign copy on a shared device is dropped, not saved).
+    const signedIn = (meta?: Record<string, unknown> | null) => {
+      const local = loadFunnelState();
+      if (active) setView({ kind: "saving", plan: (!!local && readFunnelOAuth() === local.startedAt) || !!meta?.wa_funnel });
+    };
 
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
     const raw = `${params.get("error_code") ?? ""} ${hash.get("error_code") ?? ""} ${params.get("error_description") ?? ""}`.toLowerCase();
