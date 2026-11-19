@@ -12,7 +12,11 @@ import { choiceToAccount, isValidBirthYear, signupMetadata, type SignupChoice } 
 import { syncPendingAccountType } from "@/lib/family";
 import { authMessage, safeNextPath } from "@/lib/ux";
 
-/** Asked once for accounts without an explicit role (e.g. first Google login). */
+/**
+ * Retired as the first-time role picker (SPEC-FLOW D4): without `?wechseln=1` it forwards to the funnel in authenticated mode
+ * (`/start?schritt=rolle&nach=google`), which asks the role once together with the plan. Still used for «Rolle ändern» (G7,
+ * `?wechseln=1` from /schullizenz and the paywall): the server refuses the switch once classes exist.
+ */
 export default function ChooseRolePage() {
   const router = useRouter();
   const [role, setRole] = useState<SignupChoice | null>(null);
@@ -25,6 +29,11 @@ export default function ChooseRolePage() {
 
   useEffect(() => {
     let alive = true;
+    if (!switching()) {
+      const target = next();
+      router.replace(`/start?schritt=rolle&nach=google${target ? `&next=${encodeURIComponent(target)}` : ""}`);
+      return () => { alive = false; };
+    }
     supabase.auth.getUser().then(({ data }) => {
       if (!alive) return;
       if (!data.user) { router.replace("/login"); return; }

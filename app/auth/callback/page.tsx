@@ -3,57 +3,94 @@
 import { AuthFrame } from "@/components/onboarding/auth-frame";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { ButtonLink } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { authMessage, oauthErrorMessage, safeNextPath } from "@/lib/ux";
-import { resolveLanding } from "@/lib/role";
+import { SavingView, useFunnelSave } from "@/components/funnel/saving";
+import { loginHref } from "@/components/funnel/funnel-core";
+import { loadFunnelState } from "@/components/funnel/store";
+
+type View = { kind: "signing-in" } | { kind: "error"; message: string } | { kind: "confirmed" } | { kind: "expired" } | { kind: "saving"; plan: boolean };
 
 /**
- * Return point of "Weiter mit Google" (redirectTo = <origin>/auth/callback?next=…).
- * This is a client page on purpose: the PKCE code verifier sits in this browser's storage, so the code can only be
- * exchanged here, not in a server route. The Supabase client exchanges ?code= itself while it initialises
- * (detectSessionInUrl); getSession() waits for that and reports its result. Doing a second exchangeCodeForSession
- * would fail because the verifier is already consumed.
+ * Return point of «Weiter mit Google» and of the confirmation e-mail (redirect = <origin>/auth/callback?next=…[&quelle=email]).
+ * Client page on purpose: the PKCE code verifier sits in this browser's storage, so the code can only be exchanged here. The
+ * Supabase client exchanges ?code= itself while it initialises (detectSessionInUrl); getSession() waits for that.
+ *
+ * New states (SPEC-DATA §3.1 step 5–6):
+ * - confirmation link opened in another browser / app (no verifier → no session, but the address IS confirmed): «bestätigt – melde dich an»;
+ * - session exists → the funnel answers are saved first («Dein Plan wird gespeichert …», retry / «Ohne Plan weiter»), then the landing.
  */
 export default function AuthCallbackPage() {
-  const router = useRouter();
-  const [error, setError] = useState("");
+  const [view, setView] = useState<View>({ kind: "signing-in" });
+  const [next, setNext] = useState<string | null>(null);
+  const saver = useFunnelSave(next, { announceExisting: true });
 
   useEffect(() => {
     let active = true;
     const params = new URLSearchParams(window.location.search);
-    const next = safeNextPath(params.get("next"));
-    const go = () => resolveLanding(next).then((path) => { if (active) router.replace(path); }).catch(() => { if (active) router.replace(next ?? "/dashboard"); });
-    const fail = (message: string) => { if (active) setError(message); };
+    const safe = safeNextPath(params.get("next"));
+    const fromEmail = params.get("quelle") === "email";
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client
+    setNext(safe);
+    const fail = (message: string) => { if (active) setView({ kind: "error", message }); };
+    // «Dein Plan wird gespeichert …» only when answers are waiting (local copy or the sign-up metadata copy).
+    const signedIn = (meta?: Record<string, unknown> | null) => { if (active) setView({ kind: "saving", plan: !!loadFunnelState() || !!meta?.wa_funnel }); };
 
-    const providerError = oauthErrorMessage(params) ?? oauthErrorMessage(new URLSearchParams(window.location.hash.replace(/^#/, "")));
-    if (providerError) { fail(providerError); return () => { active = false; }; }
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const raw = `${params.get("error_code") ?? ""} ${hash.get("error_code") ?? ""} ${params.get("error_description") ?? ""}`.toLowerCase();
+    const providerError = oauthErrorMessage(params) ?? oauthErrorMessage(hash);
+    if (providerError) {
+      if (fromEmail && /otp_expired|expired|invalid/.test(raw)) setView({ kind: "expired" });
+      else fail(providerError);
+      return () => { active = false; };
+    }
     if (!params.get("code") && !window.location.hash.includes("access_token")) {
       // Opened without a code (bookmark, reload after success, back button): fine if already signed in.
-      supabase.auth.getSession().then(({ data }) => { if (!active) return; if (data.session) go(); else fail("Die Anmeldung ist abgelaufen oder wurde nicht abgeschlossen. Bitte versuch es noch einmal."); });
+      supabase.auth.getSession().then(({ data }) => { if (!active) return; if (data.session) signedIn(data.session.user.user_metadata); else fail("Die Anmeldung ist abgelaufen oder wurde nicht abgeschlossen. Bitte versuch es noch einmal."); });
       return () => { active = false; };
     }
 
     supabase.auth.getSession().then(({ data, error: sessionError }) => {
       if (!active) return;
+      if (data.session) { signedIn(data.session.user.user_metadata); return; }
+      // E-mail link opened in another browser: GoTrue only redirects with a code after a successful verify → the address is confirmed.
+      if (fromEmail) { setView({ kind: "confirmed" }); return; }
       if (sessionError) return fail(oauthErrorMessage(`error_description=${sessionError.message}`) ?? authMessage(sessionError));
-      if (!data.session) return fail("Die Anmeldung ist abgelaufen oder wurde in einem anderen Browser gestartet. Bitte versuch es noch einmal.");
-      go();
+      fail("Die Anmeldung ist abgelaufen oder wurde in einem anderen Browser gestartet. Bitte versuch es noch einmal.");
     }).catch((reason) => fail(authMessage(reason)));
     return () => { active = false; };
-  }, [router]);
+  }, []);
+
+  const { save } = saver;
+  useEffect(() => { if (view.kind === "saving") void save(); }, [view.kind, save]);
 
   return (
     <AuthFrame className="max-w-[440px]">
-        {error ? (
-          <div className="panel space-y-4 p-5 sm:p-7">
-            <StatusMessage tone="danger">{error}</StatusMessage>
-            <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]">Zurück zur Anmeldung</Link>
-          </div>
-        ) : (
-          <div role="status" className="flex items-center gap-3"><span aria-hidden className="spinner h-5 w-5 shrink-0 text-[var(--brand)]" /><span className="font-display text-2xl font-extrabold tracking-[-.02em]">Du wirst angemeldet …</span></div>
-        )}
+      {view.kind === "error" ? (
+        <div className="panel space-y-4 p-5 sm:p-7" data-testid="callback-error">
+          <StatusMessage tone="danger">{view.message}</StatusMessage>
+          <Link href="/login" className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)]">Zurück zur Anmeldung</Link>
+        </div>
+      ) : view.kind === "confirmed" ? (
+        <div className="panel space-y-4 p-5 sm:p-7" data-testid="callback-confirmed">
+          <StatusMessage tone="success" icon={<CheckCircle2 />}>Deine E-Mail-Adresse ist bestätigt.</StatusMessage>
+          <p className="text-body">Melde dich jetzt mit deiner E-Mail-Adresse und deinem Passwort an.</p>
+          <ButtonLink href={loginHref(next) === "/login" ? "/login?anmelden=1" : loginHref(next)} size="lg" full data-testid="callback-login">Anmelden</ButtonLink>
+        </div>
+      ) : view.kind === "expired" ? (
+        <div className="panel space-y-4 p-5 sm:p-7" data-testid="callback-expired">
+          <StatusMessage tone="warning">Dieser Link ist abgelaufen oder wurde schon benutzt. Er gilt eine Stunde.</StatusMessage>
+          <p className="text-body">Melde dich mit deiner E-Mail-Adresse und deinem Passwort an. Ist deine Adresse noch nicht bestätigt, kannst du dort eine neue E-Mail anfordern.</p>
+          <ButtonLink href={loginHref(next) === "/login" ? "/login?anmelden=1" : loginHref(next)} size="lg" full data-testid="callback-login">Anmelden</ButtonLink>
+        </div>
+      ) : view.kind === "saving" ? (
+        <SavingView phase={saver.phase === "idle" ? "saving" : saver.phase} errorKind={saver.errorKind} onRetry={saver.save} onSkip={saver.skip} label={view.plan ? undefined : "Du wirst angemeldet …"} />
+      ) : (
+        <div role="status" className="flex items-center gap-3" data-testid="callback-signing-in"><span aria-hidden className="spinner h-5 w-5 shrink-0 text-[var(--brand)]" /><span className="font-display text-2xl font-extrabold tracking-[-.02em]">Du wirst angemeldet …</span></div>
+      )}
     </AuthFrame>
   );
 }
