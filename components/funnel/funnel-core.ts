@@ -106,7 +106,8 @@ export function resolveStep(requested: string | null | undefined, s: FunnelState
   const first = steps[0];
   if (!isStepSlug(requested) || !steps.includes(requested)) {
     // Slug of another path (e.g. `beruf` while the role is parent) or garbage: first unanswered required step, else the start.
-    return firstOpenStep(steps, s, steps.length, now) ?? first;
+    // If everything required is answered: the saved step when it belongs to this path, else the start.
+    return firstOpenStep(steps, s, steps.length, now) ?? (isStepSlug(s.step) && steps.includes(s.step) ? s.step : first);
   }
   const target = steps.indexOf(requested);
   return firstOpenStep(steps, s, target, now) ?? requested;

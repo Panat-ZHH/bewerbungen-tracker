@@ -179,7 +179,8 @@ export function Funnel() {
   useEffect(() => {
     if (!ready) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
-    writeTimer.current = setTimeout(() => { if (state.role || step !== "weg") saveFunnelState({ ...state, step }); }, 300);
+    // Not on `weg`: the intro must not overwrite the saved step (resume card after a reload, SPEC-FLOW §4.9).
+    writeTimer.current = setTimeout(() => { if (step !== "weg") saveFunnelState({ ...state, step }); }, 300);
     return () => { if (writeTimer.current) clearTimeout(writeTimer.current); };
   }, [ready, state, step]);
 
