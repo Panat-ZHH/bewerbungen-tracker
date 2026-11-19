@@ -122,11 +122,12 @@ test("gate: new student (no profile row) goes to the tour, ?next survives", asyn
   stubbed();
   assert.equal(await role.resolveLanding(null), "/onboarding/klasse");
   role.clearRoleCache();
+  // The old /onboarding wizard is retired (onboarding funnel 2026-11-19, SPEC-FLOW D7): the product tour runs on the dashboard.
   stubbed({ meta: { role: "student", class_code_asked: true } });
-  assert.equal(await role.resolveLanding(null), "/onboarding");
+  assert.equal(await role.resolveLanding(null), "/dashboard");
   role.clearRoleCache();
   stubbed({ meta: { role: "student", class_code_asked: true } });
-  assert.equal(await role.resolveLanding("/search?q=Koch"), "/onboarding?next=%2Fsearch%3Fq%3DKoch");
+  assert.equal(await role.resolveLanding("/search?q=Koch"), "/search?q=Koch");
   role.clearRoleCache();
   // Invite links come before the tour (FLOW G17).
   assert.equal(await role.resolveLanding("/classes/join/tok123"), "/classes/join/tok123");
@@ -146,7 +147,7 @@ test("gate: finished tour (DB) or flags go straight to the target", async () => 
 
 test("gate: old DB without the column falls back to the flags (tour once, then never again)", async () => {
   stubbed({ meta: { role: "student", class_code_asked: true }, rowError: { code: "42703", message: "column profiles.onboarding_tour_completed_at does not exist" } });
-  assert.equal(await role.resolveLanding(null), "/onboarding");
+  assert.equal(await role.resolveLanding(null), "/dashboard");
   role.clearRoleCache();
   stubbed({ meta: { role: "student", onboarding_tour_done: true }, rowError: { code: "42703", message: "x" } });
   assert.equal(await role.resolveLanding(null), "/dashboard");
@@ -160,7 +161,11 @@ test("gate: teachers and role choice are untouched", async () => {
   assert.equal(await role.resolveLanding("/dashboard"), "/teacher");
   role.clearRoleCache();
   stubbed({ meta: {} });
-  assert.equal(await role.resolveLanding("/classes/join/X"), "/auth/role?next=%2Fclasses%2Fjoin%2FX");
+  // No role, nothing known: the funnel asks (replaces /auth/role); allow-listed invite paths survive, garbage ones are dropped.
+  assert.equal(await role.resolveLanding("/classes/join/tok123"), "/start?schritt=rolle&nach=google&next=%2Fclasses%2Fjoin%2Ftok123");
+  role.clearRoleCache();
+  stubbed({ meta: {} });
+  assert.equal(await role.resolveLanding("/classes/join/X"), "/start?schritt=rolle&nach=google");
   role.clearRoleCache();
   stubbed({ meta: null });
   assert.equal(await role.resolveLanding(null), "/login");
