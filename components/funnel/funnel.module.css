@@ -72,7 +72,7 @@
 }
 /* ≥ 1024: the same CTA element sits static under the text (as before: max 360 px, 24 px above). */
 @media (min-width: 1024px) { .wegBar { max-width: 360px; padding-top: 24px; } }
-/* Server copy: hidden while a deep link (?schritt=…, ?nach=google) waits for the funnel (inline script in app/start/page.tsx). */
+/* Server copy: hidden while a deep link (?schritt=…, ?nach=google) waits for the funnel (head script in app/layout.tsx). */
 .wegSsrWait { display: none; }
 :global(html[data-funnel-deep]) .wegSsr { display: none; }
 :global(html[data-funnel-deep]) .wegSsrWait { display: flex; }

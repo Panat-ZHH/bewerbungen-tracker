@@ -104,7 +104,7 @@ export function Funnel() {
   // Only allow-listed app paths after the save (QA L2: `?next=%2F%2Fevil.example` + immediate session → /dashboard).
   const saver = useFunnelSave(funnelNextPath(next), { announceExisting: true });
 
-  // The deep-link guard of the server copy (inline script in app/start/page.tsx) is no longer needed once this runs.
+  // The deep-link guard of the server copy (head script in app/layout.tsx) is no longer needed once this runs.
   useEffect(() => { document.documentElement.removeAttribute("data-funnel-deep"); }, []);
 
   // ---- boot: saved answers, session check (logged-in people never see the funnel) ----

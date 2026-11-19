@@ -48,7 +48,7 @@ export function WegScreen({ cta, login, animate, animateSkipMs = 0, headingRef, 
         </main>
       </div>
       {ssr && (
-        // Deep link / reload on a later step (?schritt=…, ?nach=google): the inline script (page.tsx) hides this intro until the funnel runs.
+        // Deep link / reload on a later step (?schritt=…, ?nach=google): the head script (app/layout.tsx) hides this intro until the funnel runs.
         <main className={cn("flex min-h-[60dvh] items-center justify-center", styles.wegSsrWait)}>
           <p role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einen Moment …</p>
         </main>

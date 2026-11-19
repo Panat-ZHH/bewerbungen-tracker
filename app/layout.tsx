@@ -45,7 +45,10 @@ export const viewport: Viewport = {
 };
 
 // Runs before first paint so the saved theme never flashes. "system" (default) follows the OS.
-const themeScript = `try{var t=localStorage.getItem("wendapply-theme");var d=t==="dark"||((!t||t==="system")&&matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.setAttribute("data-theme","dark")}catch(e){}`;
+const themeScript = `try{var t=localStorage.getItem("wendapply-theme");var d=t==="dark"||((!t||t==="system")&&matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.setAttribute("data-theme","dark")}catch(e){}`
+  // /start deep link / reload on a later step: hide the server copy of funnel screen 0 until the client funnel runs (it removes
+  // the attribute on mount). Only full page loads of /start show that server copy, so only they need it.
+  + `try{if(location.pathname==="/start"){var q=new URLSearchParams(location.search),s=q.get("schritt");if((s&&s!=="weg")||q.get("nach")==="google")document.documentElement.setAttribute("data-funnel-deep","")}}catch(e){}`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
