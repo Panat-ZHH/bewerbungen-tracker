@@ -9,53 +9,49 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { StatusMessage } from "@/components/ui/skeleton";
-import { oauthErrorMessage, passwordHint, safeNextPath } from "@/lib/ux";
+import { oauthErrorMessage, safeNextPath } from "@/lib/ux";
 import { authErrorMessage as authMessage } from "@/lib/auth-errors";
-import { newPasswordProblem } from "@/lib/password-policy";
 import { pendingInvitePath } from "@/components/friends/shared";
-import { clearPendingSignup, isInvitePath, resolveLanding, storePendingSignup } from "@/lib/role";
+import { clearPendingSignup, isInvitePath, resolveLanding } from "@/lib/role";
 import { InviteBanner } from "@/components/onboarding/invite-banner";
-import { LoginValueProp, type LoginAudience } from "@/components/onboarding/login-value-prop";
+import { LoginValueProp } from "@/components/onboarding/login-value-prop";
 import { AuthBrand } from "@/components/onboarding/auth-frame";
-import { BirthYearField, SIGNUP_OPTIONS } from "@/components/onboarding/role-cards";
-import { familyInviteWithoutAudience, isValidBirthYear, signupMetadata, signupPreset, type SignupChoice } from "@/lib/family-core";
-import { FAMILY_COPY } from "@/lib/family-copy";
 import { DoodleArrow, DoodleBurst, DoodlePlane, DoodleTrail } from "@/components/ui/doodles";
+import { toast } from "@/lib/toast";
+import { applyPending, callbackUrl } from "@/components/funnel/store";
+import { ALREADY_ACCOUNT_TOAST } from "@/components/funnel/saving";
 
-type AuthMode = "login" | "signup";
+/** `/start` with the safe `?next=` (the funnel is the only way to create an account, SPEC-FLOW D3). */
+function startHref(next: string | null) { return next ? `/start?next=${encodeURIComponent(next)}` : "/start"; }
 
+const UNCONFIRMED = "Bestätige zuerst deine E-Mail-Adresse. Wir haben dir einen Link geschickt.";
+
+/** Login only. Creating an account happens in the funnel /start; `?mode=signup` (old links) is forwarded there. */
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<SignupChoice>("school");
-  const [birthYear, setBirthYear] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [inviteHint, setInviteHint] = useState<"parent" | "child" | "choose" | null>(null);
   const [staffNext, setStaffNext] = useState(false);
+  const [next, setNext] = useState<string | null>(null);
+  const [unconfirmed, setUnconfirmed] = useState(false);
+  const [resendAt, setResendAt] = useState(0);
+  const [resendText, setResendText] = useState("");
 
   useEffect(() => {
     // Error handed over by /auth/callback (or by Supabase directly, in the query or the hash).
     const params = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    // Family invite links: preselect the matching signup role (parent, or private student with ?fuer=kind) + a short hint.
-    const preset = signupPreset(safeNextPath(params.get("next")));
-    // Invite links are mostly opened by people without an account yet: open the signup tab (G18).
-    // `?mode=signup` (website CTA «Kostenlos testen») opens the signup tab too.
+    const safe = safeNextPath(params.get("next"));
+    // Old sign-up links (website `?mode=signup`, mails, ux-website SIGNUP_HREF): the funnel.
+    if (params.get("mode") === "signup") { router.replace(startHref(safe)); return; }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable on the client, after hydration
-    if (isInvitePath(safeNextPath(params.get("next"))) || params.get("mode") === "signup") setMode("signup");
-    if (preset) {
-      setRole(preset.choice);
-      // Invite without ?fuer=: the role stays preset (Elternteil), but the hint doesn't claim it is certain (schueler-39).
-      setInviteHint(familyInviteWithoutAudience(safeNextPath(params.get("next"))) ? "choose" : preset.hint);
-    }
+    setNext(safe);
     // Arriving from a teacher / school page: talk to school staff, not to pupils (schule-23).
-    if (/^\/(teacher|schul-admin|schullizenz)(\/|\?|#|$)/.test(safeNextPath(params.get("next")) ?? "")) setStaffNext(true);
+    if (/^\/(teacher|schul-admin|schullizenz)(\/|\?|#|$)/.test(safe ?? "")) setStaffNext(true);
     if (params.get("deleted") === "1") {
       setSuccess("Dein Konto und alle deine Daten wurden gelöscht. Danke, dass du WendApply genutzt hast.");
       window.history.replaceState(null, "", "/login");
@@ -66,25 +62,21 @@ export default function LoginPage() {
       setError(message);
       window.history.replaceState(null, "", params.get("next") ? `/login?next=${encodeURIComponent(params.get("next")!)}` : "/login");
     }
-    supabase.auth.getUser().then(({ data }) => { if (data.user) goHome(); });
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) { goHome(); return; }
+      // Invite links are mostly opened by people without an account (G18): the funnel, with the role preset from the link.
+      // `anmelden=1` = the visitor chose «Anmelden» in the funnel: stay here.
+      if (!message && isInvitePath(safe) && params.get("anmelden") !== "1") router.replace(startHref(safe));
+    });
   }, [router]); // eslint-disable-line react-hooks/exhaustive-deps -- goHome only uses router
 
-  /** Role-aware landing: teacher -> /teacher, student -> /dashboard (or the safe ?next= / a waiting class invite). */
+  /** Role-aware landing; saves pending funnel answers first (password login on the device that confirmed, SPEC-DATA §3.3). */
   async function goHome() {
     const requested = new URLSearchParams(window.location.search).get("next");
+    const outcome = await applyPending();
+    if (outcome.status === "applied" && outcome.result.role_mismatch) toast({ message: ALREADY_ACCOUNT_TOAST, tone: "info" });
+    if (outcome.status === "applied" && outcome.redirect) { router.replace(outcome.redirect); return; }
     router.replace(await resolveLanding(safeNextPath(requested) ?? pendingInvitePath()));
-  }
-
-  /** The e-mail confirmation link comes back to this origin (also on previews) and keeps the safe ?next= (e.g. an invite). */
-  function confirmRedirect() {
-    const next = safeNextPath(new URLSearchParams(window.location.search).get("next")) ?? pendingInvitePath();
-    return `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
-  }
-
-  function switchMode(nextMode: AuthMode) {
-    setMode(nextMode);
-    setError("");
-    setSuccess("");
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -92,59 +84,44 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
     setSuccess("");
-    const weak = mode === "signup" ? newPasswordProblem(password, email) : null;
-    if (weak) {
-      setError(weak);
-      setLoading(false);
-      return;
-    }
-    if (mode === "signup" && password !== confirmPassword) {
-      setError("Die Passwörter stimmen nicht überein.");
-      setLoading(false);
-      return;
-    }
-    if (mode === "signup" && role === "independent" && !isValidBirthYear(birthYear)) {
-      setError("Bitte wähle deinen Jahrgang.");
-      setLoading(false);
-      return;
-    }
+    setUnconfirmed(false);
     let result;
     try {
-      result = mode === "login"
-        ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
-        : await supabase.auth.signUp({ email: email.trim(), password, options: { data: signupMetadata(role, birthYear), emailRedirectTo: confirmRedirect() } });
+      result = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     } catch (reason) {
       setError(authMessage(reason));
       setLoading(false);
       return;
     }
     if (result.error) {
-      setError(authMessage(result.error));
-      setLoading(false);
-      return;
-    }
-    if (mode === "signup" && !result.data.session) {
-      setSuccess(role === "teacher" ? "Fast geschafft. Öffne die E-Mail von uns und bestätige dein Konto. Danach kannst du dich anmelden." : "Fast geschafft. Öffne die E-Mail von uns und bestätige dein Konto. Danach startet deine Gratis-Testwoche (7 Tage) und du kannst dich anmelden.");
+      // Only reported after a correct password: offering a resend is not enumeration (SPEC-DATA §3.10).
+      const code = (result.error as { code?: string }).code ?? "";
+      if (code === "email_not_confirmed" || /email not confirmed/i.test(result.error.message ?? "")) setUnconfirmed(true);
+      else setError(authMessage(result.error));
       setLoading(false);
       return;
     }
     await goHome();
   }
 
+  async function resendConfirmation() {
+    if (Date.now() - resendAt < 60_000) { setResendText("Bitte warte noch etwas, bevor du es noch einmal versuchst."); return; }
+    setResendAt(Date.now());
+    let limited = false;
+    try {
+      const { error: resendError } = await supabase.auth.resend({ type: "signup", email: email.trim(), options: { emailRedirectTo: callbackUrl(next, { email: true }) } });
+      limited = !!resendError && ((resendError as { status?: number }).status === 429 || /rate|too many|security purposes/i.test(resendError.message ?? ""));
+    } catch { /* same neutral text */ }
+    setResendText(limited ? "Bitte warte noch etwas, bevor du es noch einmal versuchst." : "Falls die Adresse stimmt, ist eine neue E-Mail unterwegs.");
+  }
+
   async function signInWithProvider(provider: "google") {
     setError(""); setSuccess("");
-    const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
-    // The role picked on the signup tab (or preset by a family invite) travels through the Google round trip, so a new
-    // account is never asked "Wie nutzt du WendApply?" a second time (applied once in /auth/callback via resolveLanding).
-    if (mode === "signup") {
-      if (role === "independent" && !isValidBirthYear(birthYear)) { setError("Bitte wähle deinen Jahrgang."); document.getElementById("signup-birth-year")?.focus(); return; }
-      storePendingSignup(role, birthYear);
-    } else if (signupPreset(next)) storePendingSignup(role, null);
-    else clearPendingSignup();
+    // A new Google account without funnel answers is sent to /start?schritt=rolle&nach=google by resolveLanding (SPEC-FLOW D4).
+    clearPendingSignup();
     setLoading(true);
     try {
-      const redirectTo = `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ""}`;
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo: callbackUrl(next) } });
       if (oauthError) { setError(authMessage(oauthError)); setLoading(false); }
       // On success the browser is redirected to the provider; the session is picked up on return.
     } catch (reason) { setError(authMessage(reason)); setLoading(false); }
@@ -162,10 +139,7 @@ export default function LoginPage() {
     setLoading(false);
   }
 
-  const isSignup = mode === "signup";
-  const hint = isSignup ? passwordHint(password) : null;
-  const audience: LoginAudience = staffNext || (isSignup && role === "teacher") ? "staff" : isSignup && role === "parent" ? "parent" : "student";
-  const familyHint = inviteHint === "parent" ? FAMILY_COPY.parent.signupHint : inviteHint === "child" ? FAMILY_COPY.child.signupHint : inviteHint === "choose" ? "Du wurdest in eine Familie eingeladen. Prüf unten, wer du bist: «Elternteil» oder «Schüler:in privat»." : null;
+  const audience = staffNext ? "staff" : "student";
 
   return (
     <main className="workspace-bg min-h-[100dvh] overflow-x-clip px-4 pb-10 sm:px-6">
@@ -174,12 +148,10 @@ export default function LoginPage() {
         <section className="animate-lift relative pt-4 lg:pb-16 lg:pt-0">
           <AuthBrand className="h-12 lg:h-auto" />
           <h1 className="mt-5 text-display lg:mt-12 lg:text-[clamp(3.5rem,5.4vw,4.75rem)] lg:leading-[.95] lg:tracking-[-.04em]">
-            {isSignup ? <>Konto <span className="marker">erstellen</span></> : <>Schön, dass du <span className="marker">da bist.</span></>}
+            Schön, dass du <span className="marker">da bist.</span>
             <DoodleBurst className="ml-2 inline-block h-[.5em] w-[.5em] -translate-y-[.15em] text-[var(--coral)]" />
           </h1>
           <LoginValueProp audience={audience} />
-          {/* Teachers and school admins have no trial: no «7 Tage gratis» promise for them (lehrperson-04, schule-23). */}
-          {audience !== "staff" && <span className="sticker sticker-coral tilt-l3 absolute right-1 top-5 lg:static lg:mt-10">7 Tage gratis testen</span>}
           <div className="pointer-events-none absolute -bottom-2 right-4 hidden items-end gap-1 text-[var(--brand)] lg:flex" aria-hidden>
             <DoodleTrail className="h-12 w-36" />
             <DoodlePlane className="mb-6 h-12 w-16" />
@@ -190,36 +162,15 @@ export default function LoginPage() {
           <InviteBanner />
           <DoodleArrow className="absolute -left-14 top-6 hidden h-12 w-16 text-[var(--ink)] lg:block" />
 
-          <form onSubmit={submit} className="panel space-y-5 p-5 shadow-[var(--shadow-lg)] sm:p-7">
-            {isSignup && (
-              <p className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted">
-                Schon ein Konto?
-                <Button type="button" variant="secondary" size="sm" className="min-h-11" onClick={() => switchMode("login")}>Anmelden</Button>
-              </p>
-            )}
-            {familyHint && <p role="note" data-testid="family-signup-hint" className="rounded-[var(--radius-md)] bg-[var(--info-bg)] px-3 py-2 text-sm font-semibold text-[var(--info-fg)]">{familyHint}</p>}
+          <form onSubmit={submit} className="panel space-y-5 p-5 shadow-[var(--shadow-lg)] sm:p-7" data-testid="login-form">
             {error && <StatusMessage tone="danger">{error}</StatusMessage>}
             {success && <StatusMessage tone="success" icon={<CheckCircle2 />}>{success}</StatusMessage>}
-
-            {isSignup && (
-              <fieldset>
-                <legend className="mb-2 block text-sm font-semibold">Ich bin</legend>
-                <div className="grid grid-cols-2 gap-2.5">
-                  {SIGNUP_OPTIONS.map(({ value, label, short: hint, icon: Icon }) => {
-                    const selected = role === value;
-                    return (
-                      <label key={value} className={`relative flex min-h-[76px] cursor-pointer flex-col items-start justify-center gap-0.5 rounded-[var(--radius-lg)] border-[length:var(--border-w)] p-3 transition-[transform,box-shadow,background-color] duration-150 focus-within:outline-[3px] focus-within:outline-offset-2 focus-within:outline-[var(--focus-ring)] active:translate-y-px ${selected ? "border-[var(--outline-fill)] bg-[var(--sun)] text-[var(--on-sun)] shadow-[var(--shadow-sm)]" : "border-[var(--field-border)] bg-[var(--field-bg)] hover:bg-[var(--surface-2)]"}`}>
-                        <input type="radio" name="role" value={value} checked={selected} onChange={() => setRole(value)} className="sr-only" />
-                        <span className="flex items-center gap-1.5 text-sm font-bold"><Icon size={16} strokeWidth={2.2} />{label}</span>
-                        <span className={`text-xs ${selected ? "" : "text-muted"}`}>{hint}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-                {role === "independent" && <div className="mt-3"><BirthYearField value={birthYear} onChange={setBirthYear} id="signup-birth-year" /></div>}
-                {role === "teacher" && <p role="note" className="mt-3 rounded-[var(--radius-md)] bg-[var(--info-bg)] px-3 py-2 text-small text-[var(--info-fg)]">Lehrpersonen nutzen WendApply über die Schullizenz ihrer Schule. Ohne Lizenz siehst du nach der Anmeldung, wie deine Schule dazukommt.</p>}
-                <p className="mt-3 text-small text-muted">Du verwaltest WendApply für deine Schule? <Link href="/schulen#einfuehrung" className="font-semibold text-[var(--brand)] underline underline-offset-4">So kommt WendApply an eure Schule</Link></p>
-              </fieldset>
+            {unconfirmed && (
+              <div className="space-y-2" data-testid="login-unconfirmed">
+                <StatusMessage tone="warning">{UNCONFIRMED}</StatusMessage>
+                <Button type="button" variant="secondary" size="md" onClick={resendConfirmation} data-testid="login-resend">E-Mail nochmals senden</Button>
+                <p aria-live="polite" className="text-small text-muted" data-testid="login-resend-status">{resendText}</p>
+              </div>
             )}
 
             <button type="button" onClick={() => signInWithProvider("google")} disabled={loading} className="btn-google pressable flex min-h-12 w-full items-center justify-center gap-3 rounded-full border-[length:var(--border-w)] border-[var(--outline)] px-4 text-[15px] font-semibold shadow-[var(--shadow-sm)] disabled:pointer-events-none disabled:opacity-60">
@@ -231,29 +182,22 @@ export default function LoginPage() {
             <Field label="E-Mail-Adresse" htmlFor="email">
               <Input id="email" type="email" required autoComplete="email" inputMode="email" enterKeyHint="next" autoCapitalize="none" spellCheck={false} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="du@beispiel.ch" />
             </Field>
-            <Field label="Passwort" htmlFor="password" hint={hint?.label || undefined}>
+            <Field label="Passwort" htmlFor="password">
               <div className="relative">
-                <Input id="password" enterKeyHint={isSignup ? "next" : "go"} type={showPassword ? "text" : "password"} required minLength={isSignup ? 8 : undefined} autoComplete={isSignup ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder={isSignup ? "Mindestens 8 Zeichen" : "Dein Passwort"} className="pr-12" aria-describedby={hint?.label ? "password-hint" : undefined} />
+                <Input id="password" enterKeyHint="go" type={showPassword ? "text" : "password"} required autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Dein Passwort" className="pr-12" />
                 <button type="button" onClick={() => setShowPassword((v) => !v)} aria-pressed={showPassword} aria-label={showPassword ? "Passwort verbergen" : "Passwort anzeigen"} className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-full text-muted hover:text-[var(--ink)]">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button>
               </div>
             </Field>
-            {!isSignup && <p className="-mt-3 text-right"><button type="button" onClick={forgotPassword} disabled={loading} className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)] disabled:opacity-60">Passwort vergessen?</button></p>}
-            {isSignup && (
-              <Field label="Passwort wiederholen" htmlFor="confirm-password">
-                <Input id="confirm-password" enterKeyHint="go" type="password" required minLength={8} autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} />
-              </Field>
-            )}
+            <p className="-mt-3 text-right"><button type="button" onClick={forgotPassword} disabled={loading} className="inline-flex min-h-11 items-center px-1 text-sm font-semibold text-[var(--brand)] underline decoration-2 underline-offset-4 hover:text-[var(--brand-strong)] disabled:opacity-60">Passwort vergessen?</button></p>
 
             <Button type="submit" size="lg" full loading={loading}>
-              {loading ? "Einen Moment …" : isSignup ? "Konto erstellen" : "Anmelden"}{!loading && <ArrowRight size={16} strokeWidth={2.4} />}
+              {loading ? "Einen Moment …" : "Anmelden"}{!loading && <ArrowRight size={16} strokeWidth={2.4} />}
             </Button>
 
-            {!isSignup && (
-              <p className="border-t-2 border-dashed border-[var(--line)] pt-4 text-center text-sm text-muted">
-                Noch kein Konto?{" "}
-                <button type="button" onClick={() => switchMode("signup")} className="inline-flex min-h-11 items-center px-1 font-bold text-[var(--ink)] underline decoration-[var(--sun)] decoration-[3px] underline-offset-4 hover:decoration-[var(--ink)]">Konto erstellen</button>
-              </p>
-            )}
+            <p className="border-t-2 border-dashed border-[var(--line)] pt-4 text-center text-sm text-muted">
+              Noch kein Konto?{" "}
+              <Link href={startHref(next)} data-testid="login-to-start" className="inline-flex min-h-11 items-center px-1 font-bold text-[var(--ink)] underline decoration-[var(--sun)] decoration-[3px] underline-offset-4 hover:decoration-[var(--ink)]">Konto erstellen</Link>
+            </p>
           </form>
           <p className="mt-6 text-center text-xs text-muted">Deine Daten bleiben in deinem persönlichen Konto.</p>
           <p className="mt-2 text-center text-xs text-muted"><Link href="/datenschutz" className="underline underline-offset-2">Datenschutz</Link> · <Link href="/datenschutz-jugend" className="underline underline-offset-2">Datenschutz für Jugendliche</Link> · <Link href="/impressum" className="underline underline-offset-2">Impressum</Link></p>
