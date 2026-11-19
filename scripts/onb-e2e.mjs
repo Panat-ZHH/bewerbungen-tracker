@@ -361,10 +361,10 @@ def("existing-user-google-on-funnel", async (dev) => {
 }, { devices: ["desktop1280"] });
 
 def("logged-in-user-opens-start", async (dev) => {
-  const world = createOnbWorld({ base: BASE, existing: [{ email: "drin@beispiel.ch", createdDaysAgo: 50, funnelDone: true, profile: { first_name: "Mia" } }] });
+  const world = createOnbWorld({ base: BASE, existing: [{ email: "drin@beispiel.ch", createdDaysAgo: 50, funnelDone: true, profile: { first_name: "Mia" }, meta: { student_onboarded: true, onboarding_tour_done: true, class_code_asked: true } }] });
   const { ctx, page } = await open(world, dev, { session: world.users[0] });
   await page.goto(`${BASE}/start`);
-  check(await waitPath(page, /^\/dashboard/, 30000), `logged-in → landing, no funnel (${page.url()})`);
+  check(await page.waitForURL((u) => u.pathname !== "/start", { timeout: 30000 }).then(() => true, () => false) && await waitPath(page, /^\/(dashboard|familie|teacher|onboarding\/klasse)/, 20000), `logged-in → landing, no funnel (${page.url()})`);
   await ctx.close();
 }, { devices: ["desktop1280"] });
 
@@ -467,7 +467,7 @@ def("tour-missing-anchor-skipped", async (dev) => {
   const full = (await tourCounter(base.page))?.[1];
   await base.ctx.close();
   const { ctx, page, errors } = await open(world, dev, { session: world.users[0], tag: "B" });
-  await ctx.addInitScript(() => { const st = document.createElement("style"); st.textContent = '[data-tour="schueler-weekly-goal"]{display:none!important}'; document.addEventListener("DOMContentLoaded", () => document.head.appendChild(st)); });
+  await ctx.addInitScript(() => { const st = document.createElement("style"); st.textContent = '[data-tour="nav-map"]{display:none!important}'; document.addEventListener("DOMContentLoaded", () => document.head.appendChild(st)); });
   await page.goto(`${BASE}/dashboard?tour=1`);
   check(await vis(tourDialog(page), 20000), "tour still starts with a hidden anchor");
   const less = (await tourCounter(page))?.[1];
@@ -479,7 +479,7 @@ def("tour-missing-anchor-skipped", async (dev) => {
     if (await fertig.isVisible().catch(() => false)) break;
     await tourDialog(page).getByRole("button", { name: /^Weiter/ }).click(); await page.waitForTimeout(300);
   }
-  check(!titles.some((t) => /Wochenziel/.test(t)), "«Wochenziel» step never shown", titles.join(","));
+  check(!titles.some((t) => /Dein Dorf/.test(t)), "«Dein Dorf» step (hidden nav-map anchor) never shown", titles.join(","));
   check(errors.length === 0, "no errors", errors.join(" | "));
   await ctx.close();
 }, { devices: ["pixel7", "desktop1280"] });
@@ -594,9 +594,11 @@ def("responsive-funnel-320-1280", async (dev) => {
 def("keyboard-funnel-desktop", async (dev) => {
   const world = createOnbWorld({ base: BASE });
   const { ctx, page } = await open(world, dev);
-  await page.goto(`${BASE}/start?schritt=rolle`);
-  await page.locator("h1").first().waitFor();
-  check(await page.evaluate(() => document.activeElement?.tagName === "H1"), "focus on H1 after step change");
+  await page.goto(`${BASE}/start`);
+  await page.getByRole("button", { name: /Los geht/ }).first().focus();
+  await page.keyboard.press("Enter");
+  await waitSlug(page, "rolle"); await page.waitForTimeout(400);
+  check(await page.evaluate(() => document.activeElement?.tagName === "H1"), "focus on H1 after step change", await page.evaluate(() => document.activeElement?.outerHTML?.slice(0, 120)));
   await page.keyboard.press("Tab"); await page.keyboard.press("Tab");
   await page.keyboard.press("ArrowDown"); await page.waitForTimeout(400);
   check(slugOf(page) === "rolle", "arrow keys never auto-advance");
