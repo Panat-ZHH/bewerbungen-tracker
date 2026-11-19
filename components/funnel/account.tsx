@@ -89,7 +89,6 @@ export function AccountScreen({ state, onSession }: { state: FunnelStateV1; onSe
   const [errors, setErrors] = useState<Errors>({});
   const [sheet, setSheet] = useState(false);
   const summaryRef = useRef<HTMLDivElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
   const teacher = state.role === "staff";
   const choice = signupChoiceOf(state);
 
@@ -99,7 +98,7 @@ export function AccountScreen({ state, onSession }: { state: FunnelStateV1; onSe
     if (!record) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- sessionStorage is only readable after hydration
     setEmail(record.email);
-    requestAnimationFrame(() => { emailRef.current?.focus(); emailRef.current?.select(); });
+    requestAnimationFrame(() => { const el = document.getElementById("funnel-email") as HTMLInputElement | null; el?.focus(); el?.select(); });
   }, []);
 
   function focusFirst(e: Errors) {
@@ -182,7 +181,7 @@ export function AccountScreen({ state, onSession }: { state: FunnelStateV1; onSe
       <div className="flex items-center gap-3 text-xs font-medium text-muted" aria-hidden><span className="flex-1 border-t-2 border-dashed border-[var(--line)]" />oder mit E-Mail<span className="flex-1 border-t-2 border-dashed border-[var(--line)]" /></div>
 
       <Field label="E-Mail-Adresse" htmlFor="funnel-email" error={errors.email}>
-        <Input ref={emailRef} id="funnel-email" data-testid="funnel-email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} enterKeyHint="next"
+        <Input id="funnel-email" data-testid="funnel-email" type="email" autoComplete="email" inputMode="email" autoCapitalize="none" spellCheck={false} enterKeyHint="next"
           maxLength={254} disabled={disabled} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="du@beispiel.ch" className="min-h-12 !text-base" />
       </Field>
       <Field label="Passwort" htmlFor="funnel-password" error={errors.password} hint={errors.password ? undefined : hint.label || "Mindestens 8 Zeichen."}>

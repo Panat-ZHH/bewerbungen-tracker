@@ -3,6 +3,7 @@
 import { isValidBirthYear, mayNeedParentalConsent, type SignupChoice } from "../../lib/family-core.ts";
 import { SCHOOL_LEVELS, startYearOptions } from "../../lib/onboarding-core.ts";
 import type { FunnelRole, FunnelStateV1 } from "../../lib/funnel/types.ts";
+import { charLength, cleanText as serverClean, firstNameProblem } from "../../lib/funnel/validate.ts";
 
 export type StepSlug =
   | "weg" | "rolle" | "name" | "jahrgang" | "schule" | "ort" | "beruf" | "wochenziel" | "hilfe" | "dabei"
@@ -43,7 +44,7 @@ export function isStepSlug(value: unknown): value is StepSlug { return typeof va
 
 /** «Schritt n von N»: every step of the path except `weg`. Null on `weg`. */
 export function progressOf(step: StepSlug, steps: StepSlug[]): { index: number; total: number } | null {
-  const counted = steps.filter((s) => s !== "weg");
+  const counted: StepSlug[] = steps.filter((s) => s !== "weg");
   const i = counted.indexOf(step);
   return i < 0 ? null : { index: i + 1, total: counted.length };
 }
@@ -52,20 +53,19 @@ export type StepError = { field: string; message: string };
 
 const CLASS_CODE_RE = /^[A-Z0-9]{4,16}$/;
 const INVITE_CODE_RE = /^[A-Z0-9]{8}$/;
-const NAME_LETTER = /\p{L}/u;
-// eslint-disable-next-line no-control-regex -- control characters are exactly what is refused here
 const CONTROL = /[\u0000-\u001f\u007f-\u009f]/;
 
-/** Collapses whitespace and trims (same as the server, lib/funnel/validate). */
-export function cleanText(value: string): string { return String(value ?? "").replace(/\s+/g, " ").trim(); }
+/** Strips invisible characters, collapses whitespace and trims – exactly what the server stores (lib/funnel/validate). */
+export function cleanText(value: string): string { return serverClean(value); }
 export function normalizeCode(value: string, max = 16): string { return String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, max); }
 
 /** First-name check with the final copy (SPEC-FLOW S2). */
 export function firstNameError(raw: string): string | null {
   const v = cleanText(raw);
   if (!v) return "Gib deinen Vornamen ein.";
-  if (v.length > FUNNEL_LIMITS_UI.firstName) return `Dein Vorname ist zu lang. Höchstens ${FUNNEL_LIMITS_UI.firstName} Zeichen.`;
-  if (CONTROL.test(v) || !NAME_LETTER.test(v)) return "Gib deinen Vornamen mit Buchstaben ein.";
+  if (charLength(v) > FUNNEL_LIMITS_UI.firstName) return `Dein Vorname ist zu lang. Höchstens ${FUNNEL_LIMITS_UI.firstName} Zeichen.`;
+  // Same rule as the server (control characters on the raw value, at least one letter).
+  if (firstNameProblem(raw)) return "Gib deinen Vornamen mit Buchstaben ein.";
   return null;
 }
 
@@ -84,7 +84,7 @@ export function stepError(step: StepSlug, s: FunnelStateV1, now: Date = new Date
       return null;
     case "ort":
       if (!/^[A-Z]{2}$/.test(s.canton)) return { field: "canton", message: "Wähl deinen Kanton." };
-      if (cleanText(s.place).length > FUNNEL_LIMITS_UI.place) return { field: "place", message: `Höchstens ${FUNNEL_LIMITS_UI.place} Zeichen.` };
+      if (charLength(cleanText(s.place)) > FUNNEL_LIMITS_UI.place) return { field: "place", message: `Höchstens ${FUNNEL_LIMITS_UI.place} Zeichen.` };
       return null;
     case "kind":
       if (s.parentKid === "code" && !INVITE_CODE_RE.test(s.inviteCode)) return { field: "inviteCode", message: "Der Code hat 8 Zeichen. Prüf ihn noch einmal." };
@@ -106,7 +106,8 @@ export function resolveStep(requested: string | null | undefined, s: FunnelState
   const first = steps[0];
   if (!isStepSlug(requested) || !steps.includes(requested)) {
     // Slug of another path (e.g. `beruf` while the role is parent) or garbage: first unanswered required step, else the start.
-    return firstOpenStep(steps, s, steps.length, now) ?? first;
+    // If everything required is answered: the saved step when it belongs to this path, else the start.
+    return firstOpenStep(steps, s, steps.length, now) ?? (isStepSlug(s.step) && steps.includes(s.step) ? s.step : first);
   }
   const target = steps.indexOf(requested);
   return firstOpenStep(steps, s, target, now) ?? requested;

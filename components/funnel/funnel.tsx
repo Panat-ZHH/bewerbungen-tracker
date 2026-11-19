@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -16,7 +16,7 @@ import {
 } from "./funnel-core";
 import { clearFunnelState, loadFunnelState, saveFunnelState, storageAvailable } from "./store";
 import { JourneyPath, JourneyTile } from "./journey-path";
-import { ActionBar, FunnelTopBar, StepHeading } from "./ui";
+import { ActionBar, BottomBar, FunnelTopBar, StepHeading } from "./ui";
 import {
   BirthYearScreen, ChildScreen, FamilyScreen, HelpScreen, NameScreen, PlaceScreen, ProfessionScreen, RoleScreen, SchoolScreen, StaffScreen,
   WeeklyGoalScreen, type ScreenProps,
@@ -84,14 +84,17 @@ export function Funnel() {
   const [returnToPlan, setReturnToPlan] = useState(false);
   const [wegSeen, setWegSeen] = useState(false);
   const [sessionSave, setSessionSave] = useState(false);
+  // Role preselected from an invite link (SPEC-FLOW §1.2): shown once on `rolle` («one tap Weiter»), not yet an answer.
+  const [rolePreset, setRolePreset] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const visited = useRef<StepSlug[]>([]);
-  const lastStep = useRef<StepSlug | null>(null);
-  const direction = useRef<"forward" | "back">("forward");
+  // Step shown last + slide direction, adjusted during render (React «storing information from previous renders»).
+  const [shown, setShown] = useState<{ step: StepSlug | null; dir: "forward" | "back" }>({ step: null, dir: "forward" });
   const writeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const familyInvite = useMemo(() => presetFromNext(state.next).familyInvite, [state.next]);
   const finePointer = useMemo(() => typeof window !== "undefined" && window.matchMedia?.("(pointer: fine)").matches, []);
 
+  const wide = useMediaQuery("(min-width: 1024px)");
   const ready = boot.kind === "ready";
   const opts: PathOptions = useMemo(() => (boot.kind === "ready" ? { google: boot.google, roleLocked: boot.roleLocked } : {}), [boot]);
   const google = boot.kind === "ready" && boot.google;
@@ -138,6 +141,7 @@ export function Funnel() {
           roleLocked = true;
         }
       }
+      setRolePreset(!base.role && !!preset.role && !roleLocked);
       setState(merged);
       setBoot({ kind: "ready", google: googleParam && !!user, roleLocked, resumable: canResume(saved) && storageAvailable() ? saved : null });
     })();
@@ -145,7 +149,12 @@ export function Funnel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- boot once per mode; step changes are handled below
   }, [googleParam]);
 
-  const step: StepSlug = useMemo(() => (ready ? resolveStep(requested ?? (google ? null : "weg"), state, opts) : "weg"), [ready, requested, state, opts, google]);
+  const step: StepSlug = useMemo(() => {
+    if (!ready) return "weg";
+    const resolved = resolveStep(requested ?? (google ? null : "weg"), state, opts);
+    const steps = stepsFor(state.role, state.staffAccess, opts);
+    return rolePreset && steps.includes("rolle") && steps.indexOf(resolved) > steps.indexOf("rolle") ? "rolle" : resolved;
+  }, [ready, requested, state, opts, google, rolePreset]);
 
   // Wrong / not-yet-allowed slug in the URL → replace with the step we show (never a 404).
   useEffect(() => {
@@ -154,32 +163,35 @@ export function Funnel() {
     if (shown !== step) router.replace(stepHref(step, { google, next: urlNext }), { scroll: false });
   }, [ready, requested, step, google, urlNext, router]);
 
-  // Step change: remember it, focus the H1, scroll to top.
+  if (ready && shown.step !== step) {
+    const steps = stepsFor(state.role, state.staffAccess, opts);
+    const dir = shown.step && steps.indexOf(step) < steps.indexOf(shown.step) ? "back" : "forward";
+    if (shown.step === "weg") setWegSeen(true);
+    setShown({ step, dir });
+    setErrors({});
+  }
+
+  // Step change: remember it in the visit list, focus the H1, scroll to top (not on the very first screen).
+  const focusedStep = useRef<StepSlug | null>(null);
   useEffect(() => {
-    if (!ready) return;
-    const prev = lastStep.current;
-    if (prev !== step) {
-      const steps = stepsFor(state.role, state.staffAccess, opts);
-      direction.current = prev && steps.indexOf(step) < steps.indexOf(prev) ? "back" : "forward";
-      if (prev === "weg") setWegSeen(true); // eslint-disable-line react-hooks/set-state-in-effect -- remembers that the intro ran
-      lastStep.current = step;
-      if (visited.current[visited.current.length - 1] !== step) visited.current.push(step);
-      setErrors({});
-      if (prev) {
-        headingRef.current?.focus({ preventScroll: true });
-        window.scrollTo({ top: 0 });
-      }
+    if (!ready || focusedStep.current === step) return;
+    const first = focusedStep.current === null;
+    focusedStep.current = step;
+    if (visited.current[visited.current.length - 1] !== step) visited.current.push(step);
+    if (!first) {
+      headingRef.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0 });
     }
-    setState((s) => (s.step === step ? s : { ...s, step }));
-  }, [ready, step, state.role, state.staffAccess, opts]);
+  }, [ready, step]);
 
   // Persist (debounced 300 ms; never e-mail/password – the state type has no such field).
   useEffect(() => {
     if (!ready) return;
     if (writeTimer.current) clearTimeout(writeTimer.current);
-    writeTimer.current = setTimeout(() => { if (state.role || state.step !== "weg") saveFunnelState(state); }, 300);
+    // Not on `weg`: the intro must not overwrite the saved step (resume card after a reload, SPEC-FLOW §4.9).
+    writeTimer.current = setTimeout(() => { if (step !== "weg") saveFunnelState({ ...state, step }); }, 300);
     return () => { if (writeTimer.current) clearTimeout(writeTimer.current); };
-  }, [ready, state]);
+  }, [ready, state, step]);
 
   const update = useCallback((patch: Partial<FunnelStateV1>) => {
     setState((s) => ({ ...s, ...patch, updatedAt: Date.now() }));
@@ -205,7 +217,8 @@ export function Funnel() {
       });
       return;
     }
-    saveFunnelState({ ...s, updatedAt: Date.now() });
+    if (from === "rolle") setRolePreset(false);
+    saveFunnelState({ ...s, step: from, updatedAt: Date.now() });
     if (returnToPlan && from !== "plan") { setReturnToPlan(false); go("plan"); return; }
     const { next: target } = neighbours(from, s, opts);
     if (target) go(target);
@@ -233,7 +246,7 @@ export function Funnel() {
         <div className="flex min-h-[60dvh] items-center justify-center">
           {saver.phase === "idle" && !sessionSave ? (
             <p role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einen Moment …</p>
-          ) : <SavingView phase={saver.phase === "idle" ? "saving" : saver.phase} errorKind={saver.errorKind} onRetry={saver.save} onSkip={saver.skip} />}
+          ) : <SavingView phase={saver.phase === "idle" ? "saving" : saver.phase} errorKind={saver.errorKind} onRetry={() => saver.save()} onSkip={saver.skip} />}
         </div>
       </Shell>
     );
@@ -245,6 +258,8 @@ export function Funnel() {
 
   if (step === "weg") {
     const resumable = boot.resumable && !resumeDismissed ? boot.resumable : null;
+    // One CTA in the DOM (unique selectors, one primary): static in the left column ≥ 1024, sticky bar below.
+    const cta = resumable ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} /> : <StartCta onStart={() => go("rolle")} login={login} />;
     return (
       <Shell>
         <FunnelTopBar showLogo loginHref={login} />
@@ -255,15 +270,11 @@ export function Funnel() {
             </h1>
             <p className="max-w-[46ch] text-[17px] leading-relaxed">WendApply begleitet dich bei jedem Schritt. Beantworte ein paar kurze Fragen, dann bekommst du deinen Plan.</p>
             <ul className="flex flex-wrap gap-x-4 gap-y-1 text-small text-muted" data-testid="funnel-facts"><li>2 Minuten</li><li>7 Tage gratis testen</li><li>Ohne Kreditkarte</li></ul>
-            <div className="hidden lg:block lg:max-w-[360px]">
-              {resumable ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} /> : <StartCta onStart={() => go("rolle")} login={login} />}
-            </div>
+            {wide && <div className="lg:max-w-[360px]">{cta}</div>}
           </div>
           <JourneyPath animate={!wegSeen && !resumable} className="mx-auto w-full max-w-[420px] lg:max-w-[520px]" />
         </div>
-        <div className={cn(styles.actionBar, "lg:hidden")}>
-          {resumable ? <ResumeCard state={resumable} onResume={() => go(resumable.step as StepSlug)} onRestart={() => restart()} /> : <StartCta onStart={() => go("rolle")} login={login} />}
-        </div>
+        {!wide && <BottomBar testId="funnel-start-bar">{cta}</BottomBar>}
       </Shell>
     );
   }
@@ -272,7 +283,7 @@ export function Funnel() {
   const Screen = SCREENS[step];
   const prev = neighbours(step, state, opts).prev;
   const onBack = prev && !(google && prev === "weg") ? back : null;
-  const animClass = direction.current === "back" ? styles.stepBack : styles.stepForward;
+  const animClass = shown.dir === "back" ? styles.stepBack : styles.stepForward;
   const decor = DECOR[step];
 
   // primary button per step
@@ -309,7 +320,7 @@ export function Funnel() {
           <ActionBar primary={primary} onPrimary={onPrimary} onBack={onBack}
             skip={isSkippable(step) ? { onSkip: () => { update(step === "dabei" ? { family: "spaeter" } : { help: [] }); const t = neighbours(step, state, opts).next; if (t) go(returnToPlan ? "plan" : t); } } : null}>
             {google && step === (opts.roleLocked ? "name" : "rolle") && opts.roleLocked && (
-              <p className="mt-1 text-center lg:text-left"><button type="button" data-testid="funnel-other-device-skip" onClick={() => { saveFunnelState({ ...state, updatedAt: Date.now() }); void saver.save(); }} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline decoration-[var(--line)] decoration-2 underline-offset-4">Überspringen</button></p>
+              <p className="mt-1 text-center lg:text-left"><button type="button" data-testid="funnel-other-device-skip" onClick={() => { void saver.save({ skipped: true, role: state.role }); }} className="inline-flex min-h-11 items-center px-2 text-sm font-semibold underline decoration-[var(--line)] decoration-2 underline-offset-4">Überspringen</button></p>
             )}
           </ActionBar>
         )}
@@ -346,5 +357,14 @@ function ResumeCard({ state, onResume, onRestart }: { state: FunnelStateV1; onRe
         <Button size="lg" variant="secondary" onClick={onRestart} data-testid="funnel-resume-restart">Neu beginnen</Button>
       </div>
     </section>
+  );
+}
+
+/** Media query as state (client only; the funnel renders after boot, so the server value is never shown). */
+function useMediaQuery(query: string): boolean {
+  return useSyncExternalStore(
+    (onChange) => { const m = window.matchMedia(query); m.addEventListener("change", onChange); return () => m.removeEventListener("change", onChange); },
+    () => window.matchMedia(query).matches,
+    () => false,
   );
 }

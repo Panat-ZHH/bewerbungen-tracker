@@ -53,7 +53,7 @@ export function ConfirmEmail() {
   const wasCooling = useRef(true);
   useEffect(() => {
     const cooling = left > 0;
-    if (wasCooling.current && !cooling) setLive("Du kannst die E-Mail jetzt nochmals senden."); // eslint-disable-line react-hooks/set-state-in-effect -- live region text follows the timer
+    if (wasCooling.current && !cooling) setLive("Du kannst die E-Mail jetzt nochmals senden.");
     wasCooling.current = cooling;
   }, [left]);
 

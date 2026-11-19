@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StatusMessage } from "@/components/ui/skeleton";
 import { resolveLanding } from "@/lib/role";
 import { toast } from "@/lib/toast";
-import type { ApplyOutcome } from "@/lib/funnel/types";
+import type { ApplyOutcome, FunnelStateV1 } from "@/lib/funnel/types";
 import { applyPending, clearConfirmRecord } from "./store";
 
 export const ALREADY_ACCOUNT_TOAST = "Du hast schon ein Konto. Wir haben dich angemeldet.";
@@ -31,11 +31,11 @@ export function useFunnelSave(next: string | null, opts: { announceExisting?: bo
   const running = useRef(false);
   const announce = opts.announceExisting ?? true;
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (opts: { skipped?: boolean; role?: FunnelStateV1["role"] } = {}) => {
     if (running.current) return;
     running.current = true;
     setPhase("saving"); setErrorKind(null);
-    const outcome = await applyPending();
+    const outcome = await applyPending(opts);
     if (outcome.status === "error") { running.current = false; setErrorKind(outcome.kind); setPhase("error"); return; }
     clearConfirmRecord();
     const mismatch = outcome.status === "applied" && outcome.result.role_mismatch;
@@ -55,7 +55,7 @@ export function useFunnelSave(next: string | null, opts: { announceExisting?: bo
 }
 
 /** Full-screen status while saving, error with retry. */
-export function SavingView({ phase, errorKind, onRetry, onSkip, label = "Dein Plan wird gespeichert …" }: { phase: SavePhase; errorKind: string | null; onRetry: () => void; onSkip: () => void; label?: string }) {
+export function SavingView({ phase, errorKind, onRetry, onSkip, label = "Dein Plan wird gespeichert …" }: { phase: SavePhase; errorKind: string | null; onRetry: () => void | Promise<void>; onSkip: () => void; label?: string }) {
   const headingRef = useRef<HTMLParagraphElement>(null);
   useEffect(() => { if (phase === "error") headingRef.current?.focus(); }, [phase]);
   if (phase === "error") {
