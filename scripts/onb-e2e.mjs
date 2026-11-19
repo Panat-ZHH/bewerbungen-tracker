@@ -688,6 +688,30 @@ def("callback-made-up-code-neutral", async (dev) => {
   await ctx.close();
 }, { devices: ["pixel7"] });
 
+def("shared-device-funnel-not-applied", async (dev) => {
+  // QA-ONB M1: person A (Lena) walks the funnel to «Konto erstellen» and leaves; person B (Ben, student account 3 days old, no
+  // funnel/onboarding) logs in with e-mail + password in the same browser → A's answers/role never reach funnel_apply, B unchanged.
+  for (const [role, email] of [["student", `sd-ben-${Date.now()}@beispiel.ch`], ["staff", `sd-ben2-${Date.now()}@beispiel.ch`]]) {
+    const world = createOnbWorld({ base: BASE, existing: [{ email, role: "student", createdDaysAgo: 3, profile: { first_name: "Ben" } }] });
+    const { ctx, page } = await open(world, dev);
+    await page.goto(`${BASE}/start`);
+    await vis(page.getByRole("heading", { name: /Dein Weg/ }), 60000);
+    await walk(page, role, role === "student" ? { ...ANSWERS.student, firstName: "Lena" } : ANSWERS.staff);
+    check(slugOf(page) === "konto", `${role}: A reached «Konto erstellen»`, page.url());
+    await page.goto(`${BASE}/login?anmelden=1`);
+    await page.getByLabel(/E-Mail/).first().waitFor({ timeout: 60000 }); await page.waitForTimeout(3000);
+    await page.getByLabel(/E-Mail/).first().fill(email); await page.getByLabel(/^Passwort$/).first().fill(PW);
+    await page.getByRole("button", { name: /^Anmelden/ }).last().click();
+    await waitPath(page, /^\/(dashboard|familie|teacher|start|schullizenz|onboarding)/, 40000); await page.waitForTimeout(2500);
+    const calls = world.calls("funnel_apply");
+    check(calls.every((c) => c?.body?.p_answers == null), `${role}: funnel_apply never carries A's answers`, JSON.stringify(calls.map((c) => c?.body?.p_answers ?? null)));
+    check(world.profileOf(email)?.first_name === "Ben", `${role}: B's first name unchanged`, String(world.profileOf(email)?.first_name));
+    check(!/^\/teacher/.test(new URL(page.url()).pathname), `${role}: B not sent to the teacher area`, page.url());
+    check((await page.evaluate(() => localStorage.getItem("wendapply.funnel.v1"))) === null, `${role}: A's local copy cleared`);
+    await ctx.close();
+  }
+}, { devices: ["desktop1280", "pixel7"] });
+
 // ------------------------------------------------------------------------------------------------ run
 try {
   for (const c of CASES) {
