@@ -8,6 +8,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { spawn } from "node:child_process";
+import { connect as netConnect } from "node:net";
 import { createMockSupabase, SUPABASE_URL } from "./lib/mock-supabase.mjs";
 
 export { SUPABASE_URL };
@@ -127,11 +128,14 @@ export function devices(registry) {
 }
 export const RESPONSIVE_WIDTHS = [320, 360, 375, 390, 768, 1024, 1280];
 
+const portOpen = (port) => new Promise((res) => { const sock = netConnect({ port, host: "127.0.0.1" }); sock.once("connect", () => { sock.destroy(); res(true); }); sock.once("error", () => res(false)); sock.setTimeout(2000, () => { sock.destroy(); res(false); }); });
 const reachable = async (url) => { try { const r = await fetch(url, { signal: AbortSignal.timeout(8000), redirect: "manual" }); return r.status < 500; } catch { return false; } };
 /** Billing-off dev server with the dummy Supabase env (same as scripts/e2e-all.mjs). Reuses a running one on `port`. */
 export async function startDevServer({ root, port = 3245, env = {}, log = console.log } = {}) {
   const base = `http://localhost:${port}`;
   if (await reachable(`${base}/login`)) { log(`reusing server ${base}`); return { base, stop() {} }; }
+  // A busy dev server can miss the 8 s probe: never spawn a second `next dev` on a port that is already listening.
+  if (await portOpen(port)) { log(`port ${port} busy – waiting for the running server`); for (let i = 0; i < 120; i++) { if (await reachable(`${base}/login`)) return { base, stop() {} }; await new Promise((r) => setTimeout(r, 1000)); } throw new Error(`port ${port} is taken by an unresponsive process`); }
   log(`starting next dev on ${port} (dummy Supabase, billing off) …`);
   const child = spawn("npx", ["next", "dev", "--webpack", "-p", String(port)], { cwd: root, stdio: "ignore", env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "dummy", NEXT_PUBLIC_AVATAR_LOCAL: "1", STRIPE_ENABLED: "false", NEXT_PUBLIC_STRIPE_ENABLED: "false", NEXT_TELEMETRY_DISABLED: "1", ...env } });
   for (let i = 0; i < 180; i++) { if (await reachable(`${base}/login`)) return { base, stop: () => { try { child.kill("SIGTERM"); } catch { /* gone */ } } }; await new Promise((r) => setTimeout(r, 1000)); }
@@ -165,7 +169,7 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
   };
   const now = () => new Date().toISOString();
   function addUser({ email, password = "Sicher-Passwort-2026", role = "student", accountType = null, createdDaysAgo = 0, confirmed = true, funnelDone = false, meta = {}, profile = {} }) {
-    const u = { id: uid(), email, password, confirmed, created_at: new Date(Date.now() - createdDaysAgo * 864e5).toISOString(), user_metadata: { role, ...(accountType ? { account_type: accountType } : {}), ...meta }, role, accountType };
+    const u = { id: uid(), email, password, confirmed, created_at: new Date(Date.now() - createdDaysAgo * 864e5).toISOString(), user_metadata: { ...(role ? { role } : {}), ...(accountType ? { account_type: accountType } : {}), ...meta }, role, accountType };
     world.users.push(u);
     world.profiles.set(u.id, { id: `profile-${u.id}`, user_id: u.id, email, first_name: profile.first_name ?? "", last_name: "", weekly_goal: null, help_wishes: [], funnel_completed_at: funnelDone ? now() : null, onboarding_completed_at: funnelDone ? now() : null, ...profile });
     return u;
@@ -188,7 +192,14 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
   world.profileOf = (e) => { const u = world.userByEmail(e); return u ? world.profiles.get(u.id) : null; };
   world.tourOf = (e, tour) => { const u = world.userByEmail(e); return u ? world.tour.get(`${u.id}:${tour}`) ?? null : null; };
   /** Confirmation link GoTrue would send (same-browser exchange works only where the PKCE verifier is). */
-  world.confirmLink = (next) => `${base}/auth/callback?code=confirm-${world.signups.at(-1)?.userId || "x"}${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  // Like GoTrue: verify, then redirect to the sign-up's emailRedirectTo (keeps ?next= / &quelle=email) with ?code=.
+  world.confirmLink = (next) => {
+    const su = world.signups.at(-1);
+    const u = new URL(su?.redirect || `${base}/auth/callback`, base);
+    if (next) u.searchParams.set("next", next);
+    u.searchParams.set("code", `confirm-${su?.userId || "x"}`);
+    return u.href;
+  };
 
   function funnelApply(u, body) {
     const p = body?.p_answers ?? body?.answers ?? (body && "v" in body ? body : null);
@@ -251,7 +262,8 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
         const redirect = url.searchParams.get("redirect_to") || `${base}/auth/callback`;
         world.authorize.push({ ctx: tag, provider: url.searchParams.get("provider"), redirect });
         const back = new URL(redirect); back.searchParams.set("code", "google-" + (world.googleAs || "new"));
-        return route.fulfill({ status: 302, headers: { location: back.href } });
+        // WebKit refuses route.fulfill with a 3xx → a tiny page that replaces itself (same effect as GoTrue's 302 to the callback).
+        return route.fulfill({ status: 200, contentType: "text/html", body: `<!doctype html><meta http-equiv="refresh" content="0;url=${back.href.replace(/"/g, "&quot;")}"><script>location.replace(${JSON.stringify(back.href)})</script>` });
       }
       if (p === "/auth/v1/token") {
         const grant = url.searchParams.get("grant_type");
@@ -268,7 +280,7 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
           if (code.startsWith("confirm-")) { u = world.users.find((x) => x.id === code.slice(8)); if (u) u.confirmed = true; }
           if (code.startsWith("google-")) {
             const as = code.slice(7);
-            u = as === "new" ? addUser({ email: `google-${Date.now()}@beispiel.ch`, role: "student", meta: {} }) : world.userByEmail(as);
+            u = as === "new" ? addUser({ email: `google-${Date.now()}@beispiel.ch`, role: null, meta: {} }) /* real Google sign-ups carry no role */ : world.userByEmail(as);
             if (u) u.provider = "google";
           }
           if (!u) return json({ code: 400, error_code: "bad_code_verifier", msg: "invalid flow state" }, 400);
@@ -280,7 +292,7 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
       if (p === "/auth/v1/user") {
         const u = who || world.current;
         if (!u) return json({ code: 401, msg: "Auth session missing!" }, 401);
-        if (m === "PUT" && body?.data) { for (const [k, v] of Object.entries(body.data)) { if (v === null) delete u.user_metadata[k]; else u.user_metadata[k] = v; } world.log.push({ kind: "auth", name: "updateUser", body: body.data, ctx: tag, at: Date.now() }); }
+        if (m === "PUT" && body?.data) { for (const [k, v] of Object.entries(body.data)) { if (v === null) delete u.user_metadata[k]; else u.user_metadata[k] = v; } if (body.data.role === "teacher" || body.data.role === "student") u.role = body.data.role; world.log.push({ kind: "auth", name: "updateUser", body: body.data, ctx: tag, at: Date.now() }); }
         become(u);
         return json(authUser(u));
       }
@@ -291,7 +303,7 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
         world.log.push({ kind: "rpc", name, body, ctx: tag, at: Date.now(), user: who?.email });
         const u = who || world.current;
         if (name === "my_access") return json(typeof world.access === "function" ? world.access(u) : world.access);
-        if (name === "funnel_apply") { if (!u) return json({ code: "42501", message: "not authenticated" }, 401); const r = funnelApply(u, body); return r?.__error ? json({ code: "P0001", message: r.__error, details: "role" }, r.status) : json(r); }
+        if (name === "funnel_apply") { if (!u) return json({ code: "42501", message: "not authenticated" }, 401); const r = funnelApply(u, body); world.log.at(-1).result = r; return r?.__error ? json({ code: "P0001", message: r.__error, details: "role" }, r.status) : json(r); }
         if (name === "tour_state_set") { if (!u) return json({ code: "42501", message: "not authenticated" }, 401); const r = tourSet(u, body); return r?.__error ? json({ code: "P0001", message: r.__error }, 400) : json(r); }
         if (name === "weekly_goal_set") { if (u) world.profiles.get(u.id).weekly_goal = body.p_goal ?? Object.values(body)[0]; return json(null); }
         return route.fallback();

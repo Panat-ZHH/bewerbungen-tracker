@@ -25,6 +25,8 @@ mkdirSync(`${OUT}/failures`, { recursive: true }); mkdirSync(`${OUT}/shots`, { r
 const ONLY = args.only ? new RegExp(args.only) : null;
 const PORT = Number(process.env.PORT || 3245);
 
+// A failing route handler must fail its case, not kill the whole matrix.
+process.on("unhandledRejection", (e) => { console.log("  (unhandled)", String(e?.message || e).split("\n")[0].slice(0, 200)); caseFails?.push?.(`unhandled: ${String(e?.message || e).split("\n")[0].slice(0, 160)}`); });
 const pw = await loadPlaywright();
 const CHROME = findChrome();
 const DEVICES = devices(pw.devices).filter((d) => !args.device || args.device.split(",").includes(d.id));
@@ -108,7 +110,10 @@ for (const [id, role, extra] of [
   await page.getByRole("checkbox", { name: /Datenschutz/ }).first().check({ force: true });
   await page.getByRole("button", { name: /^Konto erstellen/ }).last().click();
   check(await waitPath(page, /^\/start\/bestaetigen/), `→ /start/bestaetigen (${page.url()})`);
-  check(await vis(page.getByRole("heading", { name: /Schau in dein Postfach/ })), "«Schau in dein Postfach»");
+  const postfach = await vis(page.getByRole("heading", { name: /Schau in dein Postfach/ }), 30000);
+  await shot(page, `${id}-bestaetigen`);
+  check(postfach, "«Schau in dein Postfach» heading visible (non-zero box)", postfach ? "" : `h1=«${await h1(page)}» roles=${JSON.stringify(await page.getByRole("heading").allInnerTexts().catch(() => []))} dialogs=${await page.locator("[aria-modal=true],dialog[open]").count()} n=${await page.getByRole("heading", { name: /Schau in dein Postfach/ }).count()} vis=${await page.getByRole("heading", { name: /Schau in dein Postfach/ }).first().isVisible()} box=${JSON.stringify(await page.locator("h1").first().boundingBox())}`);
+  await page.waitForLoadState("networkidle").catch(() => {});
   check((await page.locator("main").innerText().catch(() => "")).includes(email), "confirm page shows the address");
   const su = world.signups.at(-1);
   check(!!su, "signUp called once", world.signups.length);
@@ -163,10 +168,14 @@ def("funnel-back-forward-reload", async (dev) => {
   await page.getByRole("button", { name: /^Zurück/ }).first().click();
   check(await waitSlug(page, "name"), "«Zurück» button → name");
   // deep link to a step whose required answers are missing → first unanswered required step
+  await page.waitForTimeout(800); // the funnel persists debounced (300 ms) – let the last write land before wiping it
   await page.evaluate((k) => localStorage.removeItem(k), FUNNEL_KEY);
   await page.goto(`${BASE}/start?schritt=wochenziel`); await page.locator("h1").first().waitFor();
+  await page.waitForFunction(() => ["weg", "rolle", null].includes(new URL(location.href).searchParams.get("schritt")), null, { timeout: 10000 }).catch(() => {});
   check(["weg", "rolle"].includes(slugOf(page)), `deep link without answers → first required step (${slugOf(page)})`);
+  await page.waitForTimeout(500);
   await page.goto(`${BASE}/start?schritt=gibtsnicht`); await page.locator("h1").first().waitFor();
+  await page.waitForFunction(() => new URL(location.href).searchParams.get("schritt") !== "gibtsnicht", null, { timeout: 10000 }).catch(() => {});
   check(slugOf(page) !== "gibtsnicht" && !/404|nicht gefunden/i.test(await h1(page)), "unknown slug → no 404");
   // validation: Weiter without a name shows the error, stays
   await page.goto(`${BASE}/start?schritt=rolle`); await tile(page, ROLE_LABEL.student).click(); await waitSlug(page, "name");
@@ -181,8 +190,11 @@ def("funnel-resume-and-restart", async (dev) => {
   const { ctx, page } = await open(world, dev);
   await page.goto(`${BASE}/start`);
   await walk(page, "student", ANSWERS.student, "beruf");
+  await page.waitForTimeout(800); // a human stays > 300 ms on a step (debounced persist); the instant-leave case is in NEEDS-funnel
   await page.goto(`${BASE}/`); await page.goto(`${BASE}/start`);
-  check(await vis(page.getByText(/Weitermachen, wo du warst/), 15000), "resume card on /start");
+  const card = await vis(page.getByText(/Weitermachen, wo du warst/), 15000);
+  if (!card) await shot(page, "resume-missing");
+  check(card, "resume card on /start", card ? "" : `url=${page.url()} h1=«${await h1(page)}» ls=${(await ls(page, FUNNEL_KEY))?.slice(0, 160)}`);
   await page.getByRole("button", { name: /^Weitermachen/ }).or(page.getByRole("link", { name: /^Weitermachen/ })).first().click();
   check(await waitSlug(page, "beruf"), `«Weitermachen» → saved step (${slugOf(page)})`);
   await page.goto(`${BASE}/start`);
@@ -319,7 +331,7 @@ def("google-new-user-from-login-nach-google", async (dev) => {
   await page.getByRole("button", { name: /Google/ }).first().click();
   check(await waitPath(page, /^\/start\?.*nach=google/, 40000), `new Google user → /start?…nach=google (${page.url()})`);
   check(/schritt=rolle/.test(page.url()), "starts at «rolle»");
-  const seen = await walk(page, "student", ANSWERS.student, "konto");
+  const seen = await walk(page, "student", ANSWERS.student, "plan");
   check(!seen.includes("konto"), "no account screen in nach=google mode", seen.join(">"));
   const save = page.getByRole("button", { name: /Plan speichern/ });
   check(await vis(save, 15000), "last screen = «Plan speichern»");
@@ -334,7 +346,7 @@ def("google-new-user-from-login-nach-google", async (dev) => {
 
 def("existing-user-google-on-funnel", async (dev) => {
   const old = "alt-google@beispiel.ch";
-  const world = createOnbWorld({ base: BASE, existing: [{ email: old, createdDaysAgo: 100, funnelDone: true, profile: { first_name: "Altname", weekly_goal: 2 } }] });
+  const world = createOnbWorld({ base: BASE, existing: [{ email: old, createdDaysAgo: 100, funnelDone: true, profile: { first_name: "Altname", weekly_goal: 2 }, meta: { student_onboarded: true, onboarding_tour_done: true, class_code_asked: true } }] });
   world.googleAs = old;
   const { ctx, page } = await open(world, dev);
   await page.goto(`${BASE}/start`);
@@ -343,7 +355,7 @@ def("existing-user-google-on-funnel", async (dev) => {
   await page.getByRole("button", { name: /Mit Google weiter/ }).first().click();
   await waitPath(page, /^\/dashboard/, 40000);
   check(world.profileOf(old).first_name === "Altname" && world.profileOf(old).weekly_goal === 2, "existing profile not overwritten");
-  check(await vis(page.getByText(/Du hast schon ein Konto/), 10000), "toast «Du hast schon ein Konto. Wir haben dich angemeldet.»");
+  check(await vis(page.getByText(/Du hast schon ein Konto/), 10000), "toast «Du hast schon ein Konto. Wir haben dich angemeldet.»", `url=${page.url()} applies=${JSON.stringify(world.calls("funnel_apply").map((c) => c.result ?? c.body).slice(-2)).slice(0, 200)}`);
   check((await ls(page, FUNNEL_KEY)) === null, "funnel key deleted");
   await ctx.close();
 }, { devices: ["desktop1280"] });
@@ -603,7 +615,7 @@ try {
       console.log(`\n▶ ${c.id} @ ${dev.id}`);
       const t0 = Date.now();
       let status = "PASS", info = "";
-      try { await c.fn(dev); } catch (e) { status = "BLOCKED"; info = String(e.message || e).split("\n")[0].slice(0, 300); console.log("  BLOCKED", info); }
+      try { await c.fn(dev); } catch (e) { status = "BLOCKED"; info = String(e.message || e).split("\n")[0].slice(0, 300); console.log("  BLOCKED", info); if (process.env.DEBUG) console.log(String(e.message || e).split("\n").slice(1, 25).join("\n")); }
       if (caseFails.length) { status = status === "BLOCKED" ? "BLOCKED" : "FAIL"; info = [info, ...caseFails].filter(Boolean).join(" · "); }
       results.push({ id: c.id, device: dev.id, status, info, ms: Date.now() - t0 });
       writeFileSync(`${OUT}/results.json`, JSON.stringify(results, null, 2));

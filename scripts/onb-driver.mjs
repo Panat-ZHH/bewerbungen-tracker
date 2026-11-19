@@ -41,7 +41,7 @@ export async function answer(page, slug, role, a) {
     }
     case "schule":
       await tile(page, a.schoolLevel).click();
-      if (a.classCode) { await page.getByText(/Ich habe einen Klassencode/).first().click(); await page.getByLabel("Klassencode").fill(a.classCode); }
+      if (a.classCode) { await page.getByText(/Ich habe einen Klassencode/).first().click(); await page.locator("#funnel-class-code").fill(a.classCode); }
       return;
     case "ort": {
       const sel = page.getByLabel("Kanton");
