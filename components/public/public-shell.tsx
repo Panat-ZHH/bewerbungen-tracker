@@ -49,7 +49,8 @@ export function PublicShell({ children }: { children: ReactNode }) {
         <div className="public-header-row mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center gap-x-2 gap-y-1 py-2.5 max-[359px]:gap-x-1.5">
           <Link href="/" className="mr-auto flex min-h-11 min-w-0 items-center gap-2.5 rounded-full max-[359px]:gap-2" aria-label="WendApply, zur Startseite">
             <BrandMark size={34} priority />
-            <span className="font-display text-xl font-extrabold tracking-[-.03em] max-[359px]:text-lg">WendApply</span>
+            {/* Phones < 480 px: the wordmark gives way so logo · Anmelden · Kostenlos testen · Menü fit one row (SPEC-FLOW §5.3). */}
+            <span className="font-display text-xl font-extrabold tracking-[-.03em] max-[479px]:sr-only">WendApply</span>
           </Link>
           <nav aria-label="Hauptnavigation" className="hidden items-center gap-0.5 lg:flex">
             {nav.map((n) => <Link key={n.href} href={n.href} className="inline-flex min-h-11 items-center rounded-full px-3 text-sm font-semibold text-[var(--ink)] underline decoration-transparent decoration-2 underline-offset-4 transition-colors hover:decoration-[var(--sun)]">{n.label}</Link>)}
