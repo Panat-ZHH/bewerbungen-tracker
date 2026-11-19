@@ -207,9 +207,10 @@ export function createOnbWorld({ existing = [], confirm = true, access = TRIAL()
     const prof = world.profiles.get(u.id) || addProfile(u);
     const serverRole = u.role === "teacher" ? "teacher" : (u.user_metadata.account_type === "parent" ? "parent" : "student");
     if (world.failApply) return { __error: "INVALID_FUNNEL", status: 400 };
-    if (!answers) return { applied: false, reason: "no_answers", role: serverRole };
+    // same order as funnel_apply (migration 20261119110000): already_done → not_new → no_answers
     if (prof.funnel_completed_at || prof.onboarding_completed_at) return { applied: false, reason: "already_done", role: serverRole };
     if (Date.now() - Date.parse(u.created_at) > 14 * 864e5) return { applied: false, reason: "not_new", role: serverRole };
+    if (!answers) return { applied: false, reason: "no_answers", role: serverRole };
     const role = answers.role === "staff" ? "teacher" : answers.role;
     const mismatch = (u.role === "teacher" && role !== "teacher");
     Object.assign(prof, { first_name: answers.firstName ?? prof.first_name, funnel_completed_at: now(), funnel_version: 1 });

@@ -94,6 +94,8 @@ test("apply once: second call already_done (nothing changes); onboarding done be
 
   const old = await user(next(), { meta: { role: "student" }, createdAt: new Date(Date.now() - 15 * day).toISOString() });
   assert.deepEqual(await apply(old, student()), { applied: false, reason: "not_new", role: "student" });
+  // M1 client sends p_answers null for a foreign local copy: an old account still answers not_new (→ «Du hast schon ein Konto» notice)
+  assert.deepEqual(await apply(old, null), { applied: false, reason: "not_new", role: "student" });
   assert.equal(await profile(old), undefined, "nothing written for an old account");
 });
 
