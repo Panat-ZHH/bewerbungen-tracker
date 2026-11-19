@@ -14,7 +14,7 @@ export function FunnelTopBar({ onBack, progress, loginHref, showLogo }: { onBack
   return (
     <header className="flex min-h-14 items-center gap-3">
       {showLogo ? (
-        <Link href="/" className="flex min-h-11 items-center gap-2 rounded-full pr-2" aria-label="WendApply Startseite">
+        <Link href="/" className="flex min-h-11 min-w-11 items-center gap-2 rounded-full pr-2" aria-label="WendApply Startseite">
           <BrandMark size={32} priority />
           <span className="font-display text-lg font-extrabold tracking-[-.03em] max-[359px]:hidden">WendApply</span>
         </Link>

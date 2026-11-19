@@ -190,7 +190,16 @@ export function Funnel() {
     if (writeTimer.current) clearTimeout(writeTimer.current);
     // Not on `weg`: the intro must not overwrite the saved step (resume card after a reload, SPEC-FLOW §4.9).
     writeTimer.current = setTimeout(() => { if (step !== "weg") saveFunnelState({ ...state, step }); }, 300);
-    return () => { if (writeTimer.current) clearTimeout(writeTimer.current); };
+    // Leaving the tab right after «Weiter» (phone swipe-close) must not lose the step (B4): flush now.
+    const flush = () => { if (writeTimer.current) clearTimeout(writeTimer.current); if (step !== "weg") saveFunnelState({ ...state, step }); };
+    const onVisibility = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      if (writeTimer.current) clearTimeout(writeTimer.current);
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [ready, state, step]);
 
   const update = useCallback((patch: Partial<FunnelStateV1>) => {
@@ -243,11 +252,11 @@ export function Funnel() {
   if (!ready || saver.phase !== "idle" || sessionSave) {
     return (
       <Shell>
-        <div className="flex min-h-[60dvh] items-center justify-center">
+        <main className="flex min-h-[60dvh] items-center justify-center">
           {saver.phase === "idle" && !sessionSave ? (
             <p role="status" className="flex items-center gap-3 text-body text-muted"><span aria-hidden className="spinner h-5 w-5 text-[var(--brand)]" />Einen Moment …</p>
           ) : <SavingView phase={saver.phase === "idle" ? "saving" : saver.phase} errorKind={saver.errorKind} onRetry={() => saver.save()} onSkip={saver.skip} />}
-        </div>
+        </main>
       </Shell>
     );
   }
@@ -263,7 +272,7 @@ export function Funnel() {
     return (
       <Shell>
         <FunnelTopBar showLogo loginHref={login} />
-        <div className="grid gap-6 pt-2 lg:grid-cols-[1fr_minmax(0,520px)] lg:items-center lg:gap-12 lg:pt-8">
+        <main className="grid gap-6 pt-2 lg:grid-cols-[1fr_minmax(0,520px)] lg:items-center lg:gap-12 lg:pt-8" data-testid="funnel-step-weg" data-step="weg">
           <div className="space-y-5 lg:space-y-6">
             <h1 ref={headingRef} tabIndex={-1} className="text-[2rem] font-extrabold leading-[1.05] tracking-[-.03em] outline-none lg:text-[clamp(3rem,4.6vw,4.25rem)]">
               Dein Weg – von der Bewerbung bis zum <span className="marker">unterschriebenen Lehrvertrag</span>
@@ -273,7 +282,7 @@ export function Funnel() {
             {wide && <div className="lg:max-w-[360px]">{cta}</div>}
           </div>
           <JourneyPath animate={!wegSeen && !resumable} className="mx-auto w-full max-w-[420px] lg:max-w-[520px]" />
-        </div>
+        </main>
         {!wide && <BottomBar testId="funnel-start-bar">{cta}</BottomBar>}
       </Shell>
     );

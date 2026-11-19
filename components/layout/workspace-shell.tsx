@@ -17,6 +17,7 @@ import { Modal } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isPlaceholderName } from "@/lib/profile-name-utils";
 import { signOutEverywhere } from "@/lib/sign-out";
+import { applyFunnelIfPending, hasPendingFunnel } from "@/lib/funnel/apply";
 import { cachedRole, clearPendingSignup, clearRoleCache, guardRedirect, homeFor, keepTourParam, loadMyRole, needsRoleChoice, rolePickerHref, wrongRoleNotice } from "@/lib/role";
 import type { UserRole } from "@/types";
 import { getMyClassMemberships } from "@/lib/classes";
@@ -85,6 +86,8 @@ let shellUser: User | null = null;
 let verifiedOnce = false;
 /** "In a class" for the mobile tab bar, per user for this tab (joining / leaving a class reloads the classes page anyway). */
 let classCache: { userId: string; inClass: boolean } | null = null;
+/** Funnel answers still waiting (earlier save error / «Ohne Plan weiter»): retried silently once per app start (NEEDS-funnel #6). */
+let funnelRetryUserId: string | null = null;
 function rememberUser(user: User | null) {
   // Another account in this tab: forget everything cached for the previous one.
   if (shellUser?.id !== user?.id) { classCache = null; clearMyAvatarCache(); }
@@ -162,6 +165,13 @@ function ShellInner({ children, active, fullscreen: fullscreenPage = false }: { 
     if (familyCode) storePendingInvite(familyCode, "family");
     router.replace(next ? `/login?next=${encodeURIComponent(next)}` : "/login");
   }, [checkingSession, pathname, router, user]);
+
+  // Once per app start: save pending funnel answers silently (zero cost when nothing is pending; funnel_apply is apply-once).
+  useEffect(() => {
+    if (!user || funnelRetryUserId === user.id || !hasPendingFunnel(user)) return;
+    funnelRetryUserId = user.id;
+    void applyFunnelIfPending({ user }).then((outcome) => { if (outcome.status === "applied") clearRoleCache(); }).catch(() => undefined);
+  }, [user]);
 
   // Resolve the role once per user, ask once if there is none yet, and keep each role on its own pages.
   useEffect(() => {

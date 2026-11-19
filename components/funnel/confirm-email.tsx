@@ -87,7 +87,8 @@ export function ConfirmEmail() {
             <div className="min-w-0 flex-1">
               <h1 ref={headingRef} tabIndex={-1} className="text-title outline-none">Schau in dein Postfach</h1>
             </div>
-            <JourneyTile milestone="bewerben" className="w-20 shrink-0 sm:w-[120px]" />
+            {/* Sized wrapper: styles.journey (width:100%) beats utility widths on the svg itself (B1, h1 collapsed to 0 px). */}
+            <div className="w-20 shrink-0 sm:w-[120px]" aria-hidden><JourneyTile milestone="bewerben" /></div>
           </div>
 
           {record === undefined ? (

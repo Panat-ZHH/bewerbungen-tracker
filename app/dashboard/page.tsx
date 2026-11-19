@@ -6,7 +6,8 @@ import { ArrowRight, CalendarClock, Plus } from "lucide-react";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { NoticesCard } from "@/components/classes/notices-card";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { getApplications } from "@/lib/storage";
+import { getApplications, getCVs } from "@/lib/storage";
+import { supabase } from "@/lib/supabase";
 import { deadlineInfo, friendlyMessage } from "@/lib/ux";
 import { Badge } from "@/components/ui/badge";
 import { StatusMessage } from "@/components/ui/skeleton";
@@ -20,7 +21,7 @@ import { isClosedStatus, isSentStatus, showsDeadline } from "@/lib/status";
 import { RemindersCard } from "@/components/reminders/reminders-card";
 import { WeeklyGoal } from "@/components/dashboard/weekly-goal";
 import { ProgressPath } from "@/components/dashboard/progress-path";
-import { firstName, nextStep } from "@/lib/next-step";
+import { firstName, nextStep, type NextStepHelp } from "@/lib/next-step";
 import { loadMyRole } from "@/lib/role";
 import { sessionUser } from "@/lib/session-user";
 import { todayLocal } from "@/lib/reminders-client";
@@ -60,6 +61,22 @@ export default function DashboardPage() {
   }, []);
 
   const isNew = !loading && !error && applications.length === 0;
+  // New pupils: the help wishes from the funnel pick the first suggestion (SPEC-DATA §4); hasCv only matters for «lebenslauf».
+  const [help, setHelp] = useState<NextStepHelp>({});
+  useEffect(() => {
+    if (!isNew) return;
+    let active = true;
+    sessionUser().then(async (user) => {
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("help_wishes").eq("user_id", user.id).maybeSingle();
+      const wishes: string[] = Array.isArray(data?.help_wishes) ? data.help_wishes : [];
+      if (!wishes.length) return;
+      const hasCv = wishes.includes("lebenslauf") ? await getCVs().then((list) => list.some((cv) => Boolean(cv.storagePath))).catch(() => undefined) : undefined;
+      if (active) setHelp({ help: wishes, hasCv });
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [isNew]);
+  const helpStep = isNew ? nextStep([], todayLocal(), help) : null;
   const step = nextStep(applications, todayLocal());
   const recent = [...applications].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 3);
   const deadlines = applications
@@ -74,7 +91,7 @@ export default function DashboardPage() {
         {loading ? (
           <div className="skeleton mt-4 h-7 w-64 max-w-full" role="status" aria-label="Dein nächster Schritt wird geladen" />
         ) : !error && (
-          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5" data-tour="schueler-next-step">
+          <div className="mt-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-5" data-tour={isNew ? undefined : "schueler-next-step"}>
             {!isNew && <p className="font-display max-w-xl text-xl font-semibold leading-snug tracking-[-.01em] sm:text-2xl" data-testid="next-step">{step.text}</p>}
             {!isNew && <ButtonLink href={step.href} variant="sun" className="w-fit shrink-0" data-primary-action="" icon={<ArrowRight size={16} strokeWidth={2.4} />}>{step.cta}</ButtonLink>}
           </div>
@@ -95,7 +112,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {isNew && <FirstSteps />}
+      {isNew && <FirstSteps hint={helpStep && helpStep.href !== "/applications/new" ? helpStep : null} />}
 
       {!loading && applications.length > 0 && (
         <div className="mt-9 grid gap-x-12 gap-y-10 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
@@ -162,7 +179,7 @@ const FIRST_STEPS = [
 ];
 
 /** New users: no numbers at all. The three steps ARE the page: a plain numbered list with huge numerals and a doodle. */
-function FirstSteps() {
+function FirstSteps({ hint }: { hint: { text: string; href: string; cta: string } | null }) {
   return (
     <section className="animate-rise mt-8 grid gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]" aria-labelledby="first-steps-h" data-tour="schueler-next-step">
       <div className="min-w-0">
@@ -184,10 +201,19 @@ function FirstSteps() {
         </ol>
         {/* One clear next step for new pupils, on mobile and desktop alike (QA M5, schueler solo-d-076). */}
         <ButtonLink href="/search" variant="sun" className="mt-5 w-fit" data-primary-action="" icon={<ArrowRight size={16} strokeWidth={2.4} />}>Erste Stelle suchen</ButtonLink>
+        {hint && (
+          <p className="mt-4 text-body text-muted" data-testid="help-hint">
+            {hint.text} <Link href={hint.href} className="inline-flex min-h-11 items-center font-semibold text-[var(--brand)] hover:underline">{hint.cta}</Link>
+          </p>
+        )}
       </div>
-      <div aria-hidden className="relative mx-auto hidden h-64 w-full max-w-xs lg:block">
-        <DoodlePlane className="absolute right-2 top-10 h-20 w-24 rotate-[-8deg] text-[var(--brand)]" />
-        <span className="sticker sticker-coral tilt-r absolute bottom-4 left-10">Deine Lehrstelle wartet</span>
+      {/* The weekly goal from the funnel is visible from day one (NEEDS-data B2), also for tour step «Dein Wochenziel». */}
+      <div className="min-w-0 space-y-6">
+        <WeeklyGoal applications={[]} />
+        <div aria-hidden className="relative mx-auto hidden h-40 w-full max-w-xs lg:block">
+          <DoodlePlane className="absolute right-2 top-2 h-20 w-24 rotate-[-8deg] text-[var(--brand)]" />
+          <span className="sticker sticker-coral tilt-r absolute bottom-2 left-10">Deine Lehrstelle wartet</span>
+        </div>
       </div>
     </section>
   );
