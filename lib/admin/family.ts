@@ -65,7 +65,7 @@ export function familyRevokeInput(body: Record<string, unknown>): { note: string
 /** Error codes raised by the admin_family_* functions. */
 export const FAMILY_DB_ERRORS = [
   "FORBIDDEN", "NOT_FOUND", "INVALID_UNTIL", "INVALID_NOTE", "INVALID_SEATS", "NOT_ELIGIBLE", "FAMILY_PENDING", "STRIPE_MANAGED",
-  "SEATS_TOO_LOW", "NOT_GRANTED",
+  "SEATS_TOO_LOW", "NOT_GRANTED", "REAUTH_REQUIRED",
 ] as const;
 export type FamilyDbError = (typeof FAMILY_DB_ERRORS)[number];
 
@@ -85,7 +85,8 @@ export function familyDbErrorCode(error: { code?: string | null; message?: strin
 
 /** How the API answers each code: invalid input (field), 404, or a 409 conflict reason (texts in components/admin/api.ts). */
 export function familyErrorHttp(code: FamilyDbError | "RPC_MISSING"):
-  | { kind: "invalid"; field: string } | { kind: "not_found" } | { kind: "conflict"; reason: string } | { kind: "not_configured" } {
+  | { kind: "invalid"; field: string } | { kind: "not_found" } | { kind: "conflict"; reason: string } | { kind: "not_configured" }
+  | { kind: "reauth" } {
   switch (code) {
     case "INVALID_UNTIL": return { kind: "invalid", field: "until" };
     case "INVALID_NOTE": return { kind: "invalid", field: "note" };
@@ -93,6 +94,7 @@ export function familyErrorHttp(code: FamilyDbError | "RPC_MISSING"):
     case "NOT_FOUND":
     case "FORBIDDEN": return { kind: "not_found" }; // like the guard: the admin route does not "exist" for non-admins
     case "RPC_MISSING": return { kind: "not_configured" };
+    case "REAUTH_REQUIRED": return { kind: "reauth" }; // the database's own MFA / fresh-login check (same rule as the guard)
     case "STRIPE_MANAGED": return { kind: "conflict", reason: "stripe_managed" };
     case "NOT_GRANTED": return { kind: "conflict", reason: "family_not_granted" };
     case "NOT_ELIGIBLE": return { kind: "conflict", reason: "family_not_eligible" };

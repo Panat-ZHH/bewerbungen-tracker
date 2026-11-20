@@ -36,6 +36,7 @@ function errorResponse(where: string, e: unknown): Response {
     if (h.kind === "invalid") return fail(400, "invalid_input", { field: h.field });
     if (h.kind === "not_found") return fail(404, "not_found");
     if (h.kind === "not_configured") return fail(503, "not_configured");
+    if (h.kind === "reauth") return fail(403, "reauth_required");
     return fail(409, "conflict", { reason: h.reason });
   }
   if (e instanceof InvalidInput) return fail(400, "invalid_input", { field: e.field });
@@ -78,7 +79,7 @@ async function audited<T>(store: AdminStore, ctx: AdminContext, entry: { action:
 /** Refused / failed family RPC → "<action>.failed" row (best effort). Success rows are written by the database itself. */
 async function auditFailure(store: AdminStore, ctx: AdminContext, action: string, userId: string, details: Record<string, unknown>, e: unknown) {
   const error = e instanceof FamilyRpcError ? e.code.toLowerCase() : "error";
-  if (error === "forbidden" || error === "rpc_missing") return;
+  if (error === "forbidden" || error === "rpc_missing" || error === "reauth_required") return;
   await store.writeAudit({ admin_id: ctx.admin.id, ip: ctx.ip, action: `${action}.failed`, target_user: userId, details: { ...details, error } }).catch(() => {});
 }
 

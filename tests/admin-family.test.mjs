@@ -155,6 +155,13 @@ test("DELETE revoke: note validated, not granted → 409 family_not_granted, FOR
   const fb = setup({ throwOn: { revoke: new fam.FamilyRpcError("FORBIDDEN") } });
   assert.equal((await fb.api.familyRevoke(fb.req("DELETE", { confirm: true }), USER)).status, 404);
   assert.equal(fb.audit.length, 0);
+  // The database's own strong-session check (REAUTH_REQUIRED) → 403 reauth_required, like the guard; no .failed row.
+  assert.deepEqual(fam.familyErrorHttp("REAUTH_REQUIRED"), { kind: "reauth" });
+  assert.equal(fam.familyDbErrorCode({ code: "42501", message: "REAUTH_REQUIRED" }), "REAUTH_REQUIRED");
+  const ra = setup({ throwOn: { revoke: new fam.FamilyRpcError("REAUTH_REQUIRED") } });
+  const rr = await ra.api.familyRevoke(ra.req("DELETE", { confirm: true }), USER);
+  assert.deepEqual([rr.status, (await rr.json()).error], [403, "reauth_required"]);
+  assert.equal(ra.audit.length, 0);
 });
 
 test("familyRpc: calls the RPC through the admin-session client, maps known errors, hides unknown ones", async () => {

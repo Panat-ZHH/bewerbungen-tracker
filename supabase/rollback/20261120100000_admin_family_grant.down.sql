@@ -5,3 +5,4 @@
 drop function if exists public.admin_family_grant(uuid, timestamptz, text, integer, integer);
 drop function if exists public.admin_family_revoke(uuid, text);
 drop function if exists public.admin_family_status(uuid);
+drop function if exists public._admin_family_session_ok();

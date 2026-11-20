@@ -15,6 +15,8 @@ export async function setupAccessDb(opts = {}) {
     create schema auth; create schema storage;
     create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb, created_at timestamptz not null default now(), email_confirmed_at timestamptz);
     create function auth.uid() returns uuid language sql stable as $auth$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $auth$;
+    create function auth.jwt() returns jsonb language sql stable as $auth$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $auth$;
+    create table auth.mfa_factors (id uuid primary key default gen_random_uuid(), user_id uuid not null, status text not null default 'verified');
     create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
     create table storage.objects (bucket_id text, name text, owner uuid);
     create function storage.foldername(text) returns text[] language sql as $storage$ select string_to_array($1, '/') $storage$;
@@ -28,8 +30,14 @@ export async function setupAccessDb(opts = {}) {
   }
   const files = (await readdir(dir)).filter((f) => f.endsWith(".sql")).sort();
   for (const f of files) { await database.exec("reset role"); await database.exec(await readFile(new URL(f, dir), "utf8")); }
-  const reset = async () => { await database.exec("reset role"); await database.query("select set_config('request.jwt.claim.sub', '', false)"); };
-  const as = async (user) => { await reset(); await database.query("select set_config('request.jwt.claim.sub', $1, false)", [user ?? ""]); await database.exec("set role authenticated"); };
+  const reset = async () => { await database.exec("reset role"); await database.query("select set_config('request.jwt.claim.sub', '', false), set_config('request.jwt.claims', '', false)"); };
+  /** claims (optional) = the full JWT claims object seen by auth.jwt() (aal, amr, …). */
+  const as = async (user, claims = null) => {
+    await reset();
+    await database.query("select set_config('request.jwt.claim.sub', $1, false), set_config('request.jwt.claims', $2, false)",
+      [user ?? "", claims ? JSON.stringify({ sub: user, role: "authenticated", ...claims }) : ""]);
+    await database.exec("set role authenticated");
+  };
   const asService = async () => { await reset(); await database.exec("set role service_role"); };
   const admin = async (sql, params) => { await reset(); return (await database.query(sql, params)).rows; };
   const q = async (sql, params) => (await database.query(sql, params)).rows;

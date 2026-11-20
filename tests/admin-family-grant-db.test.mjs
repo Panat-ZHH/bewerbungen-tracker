@@ -6,7 +6,11 @@ import { readFile } from "node:fs/promises";
 import { setupAccessDb } from "./helpers/access-db.mjs";
 
 const ctx = await setupAccessDb({ supabaseDefaults: true });
-const { admin, as, asService, q, code, user, mode, expire, access, reset, database } = ctx;
+const { admin, asService, q, code, user, mode, expire, access, reset, database } = ctx;
+// A strong, fresh admin session like the /api/admin guard requires (aal2 + amr timestamp now). `claims` overrides it.
+const nowS = () => Math.floor(Date.now() / 1000);
+const strong = () => ({ aal: "aal2", amr: [{ method: "totp", timestamp: nowS() - 60 }, { method: "password", timestamp: nowS() - 90 }] });
+const as = (u, claims = strong()) => ctx.as(u, claims);
 let n = 4200;
 const next = () => ++n;
 
@@ -165,6 +169,35 @@ test("non-admins, anon and the service role get FORBIDDEN (and anon has no EXECU
   assert.equal((await audits(p, "family_grant")).length, 0);
 });
 
+test("admin session must be strong and fresh (no aal1 password-only, no stale token): REAUTH_REQUIRED, nothing written", async () => {
+  await mode("on");
+  const a = await platformAdmin();
+  const p = await parent();
+  const t = nowS();
+  const weak = [
+    {},                                                                                    // no claims at all
+    { aal: "aal1", amr: [{ method: "password", timestamp: t - 60 }] },                    // password only
+    { aal: "aal2", amr: [{ method: "totp", timestamp: t - 13 * 3600 }] },                 // stale (> 12 h)
+    { aal: "aal2", amr: [{ method: "totp" }] },                                           // no timestamp → fail closed
+    { aal: "aal2", amr: [{ method: "totp", timestamp: t + 3600 }] },                      // from the future
+  ];
+  for (const c of weak) {
+    await as(a, c);
+    for (const call of [grant(p), revoke(p), status(p)]) assert.match(await code(call), /REAUTH_REQUIRED/, JSON.stringify(c));
+  }
+  // Google (oauth) login without MFA factor is accepted (like the guard) …
+  await as(a, { aal: "aal1", amr: [{ method: "oauth", timestamp: t - 60 }] });
+  assert.equal((await status(p)).plan_kind, "none");
+  // … but not once the admin has a verified MFA factor (then aal2 is required).
+  await admin("insert into auth.mfa_factors (user_id, status) values ($1, 'verified')", [a]);
+  await as(a, { aal: "aal1", amr: [{ method: "oauth", timestamp: t - 60 }] });
+  assert.match(await code(grant(p)), /REAUTH_REQUIRED/);
+  await reset();
+  assert.equal((await admin("select count(*)::int c from public.family_members where user_id = $1", [p]))[0].c, 0);
+  assert.equal((await audits(p, "family_grant")).length, 0);
+  assert.equal((await admin("select has_function_privilege('authenticated', 'public._admin_family_session_ok()', 'execute') x"))[0].x, false);
+});
+
 test("Stripe-managed family: grant and revoke refused with STRIPE_MANAGED, Stripe licence untouched", async () => {
   await mode("on");
   const a = await platformAdmin();
@@ -263,7 +296,7 @@ test("privileges: authenticated only, SECURITY DEFINER with empty search_path; r
   }
   const down = await readFile(new URL("../supabase/rollback/20261120100000_admin_family_grant.down.sql", import.meta.url), "utf8");
   await database.exec(down);
-  assert.equal((await admin("select count(*)::int c from pg_proc where proname like 'admin_family_%'"))[0].c, 0);
+  assert.equal((await admin("select count(*)::int c from pg_proc where proname like 'admin_family_%' or proname = '_admin_family_session_ok'"))[0].c, 0);
   // re-applying the migration works (idempotent)
   await database.exec(await readFile(new URL("../supabase/migrations/20261120100000_admin_family_grant.sql", import.meta.url), "utf8"));
   assert.equal((await admin("select count(*)::int c from pg_proc where proname like 'admin_family_%'"))[0].c, 3);

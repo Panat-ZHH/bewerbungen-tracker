@@ -24,7 +24,34 @@
 -- Teachers / school admins are refused (NOT_ELIGIBLE): app_access() never gives staff access through a family.
 
 -- Admin check in every function: auth.uid() must be set AND public.am_i_platform_admin() (20261118010000) must be true.
--- auth.uid() null (service role, SQL editor, anon) is refused as well.
+-- auth.uid() null (service role, SQL editor, anon) is refused as well. Plus a strong, fresh session (section 0): REAUTH_REQUIRED.
+
+-- ---------------------------------------------------------------- 0. strong admin session (QA fix 2026-11-21)
+-- The functions are EXECUTE-able by `authenticated`, so an admin's session could call them straight through PostgREST,
+-- past the /api/admin guard. Repeat the guard's session rules here (lib/admin/guard.ts 3+4) so a password-only (aal1)
+-- or stale session cannot use them: aal2, OR an OAuth (Google) login of an admin WITHOUT a verified MFA factor; and the
+-- newest amr timestamp at most 12 h old (ADMIN_SESSION_MAX_AGE_HOURS default; 5 min clock skew). Else REAUTH_REQUIRED.
+create or replace function public._admin_family_session_ok()
+returns boolean language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_jwt jsonb := coalesce(auth.jwt(), '{}'::jsonb);
+  v_amr jsonb := case when jsonb_typeof(v_jwt -> 'amr') = 'array' then v_jwt -> 'amr' else '[]'::jsonb end;
+  v_at numeric;
+  v_now numeric := extract(epoch from now());
+begin
+  if auth.uid() is null then return false; end if;
+  if coalesce(v_jwt ->> 'aal', '') <> 'aal2' and not (
+      exists (select 1 from jsonb_array_elements(v_amr) e
+        where (jsonb_typeof(e) = 'object' and e ->> 'method' = 'oauth') or (jsonb_typeof(e) = 'string' and e #>> '{}' = 'oauth'))
+      and not exists (select 1 from auth.mfa_factors f where f.user_id = auth.uid() and f.status::text = 'verified')) then
+    return false;
+  end if;
+  select max((e ->> 'timestamp')::numeric) into v_at from jsonb_array_elements(v_amr) e
+    where jsonb_typeof(e) = 'object' and jsonb_typeof(e -> 'timestamp') = 'number';
+  return v_at is not null and v_at >= v_now - 12 * 3600 and v_at <= v_now + 300;
+end;
+$$;
+revoke all on function public._admin_family_session_ok() from public, anon, authenticated;
 
 -- ---------------------------------------------------------------- 1. status (read)
 create or replace function public.admin_family_status(p_user_id uuid)
@@ -42,6 +69,9 @@ declare
 begin
   if v_admin is null or not public.am_i_platform_admin() then
     raise exception 'FORBIDDEN' using errcode = '42501', detail = 'Nur Plattform-Admins.';
+  end if;
+  if not public._admin_family_session_ok() then
+    raise exception 'REAUTH_REQUIRED' using errcode = '42501', detail = 'Bitte neu anmelden (MFA / frische Anmeldung).';
   end if;
   if p_user_id is null or not exists (select 1 from auth.users u where u.id = p_user_id) then
     raise exception 'NOT_FOUND' using detail = 'Konto nicht gefunden.';
@@ -128,6 +158,9 @@ declare
 begin
   if v_admin is null or not public.am_i_platform_admin() then
     raise exception 'FORBIDDEN' using errcode = '42501', detail = 'Nur Plattform-Admins.';
+  end if;
+  if not public._admin_family_session_ok() then
+    raise exception 'REAUTH_REQUIRED' using errcode = '42501', detail = 'Bitte neu anmelden (MFA / frische Anmeldung).';
   end if;
   if p_user_id is null or not exists (select 1 from auth.users u where u.id = p_user_id) then
     raise exception 'NOT_FOUND' using detail = 'Konto nicht gefunden.';
@@ -239,6 +272,9 @@ begin
   if v_admin is null or not public.am_i_platform_admin() then
     raise exception 'FORBIDDEN' using errcode = '42501', detail = 'Nur Plattform-Admins.';
   end if;
+  if not public._admin_family_session_ok() then
+    raise exception 'REAUTH_REQUIRED' using errcode = '42501', detail = 'Bitte neu anmelden (MFA / frische Anmeldung).';
+  end if;
   if p_user_id is null or not exists (select 1 from auth.users u where u.id = p_user_id) then
     raise exception 'NOT_FOUND' using detail = 'Konto nicht gefunden.';
   end if;
@@ -298,6 +334,6 @@ grant execute on function public.admin_family_revoke(uuid, text) to authenticate
 do $$ begin
   if exists (select 1 from pg_roles where rolname = 'service_role') then
     revoke all on function public.admin_family_status(uuid), public.admin_family_grant(uuid, timestamptz, text, integer, integer),
-      public.admin_family_revoke(uuid, text) from service_role;
+      public.admin_family_revoke(uuid, text), public._admin_family_session_ok() from service_role;
   end if;
 end $$;
