@@ -572,6 +572,15 @@ async function main() {
       assert(/Aktiv/.test(licText) && /vom Admin/.test(licText), `licence: ${licText}`);
       await section.scrollIntoViewIfNeeded();
       await fshot(page, "03-granted");
+      // «ändern» starts from the current end date + seats (not the 12-month default)
+      await tid(page, "admin-family-grant").click();
+      await tid(page, "admin-confirm-modal").waitFor();
+      assert((await tid(page, "admin-family-duration-custom").getAttribute("aria-pressed")) === "true", "change dialog keeps the end date");
+      const prefilled = await page.locator("#f-family-until").inputValue();
+      assert(/^\d{4}-\d{2}-\d{2}$/.test(prefilled) && licText.includes(prefilled.split("-").reverse().join(".")), `end date prefilled: ${prefilled}`);
+      assert((await page.locator("#f-family-children").inputValue()) === "3", "seats prefilled");
+      await page.keyboard.press("Escape");
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
       // revoke with confirm dialog + note
       await tid(page, "admin-family-revoke").click();
       await tid(page, "admin-confirm-modal").waitFor();

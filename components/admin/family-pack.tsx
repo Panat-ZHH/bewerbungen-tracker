@@ -50,8 +50,12 @@ export function FamilyPackSection({ userId, userLabel, adminEmail, onChanged }: 
   function open(kind: "grant" | "revoke") {
     const s = res?.ok ? res.data : null;
     const lic = s?.licence?.manual && s.licence.state === "active" ? s.licence : null;
-    // Changing an existing grant starts from its current seats.
-    setForm({ ...emptyFamilyGrantForm(), ...(lic ? { seats_parents: String(lic.seats_parents), seats_children: String(lic.seats_children) } : {}) });
+    // Changing an existing grant starts from its current end date and seats (so e.g. a seat change never silently
+    // turns an unlimited grant into a 12-month one).
+    setForm({ ...emptyFamilyGrantForm(), ...(lic ? {
+      duration: lic.valid_until ? "custom" as const : "unlimited" as const, custom: lic.valid_until?.slice(0, 10) ?? "",
+      seats_parents: String(lic.seats_parents), seats_children: String(lic.seats_children),
+    } : {}) });
     setNote("");
     setError(null);
     setBadField(null);
