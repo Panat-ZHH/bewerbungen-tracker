@@ -21,7 +21,7 @@ export async function accessToken(): Promise<string | null> {
   }
 }
 
-export async function adminFetch<T = unknown>(path: string, opts: { method?: "GET" | "POST"; body?: Record<string, unknown> } = {}): Promise<AdminResult<T>> {
+export async function adminFetch<T = unknown>(path: string, opts: { method?: "GET" | "POST" | "DELETE"; body?: Record<string, unknown> } = {}): Promise<AdminResult<T>> {
   const token = await accessToken();
   if (!token) {
     authHandler?.("login");
@@ -67,6 +67,11 @@ const CONFLICTS: Record<string, string> = {
   already_member: "Diese Person ist schon dabei.",
   licence_closed: "Diese Lizenz ist schon beendet.",
   already_cancelled: "Diese Lizenz ist schon widerrufen.",
+  stripe_managed: "Diese Familie zahlt über Stripe. Bitte zuerst in Stripe kündigen.",
+  family_not_granted: "Hier gibt es kein vom Admin vergebenes Familienpaket zum Entziehen.",
+  family_not_eligible: "Lehrpersonen und Schuladmins bekommen keinen Zugang über eine Familie.",
+  family_pending: "Die Person ist noch nicht aktiv in ihrer Familie (Einladung offen).",
+  seats_too_low: "In der Familie sind schon mehr Mitglieder als Plätze. Bitte mehr Plätze wählen.",
 };
 
 /** Short German message for a failed admin call. `labels` maps field names to readable labels. */

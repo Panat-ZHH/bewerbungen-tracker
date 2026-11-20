@@ -63,6 +63,27 @@ notes), `update_licence` (valid_until for normal licences, pilot_end for pilots,
 - **School**: tab **Schulen** → open the school → card **Gratis-Zugang** → **Gratis-Zugang geben** → **Unbefristet** / **Bis Datum** →
   **Bestätigen**. Remove: **Entziehen**. The person sees "Gratis (unbefristet)" on `/abo` and in Settings → Abo, no trial banner, no prices.
 
+### Familienpaket (family package) – click path
+
+`/admin` → tab **Personen** → search the e-mail → open the row → card **Familienpaket** shows the current plan (Schullizenz,
+eigenes Abo, Familien-Abo über Stripe, Familienpaket vom Admin, Gratis, Testwoche), the family name, members (role, status) and
+the licence (status, end date, seats, «Vergeben von»).
+
+- **Familienpaket vergeben**: duration **1 / 3 / 6 / 12 Monate**, **Unbefristet** or **Eigenes Datum** (last day with access),
+  seats (default 2 Eltern / 4 Kinder; the paid plan has 1 + 1), optional note → **Vergeben**. Without a family a family «Familie»
+  is created: a parent account joins as parent, a student as child (consent pending under 16, like the normal flow); others join
+  through the normal family invite. Every active member of the family then has access (`app_access` reason `family_subscription`).
+  Clicking again on an active admin grant (**Familienpaket ändern**) updates the same licence row (idempotent).
+- **Familienpaket entziehen**: confirm (+ optional note) → the admin-granted licence row gets status `cancelled`; the family and
+  its members stay. Nothing is ever deleted.
+- Refused: families with a Stripe subscription / Stripe licence (`stripe_managed` – cancel in Stripe first), teachers and school
+  admins (`family_not_eligible`), a pending membership (`family_pending`), fewer seats than members (`seats_too_low`).
+- Data: a row in `school_licences` with `family_id`, `plan_type/package 'family'`, `status 'active'`, `source 'manual'`,
+  `stripe_subscription_id`/`external_ref` NULL, `assigned_by 'admin:<admin uuid>'`, end date in `valid_until` (NULL = unlimited),
+  note in `notes`. The Stripe webhook (`billing_apply_subscription`) only touches the row with its own subscription id, so it
+  never overwrites a manual grant. RPCs `admin_family_status / _grant / _revoke` (migration `20261120100000_admin_family_grant.sql`,
+  rollback `supabase/rollback/20261120100000_admin_family_grant.down.sql`).
+
 ## 3. API (`/api/admin/*`)
 
 All requests: `Authorization: Bearer <Supabase access token>` – no cookies are read (CSRF-safe). Answers are JSON with
@@ -74,6 +95,9 @@ All requests: `Authorization: Bearer <Supabase access token>` – no cookies are
 | `GET /api/admin/users` | `q, page, state=all\|blocked\|grant\|grant_forever\|trial\|trial_over, role=all\|student\|teacher\|school_admin\|parent, sub=all\|active\|none, school=all\|none\|<uuid>` | `Paged<AdminUserRow>` (50 per page) |
 | `GET /api/admin/users/:id` | | `AdminUserDetail` |
 | `POST /api/admin/users/:id` | `{ action, confirm: true, … }` (see above) | `{ ok, account_access }` / `{ ok, deleted }` |
+| `GET /api/admin/users/:id/family` | | `AdminFamilyStatus` |
+| `POST /api/admin/users/:id/family` | `{ confirm: true, until?: "YYYY-MM-DD"\|ISO\|null, note?, seats_parents? 1–10, seats_children? 1–20 }` | `{ ok, family: AdminFamilyGrantResult }` |
+| `DELETE /api/admin/users/:id/family` | `{ confirm: true, note? }` | `{ ok, family_id, licence_ids, status: "cancelled" }` |
 | `GET /api/admin/signups` | `days=7\|30` | `{ days, total, by_day[], users[] }` |
 | `GET /api/admin/schools` | `q` | `{ items: AdminSchoolRow[] }` |
 | `POST /api/admin/schools` | `{ action: "create", name, canton_or_state?, country?, confirm: true }` | `{ ok, school_id }` |
@@ -83,7 +107,8 @@ All requests: `Authorization: Bearer <Supabase access token>` – no cookies are
 
 Types: `lib/admin/types.ts`. Errors (generic on purpose, never DB messages): `401 unauthenticated`, `404 not_found`,
 `403 mfa_required`, `403 reauth_required`, `429 rate_limited` (+ `Retry-After`), `400 invalid_input` + `field`, `409 conflict` + `reason`
-(`self`, `not_blocked`, `not_granted`, `platform_admin`, `user_not_found`, `already_member`, `licence_closed`, `already_cancelled`),
+(`self`, `not_blocked`, `not_granted`, `platform_admin`, `user_not_found`, `already_member`, `licence_closed`, `already_cancelled`,
+family: `stripe_managed`, `family_not_granted`, `family_not_eligible`, `family_pending`, `seats_too_low`),
 `409 subscription_active`, `500 failed`, `503 not_configured`.
 
 ## 4. Security design
@@ -116,6 +141,12 @@ out and asks for a new login (a stolen refresh token stops working for `/admin` 
    insert into or delete from `platform_admins` through the API (service role script only).
 5. SQL: new admin RPCs are `security definer`, `set search_path = ''`, `revoke all … from public, anon, authenticated` and
    `grant execute … to service_role` only; no grants on admin tables to `anon` / `authenticated`; `admin_audit_log` stays append-only.
+   **Exception (stricter): the family package RPCs `admin_family_*`** are granted to `authenticated` only (not even the service
+   role) and are called with the admin's OWN session (`lib/admin/server.ts` `adminSessionClient`, publishable key + the verified
+   bearer token). Each one raises FORBIDDEN unless `auth.uid()` is in `platform_admins`, so the database enforces the admin check
+   a second time, and the `family_grant` / `family_revoke` audit row is written in the same transaction as the change (stronger
+   than audit-before-apply: no change without its row, no row without its change). A refused or failed call adds
+   `<action>.failed` through the service store. They are on the ungated list in `docs/access/GUARDS.md`.
 6. Search / filter input never goes into PostgREST `.or()` / `.filter()` strings or string-built SQL (filter in memory or use `.eq/.in`).
 7. Add the new route to the "admin routes go through adminApi" test and a 401 / 404 / 403 / reauth test for it.
 
@@ -123,7 +154,11 @@ out and asks for a new login (a stolen refresh token stops working for `/admin` 
 
 - `tests/admin-api.test.mjs` – guard (401 / 404 / 403 / 200), validation, rate limits, audit-before-apply for every mutation, hidden route.
 - `tests/admin-store.test.mjs` – the service-role store against a fake supabase client.
+- `tests/admin-family.test.mjs` – family package API: validation, error mapping, guard (401 / 404 / 403 mfa / reauth), `.failed` audit.
+- `tests/admin-family-grant-db.test.mjs` – the `admin_family_*` SQL on PGlite with all migrations (grant / re-grant / revoke, non-admin,
+  Stripe-managed refused, Stripe sync does not overwrite, access for parent and child, privileges, rollback).
 - `scripts/admin-e2e.mjs` – Playwright against `next dev` with the Supabase auth and `/api/admin/*` mocked in the browser:
   login prompt, 404 look, MFA enrolment, dashboard tabs, actions with confirmation; screenshots desktop + mobile, light + dark
-  into `~/Projects/bewerbungen-tracker-wt/_access/admin-shots/`.
+  into `~/Projects/bewerbungen-tracker-wt/_access/admin-shots/`; the family package flow (`ONLY="family package"`) at 390 / 1280,
+  light + dark, screenshots into `FAMILY_OUT` (default `~/Projects/bewerbungen-tracker-wt/_onboarding/family-shots/`).
   `PLAYWRIGHT=<…/playwright-core/index.mjs> CHROME="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" node scripts/admin-e2e.mjs`

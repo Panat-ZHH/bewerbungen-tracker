@@ -15,6 +15,7 @@ import { freeAccessActive, freeAccessBody, freeAccessLabel, type FreeAccessForm 
 import { FreeAccessFields, emptyFreeAccessForm } from "./free-access";
 import { ACCOUNT_TYPE_LABEL, AuditList, ConfirmModal, Facts, ROLE_LABEL, Section, StatusBadge, StripeLink, fmtDate, fmtDateTime, fmtRelative, isoDay, type OpenDetail } from "./shared";
 import { LicenceBadge } from "./schools-tab";
+import { FamilyPackSection } from "./family-pack";
 
 type Action = "set_trial" | "extend_trial" | "grant_access" | "revoke_access" | "block" | "unblock" | "soft_delete" | "delete_account" | "assign_school";
 
@@ -263,6 +264,10 @@ export function UserDetail({ id, selfId, onOpen, onChanged, onDeleted }: { id: s
           </ul>
         )}
       </Section>
+
+      <FamilyPackSection key={u.id} userId={u.id} userLabel={u.name ? `${u.name} · ${u.email ?? ""}` : u.email ?? undefined}
+        adminEmail={(adminId) => u.audit.find((a) => a.admin_id === adminId)?.admin_email ?? (adminId === selfId ? "(du)" : null)}
+        onChanged={() => { onChanged(); void load(); }} />
 
       <Section title="Schulen, Klassen, Familie">
         {u.schools.length === 0 && u.classes.length === 0 && u.families.length === 0 ? <p className="text-small text-muted">Keine Schule, Klasse oder Familie.</p> : (

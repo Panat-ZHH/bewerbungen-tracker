@@ -66,7 +66,7 @@ function people() {
 
 function createMock() {
   const state = {
-    aal: "aal1", factors: [], users: people(), audit: [], admin: true, apiCalls: [],
+    aal: "aal1", factors: [], users: people(), audit: [], admin: true, apiCalls: [], families: {},
     schools: [{ id: "55555555-5555-4555-8555-555555555501", name: "Sek Wiesendangen", canton_or_state: "ZH", country: "CH", created_at: iso(-90),
       licence: { id: "66666666-6666-4666-8666-666666666601", package: "starter", status: "active", state: "active", student_limit: 100, pilot_start: null, pilot_end: null, valid_from: iso(-90).slice(0, 10), valid_until: iso(275).slice(0, 10), billing_interval: "yearly", notes: null, created_at: iso(-90) },
       students: 42, admins: 1, teachers: 2 }],
@@ -106,6 +106,27 @@ function createMock() {
     return reply(200, {});
   }
 
+  // Shape of public.admin_family_status() (supabase/migrations/20261120100000_admin_family_grant.sql).
+  function familyStatus(u) {
+    const stripe = u.subscription?.owner === "family";
+    const f = state.families[u.id] ?? (stripe ? { name: "Familie Keller", licence: { id: "77777777-7777-4777-8777-777777777700", status: "active", state: "active", source: "stripe",
+      valid_from: iso(-5).slice(0, 10), valid_until: iso(25).slice(0, 10), seats_parents: 1, seats_children: 1, assigned_by: "stripe", notes: null, created_at: iso(-5), manual: false } } : null);
+    const eligible = u.role !== "teacher" && u.role !== "school_admin";
+    const manualActive = Boolean(f?.licence?.manual && f.licence.status === "active");
+    const kind = u.access_reason === "family_subscription" ? (stripe ? "family_stripe" : "family_manual") : u.access_reason === "school_licence" ? "school"
+      : u.access_reason === "grant" ? "grant" : u.access_reason === "trial" ? "trial" : u.access_reason === "subscription" ? "solo" : "none";
+    return {
+      user_id: u.id, plan_kind: kind, access_state: u.access_state, access_reason: u.access_reason, eligible, stripe_managed: stripe,
+      family: f ? { id: "fam-1", name: f.name, created_at: iso(-5), my_role: u.role === "parent" ? "parent" : "child", my_status: "active" } : null,
+      members: f ? [
+        { user_id: u.id, email: u.email, role: u.role === "parent" ? "parent" : "child", status: "active", consent_status: "not_required", joined_at: iso(-5) },
+        ...(stripe || manualActive ? [{ user_id: "99999999-9999-4999-8999-999999999901", email: "kind.keller@beispiel.ch", role: "child", status: "pending", consent_status: "pending", joined_at: iso(-1) }] : []),
+      ] : [],
+      licence: f?.licence ?? null, manual_licence_id: manualActive ? f.licence.id : null,
+      can_grant: eligible && !stripe, can_revoke: manualActive && !stripe,
+    };
+  }
+
   async function adminApi(route) {
     const req = route.request();
     const url = new URL(req.url());
@@ -117,7 +138,7 @@ function createMock() {
     if (!state.admin) return reply(404, { error: "not_found" });
     const claims = JSON.parse(Buffer.from(auth.slice(7).split(".")[1], "base64url").toString());
     if (claims.aal !== "aal2") return reply(403, { error: "mfa_required" });
-    const body = req.method() === "POST" ? JSON.parse(req.postData() || "{}") : null;
+    const body = req.method() === "POST" || req.method() === "DELETE" ? JSON.parse(req.postData() || "{}") : null;
     if (body && body.confirm !== true) return reply(400, { error: "invalid_input", field: "confirm" });
 
     if (p === "/me") return reply(200, { user_id: ADMIN_ID, email: "admin@beispiel.ch", aal: "aal2" });
@@ -131,6 +152,32 @@ function createMock() {
       return reply(200, { items, total: items.length, page: 1, page_size: 50 });
     }
     let m;
+    if ((m = /^\/users\/([^/]+)\/family$/.exec(p))) {
+      const u = state.users.find((x) => x.id === m[1]);
+      if (!u) return reply(404, { error: "not_found" });
+      if (req.method() === "GET") return reply(200, familyStatus(u));
+      const f = state.families[u.id];
+      if (req.method() === "POST") {
+        if (u.role === "teacher") return reply(409, { error: "conflict", reason: "family_not_eligible" });
+        if (u.subscription?.owner === "family") return reply(409, { error: "conflict", reason: "stripe_managed" });
+        if (body.seats_children > 20 || body.seats_children < 1) return reply(400, { error: "invalid_input", field: "seats_children" });
+        const lic = { id: "77777777-7777-4777-8777-777777777701", status: "active", state: "active", source: "manual", valid_from: iso(0).slice(0, 10),
+          valid_until: body.until ?? null, seats_parents: body.seats_parents, seats_children: body.seats_children, assigned_by: `admin:${ADMIN_ID}`,
+          notes: body.note ?? null, created_at: iso(0), manual: true };
+        const before = f?.licence ?? null;
+        state.families[u.id] = { name: f?.name ?? "Familie", licence: lic };
+        u.access_state = "active"; u.access_reason = "family_subscription";
+        log("family_grant", u.id, null, { before, after: { status: "active", valid_until: lic.valid_until, seats_parents: lic.seats_parents, seats_children: lic.seats_children }, note: body.note ?? null });
+        return reply(200, { ok: true, family: { family_id: "fam-new", licence_id: lic.id, status: "active", valid_until: lic.valid_until } });
+      }
+      if (req.method() === "DELETE") {
+        if (!f?.licence || f.licence.status !== "active") return reply(409, { error: "conflict", reason: "family_not_granted" });
+        f.licence = { ...f.licence, status: "cancelled", state: "cancelled" };
+        u.access_state = "expired"; u.access_reason = "none";
+        log("family_revoke", u.id, null, { before: { status: "active" }, after: { status: "cancelled" }, note: body.note ?? null });
+        return reply(200, { ok: true, status: "cancelled" });
+      }
+    }
     if ((m = /^\/users\/([^/]+)$/.exec(p))) {
       const u = state.users.find((x) => x.id === m[1]);
       if (!u) return reply(404, { error: "not_found" });
@@ -210,7 +257,9 @@ function createMock() {
 
 // ------------------------------------------------------------------------------------------------ runner
 const results = [];
+const ONLY = process.env.ONLY ?? "";
 async function step(name, fn) {
+  if (ONLY && !name.includes(ONLY)) return;
   try { await fn(); results.push(["PASS", name]); console.log(`PASS ${name}`); }
   catch (e) { results.push(["FAIL", name, e.message.split("\n")[0]]); console.log(`FAIL ${name}: ${e.message.split("\n")[0]}`); }
 }
@@ -219,7 +268,10 @@ const assert = (cond, msg) => { if (!cond) throw new Error(msg); };
 const PROFILES = {
   desktop: { viewport: { width: 1360, height: 900 } },
   mobile: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  desktop1280: { viewport: { width: 1280, height: 900 } },
 };
+// Family package screenshots (390 light, 1280 dark …): FAMILY_OUT (default ~/Projects/bewerbungen-tracker-wt/_onboarding/family-shots/).
+const FAMILY_OUT = (process.env.FAMILY_OUT || join(homedir(), "Projects/bewerbungen-tracker-wt/_onboarding/family-shots")).replace(/\/?$/, "/");
 
 async function main() {
   const { chromium } = await loadPlaywright();
@@ -479,6 +531,75 @@ async function main() {
     assert(mock.state.audit[0].action === "school.create.done", "school created");
     await context.close();
   });
+
+  for (const [profile, theme] of [["mobile", "light"], ["desktop1280", "dark"], ["mobile", "dark"], ["desktop1280", "light"]]) {
+    const tag = `${profile === "mobile" ? "390" : "1280"}-${theme}`;
+    await step(`family package: grant + revoke (${tag})`, async () => {
+      mkdirSync(FAMILY_OUT, { recursive: true });
+      const fshot = async (page, name) => page.screenshot({ path: `${FAMILY_OUT}${name}-${tag}.png`, animations: "disabled" });
+      const { context, page, mock, errors } = await ctx(profile, theme, { aal2: true });
+      await page.goto(`${base}/admin`);
+      await tid(page, "admin-user-row").first().waitFor({ timeout: 60000 });
+      // search by e-mail (existing users-tab search)
+      await tid(page, "admin-search").fill("lena.mueller@");
+      await page.waitForFunction(() => { const r = document.querySelectorAll('[data-testid="admin-user-row"]'); return r.length === 1 && /lena\.mueller@/.test(r[0].textContent ?? ""); }, null, { timeout: 5000 });
+      await tid(page, "admin-user-row").first().click();
+      const section = tid(page, "admin-family-pack");
+      await tid(page, "admin-family-plan").waitFor({ timeout: 10000 });
+      assert((await tid(page, "admin-family-plan").getAttribute("data-kind")) === "trial", "plan before: trial");
+      assert(!(await tid(page, "admin-family-revoke").count()), "no revoke without grant");
+      await tid(page, "admin-family-grant").scrollIntoViewIfNeeded();
+      await fshot(page, "01-before");
+      await tid(page, "admin-family-grant").click();
+      await tid(page, "admin-confirm-modal").waitFor();
+      assert((await page.getByRole("group", { name: "Dauer" }).count()) === 1, "duration group labelled");
+      assert(await page.getByLabel("Plätze Kinder").count(), "seats input labelled");
+      await tid(page, "admin-family-duration-3").click();
+      assert((await tid(page, "admin-family-duration-3").getAttribute("aria-pressed")) === "true", "preset pressed");
+      await page.getByLabel("Plätze Kinder").fill("3");
+      await page.getByLabel("Notiz (optional)").fill("Panu und Familie, Test");
+      const summary = await tid(page, "admin-family-summary").textContent();
+      assert(/Zugang bis und mit \d{2}\.\d{2}\.\d{4}/.test(summary ?? ""), `summary: ${summary}`);
+      await fshot(page, "02-grant-dialog");
+      await tid(page, "admin-confirm-submit").click();
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+      const g = mock.state.apiCalls.find((c) => c.method === "POST" && c.path.endsWith("/family"));
+      assert(g && g.auth === "Bearer " && !g.cookie, "grant via bearer, no cookie");
+      assert(mock.state.audit[0].action === "family_grant" && mock.state.audit[0].details.after.seats_children === 3, `audit: ${mock.state.audit[0]?.action}`);
+      await page.waitForFunction(() => document.querySelector('[data-testid="admin-family-plan"]')?.getAttribute("data-kind") === "family_manual", null, { timeout: 5000 });
+      assert((await tid(page, "admin-family-members").locator("li").count()) === 2, "members listed");
+      const licText = await tid(page, "admin-family-licence").textContent();
+      assert(/Aktiv/.test(licText) && /vom Admin/.test(licText), `licence: ${licText}`);
+      await section.scrollIntoViewIfNeeded();
+      await fshot(page, "03-granted");
+      // revoke with confirm dialog + note
+      await tid(page, "admin-family-revoke").click();
+      await tid(page, "admin-confirm-modal").waitFor();
+      await page.getByLabel("Notiz (optional)").fill("Test vorbei");
+      await fshot(page, "04-revoke-dialog");
+      await tid(page, "admin-confirm-submit").click();
+      await page.waitForFunction(() => !document.querySelector('[data-testid="admin-confirm-modal"]'), null, { timeout: 5000 });
+      assert(mock.state.audit[0].action === "family_revoke" && mock.state.audit[0].details.note === "Test vorbei", "revoke audited");
+      await page.waitForFunction(() => /Entzogen/.test(document.querySelector('[data-testid="admin-family-licence"]')?.textContent ?? ""), null, { timeout: 5000 });
+      // no horizontal overflow (390 px) in the panel
+      const overflow = await page.evaluate(() => [...document.querySelectorAll('[data-testid="admin-family-pack"] *')].some((el) => el.getBoundingClientRect().right > window.innerWidth + 1));
+      assert(!overflow, "family section overflows horizontally");
+      // Stripe-managed family: info, no buttons
+      await tid(page, "admin-panel-close").click();
+      await tid(page, "admin-panel").waitFor({ state: "detached", timeout: 5000 });
+      await tid(page, "admin-search").fill("person2@");
+      await page.waitForFunction(() => { const r = document.querySelectorAll('[data-testid="admin-user-row"]'); return r.length === 1 && /person2@/.test(r[0].textContent ?? ""); }, null, { timeout: 5000 });
+      await tid(page, "admin-user-row").first().click();
+      try {
+        await page.waitForFunction(() => document.querySelector('[data-testid="admin-family-plan"]')?.getAttribute("data-kind") === "family_stripe", null, { timeout: 10000 });
+      } catch (e) { await fshot(page, "zz-failure"); throw e; }
+      assert(!(await tid(page, "admin-family-grant").count()) && !(await tid(page, "admin-family-revoke").count()), "no buttons for Stripe family");
+      await section.scrollIntoViewIfNeeded();
+      await fshot(page, "05-stripe-managed");
+      assert(errors.length === 0, `page errors: ${errors.join(" | ")}`);
+      await context.close();
+    });
+  }
 
   await browser.close();
   devServer?.kill("SIGTERM");
