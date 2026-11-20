@@ -68,6 +68,7 @@ Helper: `public._acc_wrap(name, args, mode)` (service/migration use only).
 | funnel_apply | 20261119100000: saves the sign-up answers right after account creation – also for unlicensed teachers and expired trials; validates + rate-limits itself, apply-once (docs/onboarding/DATA.md) |
 | reads: class_my_classes, my_class_deadlines, my_notifications, my_self_reports, my_view_log, map_shop_state, map_islands_state, map_friend_island, social_list, social_friends_overview, social_my_profile, social_avatars, social_get_share_companies, social_get_share_outcomes, profile_name_status, school_student_count, is_* helpers | reading own data stays allowed |
 | my_access, has_app_access, _assert_app_access, am_i_platform_admin, waitlist_join | the access model itself / public waitlist |
+| admin_family_status, admin_family_grant, admin_family_revoke | 20261120100000: platform admins only (checked inside, FORBIDDEN for everybody else); an admin works regardless of their own subscription |
 
 ## MERGE NOTE
 

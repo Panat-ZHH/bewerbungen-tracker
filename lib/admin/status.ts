@@ -76,6 +76,8 @@ const AUDIT: Record<string, string> = {
   "school.remove_admin": "Schuladmin entfernt",
   "school.add_teacher": "Lehrperson hinzugefügt",
   "school.remove_teacher": "Lehrperson entfernt",
+  family_grant: "Familienpaket vergeben",
+  family_revoke: "Familienpaket entzogen",
 };
 
 /** Audit action code → words ("user.block.failed" → "Konto gesperrt – fehlgeschlagen"). Unknown codes stay as they are. */

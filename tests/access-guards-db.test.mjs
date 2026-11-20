@@ -23,7 +23,7 @@ const cv = (id, u) => q(`insert into public.cvs (id, user_id, name, type, descri
   values ($1, $2, 'CV', 'cv', '', current_date, 'Ready', 'cv.pdf', $3, 'application/pdf', 100)`, [id, u, `${u}/cv.pdf`]);
 
 // Every definer RPC an authenticated user can call that is deliberately NOT gated (docs/access/GUARDS.md, reasons there).
-const UNGATED = new Set(`_assert_app_access account_delete_summary account_set_type am_i_platform_admin billing_status_for_family
+const UNGATED = new Set(`_assert_app_access account_delete_summary admin_family_grant admin_family_revoke admin_family_status account_set_type am_i_platform_admin billing_status_for_family
   billing_status_for_school billing_status_for_user class_deadline_delete class_delete class_invite_accept class_invite_preview class_invite_revoke
   class_join class_leave class_my_classes class_preview class_remove_coteacher class_remove_student class_set_sharing class_set_sharing_v2
   export_my_data family_create family_create_invite family_export_my_data family_get_my family_join family_leave family_remove_member

@@ -6,6 +6,7 @@
 import { guard, fail, json, type AdminContext, type GuardDeps } from "./guard.ts";
 import type { AdminStore, AuditFilter, LicenceInput, LicencePatch, UserListFilter } from "./store.ts";
 import type { AccountAccessRow, SchoolFreeAccess } from "./types.ts";
+import { FamilyRpcError, familyErrorHttp, familyGrantInput, familyRevokeInput } from "./family.ts";
 import {
   COUNTRIES, DAY_MS, InvalidInput, PACKAGES, SCHOOL_ACTIONS, USER_ACTIONS, date, email, instant, int, isUuid, onlyKeys, oneOf,
   page, query, readBody, text, uuid, type SchoolAction, type UserAction,
@@ -30,6 +31,13 @@ function logFailure(where: string, e: unknown) {
 }
 
 function errorResponse(where: string, e: unknown): Response {
+  if (e instanceof FamilyRpcError) {
+    const h = familyErrorHttp(e.code);
+    if (h.kind === "invalid") return fail(400, "invalid_input", { field: h.field });
+    if (h.kind === "not_found") return fail(404, "not_found");
+    if (h.kind === "not_configured") return fail(503, "not_configured");
+    return fail(409, "conflict", { reason: h.reason });
+  }
   if (e instanceof InvalidInput) return fail(400, "invalid_input", { field: e.field });
   if (e instanceof NotFound) return fail(404, "not_found");
   if (e instanceof Conflict) return fail(409, "conflict", { reason: e.reason });
@@ -65,6 +73,13 @@ async function audited<T>(store: AdminStore, ctx: AdminContext, entry: { action:
     await store.writeAudit({ admin_id: ctx.admin.id, ip: ctx.ip, ...entry, action: `${entry.action}.failed`, details: { ...entry.details, error: code } }).catch(() => {});
     throw e;
   }
+}
+
+/** Refused / failed family RPC → "<action>.failed" row (best effort). Success rows are written by the database itself. */
+async function auditFailure(store: AdminStore, ctx: AdminContext, action: string, userId: string, details: Record<string, unknown>, e: unknown) {
+  const error = e instanceof FamilyRpcError ? e.code.toLowerCase() : "error";
+  if (error === "forbidden" || error === "rpc_missing") return;
+  await store.writeAudit({ admin_id: ctx.admin.id, ip: ctx.ip, action: `${action}.failed`, target_user: userId, details: { ...details, error } }).catch(() => {});
 }
 
 // ---------------------------------------------------------------- user mutations
@@ -305,6 +320,35 @@ export function createAdminApi(deps: AdminApiDeps) {
     userAction: (request: Request, id: string) => run(request, deps, true, "user action", async (ctx) => {
       const userId = uuid(id, "id");
       return userAction(store, ctx, userId, await mutationBody(request), now());
+    }),
+
+    /** GET /api/admin/users/:id/family – family package status (admin_family_status, as the admin). */
+    familyStatus: (request: Request, id: string) => run(request, deps, false, "family status", async (ctx) =>
+      json(200, await store.familyStatus(ctx.token, uuid(id, "id")))),
+
+    /** POST /api/admin/users/:id/family { confirm: true, until?: "YYYY-MM-DD" | ISO | null, note?, seats_parents?, seats_children? } */
+    familyGrant: (request: Request, id: string) => run(request, deps, true, "family grant", async (ctx) => {
+      const userId = uuid(id, "id");
+      const input = familyGrantInput(await mutationBody(request), now());
+      // The database function writes the audit row (family_grant) in the same transaction as the change.
+      try {
+        return json(200, { ok: true, family: await store.familyGrant(ctx.token, userId, input) });
+      } catch (e) {
+        await auditFailure(store, ctx, "family_grant", userId, { after: input }, e);
+        throw e;
+      }
+    }),
+
+    /** DELETE /api/admin/users/:id/family { confirm: true, note? } – sets the admin-granted licence to cancelled. */
+    familyRevoke: (request: Request, id: string) => run(request, deps, true, "family revoke", async (ctx) => {
+      const userId = uuid(id, "id");
+      const { note } = familyRevokeInput(await mutationBody(request));
+      try {
+        return json(200, { ok: true, ...(await store.familyRevoke(ctx.token, userId, note)) });
+      } catch (e) {
+        await auditFailure(store, ctx, "family_revoke", userId, { note }, e);
+        throw e;
+      }
     }),
 
     /** GET /api/admin/signups?days=7|30 */

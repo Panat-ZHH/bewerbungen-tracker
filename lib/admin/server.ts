@@ -6,6 +6,7 @@ import { deleteAccount as deleteAccountPath } from "../account-delete-server.ts"
 import { defaultRateLimitRpc } from "../rate-limit/index.ts";
 import type { AccessInfo } from "../access/types.ts";
 import { createAdminApi, type AdminApi } from "./handler.ts";
+import { FamilyRpcError, familyDbErrorCode } from "./family.ts";
 import type { AdminStore, AuditFilter, LicenceInput, UserListFilter, VerifiedUser } from "./store.ts";
 import type {
   AccountAccessRow, AdminRole, AdminSchoolDetail, AdminSchoolPerson, AdminSchoolRef, AdminSchoolRow, AdminSubscription, AdminUserDetail,
@@ -28,6 +29,28 @@ export function serviceClient(): SupabaseClient {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("SUPABASE_NOT_CONFIGURED");
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+}
+
+/**
+ * Client that acts AS the admin (their verified bearer token + the publishable key), for the admin_family_* RPCs which
+ * check platform_admins in the database themselves. No service role key involved.
+ */
+export function adminSessionClient(token: string): SupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_NOT_CONFIGURED");
+  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
+}
+
+/** One admin_family_* call as the admin; known database errors become FamilyRpcError, others a generic DB_FAILED. */
+export async function familyRpc<T>(token: string, fn: string, args: Record<string, unknown>, client: (t: string) => SupabaseClient = adminSessionClient): Promise<T> {
+  const { data, error } = await client(token).rpc(fn, args);
+  if (error) {
+    const code = familyDbErrorCode(error);
+    if (code) throw new FamilyRpcError(code);
+    dbFail(fn, error);
+  }
+  return data as T;
 }
 
 /** Same rules as public._licence_state (supabase/migrations/20261116100000_b2b_schools_licences.sql). */
@@ -511,6 +534,12 @@ export function supabaseAdminStore(db: SupabaseClient = serviceClient()): AdminS
       const { error } = await db.from("school_teachers").delete().eq("school_id", schoolId).eq("user_id", userId);
       if (error) dbFail("school_teachers", error);
     },
+
+    familyStatus: (token, userId) => familyRpc(token, "admin_family_status", { p_user_id: userId }),
+    familyGrant: (token, userId, input) => familyRpc(token, "admin_family_grant", {
+      p_user_id: userId, p_until: input.until, p_note: input.note, p_seats_parents: input.seats_parents, p_seats_children: input.seats_children,
+    }),
+    familyRevoke: (token, userId, note) => familyRpc(token, "admin_family_revoke", { p_user_id: userId, p_note: note }),
 
     async writeAudit(entry) {
       const { error } = await db.from("admin_audit_log").insert({

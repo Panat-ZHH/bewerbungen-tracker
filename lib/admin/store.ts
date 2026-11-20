@@ -1,7 +1,8 @@
 // Port between the admin API logic (handler.ts, actions.ts) and the database. The real implementation (service role) is in
 // server.ts; tests use an in-memory mock. Every method is called only AFTER the admin guard passed.
+import type { FamilyGrantInput } from "./family.ts";
 import type {
-  AccountAccessRow, AdminSchoolDetail, AdminSchoolRow, AdminUserDetail, AdminUserRow, AuditEntry, Paged, SchoolFreeAccess, SchoolLicence,
+  AccountAccessRow, AdminFamilyGrantResult, AdminFamilyStatus, AdminSchoolDetail, AdminSchoolRow, AdminUserDetail, AdminUserRow, AuditEntry, Paged, SchoolFreeAccess, SchoolLicence,
 } from "./types.ts";
 
 export interface VerifiedUser {
@@ -91,6 +92,15 @@ export interface AdminStore {
   removeSchoolAdmin(schoolId: string, userId: string): Promise<void>;
   addSchoolTeacher(schoolId: string, userId: string, adminId: string): Promise<void>;
   removeSchoolTeacher(schoolId: string, userId: string): Promise<void>;
+
+  /**
+   * Family package (admin_family_status / _grant / _revoke). These run with the ADMIN'S OWN session (`token` = the
+   * verified bearer token), not the service role: the database checks platform_admins itself and writes the audit row.
+   * Known database errors are thrown as FamilyRpcError (lib/admin/family.ts).
+   */
+  familyStatus(token: string, userId: string): Promise<AdminFamilyStatus>;
+  familyGrant(token: string, userId: string, input: FamilyGrantInput): Promise<AdminFamilyGrantResult>;
+  familyRevoke(token: string, userId: string, note: string | null): Promise<{ family_id: string; licence_ids: string[]; status: string }>;
 
   writeAudit(entry: AuditInput): Promise<void>;
   listAudit(filter: AuditFilter): Promise<Paged<AuditEntry>>;

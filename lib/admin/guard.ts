@@ -106,7 +106,8 @@ export function lastAuthAt(claims: Record<string, unknown>): number | null {
   return max;
 }
 
-export interface AdminContext { admin: VerifiedUser; ip: string | null; auth: "totp" | "google" }
+/** `token` = the verified bearer token (only for RPCs that must run as the admin themself, never logged or returned). */
+export interface AdminContext { admin: VerifiedUser; ip: string | null; auth: "totp" | "google"; token: string }
 
 /** True when the (already verified) token's amr claim lists the given auth method. Accepts objects {method} and plain strings. */
 export function amrHas(claims: Record<string, unknown>, method: string): boolean {
@@ -158,5 +159,5 @@ export async function guard(request: Request, deps: GuardDeps, opts: { mutation:
     const r = await hitAll(rules, { rpc: deps.rpc });
     if (!r.allowed) return { ok: false, response: tooManyRequests(r, RATE_MESSAGE, ADMIN_HEADERS) };
   }
-  return { ok: true, ctx: { admin: user, ip: ip === "unknown" ? null : ip, auth: aal2 ? "totp" : "google" } };
+  return { ok: true, ctx: { admin: user, ip: ip === "unknown" ? null : ip, auth: aal2 ? "totp" : "google", token } };
 }

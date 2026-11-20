@@ -142,3 +142,38 @@ export interface SignupStats { days: 7 | 30; total: number; by_day: { day: strin
 export type AdminErrorCode =
   | "unauthenticated" | "not_found" | "mfa_required" | "reauth_required" | "rate_limited" | "invalid_input" | "confirm_required"
   | "conflict" | "subscription_active" | "failed" | "not_configured";
+
+/** GET /api/admin/users/:id/family – result of public.admin_family_status() (supabase/migrations/20261120100000_admin_family_grant.sql). */
+export interface AdminFamilyMember { user_id: string; email: string | null; role: "parent" | "child" | string; status: string; consent_status: string; joined_at: string | null }
+export interface AdminFamilyLicence {
+  id: string;
+  status: string;
+  state: string | null; // _family_plan_state: active | pilot | trial | paused | expired | cancelled | not_started
+  source: string; // manual | pilot | stripe
+  valid_from: string | null;
+  valid_until: string | null; // last day with access (date), null = unlimited
+  seats_parents: number;
+  seats_children: number;
+  assigned_by: string | null; // 'admin:<uuid>' for admin grants, 'stripe' for Stripe rows
+  notes: string | null;
+  created_at: string;
+  manual: boolean; // granted by an admin (not Stripe-managed)
+}
+export interface AdminFamilyStatus {
+  user_id: string;
+  plan_kind: "grant" | "school" | "solo" | "family_manual" | "family_stripe" | "grace" | "trial" | "none";
+  access_state: string | null;
+  access_reason: string | null;
+  eligible: boolean;
+  stripe_managed: boolean;
+  family: { id: string; name: string; created_at: string; my_role: string; my_status: string } | null;
+  members: AdminFamilyMember[];
+  licence: AdminFamilyLicence | null;
+  manual_licence_id: string | null;
+  can_grant: boolean;
+  can_revoke: boolean;
+}
+export interface AdminFamilyGrantResult {
+  family_id: string; family_created: boolean; licence_id: string; status: string; valid_until: string | null;
+  seats_parents: number; seats_children: number; assigned_by: string; updated: boolean;
+}
