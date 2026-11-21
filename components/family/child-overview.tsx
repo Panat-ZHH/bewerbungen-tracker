@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BriefcaseBusiness, EyeOff, Home, Trophy } from "lucide-react";
+import { BriefcaseBusiness, Eye, EyeOff, Home, Trophy } from "lucide-react";
+import { ButtonLink } from "@/components/ui/button";
 import { Skeleton, StatusMessage } from "@/components/ui/skeleton";
 import { getChildOverview } from "@/lib/family";
 import { FAMILY_COPY, fill } from "@/lib/family-copy";
+import { familyVillagePath } from "@/lib/family-village";
 import { familyError, formatDateCh, groupStatusCounts, statusText, type ChildOverview as Overview } from "@/lib/family-core";
 
 /** What the parent may see of one child: only what the child shares (family_child_overview filters on the server). */
@@ -39,6 +41,7 @@ export function ChildOverview({ childId, name }: { childId: string; name: string
         <div className="space-y-1">
           <h4 className="flex items-center gap-2 text-sm font-bold"><Home size={16} aria-hidden />{FAMILY_COPY.parent.villageTitle}</h4>
           <p className="text-body">{fill(data.village.points !== null ? FAMILY_COPY.parent.villageLine : FAMILY_COPY.parent.villageLineNoPoints, { islands: `${data.village.level} ${data.village.level === 1 ? "Insel" : "Inseln"}`, houses: `${data.village.items} ${data.village.items === 1 ? "Haus" : "Häuser"}`, points: data.village.points ?? 0 })}</p>
+          <ButtonLink href={familyVillagePath(childId)} variant="secondary" size="sm" icon={<Eye size={16} aria-hidden />} className="mt-1" data-testid="child-village-link">Dorf ansehen</ButtonLink>
         </div>
       ) : <p className="text-small text-muted">Das Dorf ist nicht geteilt.</p>}
       {data.applications && data.applications.length > 0 && (

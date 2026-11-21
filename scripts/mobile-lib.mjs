@@ -74,7 +74,7 @@ export const modeOf = (v) => (v.theme === "dark" ? "dark" : "") + (v.scale && v.
 // ------------------------------------------------------------------------------------------------ pages
 /**
  * Personas: { key, role (report group), user (key from scripts/mobile-users.mjs or null = logged out), pages: [name, path, flow?] }.
- * `{appId}`, `{classId}`, `{classCode}`, `{studentId}`, `{friendId}`, `{inviteCode}`, `{familyCode}` come from the user setup.
+ * `{appId}`, `{classId}`, `{classCode}`, `{studentId}`, `{friendId}`, `{inviteCode}`, `{familyCode}`, `{familyChildId}` come from the user setup.
  * Every app/(all)/page.tsx route is covered at least once (see tests/mobile-lib.test.mjs).
  */
 export const PERSONAS = [
@@ -100,6 +100,7 @@ export const PERSONAS = [
   { key: "schueler-fresh", role: "schueler", user: "schuelerfresh", pages: [["onboarding", "/onboarding"], ["onboarding-klasse", "/onboarding/klasse"], ["auth-role", "/auth/role"]] },
   { key: "eltern", role: "eltern", user: "parent", pages: [
     ["familie", "/familie"], ["mehr-sheet", "/familie", "mehr"], ["familie-bezahlen", "/familie/bezahlen"], ["familie-bezahlen-fertig", "/familie/bezahlen/fertig"],
+    ["familie-kind-dorf", "/familie/kind/{familyChildId}/dorf"],
     ["abo", "/abo"], ["settings", "/settings"], ["profile", "/profile"],
   ] },
   { key: "eltern-fresh", role: "eltern", user: "parentfresh", pages: [["familie-start", "/familie"], ["familie-bezahlen-trial", "/familie/bezahlen"]] },
