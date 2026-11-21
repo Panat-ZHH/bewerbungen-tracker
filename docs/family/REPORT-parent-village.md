@@ -27,7 +27,8 @@ rollback `supabase/rollback/20261121100000_family_child_village.down.sql`. Full 
 
 ## Tests and results
 - `tests/family-child-village-db.test.mjs` + `tests/family-village.test.mjs`: 16/16 pass (re-run 2026-11-21 on this branch; PGlite with the full migration chain).
-- Full unit suite on the builder branches: pass (pv-legal: 1229 pass, 0 fail, 12 skipped). Build ok (Netlify build of the preview succeeded).
+- Full unit/PGlite suite on `parent-village`: 1245 green; build, lint and tsc ok (Netlify build of the preview also succeeded).
+- E2E: Dorf 54/54, parent flow 141/141.
 - Known: `family-app` and `family-student-flow` scripts also fail on main itself → not caused by this branch.
 
 ## Screenshots (demo data only) – `docs/family/parent-village/`
