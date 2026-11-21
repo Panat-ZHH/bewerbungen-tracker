@@ -117,6 +117,7 @@ export async function setupUsers({ stateFile = DEFAULT_STATE, log = () => {} } =
   const inv = await userRpc(pt, "family_create_invite", { p_direction: "parent_invites_child" });
   const famCode = inv.body?.code || one(inv.body)?.code;
   if (famCode) await userRpc(fkt, "family_join", { p_code: famCode });
+  S.vars.familyChildId = fk.id; save();
   await userRpc(fkt, "family_set_share", { p_settings: { progress: true, applications: true, village: true } });
   await srRest("/applications", { method: "POST", body: JSON.stringify([APP(fk.id, "applied", "Probe Druckerei Langstrassen AG", "Polygrafin EFZ"), APP(fk.id, "interview", "Probe Spital", "Fachfrau Gesundheit EFZ", day(6))]) });
   if (famId) log("family plan", (await srRest("/school_licences", { method: "POST", body: JSON.stringify({ family_id: famId, plan_type: "family", package: "family", student_limit: 2, seats_parents: 1, seats_children: 1, status: "active", valid_from: day(-1), valid_until: day(300), source: "manual", notes: "probe-rel-mobile (temporary)" }) })).status);

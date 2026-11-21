@@ -1,0 +1,11 @@
+/* Parent view of the child's village (/familie/kind/[id]/dorf). Map styles come from app/map; only the extras live here. */
+.village { display: contents; }
+/* Houses whose company is not shared carry no label at all (the parser leaves company empty). */
+.village [data-building]:has(> strong:empty) { display: none; }
+
+.messageWrap { display: flex; flex: 1 1 auto; align-items: center; justify-content: center; min-height: 0; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); overflow-y: auto; }
+.message { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(480px, 100%); padding: 28px 24px; text-align: center; border: var(--border-w) solid var(--line); border-radius: var(--radius-xl); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-md); }
+.message p { margin: 0; }
+.messageIcon { display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 999px; background: var(--surface-2, var(--line)); color: var(--ink); }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 4px; }
+@media (max-width: 479px) { .message { padding: 22px 16px; } .actions { flex-direction: column; align-self: stretch; } }
