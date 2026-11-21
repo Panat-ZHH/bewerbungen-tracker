@@ -1,6 +1,6 @@
 # Datenschutz für Schulen
 
-**Stand:** 6. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
+**Stand:** 21. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
 
 > **Hinweis:** Entwurf, nicht juristisch geprüft. Vor dem Versand an eine Schule, Schulgemeinde oder ein Schulamt muss eine Juristin oder ein Jurist (Datenschutzrecht) den Text und die AVV-Vorlage prüfen. Unsichere Stellen: «prüfen lassen».
 
