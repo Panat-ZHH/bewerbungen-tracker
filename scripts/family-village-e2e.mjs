@@ -3,7 +3,7 @@
 //
 //   PLAYWRIGHT=<playwright-core/index.mjs> CHROME=<chrome> BASE=http://localhost:3412 node scripts/family-village-e2e.mjs
 //     (dev server with NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy)
-//   ONLY=shared,unshared,reauth   run only some scenarios
+//   ONLY=shared,unshared,notallowed,reauth   run only some scenarios
 //
 // Screenshots: screenshots/family-village/*.png next to the worktrees (OUT to override).
 import { mkdirSync } from "node:fs";
@@ -111,17 +111,29 @@ const scenarios = {
   async unshared(browser) {
     for (const [key, vp] of Object.entries(VIEWPORTS)) {
       scope = `unshared ${key}`;
-      const { ctx, page, state } = await actor(browser, { vp, village: false, villageRpc: { __error: "NOT_SHARED" } });
+      const { ctx, page, state } = await actor(browser, { vp, village: false, villageRpc: { __error: "NOT_SHARED", __detail: "Dein Kind teilt sein Dorf gerade nicht.", __hint: "village_off" } });
       await page.goto(`${BASE}/familie`, { waitUntil: "domcontentloaded" });
       check(await waitSel(page, "text=Das Dorf ist nicht geteilt.", 90000), "card says the village is not shared");
       check(await page.locator("[data-testid=child-village-link]").count() === 0, "no «Dorf ansehen» button");
       await page.goto(`${BASE}/familie/kind/${CHILD}/dorf`, { waitUntil: "domcontentloaded" });
       check(await waitSel(page, "[data-village-state=not_shared]", 90000), "direct visit: not-shared state");
-      check(await page.getByText("teilt das Dorf im Moment nicht mit der Familie").isVisible(), "friendly German message");
+      check(await page.getByText("Dein Kind teilt sein Dorf gerade nicht. Das ist okay").isVisible(), "friendly German message (hint village_off)");
       check((await page.getByRole("link", { name: "Zurück zur Familie" }).first().getAttribute("href")) === "/familie", "back link");
       check(await page.locator("[aria-label='3D-Bewerbungsdorf']").count() === 0, "no village rendered");
       check(writes(state).length === 0, "no writes");
       await shot(page, `unshared-${key}`);
+      await ctx.close();
+    }
+  },
+  /** Not my child (NOT_FOUND) and consent pending (NOT_SHARED + hint): neutral messages, no village. */
+  async notallowed(browser) {
+    for (const [code, hint, state, text] of [["NOT_FOUND", null, "not_allowed", "Dieses Dorf können wir dir nicht zeigen."], ["NOT_SHARED", "consent_pending", "not_shared", "sobald du als Elternteil eingewilligt hast"]]) {
+      scope = `${code}${hint ? `/${hint}` : ""} desktop`;
+      const { ctx, page } = await actor(browser, { villageRpc: { __error: code, __hint: hint } });
+      await page.goto(`${BASE}/familie/kind/${CHILD}/dorf`, { waitUntil: "domcontentloaded" });
+      check(await waitSel(page, `[data-village-state=${state}]`, 90000), `${state} state`);
+      check(await page.getByText(text).first().isVisible(), "message");
+      check(await page.locator("[aria-label='3D-Bewerbungsdorf']").count() === 0, "no village rendered");
       await ctx.close();
     }
   },

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFile } from "node:fs/promises";
-import { familyVillageErrorKind, familyVillagePath, parseFamilyVillage } from "../lib/family-village.ts";
+import { familyVillageErrorKind, familyVillagePath, familyVillageReason, parseFamilyVillage } from "../lib/family-village.ts";
 
 const read = (file) => readFile(new URL(file, import.meta.url), "utf8");
 const payload = (o = {}) => ({
@@ -25,6 +25,7 @@ test("parseFamilyVillage maps the RPC JSON to ApplicationMapWorld props and drop
   assert.deepEqual(v.applications.map((a) => [a.id, a.company, a.status, a.position]), [["h1", "Swisscom", "offer", ""], ["h3", "", "applied", ""]]);
   assert.deepEqual(v.layouts, [{ id: "house:h1", x: 4, z: 8, rotation: 1 }]);
   assert.deepEqual(v.items.map((i) => [i.id, i.itemType, i.x, i.z]), [["i1", "tree", 8, 12], ["i3", "bench", null, null]]);
+  assert.deepEqual(v.applications.map((a) => a.createdAt), ["000000", "000001"], "createdAt keeps the RPC order (oldest first)");
   const text = JSON.stringify(v);
   for (const secret of ["geheim", "5000", "chef@x.ch", "https://x.ch", "Weg AG"]) assert.ok(!text.includes(secret), secret);
 });
@@ -41,9 +42,13 @@ test("parseFamilyVillage clamps the island count and tolerates empty or array pa
   assert.throws(() => parseFamilyVillage(null));
 });
 
-test("errors: REAUTH_REQUIRED -> reauth, not shared / not allowed -> not_shared, rest -> error", () => {
+test("errors: REAUTH_REQUIRED -> reauth, NOT_SHARED -> not_shared (+ hint reason), not my child -> not_allowed, rest -> error", () => {
   assert.equal(familyVillageErrorKind({ message: "REAUTH_REQUIRED", code: "42501" }), "reauth");
-  for (const message of ["NOT_SHARED", "FORBIDDEN", "NOT_FOUND", "CONSENT_WITHDRAWN"]) assert.equal(familyVillageErrorKind({ message, code: "P0001" }), "not_shared", message);
+  for (const message of ["NOT_SHARED", "CONSENT_WITHDRAWN"]) assert.equal(familyVillageErrorKind({ message, code: "P0001" }), "not_shared", message);
+  for (const message of ["FORBIDDEN", "NOT_FOUND", "NOT_IN_FAMILY"]) assert.equal(familyVillageErrorKind({ message, code: "P0001" }), "not_allowed", message);
+  for (const hint of ["consent_pending", "consent_withdrawn", "village_off"]) assert.equal(familyVillageReason({ message: "NOT_SHARED", hint }), hint);
+  assert.equal(familyVillageReason({ message: "NOT_SHARED", hint: "evil" }), null);
+  assert.equal(familyVillageReason(null), null);
   assert.equal(familyVillageErrorKind({ message: "boom", code: "XX000" }), "error");
   assert.equal(familyVillageErrorKind(null), "error");
 });

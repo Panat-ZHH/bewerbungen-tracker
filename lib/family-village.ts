@@ -33,7 +33,9 @@ export function parseFamilyVillage(data: unknown): FamilyVillage {
   const showCompanies = raw.show_companies === true;
   const applications: Application[] = rows(raw.houses)
     .filter((h) => typeof h.id === "string" && statuses.includes(String(h.status)))
-    .map((h) => ({ id: h.id as string, company: (showCompanies && cleanCompany(h.company)) || "", position: "", category: "other", status: h.status as ApplicationStatus, createdAt: "", updatedAt: "" }));
+    // The RPC already sorts houses oldest first (created_at, id) but sends no dates; a padded index keeps that order in
+    // createApplicationMap(), which sorts by createdAt (contract, change 3).
+    .map((h, index) => ({ id: h.id as string, company: (showCompanies && cleanCompany(h.company)) || "", position: "", category: "other", status: h.status as ApplicationStatus, createdAt: String(index).padStart(6, "0"), updatedAt: "" }));
   const layouts = rows(raw.layouts).flatMap((l): MapLayout[] => (typeof l.id === "string" && typeof l.x === "number" && typeof l.z === "number" ? [{ id: l.id, x: num(l.x), z: num(l.z), rotation: num(l.rotation) }] : []));
   const items = rows(raw.items).flatMap((i): OwnedMapItem[] => (typeof i.id === "string" && String(i.itemType) in shopCatalog
     ? [{ id: i.id, itemType: i.itemType as ShopItemType, x: typeof i.x === "number" ? num(i.x) : null, z: typeof i.z === "number" ? num(i.z) : null, rotation: num(i.rotation), createdAt: typeof i.createdAt === "string" ? i.createdAt : "" }]
@@ -48,14 +50,26 @@ export function parseFamilyVillage(data: unknown): FamilyVillage {
   };
 }
 
-export type FamilyVillageErrorKind = "reauth" | "not_shared" | "error";
-/** REAUTH_REQUIRED (MFA / fresh login, _acc_wrap guard) -> new login; not shared / no consent / not my child -> friendly message. */
+export type FamilyVillageErrorKind = "reauth" | "not_shared" | "not_allowed" | "error";
+/** Machine reason of NOT_SHARED (error hint, contract): which friendly text to show. */
+export type FamilyVillageReason = "consent_pending" | "consent_withdrawn" | "village_off" | null;
+type RpcError = { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+/**
+ * NOT_SHARED (consent / village switched off) -> not_shared; NOT_FOUND / FORBIDDEN / NOT_IN_FAMILY -> not_allowed.
+ * REAUTH_REQUIRED is not raised by family_child_village today (contract, change 4) but still means a fresh login.
+ * PAYWALL is shown by the global paywall watcher (lib/access/client.ts); the page only shows the generic error.
+ */
 export function familyVillageErrorKind(error: unknown): FamilyVillageErrorKind {
-  const e = (error ?? {}) as { message?: unknown; code?: unknown; details?: unknown };
+  const e = (error ?? {}) as RpcError;
   const text = `${String(e.message ?? "")} ${String(e.code ?? "")}`;
   if (/REAUTH_REQUIRED/.test(text)) return "reauth";
-  if (/NOT_SHARED|NOT_FOUND|FORBIDDEN|CONSENT|SHARING|WITHDRAWN|NOT_ALLOWED|42501/i.test(text)) return "not_shared";
+  if (/NOT_SHARED|CONSENT|SHARING|WITHDRAWN/i.test(text)) return "not_shared";
+  if (/NOT_FOUND|FORBIDDEN|NOT_IN_FAMILY|NOT_ALLOWED|42501/i.test(text)) return "not_allowed";
   return "error";
+}
+export function familyVillageReason(error: unknown): FamilyVillageReason {
+  const hint = String(((error ?? {}) as RpcError).hint ?? "");
+  return hint === "consent_pending" || hint === "consent_withdrawn" || hint === "village_off" ? hint : null;
 }
 
 export const FAMILY_VILLAGE_COPY = {
@@ -65,6 +79,10 @@ export const FAMILY_VILLAGE_COPY = {
   infoNoCompanies: "Du siehst nur das Dorf, ohne Firmennamen.",
   infoPrivate: "Stellen, Notizen, Kontakte und Dokumente bleiben privat.",
   notShared: (name: string) => `${name} teilt das Dorf im Moment nicht mit der Familie. Das ist in Ordnung: Teilen ist freiwillig.`,
+  consentPending: "Das Dorf wird sichtbar, sobald du als Elternteil eingewilligt hast.",
+  consentWithdrawn: "Die Einwilligung wurde zurückgezogen. Das Dorf ist gerade nicht sichtbar.",
+  villageOff: "Dein Kind teilt sein Dorf gerade nicht. Das ist okay: es entscheidet selbst, was es zeigt.",
+  notAllowed: "Dieses Dorf können wir dir nicht zeigen.",
   reauth: "Zum Schutz der Daten deines Kindes braucht es eine frische Anmeldung. Bitte melde dich erneut an.",
   error: "Das Dorf konnte nicht geladen werden. Versuche es bitte nochmals.",
   back: "Zurück zur Familie",
@@ -76,6 +94,6 @@ export const FAMILY_VILLAGE_COPY = {
 export async function getFamilyVillage(childId: string): Promise<FamilyVillage> {
   const { supabase } = await import("./supabase.ts");
   const { data, error } = await supabase.rpc("family_child_village", { p_child_id: childId });
-  if (error) throw Object.assign(new Error([error.message, error.details].filter(Boolean).join(" | ") || "Database error"), { code: error.code });
+  if (error) throw Object.assign(new Error([error.message, error.details].filter(Boolean).join(" | ") || "Database error"), { code: error.code, hint: error.hint });
   return parseFamilyVillage(data);
 }

@@ -45,7 +45,7 @@ export async function installStub(ctx, opts = {}) {
     if (p.startsWith("/rest/v1/rpc/")) {
       const rpc = p.split("/").pop(); let body = {}; try { body = req.postDataJSON() || {}; } catch {}
       state.calls.push({ rpc, body });
-      if (opts.rpc && rpc in opts.rpc) { const r = typeof opts.rpc[rpc] === "function" ? opts.rpc[rpc](body) : opts.rpc[rpc]; if (r && r.__error) return json({ code: "P0001", message: r.__error }, 400); return json(r); }
+      if (opts.rpc && rpc in opts.rpc) { const r = typeof opts.rpc[rpc] === "function" ? opts.rpc[rpc](body) : opts.rpc[rpc]; if (r && r.__error) return json({ code: "P0001", message: r.__error, details: r.__detail ?? null, hint: r.__hint ?? null }, 400); return json(r); }
       return json(rpcData(rpc, role, opts.social ?? "full"));
     }
     if (m !== "GET") {

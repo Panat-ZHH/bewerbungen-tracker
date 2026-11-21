@@ -8,7 +8,7 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
 import { MapBadge, MapChip, MapControls, MapDock, MapFullscreen, MapTopBar, overlayClasses } from "@/components/applications/map-fullscreen";
 import { useCameraControls } from "@/components/applications/use-camera-controls";
-import { FAMILY_VILLAGE_COPY as COPY, familyVillageErrorKind, getFamilyVillage, type FamilyVillage, type FamilyVillageErrorKind } from "@/lib/family-village";
+import { FAMILY_VILLAGE_COPY as COPY, familyVillageErrorKind, familyVillageReason, getFamilyVillage, type FamilyVillage, type FamilyVillageErrorKind, type FamilyVillageReason } from "@/lib/family-village";
 import { CHILD_FALLBACK, FAMILY_PATH, loginNextFor, memberName } from "@/lib/family-core";
 import { childRef } from "@/lib/family-copy";
 import { ISLANDS } from "@/lib/islands-config";
@@ -34,6 +34,7 @@ function ChildVillage({ childId }: { childId: string }) {
   const pathname = usePathname();
   const [village, setVillage] = useState<FamilyVillage | null>(null);
   const [failure, setFailure] = useState<FamilyVillageErrorKind | null>(null);
+  const [reason, setReason] = useState<FamilyVillageReason>(null);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);
   const camera = useCameraControls();
@@ -46,11 +47,11 @@ function ChildVillage({ childId }: { childId: string }) {
     setLoading(true); setFailure(null);
     getFamilyVillage(childId)
       .then((value) => { if (active) setVillage(value); })
-      .catch(async (reason) => {
-        const kind = familyVillageErrorKind(reason);
+      .catch(async (cause) => {
+        const kind = familyVillageErrorKind(cause);
         // Same as the admin board: an old login ends this browser's session, then a fresh login brings the parent back here.
         if (kind === "reauth") { try { await supabase.auth.signOut({ scope: "local" }); } catch { /* the login link is shown anyway */ } }
-        if (active) { setVillage(null); setFailure(kind); }
+        if (active) { setVillage(null); setFailure(kind); setReason(familyVillageReason(cause)); }
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -61,17 +62,22 @@ function ChildVillage({ childId }: { childId: string }) {
   const vonName = childRef(name, "von ");
 
   if (failure) {
+    const hidden = failure === "not_shared" || failure === "not_allowed";
+    const text = failure === "reauth" ? COPY.reauth
+      : failure === "not_allowed" ? COPY.notAllowed
+      : failure === "not_shared" ? (reason === "consent_pending" ? COPY.consentPending : reason === "consent_withdrawn" ? COPY.consentWithdrawn : reason === "village_off" ? COPY.villageOff : COPY.notShared(name))
+      : COPY.error;
     const login = `/login?next=${encodeURIComponent(loginNextFor(pathname) ?? FAMILY_PATH)}`;
     return (
       <div className={own.messageWrap} data-village-state={failure}>
         <section className={own.message} role={failure === "error" ? "alert" : "status"}>
           <span className={own.messageIcon} aria-hidden>{failure === "reauth" ? <LogIn size={22} /> : <EyeOff size={22} />}</span>
-          <h1 className="text-title">{failure === "reauth" ? "Bitte melde dich erneut an" : failure === "not_shared" ? "Dorf nicht geteilt" : "Das hat nicht geklappt"}</h1>
-          <p className="text-body text-muted">{failure === "reauth" ? COPY.reauth : failure === "not_shared" ? COPY.notShared(name) : COPY.error}</p>
+          <h1 className="text-title">{failure === "reauth" ? "Bitte melde dich erneut an" : failure === "not_shared" ? "Dorf nicht geteilt" : failure === "not_allowed" ? "Dorf nicht verfügbar" : "Das hat nicht geklappt"}</h1>
+          <p className="text-body text-muted">{text}</p>
           <div className={own.actions}>
             {failure === "reauth" && <ButtonLink href={login} icon={<LogIn size={16} aria-hidden />}>{COPY.login}</ButtonLink>}
             {failure === "error" && <Button type="button" onClick={() => setAttempt(attempt + 1)}>{COPY.retry}</Button>}
-            <ButtonLink href={FAMILY_PATH} variant={failure === "not_shared" ? "primary" : "secondary"} icon={<ArrowLeft size={16} aria-hidden />}>{COPY.back}</ButtonLink>
+            <ButtonLink href={FAMILY_PATH} variant={hidden ? "primary" : "secondary"} icon={<ArrowLeft size={16} aria-hidden />}>{COPY.back}</ButtonLink>
           </div>
         </section>
       </div>
