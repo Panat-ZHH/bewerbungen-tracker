@@ -48,7 +48,7 @@ export function ChildView({ family, me, email, onChanged, online = onlinePayment
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <section aria-labelledby="family-share" className="panel-flat min-w-0 p-5">
           <h2 id="family-share" className="text-heading"><Eye size={18} className="mr-1.5 inline align-[-2px] text-[var(--brand)]" aria-hidden />Was deine Familie sieht</h2>
-          <p className="mt-1 text-body text-muted">Du entscheidest. Notizen, Dokumente und deine Klasse bleiben immer privat. Du kannst jederzeit etwas ausschalten.</p>
+          <p className="mt-1 text-body text-muted">Du entscheidest. Notizen, Lohnangaben, Kontakte, Links, Dokumente und deine Klasse bleiben immer privat. Du kannst jederzeit etwas ausschalten, dann sehen deine Eltern es sofort nicht mehr.</p>
           {consent === "pending" && <p className="mt-2 text-small font-semibold">Deine Einstellungen gelten, sobald ein Elternteil zugestimmt hat.</p>}
           <div className="rows mt-2" aria-busy={saving}>
             {SHARE_LABELS.map((s) => <ConsentSwitch key={s.key} label={s.label} description={share[s.key] ? s.on : s.off} checked={share[s.key]} disabled={saving} onChange={(v) => toggle(s.key, v)} />)}

@@ -1,6 +1,6 @@
 # Datenschutzerklärung WendApply
 
-**Stand:** 6. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
+**Stand:** 21. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
 
 > **Hinweis:** Dieser Text ist ein Entwurf und wurde noch nicht juristisch geprüft. Bevor er an Schulen gesendet oder als verbindlich veröffentlicht wird, muss eine Juristin oder ein Jurist ihn prüfen. Unsichere Stellen sind mit «prüfen lassen» markiert.
 
@@ -86,6 +86,7 @@ Für **Jugendliche unter 16 Jahren** ist die Einwilligung nur gültig, wenn sie 
 
 - **Nur du** siehst deine Bewerbungen und Unterlagen – solange du nichts freigibst.
 - **Freunde** sehen nur, was du für Freunde freigibst.
+- **Eltern (Familienpaket):** Ein verbundenes Elternteil in deiner Familie sieht nur, was du unter «Familie» teilst. Bist du unter 16, braucht es zuerst die Einwilligung eines Elternteils; wird sie zurückgezogen, endet das Teilen. Teilst du dein **Dorf**, sieht das Elternteil dein echtes Dorf (Inseln, Häuser, Deko) **nur zum Anschauen**. Firmennamen an den Häusern sieht es nur, wenn du auch die **Bewerbungsliste** teilst. **Notizen, Lohnangaben, Ansprechpersonen, Links und Dokumente** sieht es nie, ebenso wenig deine Klasse, Mitschülerinnen und Mitschüler oder andere Familien. Du kannst jeden Schalter jederzeit ausschalten; der Zugriff endet dann sofort.
 - **Lehrpersonen** deiner Klasse sehen **nur**, was du für diese Klasse freigegeben hast (Bewerbungen, Status, Firmennamen). Du kannst die Freigaben jederzeit ändern oder die Klasse verlassen. Ohne Freigabe sieht die Lehrperson höchstens, dass du Mitglied bist, und deinen Anzeigenamen.
 - **Betreiber (Support):** Technisch hat der Betreiber über die Datenbank Zugriff. Wir greifen nur auf Inhalte zu, wenn es für Support oder Sicherheit nötig ist und du zugestimmt hast oder das Gesetz es verlangt.
 - **Dienstleister** (Abschnitt 6).

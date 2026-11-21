@@ -40,13 +40,13 @@ const steps: Item[] = [
   { icon: UserPlus, title: "Konto erstellen", text: "Elternteil oder Jugendliche:r erstellt ein Konto. Wir fragen nur das Geburtsjahr, nicht das genaue Datum." },
   { icon: MailPlus, title: "Kind einladen", text: "Sie erstellen einen Einladungscode (7 Tage gültig, nur einmal nutzbar). Ihr Kind kann umgekehrt auch Sie einladen." },
   { icon: BadgeCheck, title: "Einwilligung", text: "Ist Ihr Kind unter 16, geben Sie als Elternteil die Einwilligung. Erst dann wird geteilt, was Ihr Kind freigibt." },
-  { icon: Footprints, title: "Fortschritt sehen", text: "Sie sehen den freigegebenen Fortschritt: Anzahl und Status der Bewerbungen, das Dorf und, falls freigegeben, die Liste." },
+  { icon: Footprints, title: "Fortschritt sehen", text: "Sie sehen den freigegebenen Fortschritt: Anzahl und Status der Bewerbungen, das echte Dorf Ihres Kindes zum Anschauen und, falls freigegeben, die Liste." },
 ];
 
 const privacy: Item[] = [
   { icon: ListChecks, title: "Datenminimierung", text: "Nur was nötig ist: Name, E-Mail und das Geburtsjahr, um zu prüfen, ob eine Einwilligung nötig ist. Kein genaues Geburtsdatum." },
   { icon: BadgeCheck, title: "Einwilligung unter 16", text: "Für Kinder unter 16 braucht das Teilen mit dem Elternkonto die Einwilligung der Eltern (Schweizer DSG, DSGVO Art. 8). Ohne Einwilligung bleibt das Teilen aus." },
-  { icon: EyeOff, title: "Das Kind entscheidet", text: "Ihr Kind wählt, was das Elternkonto sieht: Fortschritt, Dorf, Bewerbungsliste. Notizen und Dokumente bleiben standardmässig privat. Das Teilen lässt sich jederzeit beenden." },
+  { icon: EyeOff, title: "Das Kind entscheidet", text: "Ihr Kind wählt, was das Elternkonto sieht: Fortschritt, Dorf, Bewerbungsliste. Notizen, Lohnangaben, Kontakte, Links und Dokumente bleiben privat. Schaltet Ihr Kind etwas aus, endet Ihr Zugriff sofort." },
   { icon: Download, title: "Export und Löschung", text: "Alle können ihre eigenen Daten exportieren, die Familie verlassen und das Konto löschen. Verlassen beendet das Teilen sofort." },
   { icon: Ban, title: "Keine Werbung", text: "WendApply zeigt keine Werbung und verkauft keine Daten. Das gilt für Eltern- und Kinderkonten gleich." },
   { icon: Users, title: "Getrennt von der Schule", text: "Ein Familienkonto sieht nie Mitschülerinnen, Mitschüler oder andere Familien. Nutzt die Schule WendApply, bleibt der Schulzugang davon unberührt." },
@@ -60,9 +60,10 @@ const faq: FaqItem[] = [
   { q: "Kann mein Kind WendApply auch allein nutzen?", a: "Ja. Jugendliche können ein eigenes Konto erstellen und WendApply 7 Tage gratis testen. Danach brauchen sie das Einzelabo (Preise unter wendapply.ch/preise) oder ihr bucht das Familienpaket. Das Teilen mit Eltern ist freiwillig." },
   { q: "Gibt es eine Gratis-Testphase?", a: "Ja. Jedes neue Konto kann WendApply 7 Tage mit allen Funktionen gratis testen, ohne Karte. Danach braucht es ein Abo, die Daten bleiben gespeichert." },
   { q: "Ab welchem Alter braucht es eine Einwilligung?", a: <>Für Kinder unter 16 geben die Eltern die Einwilligung, bevor Daten mit dem Elternkonto geteilt werden. Die App selbst kann Ihr Kind auch ohne Einwilligung nutzen, nur das Teilen bleibt aus. Mehr dazu unter <Link className={link} href="/datenschutz-jugend">Datenschutz für Jugendliche</Link>.</> },
-  { q: "Sehe ich als Elternteil alle Bewerbungen und Notizen?", a: "Nur das, was Ihr Kind freigibt. Standardmässig sind das der Fortschritt und das Dorf. Die Bewerbungsliste ist nur sichtbar, wenn Ihr Kind sie freigibt. Notizen und Dokumente bleiben privat." },
+  { q: "Sehe ich als Elternteil alle Bewerbungen und Notizen?", a: "Nur das, was Ihr Kind freigibt. Standardmässig sind das der Fortschritt und das Dorf. Die Bewerbungsliste ist nur sichtbar, wenn Ihr Kind sie freigibt. Notizen, Lohnangaben, Kontakte, Links und Dokumente bleiben privat." },
+  { q: "Kann ich das Dorf meines Kindes sehen?", a: "Ja, wenn Ihr Kind «Dorf teilen» eingeschaltet hat. Sie sehen das echte Dorf mit Inseln, Häusern und Deko, nur zum Anschauen. Sie können nichts bauen, verschieben oder kaufen. Firmennamen an den Häusern erscheinen nur, wenn Ihr Kind auch die Bewerbungsliste teilt. Ist Ihr Kind unter 16, braucht es zuerst Ihre Einwilligung. Schaltet Ihr Kind das Teilen aus, sehen Sie das Dorf sofort nicht mehr." },
   { q: "Kann ich später ein zweites Kind hinzufügen?", a: "Das Familienpaket startet mit 1 Elternteil und 1 Kind. Weitere Kinder und ein zweites Elternteil sollen später möglich sein." },
-  { q: "Was passiert, wenn mein Kind das Teilen beendet?", a: "Das Elternkonto sieht dann keinen Fortschritt mehr. Ihr Kind behält alle seine Daten. Sie können die Familie jederzeit verlassen oder Ihr Kind aus der Familie entfernen." },
+  { q: "Was passiert, wenn mein Kind das Teilen beendet?", a: "Das Elternkonto sieht dann sofort keinen Fortschritt und kein Dorf mehr. Ihr Kind behält alle seine Daten. Sie können die Familie jederzeit verlassen oder Ihr Kind aus der Familie entfernen." },
 ];
 
 function Grid({ items, cols = "sm:grid-cols-2 lg:grid-cols-3" }: { items: Item[]; cols?: string }) {

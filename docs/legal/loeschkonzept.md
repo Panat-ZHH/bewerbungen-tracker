@@ -1,6 +1,6 @@
 # Löschkonzept am Klassenende
 
-**Stand:** 6. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
+**Stand:** 21. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
 
 > **Hinweis:** Entwurf, nicht juristisch geprüft. Beschreibt, was die App **heute** kann. Automatische Löschfristen sind **noch nicht eingebaut** (siehe Abschnitt 6). Aufbewahrungspflichten der Schule sind rechtlich zu klären («prüfen lassen»).
 
