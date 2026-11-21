@@ -116,7 +116,7 @@ for (const { key, vp } of VIEWPORTS) {
     check(calls(state, "family_set_consent")[0]?.body.p_child_id === "c1" && calls(state, "family_set_consent")[0]?.body.p_granted === true, "family_set_consent(c1, true)");
     check(await visible(page, "Bewerbungen erfasst"), "child overview: progress");
     check(await visible(page, "Zusage erhalten"), "child overview: placed badge");
-    check(await visible(page, /3 Inseln · 7 Häuser · 420 Punkte/), "child overview: village");
+    check(await visible(page, /3 Inseln · 7 Deko-Objekte · 420 Punkte/), "child overview: village");
     check(!(await page.getByText("Bewerbungsliste").count()), "application list hidden when not shared");
     const text = await page.locator("main").innerText();
     check(!/Rückruf|Notiz|Swisscom/.test(text), "no notes or companies leak into the parent view");

@@ -34,6 +34,8 @@
 
 /* ---- top bar ---- */
 .top { position: absolute; z-index: 10; left: var(--fs-left); right: var(--fs-right); top: calc(var(--fs-top) + var(--fs-lift-top)); display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; pointer-events: none; }
+/* An open chip panel (z 25) lives inside .top's stacking context: lift the whole bar above the controls (z 10, later in the DOM) so they never cover the panel on narrow screens. */
+.top:has([aria-expanded="true"][data-open="true"]) { z-index: 25; }
 .topLeft, .topRight { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .topLeft { flex: 0 1 auto; flex-wrap: nowrap; }
 .topRight { flex: 0 0 auto; }

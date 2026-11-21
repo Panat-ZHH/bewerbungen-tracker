@@ -40,7 +40,7 @@ export function ChildOverview({ childId, name }: { childId: string; name: string
       {data.village ? (
         <div className="space-y-1">
           <h4 className="flex items-center gap-2 text-sm font-bold"><Home size={16} aria-hidden />{FAMILY_COPY.parent.villageTitle}</h4>
-          <p className="text-body">{fill(data.village.points !== null ? FAMILY_COPY.parent.villageLine : FAMILY_COPY.parent.villageLineNoPoints, { islands: `${data.village.level} ${data.village.level === 1 ? "Insel" : "Inseln"}`, houses: `${data.village.items} ${data.village.items === 1 ? "Haus" : "Häuser"}`, points: data.village.points ?? 0 })}</p>
+          <p className="text-body">{fill(data.village.points !== null ? FAMILY_COPY.parent.villageLine : FAMILY_COPY.parent.villageLineNoPoints, { islands: `${data.village.level} ${data.village.level === 1 ? "Insel" : "Inseln"}`, houses: `${data.village.items} ${data.village.items === 1 ? "Deko-Objekt" : "Deko-Objekte"}`, points: data.village.points ?? 0 })}</p>
           <ButtonLink href={familyVillagePath(childId)} variant="secondary" size="sm" icon={<Eye size={16} aria-hidden />} className="mt-1" data-testid="child-village-link">Dorf ansehen</ButtonLink>
         </div>
       ) : <p className="text-small text-muted">Das Dorf ist nicht geteilt.</p>}
