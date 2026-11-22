@@ -1,47 +1,64 @@
-# Parent village = friend village: LIVE (2026-11-22)
+# Parent village = the child's own village, full details: LIVE (2026-11-22)
 
-**Status: LIVE on https://wendapply.ch.** Gate: `PARENT-VILLAGE-IDENTICAL-BUILD.md` → BUILD: PASS, `PARENT-VILLAGE-IDENTICAL-QA.md` → QA: PASS.
-(This replaces the earlier release report for d8d2b03; that fix was live but did not solve Panat's Android photo.)
+**Status: LIVE on https://wendapply.ch.** Gate: `PARENT-VILLAGE-FULL-DETAILS-BUILD.md` → BUILD: PASS, `PARENT-VILLAGE-FULL-DETAILS-QA.md` → **QA: PASS**.
+(This replaces the report for 20261122100000 «parent = friend village». Panat said that was wrong: parents must see what the child sees.)
 
 | | |
 |---|---|
-| New production deploy | `6b030b4a7b4d419927ca363d` (commit `e0b6c14`, published 2026-11-22 15:34 UTC) |
-| Rollback deploy | `6b02f7b7c586c564ca000ce9` (commit `d248777`): `netlify api restoreSiteDeploy --data '{"site_id":"b96bc70c-8324-4bb9-a4ef-70877581f8bd","deploy_id":"6b02f7b7c586c564ca000ce9"}'` |
-| DB migration | `20261122100000_family_child_village_like_friend.sql` applied to bhwreehwirrloxagyypi (PRIVAT) and recorded in `supabase_migrations.schema_migrations` |
-| DB rollback | `supabase/rollback/20261122100000_family_child_village_like_friend.down.sql`, or the exact pre-migration live definition: `_onboarding/parent-village-identical/db-backup/_acc_impl_family_child_village.before-20261122.sql` |
+| New production deploy | `6b033f0a841fbe68a5e96fca` (commit `727052a`, ready + published 2026-11-22) |
+| Rollback deploy | `6b030bbfddd45858a662b327` (commit `50947b5`): `netlify api restoreSiteDeploy --data '{"site_id":"b96bc70c-8324-4bb9-a4ef-70877581f8bd","deploy_id":"6b030bbfddd45858a662b327"}'` |
+| DB migration | `supabase/migrations/20261122190000_family_child_village_full_details.sql`, applied to bhwreehwirrloxagyypi (PRIVAT) via `sb privat db query --linked -f …` and recorded in `supabase_migrations.schema_migrations` (`20261122190000`, `family_child_village_full_details`) |
+| DB rollback | `supabase/rollback/20261122190000_family_child_village_full_details.down.sql`, or the exact pre-migration live dump `_onboarding/parent-village-full-details/db-backup/_acc_impl_family_child_village.before-20261122190000.sql` (verified identical to the live definition before applying). The wrapper `family_child_village` is unchanged; its dump is at `…/db-backup/family_child_village.before-20261122190000.sql`. |
 
-## Root cause
-
-The 3D component, camera, map size and render loop were already identical for parent and friend. The **data** differed:
-
-1. The parent RPC `family_child_village` sent raw application results. The friend RPC masks `rejected`/`offer`/`withdrawn` as `applied`
-   unless results are shared (the default). So the parent saw burnt ruins with «Absage erhalten» and labels anchored elsewhere, while the friend sees normal houses with «Abgeschickt».
-2. The parent RPC sent real application ids, the friend RPC pseudo ids `h0001…`. Roof colour and ruin shape are derived from the id, so the colours differed too.
-3. The "frozen" look: in emulation (390×844, Pixel 7, Pixel 7 with 4× CPU throttling) the parent view animated before and after the fix.
-   The dead look came from the burnt village. If Android *Settings → Accessibility → Remove animations* is on, **both** views are still by design (`prefers-reduced-motion`).
-4. The close zoom on a few houses is the default start camera, the same in the friend view.
+Rollback = both steps together: restore the deploy above **and** run the `.down.sql` (`sb privat db query --linked -f supabase/rollback/20261122190000_family_child_village_full_details.down.sql`), then delete the `20261122190000` row from `supabase_migrations.schema_migrations`.
 
 ## What changed
 
-- DB: `_acc_impl_family_child_village` now sends pseudo ids, layouts as `house:<pseudo id>`, and masks results with the same `_soc_friend_status`, gated by
-  `share_settings.applications`. The wrapper, paywall guard and grants are unchanged. Checked after applying: the new definition is active, `authenticated` cannot execute the impl, and `anon` cannot execute the wrapper.
-- Client: `lib/family-village.ts` and `lib/read-only-village.ts` (`pseudoHouseId`, `maskedStatus`) apply the same normalisation, plus tests and the contract doc.
-- Intended behaviour change: parents see «Absage»/«Zusage» only if the child shares the application list with the family, exactly like friends.
+- **DB:** `_acc_impl_family_child_village` now returns, per house, exactly the fields the child's own village shows: real id, company, position (Stelle), location, the real status (incl. Zusage/Absage), createdAt, updatedAt, appliedAt and deadline. It also returns real layouts (`house:<id>`) and items. There is no more pseudo-id or result masking, and `share_settings.applications` no longer affects this view. The privacy gate is unchanged: an active parent of the same family, an active child, consent, and `share_settings.village`. The view never returns notes, salary, job URL, source, job description, contacts, documents, wallet, classes or other families. The wrapper, paywall guard and grants are unchanged.
+- **Client:** `components/applications/village-map.tsx` and `lib/family-village.ts` / `lib/read-only-village.ts`. The parent opens houses read-only in the same house sheet as the child, with no edit, move, shop or coins.
+- **Copy:** the share toggles (`lib/family-core.ts`), the Datenschutzerklärung, Datenschutz für Jugendliche, the families page and Hilfe describe the new scope. `LEGAL_STAND` is now 22 November 2026.
 
 ## Test evidence
 
-Release worktree (main e0b6c14): `npm ci`, lint, `npx tsc --noEmit` all PASS. `npm test`: 1267 tests, 1255 pass, 0 fail, 12 skipped. `npm run build`: PASS.
+Release worktree `pv-fulldetails-rel` (branch `rel/parent-village-full-details`, a fast-forward of origin/main `50947b5` → `9967fd6` + backup commit `727052a`):
+- `npm ci` OK.
+- `npm run lint`: 0 errors (16 old warnings).
+- `npx tsc --noEmit` PASS.
+- `npm test`: 1273 tests, 1261 pass, 0 fail, 12 skipped.
+- `npm run build` PASS. The first attempt failed only because the fresh worktree had no `.env.local`; it passed after copying it in.
 
-Images in `_onboarding/parent-village-identical/`:
-- Before: `before-side-by-side-friend-left-parent-right.png`, `before-friend.png`, `before-parent.png`
-- After: `after-side-by-side-friend-left-parent-right.png`, `after-friend.png`, `after-parent.png`, animation diffs `after-*-diff12.png`
-- QA: `qa-side-by-side-friend-left-parent-right.png`, `qa-friend-pixel7.png`, `qa-parent-pixel7.png`, `qa-*-anim-diff12.png`, privacy `qa-privacy-*.png`
+QA (`PARENT-VILLAGE-FULL-DETAILS-QA.md`) included its own leak tests (`tests/qa-parent-village-full-details-db.test.mjs`), a mocked E2E with side-by-side child/parent images, and a copy review.
 
-Live checks after deploy:
-- `/` 200, `/login` 200, `/familie/kind/<random uuid>/dorf` 200 app shell with a client-side redirect to login (as before), no 500.
-- The deployed chunk `/_next/static/chunks/32hx5p66rl5fy.js` contains the new `maskedStatus` (`["saved","preparing","applied","interview","final_interview"]`) and `pseudoHouseId` (`h${…padStart(4,"0")}`).
+DB checks after applying:
+- The new definition is active: it has `position`, no `_soc_friend_status` masking, and no `show_companies`.
+- Grants: `authenticated` cannot execute the impl, `anon` cannot execute the impl or the wrapper, and `authenticated` can execute the wrapper.
 
-## For Panat (Android)
+## Live checks (no real logins)
 
-Open a child's village as parent and the same child's village as friend on the same phone. They should look the same: no ruins unless results are shared, same roof colours, same labels.
-If both are still, check *Settings → Accessibility → Remove animations*.
+- `/`, `/login`, `/familie`, `/familien` and `/datenschutz` each return 200.
+- `/familie/kind/<random uuid>/dorf` returns 200 (app shell with a client-side redirect to login). No 500.
+- `/datenschutz` HTML contains the new wording «genau so wie du, … nur zum Anschauen».
+- The deployed chunk `/_next/static/chunks/42kc9hevpjq7u.js` contains the new toggle text «… stehen Firma, Stelle und Status trotzdem an den Häusern».
+- An anonymous REST call `rpc/family_child_village` with the anon key returns HTTP 401 `42501 permission denied` and no data. `rpc/_acc_impl_family_child_village` returns the same.
+
+No rollback was needed.
+
+## Datenschutz change for Panat to review
+
+**Privacy-relevant default (from QA):** `share_settings.village` is **on by default**. Since this release, parents of every child who never touched the toggles see company names, job titles and real outcomes (Absage). Before, they saw neither. Consider a short notice to children on /familie.
+
+**Datenschutzerklärung (`docs/legal/datenschutzerklaerung.md`, Eltern):**
+- Old: «Teilst du dein **Dorf**, sieht das Elternteil dein echtes Dorf (Inseln, Häuser, Deko) **nur zum Anschauen**. Firmennamen an den Häusern sieht es nur, wenn du auch die **Bewerbungsliste** teilst.»
+- New: «Teilst du dein **Dorf**, sieht das Elternteil dein echtes Dorf (Inseln, Häuser, Deko) genau so wie du, **nur zum Anschauen**: pro Bewerbung **Firma, Stelle, Status** (auch Zusage oder Absage), Ort und Daten (erfasst, zuletzt geändert, abgeschickt, Bewerbungsfrist). Ändern, verschieben oder kaufen kann es nichts.»
+
+**Datenschutz für Jugendliche (`docs/legal/datenschutz-jugend.md`):**
+- Old: «Teilst du dein **Dorf**, sehen sie dein echtes Dorf mit Inseln, Häusern und Deko, **nur zum Anschauen**. Firmennamen an den Häusern sehen sie nur, wenn du auch deine **Bewerbungsliste** teilst.»
+- New: «Teilst du dein **Dorf**, sehen sie dein echtes Dorf genau so wie du, **nur zum Anschauen**: Inseln, Häuser und Deko, an jedem Haus **Firma, Stelle und Status** (auch Zusage oder Absage) und beim Antippen die Daten (Ort, erfasst, geändert, abgeschickt, Frist). Ändern können sie nichts.»
+
+**Share toggles (`lib/family-core.ts`):**
+- «Dorf teilen», on. Old: «Deine Eltern sehen dein echtes Dorf mit Inseln, Häusern und Deko, nur zum Anschauen. Firmennamen an den Häusern sehen sie nur, wenn du auch die Bewerbungsliste teilst. …» New: «Deine Eltern sehen dein echtes Dorf genau so wie du: Inseln, Häuser und Deko, an jedem Haus Firma, Stelle und Status (auch Zusage oder Absage) und beim Antippen die Daten. Nur zum Anschauen, sie können nichts verändern. …»
+- «Bewerbungsliste teilen», off. Old: «Firmen und Stellen bleiben privat.» New: «Die Liste bleibt privat. Teilst du dein Dorf, stehen Firma, Stelle und Status trotzdem an den Häusern.»
+
+Unchanged in all texts: notes, salary, contacts, links and documents are never shown; sharing can be switched off at any time; under 16, a parent must consent first.
+
+Cosmetic nit from QA (not fixed): the texts say Firma, Stelle and Status are «an jedem Haus». The house label shows company and status; the Stelle appears in the house sheet.
