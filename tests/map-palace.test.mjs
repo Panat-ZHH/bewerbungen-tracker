@@ -92,8 +92,9 @@ test("map world draws palaces for accepted houses, overlay text and reduced-moti
   const block = css.slice(css.indexOf("/* === Palace (shop-v2) === */"));
   assert.ok(block.length > 40, "marked palace CSS block");
   assert.match(block, /prefers-reduced-motion: no-preference/, "animations only without reduced motion");
-  const page = await readFile(new URL("../app/map/page.tsx", import.meta.url), "utf8");
-  assert.match(page, /celebratePalaceId=/);
+  const page = await readFile(new URL("../components/applications/village-map.tsx", import.meta.url), "utf8");
+  assert.match(page, /celebratePalaceId=\{palace\.application\?\.id \?\? null\}/);
+  assert.match(page, /\{!watch && <PalaceCelebration/, "a parent watching the village gets no celebration");
   const friend = await readFile(new URL("../components/friends/friend-island-view.tsx", import.meta.url), "utf8");
   assert.doesNotMatch(friend, /PalaceCelebration|celebratePalaceId/, "friends see the palace, but no celebration");
 });

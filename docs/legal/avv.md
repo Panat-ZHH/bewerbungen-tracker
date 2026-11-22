@@ -1,6 +1,6 @@
 # Vereinbarung zur Auftragsbearbeitung (AVV / DPA) – Vorlage
 
-**Stand:** 21. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
+**Stand:** 22. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
 
 > **Wichtig:** Dies ist eine **Vorlage**, keine Rechtsberatung. Sie ist **nicht juristisch geprüft**. Vor der Unterzeichnung muss eine Juristin oder ein Jurist (Datenschutzrecht) sie prüfen und an das kantonale Recht der Schule (z. B. Kanton Zürich: §§ 6, 7 IDG, § 25 IDV) anpassen. Felder in `[eckigen Klammern]` sind auszufüllen. Stellen mit «prüfen lassen» sind besonders unsicher.
 

@@ -45,9 +45,13 @@ test("read-only drag API: disabled, frozen, no mutation possible", () => {
 
 test("map component: readOnly overrides every mutating handler and disables keyboard/UI", async () => {
   const world = await read("../components/applications/application-map-world.tsx");
-  assert.match(world, /props\.readOnly \? \{ \.\.\.props, onSelect: noopHandler, onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null/);
+  // Only the parent's watch mode (openHouses) keeps onSelect to open a house sheet; friends never pass openHouses.
+  assert.match(world, /const open = props\.readOnly && props\.openHouses;/);
+  assert.match(world, /props\.readOnly \? \{ \.\.\.props, onSelect: open \? props\.onSelect : noopHandler, onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null/);
   assert.match(world, /if \(readOnly \|\| event\.target !== event\.currentTarget\) return;/);
-  assert.match(world, /readOnly \? \(\s*<span data-building/);
+  assert.match(world, /readOnly && !openHouses \? \(\s*<span data-building/);
+  const props = await read("../lib/read-only-village.ts");
+  assert.doesNotMatch(props, /openHouses/, "the friend view's props never open houses");
 });
 
 test("friend island view imports no mutation API and no shop/edit hook", async () => {

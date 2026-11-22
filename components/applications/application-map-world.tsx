@@ -41,6 +41,11 @@ type WorldProps = {
   islandFocus?: { no: number; reveal: boolean; key: number } | null;
   /** Friend view: nothing can be selected, placed, dragged or changed; only camera pan/zoom works. Overrides all handler props. */
   readOnly?: boolean;
+  /**
+   * Only with readOnly (parent watching the child's own village): houses can still be OPENED (label or tap -> onSelect,
+   * selection highlight), everything else stays locked (no drag, no placing, no shop items).
+   */
+  openHouses?: boolean;
   /** Receives the imperative camera controls once the 3D world exists (null again when it is torn down). */
   onCameraApi?: (api: MapCameraApi | null) => void;
   /** Palace that just appeared for the first time: it rises out of the ground with sparkles once (skipped with prefers-reduced-motion). */
@@ -60,12 +65,16 @@ export type MapCameraApi = {
   getState: () => { x: number; z: number; zoom: number };
 };
 
-/** Read-only mode overrides every mutating handler, so the inner world can never place, drag or select anything. */
+/**
+ * Read-only mode overrides every mutating handler, so the inner world can never place, drag or select anything.
+ * With openHouses only opening a house (onSelect + its highlight) is kept; it never writes.
+ */
 export default function ApplicationMapWorld(props: WorldProps) {
-  return <World {...(props.readOnly ? { ...props, onSelect: noopHandler, onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null, selectedShopItemId: null, selectedId: null } : props)} />;
+  const open = props.readOnly && props.openHouses;
+  return <World {...(props.readOnly ? { ...props, onSelect: open ? props.onSelect : noopHandler, onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null, selectedShopItemId: null, selectedId: open ? props.selectedId : null, openHouses: Boolean(open) } : { ...props, openHouses: false })} />;
 }
 
-function World({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onCameraApi, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null, readOnly = false, celebratePalaceId = null }: WorldProps) {
+function World({ applications, visibleIds, selectedId, night, zoom, center, onZoomChange, onCameraApi, onSelect, shopItems, layouts, selectedShopItemId, placement, onSelectShopItem, onPlacePosition, drag, islandCount = 1, islandFocus = null, readOnly = false, openHouses = false, celebratePalaceId = null }: WorldProps) {
   const host = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const world = useRef<ReturnType<typeof createWorld> | null>(null);
@@ -122,7 +131,7 @@ function World({ applications, visibleIds, selectedId, night, zoom, center, onZo
       }}>
         <div ref={labels} className={styles.worldLabels}>
           {applications.filter(({ id }) => visibleIds.includes(id)).map((application) => (
-            readOnly ? (
+            readOnly && !openHouses ? (
               <span data-building={application.id} key={application.id} className={`${styles.worldLabel} ${styles.readOnlyLabel}`}>
                 <strong>{application.company}</strong><span>{statusLabels[application.status]}</span>
               </span>
@@ -134,7 +143,7 @@ function World({ applications, visibleIds, selectedId, night, zoom, center, onZo
           ))}
         </div>
       </div>
-      <p id="map-drag-help" className={styles.dragHint}>{readOnly ? "Nur ansehen: Ziehen bewegt die Kamera, Zoom mit Mausrad oder zwei Fingern. Hier kann nichts verändert werden." : "Gegenstände und Häuser per Ziehen verschieben (Touch: kurz gedrückt halten, dann ziehen). Tastatur: Karte fokussieren, Gegenstand auswählen, Pfeiltasten verschieben, Enter platzieren, Esc abbrechen, Strg+Z rückgängig. Strassen sind fest."}</p>
+      <p id="map-drag-help" className={styles.dragHint}>{readOnly ? `Nur ansehen: Ziehen bewegt die Kamera, Zoom mit Mausrad oder zwei Fingern.${openHouses ? " Ein Haus antippen zeigt seine Angaben." : ""} Hier kann nichts verändert werden.` : "Gegenstände und Häuser per Ziehen verschieben (Touch: kurz gedrückt halten, dann ziehen). Tastatur: Karte fokussieren, Gegenstand auswählen, Pfeiltasten verschieben, Enter platzieren, Esc abbrechen, Strg+Z rückgängig. Strassen sind fest."}</p>
       {unavailable && <p className={`${styles.empty} ${styles.unavailable}`} role="status">Die 3D-Ansicht ist in diesem Browser nicht verfügbar. Deine Bewerbungen findest du in der Suche.</p>}
     </>
   );

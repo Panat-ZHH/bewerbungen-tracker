@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { ArrowUpRight, CalendarDays, Check, LocateFixed, MapPin, Save } from "lucide-react";
+import { ArrowUpRight, CalendarDays, Check, Eye, LocateFixed, MapPin, Save } from "lucide-react";
 import { updateApplication } from "@/lib/storage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { statusLabels } from "@/lib/utils";
@@ -10,8 +10,12 @@ import type { Application, ApplicationStatus } from "@/types";
 import { MapSheet } from "./map-fullscreen";
 import styles from "@/app/map/map.module.css";
 
-/** Details of the selected building as a bottom sheet (phones) / side card (from 768px). Kept under its old name for the page import. */
-export function MapApplicationDialog({ application, onClose, onUpdated, onMove, canMove }: { application: Application; onClose: () => void; onUpdated: (application: Application) => void; onMove: () => void; canMove: boolean }) {
+/**
+ * Details of the selected building as a bottom sheet (phones) / side card (from 768px). Kept under its old name for the page import.
+ * `readOnly` (parent watching the child's village): the same details, but no status form, no «Haus verschieben», no link
+ * into the child's application, and no notes (family_child_village never sends them).
+ */
+export function MapApplicationDialog({ application, onClose, onUpdated, onMove, canMove, readOnly = false }: { application: Application; onClose: () => void; onUpdated: (application: Application) => void; onMove: () => void; canMove: boolean; readOnly?: boolean }) {
   const saving = useRef(false);
   const [draft, setDraft] = useState(application.status);
   const [busy, setBusy] = useState(false);
@@ -19,7 +23,7 @@ export function MapApplicationDialog({ application, onClose, onUpdated, onMove, 
   const [saved, setSaved] = useState(false);
 
   async function save() {
-    if (saving.current || draft === application.status) return;
+    if (readOnly || saving.current || draft === application.status) return;
     saving.current = true;
     setBusy(true);
     setError("");
@@ -52,7 +56,8 @@ export function MapApplicationDialog({ application, onClose, onUpdated, onMove, 
         {application.appliedAt && <div><dt>Abgeschickt am</dt><dd><time dateTime={application.appliedAt}>{date(application.appliedAt)}</time></dd></div>}
         {application.deadline && <div><dt>Bewerbungsfrist</dt><dd><time dateTime={application.deadline}>{date(application.deadline)}</time></dd></div>}
       </dl>
-      {application.notes && <div className={styles.sheetNotes}><h3>Deine Notizen</h3><p>{application.notes}</p></div>}
+      {!readOnly && application.notes && <div className={styles.sheetNotes}><h3>Deine Notizen</h3><p>{application.notes}</p></div>}
+      {readOnly ? <p className={styles.sheetMeta} data-testid="house-read-only"><Eye size={16} aria-hidden />Nur ansehen: hier kann nichts verändert werden.</p> : <>
       <form className={styles.sheetForm} onSubmit={(event) => { event.preventDefault(); void save(); }}>
         <label htmlFor="map-application-status">Status ändern</label>
         <select id="map-application-status" value={draft} disabled={busy} onChange={(event) => { setDraft(event.target.value as ApplicationStatus); setSaved(false); setError(""); }}>
@@ -66,6 +71,7 @@ export function MapApplicationDialog({ application, onClose, onUpdated, onMove, 
         <button type="button" disabled={busy || !canMove} onClick={onMove}><LocateFixed size={16} aria-hidden />Haus verschieben</button>
         <Link href={`/applications/${encodeURIComponent(application.id)}`}><ArrowUpRight size={16} aria-hidden /> Bewerbung öffnen</Link>
       </div>
+      </>}
     </MapSheet>
   );
 }

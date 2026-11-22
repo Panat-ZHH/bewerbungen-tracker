@@ -1,4 +1,5 @@
-// Parent village view (supabase/migrations/20261121100000_family_child_village.sql) against PGlite with ALL migrations
+// Parent village view (supabase/migrations/20261121100000_family_child_village.sql, full details since
+// 20261122190000_family_child_village_full_details.sql) against PGlite with ALL migrations
 // replayed AND Supabase's default privileges (so the migration's own revokes are what protects the function).
 // Contract: docs/family/parent-village-contract.md.
 import { test } from "node:test";
@@ -34,8 +35,8 @@ async function family({ consent = "granted", share = { progress: true, applicati
 /** Village data of the child: two applications (secrets in every other column), a house layout, a stray layout, a shop item. */
 async function seedVillage(child) {
   await admin(`insert into public.applications (id, user_id, company, position, location, category, status, created_at, updated_at, notes, salary_min, salary_max, job_url, source, job_description, deadline)
-    values ('app-b-' || $2, $1, '  Zweite GmbH ', 'Mediamatiker', 'GEHEIMORT', 'software', 'interview', '2026-11-10', '2026-11-12', 'GEHEIME NOTIZ', 77777, 88888, 'https://secret.example/job', 'SECRETSOURCE', 'SECRETDESC', '2026-12-01'),
-           ('app-a-' || $2, $1, 'Kinder AG', 'Informatiker', 'GEHEIMORT', 'software', 'applied', '2026-11-01', '2026-11-02', 'GEHEIME NOTIZ', 77777, 88888, 'https://secret.example/job', 'SECRETSOURCE', 'SECRETDESC', '2026-12-01')`,
+    values ('app-b-' || $2, $1, '  Zweite GmbH ', 'Mediamatiker', '  ', 'software', 'interview', '2026-11-10', '2026-11-12', 'GEHEIME NOTIZ', 77777, 88888, 'https://secret.example/job', 'SECRETSOURCE', 'SECRETDESC', null),
+           ('app-a-' || $2, $1, 'Kinder AG', 'Informatiker', 'Winterthur', 'software', 'applied', '2026-11-01', '2026-11-02', 'GEHEIME NOTIZ', 77777, 88888, 'https://secret.example/job', 'SECRETSOURCE', 'SECRETDESC', '2026-12-01')`,
     [child, child.slice(-4)]);
   await admin("insert into public.map_layouts (user_id, object_id, x, z, rotation) values ($1, $2, 3, 4, 1), ($1, 'house:deleted-app', 9, 9, 0)",
     [child, `house:app-a-${child.slice(-4)}`]);
@@ -44,21 +45,27 @@ async function seedVillage(child) {
   return { itemId: item.id, a: `app-a-${child.slice(-4)}`, b: `app-b-${child.slice(-4)}` };
 }
 
-const SECRETS = ["GEHEIM", "77777", "88888", "secret.example", "SECRETSOURCE", "SECRETDESC", "Informatiker", "Mediamatiker", "2026-12-01", "kim@x.ch", "Familie Test", "price", "wallet", "balance"];
+// Never sent to parents (columns the child's village does not show): notes, salary, links, source, job description, contacts, ...
+const SECRETS = ["GEHEIM", "77777", "88888", "secret.example", "SECRETSOURCE", "SECRETDESC", "SECRETCONTACT", "kim@x.ch", "Familie Test", "price", "wallet", "balance", "notes", "salary", "job_url", "contact"];
+const HOUSE_KEYS = ["appliedAt", "company", "createdAt", "deadline", "id", "location", "position", "status", "updatedAt"];
 
-test("shared village: exactly the contract fields, houses oldest first, company null, only real house layouts, items like /map", async () => {
+test("shared village: the child's own village data (real ids, company, Stelle, status, dates), only real house layouts, items like /map", async () => {
   await mode("test_users");
   const { parent, child } = await family();
   const { itemId, a, b } = await seedVillage(child);
+  await admin("update public.applications set contact_name = 'SECRETCONTACT', contact_info = 'SECRETCONTACT@x.ch', applied_at = '2026-11-03' where id = $1", [a]);
   const v = await village(parent, child);
-  assert.deepEqual(Object.keys(v).sort(), ["child_id", "display_name", "houses", "island_count", "items", "layouts", "show_companies"]);
+  assert.deepEqual(Object.keys(v).sort(), ["child_id", "display_name", "houses", "island_count", "items", "layouts"], "no show_companies option any more");
   assert.equal(v.child_id, child);
   assert.equal(v.display_name, "Kim");
   assert.equal(v.island_count, 1);
-  assert.equal(v.show_companies, false);
-  // Pseudo ids by age, exactly like map_friend_island (20261122100000_family_child_village_like_friend.sql): a = h0001, b = h0002.
-  assert.deepEqual(v.houses, [{ id: "h0001", status: "applied", company: null }, { id: "h0002", status: "interview", company: null }]);
-  assert.deepEqual(v.layouts, [{ id: "house:h0001", x: 3, z: 4, rotation: 1 }], "stray layout of a deleted application is not returned");
+  // Real ids and raw values, oldest first (20261122190000_family_child_village_full_details.sql), exactly what the child's /map shows.
+  assert.deepEqual(v.houses, [
+    { id: a, company: "Kinder AG", position: "Informatiker", location: "Winterthur", status: "applied", createdAt: "2026-11-01", updatedAt: "2026-11-02", appliedAt: "2026-11-03", deadline: "2026-12-01" },
+    { id: b, company: "  Zweite GmbH ", position: "Mediamatiker", location: null, status: "interview", createdAt: "2026-11-10", updatedAt: "2026-11-12", appliedAt: null, deadline: null },
+  ]);
+  for (const h of v.houses) assert.deepEqual(Object.keys(h).sort(), HOUSE_KEYS);
+  assert.deepEqual(v.layouts, [{ id: `house:${a}`, x: 3, z: 4, rotation: 1 }], "stray layout of a deleted application is not returned");
   assert.equal(v.items.length, 2);
   for (const it of v.items) assert.deepEqual(Object.keys(it).sort(), ["createdAt", "id", "itemType", "rotation", "x", "z"]);
   const tree = v.items.find((i) => i.id === itemId);
@@ -67,39 +74,33 @@ test("shared village: exactly the contract fields, houses oldest first, company 
   const bench = v.items.find((i) => i.itemType === "bench");
   assert.deepEqual([bench.x, bench.z, bench.rotation], [null, null, 0], "unplaced items come back like map_shop_state");
   const text = JSON.stringify(v);
-  for (const s of [...SECRETS, "Kinder AG", "Zweite", a, b]) assert.ok(!text.includes(s), `leaked ${s}`);
+  for (const s of SECRETS) assert.ok(!text.includes(s), `leaked ${s}`);
 });
 
-test("results (Zusage / Absage / Rückzug) only when the child shares the application list; masked exactly like for friends", async () => {
+test("houses equal the child's own applications row by row (same id, company, position, location, status, dates)", async () => {
   const { parent, child } = await family();
   await seedVillage(child);
+  const own = await admin(`select id, company, position, nullif(btrim(location), '') as location, status, created_at::text c, updated_at::text u, applied_at::text ap, deadline::text d
+    from public.applications where user_id = $1 order by created_at, id`, [child]);
+  const v = await village(parent, child);
+  assert.deepEqual(v.houses.map((h) => [h.id, h.company, h.position, h.location, h.status, h.createdAt, h.updatedAt, h.appliedAt, h.deadline]),
+    own.map((r) => [r.id, r.company, r.position, r.location, r.status, r.c, r.u, r.ap, r.d]));
+});
+
+test("real results (Zusage / Absage / Rückzug) and company names always, whatever share_settings.applications says", async () => {
+  const { parent, child } = await family();
+  const { a, b } = await seedVillage(child);
   const tail = child.slice(-4);
   await admin(`insert into public.applications (id, user_id, company, position, category, status, created_at, updated_at) values
-    ('app-r-' || $2, $1, 'Absage AG', 'X', 'software', 'rejected', '2026-11-20', '2026-11-20'),
-    ('app-o-' || $2, $1, 'Zusage AG', 'X', 'software', 'offer', '2026-11-21', '2026-11-21'),
-    ('app-w-' || $2, $1, 'Rückzug AG', 'X', 'software', 'withdrawn', '2026-11-22', '2026-11-22')`, [child, tail]);
-  const hidden = await village(parent, child);
-  assert.deepEqual(hidden.houses.map((h) => [h.id, h.status]), [["h0001", "applied"], ["h0002", "interview"], ["h0003", "applied"], ["h0004", "applied"], ["h0005", "applied"]]);
-  const masked = (await admin("select public._soc_friend_status(s, false) as m from unnest(array['applied','interview','rejected','offer','withdrawn']) s")).map((r) => r.m);
-  assert.deepEqual(hidden.houses.map((h) => h.status), masked, "same rule as public._soc_friend_status for friends");
+    ('app-r-' || $2, $1, 'Absage AG', 'Koch', 'software', 'rejected', '2026-11-20', '2026-11-20'),
+    ('app-o-' || $2, $1, 'Zusage AG', 'Gärtner', 'software', 'offer', '2026-11-21', '2026-11-21'),
+    ('app-w-' || $2, $1, 'Rückzug AG', 'Maler', 'software', 'withdrawn', '2026-11-22', '2026-11-22')`, [child, tail]);
+  const expected = [[a, "applied", "Kinder AG", "Informatiker"], [b, "interview", "  Zweite GmbH ", "Mediamatiker"], [`app-r-${tail}`, "rejected", "Absage AG", "Koch"],
+    [`app-o-${tail}`, "offer", "Zusage AG", "Gärtner"], [`app-w-${tail}`, "withdrawn", "Rückzug AG", "Maler"]];
+  const shape = (v) => v.houses.map((h) => [h.id, h.status, h.company, h.position]);
+  assert.deepEqual(shape(await village(parent, child)), expected, "application list NOT shared: still full details");
   await rpc(child, "select public.family_set_share($1::jsonb)", ['{"applications":true}']);
-  const shared = await village(parent, child);
-  assert.deepEqual(shared.houses.map((h) => [h.id, h.status]), [["h0001", "applied"], ["h0002", "interview"], ["h0003", "rejected"], ["h0004", "offer"], ["h0005", "withdrawn"]]);
-});
-
-test("companies only when the child also shares applications (trimmed, empty -> null)", async () => {
-  const { parent, child } = await family();
-  await seedVillage(child);
-  await admin("insert into public.applications (id, user_id, company, position, category, status, created_at, updated_at) values ($2, $1, '   ', 'X', 'software', 'saved', '2026-11-20', '2026-11-20')", [child, `app-c-${child.slice(-4)}`]);
-  await rpc(child, "select public.family_set_share($1::jsonb)", ['{"applications":true}']);
-  const v = await village(parent, child);
-  assert.equal(v.show_companies, true);
-  assert.deepEqual(v.houses, [{ id: "h0001", status: "applied", company: "Kinder AG" }, { id: "h0002", status: "interview", company: "Zweite GmbH" },
-    { id: "h0003", status: "saved", company: null }]);
-  const text = JSON.stringify(v);
-  for (const s of SECRETS) assert.ok(!text.includes(s), `leaked ${s}`);
-  await rpc(child, "select public.family_set_share($1::jsonb)", ['{"applications":false}']);
-  assert.ok((await village(parent, child)).houses.every((h) => h.company === null), "switching applications off hides companies again");
+  assert.deepEqual(shape(await village(parent, child)), expected, "application list shared: the same");
 });
 
 test("empty village: empty arrays, island count 1", async () => {
@@ -215,10 +216,61 @@ test("the function is read-only: calling it changes no map / wallet / applicatio
   assert.deepEqual(await snap(), before);
 });
 
+test("deny matrix: only the active parent gets data; other family parent, non-parent, pending, revoked parent, village off, consent withdrawn get an error", async () => {
+  const fam = await family();
+  const other = await family();
+  await seedVillage(fam.child);
+  const ok = await village(fam.parent, fam.child);
+  assert.ok(ok.houses.length === 2 && ok.houses[0].company === "Kinder AG", "active parent: full data");
+  const pending = await user(next());
+  await admin("insert into public.family_members (family_id, user_id, role, status) values ($1, $2, 'parent', 'pending')", [fam.familyId, pending]);
+  const revoked = await user(next());
+  await admin("insert into public.family_members (family_id, user_id, role, status) values ($1, $2, 'parent', 'removed')", [fam.familyId, revoked]);
+  const outsider = await user(next());
+  const denied = { "other family's parent": [other.parent, /NOT_FOUND/], "non-parent (no family)": [outsider, /NOT_IN_FAMILY/], "the child itself (no parent)": [fam.child, /FORBIDDEN/],
+    "pending parent": [pending, /FORBIDDEN/], "revoked parent": [revoked, /FORBIDDEN|NOT_IN_FAMILY/] };
+  for (const [label, [viewer, re]] of Object.entries(denied)) assert.match(await fails(viewer, fam.child), re, label);
+  await rpc(fam.child, "select public.family_set_share($1::jsonb)", ['{"village":false}']);
+  assert.match(await fails(fam.parent, fam.child), /NOT_SHARED/, "child village off");
+  await rpc(fam.child, "select public.family_set_share($1::jsonb)", ['{"village":true}']);
+  await rpc(fam.parent, "select public.family_set_consent($1, false)", [fam.child]);
+  assert.match(await fails(fam.parent, fam.child), /NOT_SHARED/, "consent withdrawn");
+});
+
+const migration = (name) => readFile(new URL(`../supabase/${name}`, import.meta.url), "utf8");
+const FULL = "migrations/20261122190000_family_child_village_full_details.sql";
+const DOWN = "rollback/20261122190000_family_child_village_full_details.down.sql";
+const implSrc = async () => (await admin("select prosrc from pg_proc where proname = '_acc_impl_family_child_village' and pronamespace = 'public'::regnamespace"))[0].prosrc;
+const grants = async () => (await admin(`select p.proname, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth,
+    has_function_privilege('service_role', p.oid, 'execute') as svc, p.prosecdef, p.proconfig from pg_proc p
+  where p.pronamespace = 'public'::regnamespace and p.proname like '%family_child_village' order by p.proname`)).map((f) => [f.proname, f.anon, f.auth, f.svc, f.prosecdef, f.proconfig]);
+const GRANTS = [["_acc_impl_family_child_village", false, false, false, true, ['search_path=""']], ["family_child_village", false, true, false, true, ['search_path=""']]];
+
+test("replay: migration -> rollback -> migration (rollback restores 20261122100000 exactly, grants unchanged)", async () => {
+  const { parent, child } = await family();
+  const { a } = await seedVillage(child);
+  await reset();
+  const full = await implSrc();
+  await ctx.database.exec(await migration(DOWN));
+  assert.deepEqual(await grants(), GRANTS);
+  const friendLike = (await migration("migrations/20261122100000_family_child_village_like_friend.sql")).match(/as \$\$([\s\S]*?)\$\$;/)[1];
+  assert.equal(await implSrc(), friendLike, "rollback = exactly the 20261122100000 body");
+  const old = await village(parent, child);
+  assert.deepEqual(old.houses.map((h) => h.id), ["h0001", "h0002"], "old (friend-like) contract after the rollback");
+  await reset();
+  await ctx.database.exec(await migration(FULL));
+  assert.equal(await implSrc(), full);
+  assert.deepEqual(await grants(), GRANTS);
+  assert.equal((await village(parent, child)).houses[0].id, a, "full details again");
+});
+
 test("migration is idempotent: re-running keeps one guarded wrapper with the same grants", async () => {
   const { parent, child } = await family();
   await reset();
   await ctx.database.exec(await readFile(new URL("../supabase/migrations/20261121100000_family_child_village.sql", import.meta.url), "utf8"));
+  await ctx.database.exec(await migration("migrations/20261122100000_family_child_village_like_friend.sql"));
+  await ctx.database.exec(await migration(FULL));
+  await ctx.database.exec(await migration(FULL));
   const fns = await admin(`select p.proname, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth,
       has_function_privilege('service_role', p.oid, 'execute') as svc from pg_proc p
     where p.pronamespace = 'public'::regnamespace and p.proname like '%family_child_village' order by p.proname`);

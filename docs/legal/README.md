@@ -1,6 +1,6 @@
 # Rechtsdokumente WendApply (Datenschutz-Paket für Schulen)
 
-**Stand:** 21. November 2026 · **Version:** 0.9 (Entwurf)
+**Stand:** 22. November 2026 · **Version:** 0.9 (Entwurf)
 
 > **Wichtig:** Alle Dokumente in diesem Ordner sind sorgfältig erarbeitete **Entwürfe**, aber **keine Rechtsberatung**. Bevor sie an eine Schule, eine Schulgemeinde oder ein Schulamt geschickt oder produktiv veröffentlicht werden, **muss eine Juristin oder ein Jurist (Datenschutzrecht, Schweiz) sie prüfen**. Stellen, die besonders unsicher sind, sind mit **«prüfen lassen»** markiert. Stellen mit eckigen Klammern `[…]` müssen vom Betreiber ausgefüllt werden.
 

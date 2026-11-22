@@ -7,14 +7,18 @@ import { MapChip } from "./map-fullscreen";
 import type { IslandsController } from "./use-islands";
 import styles from "@/app/map/islands.module.css";
 
-/** Island switcher as a compact top chip ("Dein Dorf · 40/600", the page's visible title) that expands to the full panel. */
-export function IslandPanel({ islands, balance }: { islands: IslandsController; balance: number | null }) {
-  const progress = unlockProgress(islands.unlocked, balance ?? 0);
+/**
+ * Island switcher as a compact top chip ("Dein Dorf · 40/600", the page's visible title) that expands to the full panel.
+ * `watch` (parent watching the child's village): another title, only the switcher; no points, no progress, no unlock button.
+ */
+export function IslandPanel({ islands, balance, watch }: { islands: IslandsController; balance: number | null; watch?: { title: string } }) {
+  const progress = watch ? null : unlockProgress(islands.unlocked, balance ?? 0);
+  const title = watch?.title ?? "Dein Dorf";
   const affordable = islands.affordableWith(balance);
   const current = ISLANDS.find((island) => island.no === islands.current) ?? ISLANDS[0];
   return (
     <>
-      <MapChip id="islands" icon={<Anchor size={16} />} label={islands.unlocked > 1 ? `Dein Dorf · ${current.name}` : "Dein Dorf"} meta={progress && islands.available ? <span title={`Punkte für die nächste Insel: ${progress.points} von ${progress.price}`}><span aria-hidden>{progress.points}/{progress.price}</span><span className="sr-only">Nächste Insel: {progress.points} von {progress.price} Punkten</span></span> : undefined} panelLabel="Inseln in deinem Dorf">
+      <MapChip id="islands" icon={<Anchor size={16} />} label={islands.unlocked > 1 ? `${title} · ${current.name}` : title} meta={progress && islands.available ? <span title={`Punkte für die nächste Insel: ${progress.points} von ${progress.price}`}><span aria-hidden>{progress.points}/{progress.price}</span><span className="sr-only">Nächste Insel: {progress.points} von {progress.price} Punkten</span></span> : undefined} panelLabel={watch ? `Inseln im ${title}` : "Inseln in deinem Dorf"}>
         <div className={styles.panel}>
           <div className={styles.switcher} role="group" aria-label="Insel wählen">
             {ISLANDS.filter((island) => island.no <= islands.unlocked).map((island) => (
@@ -23,7 +27,9 @@ export function IslandPanel({ islands, balance }: { islands: IslandsController; 
               </button>
             ))}
           </div>
-          {!islands.available ? (
+          {watch ? (
+            <p className={styles.hint}>{islands.unlocked > 1 ? "Wähle eine Insel, um sie anzuschauen." : "Bisher gibt es eine Insel."}</p>
+          ) : !islands.available ? (
             <p className={styles.hint} role="status">Weitere Inseln kommen bald.</p>
           ) : progress ? (
             <div className={styles.next}>
@@ -39,10 +45,10 @@ export function IslandPanel({ islands, balance }: { islands: IslandsController; 
           ) : (
             <p className={styles.hint}>Alle Inseln freigeschaltet. Dein Dorf ist komplett.</p>
           )}
-          {islands.error && <p className={styles.error} role="alert">{islands.error}</p>}
+          {!watch && islands.error && <p className={styles.error} role="alert">{islands.error}</p>}
         </div>
       </MapChip>
-      {islands.celebrate && (
+      {!watch && islands.celebrate && (
         <div className={styles.celebrate} role="status" aria-live="polite">
           <div className={styles.confetti} aria-hidden="true">{Array.from({ length: 18 }, (_, index) => <i key={index} style={{ ["--i" as string]: index }} />)}</div>
           <strong>Neue Insel entdeckt!</strong>

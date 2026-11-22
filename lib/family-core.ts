@@ -242,8 +242,8 @@ export const CONSENT_TONE: Record<ConsentStatus, "neutral" | "info" | "success" 
 export function sharingActive(m: Pick<FamilyMember, "status" | "consentStatus">): boolean { return m.status === "active" && (m.consentStatus === "granted" || m.consentStatus === "not_required"); }
 export const SHARE_LABELS: { key: keyof ShareSettings; label: string; on: string; off: string }[] = [
   { key: "progress", label: "Fortschritt teilen", on: "Deine Eltern sehen, wie viele Bewerbungen du hast und wie weit sie sind.", off: "Deine Eltern sehen keine Zahlen zu deinen Bewerbungen." },
-  { key: "applications", label: "Bewerbungsliste teilen", on: "Firma, Stelle und Status jeder Bewerbung sind sichtbar. Notizen bleiben privat.", off: "Firmen und Stellen bleiben privat." },
-  { key: "village", label: "Dorf teilen", on: "Deine Eltern sehen dein echtes Dorf mit Inseln, Häusern und Deko, nur zum Anschauen. Firmennamen an den Häusern sehen sie nur, wenn du auch die Bewerbungsliste teilst. Notizen, Lohn, Kontakte, Links und Dokumente nie. Schaltest du es aus, sehen sie dein Dorf sofort nicht mehr.", off: "Dein Dorf bleibt privat. Deine Eltern sehen es nicht." },
+  { key: "applications", label: "Bewerbungsliste teilen", on: "Firma, Stelle und Status jeder Bewerbung sind als Liste sichtbar. Notizen bleiben privat.", off: "Die Liste bleibt privat. Teilst du dein Dorf, stehen Firma, Stelle und Status trotzdem an den Häusern." },
+  { key: "village", label: "Dorf teilen", on: "Deine Eltern sehen dein echtes Dorf genau so wie du: Inseln, Häuser und Deko, an jedem Haus Firma, Stelle und Status (auch Zusage oder Absage) und beim Antippen die Daten. Nur zum Anschauen, sie können nichts verändern. Notizen, Lohn, Kontakte, Links und Dokumente sehen sie nie. Schaltest du es aus, sehen sie dein Dorf sofort nicht mehr.", off: "Dein Dorf bleibt privat. Deine Eltern sehen es nicht." },
 ];
 /** Applying one toggle keeps all other keys (including ones this UI does not show, e.g. documents). */
 export function nextShare(current: ShareSettings | null, key: keyof ShareSettings, value: boolean): ShareSettings { return { ...(current ?? DEFAULT_SHARE), [key]: value }; }

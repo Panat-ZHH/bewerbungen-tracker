@@ -1,6 +1,6 @@
 # Hosting-Orte und Unterauftragsbearbeiter
 
-**Stand:** 21. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
+**Stand:** 22. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
 
 > **Hinweis:** Entwurf, nicht juristisch geprüft. Die Angaben zu Zertifizierungen und Verträgen der Anbieter müssen vor dem Versand an Schulen auf den offiziellen Seiten der Anbieter bestätigt werden («prüfen lassen»).
 

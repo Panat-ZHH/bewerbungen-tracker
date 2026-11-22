@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useParams, usePathname } from "next/navigation";
-import { ArrowLeft, EyeOff, Home, LogIn } from "lucide-react";
+import { ArrowLeft, EyeOff, LogIn } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { WorkspaceShell } from "@/components/layout/workspace-shell";
-import { ReadOnlyVillageView } from "@/components/applications/read-only-village-view";
+import { VillageMap } from "@/components/applications/village-map";
 import { FAMILY_VILLAGE_COPY as COPY, familyVillageErrorKind, familyVillageReason, getFamilyVillage, type FamilyVillage, type FamilyVillageErrorKind, type FamilyVillageReason } from "@/lib/family-village";
 import { CHILD_FALLBACK, FAMILY_PATH, loginNextFor, memberName } from "@/lib/family-core";
 import { childRef } from "@/lib/family-copy";
@@ -13,8 +13,9 @@ import { supabase } from "@/lib/supabase";
 import own from "./dorf.module.css";
 
 /**
- * /familie/kind/[id]/dorf: a parent looks at the child's real village. Read-only, data from family_child_village only.
- * The screen is the shared ReadOnlyVillageView, the same live village a friend sees on /friends/[id].
+ * /familie/kind/[id]/dorf: a parent watches the child's real village. Data from family_child_village only (the one request).
+ * The screen is the child's OWN village component (VillageMap, as on /map) with `watch`: the same houses, company names,
+ * Stellen, statuses and details the child sees, strictly read-only (no shop, points, drag, status change, add or delete).
  */
 export default function ChildVillagePage() {
   const { id } = useParams<{ id: string }>();
@@ -77,21 +78,13 @@ function ChildVillage({ childId }: { childId: string }) {
 
   return (
     <div className={own.village} data-village-state={loading ? "loading" : "ready"}>
-      <ReadOnlyVillageView
-        village={village}
-        loading={loading}
-        heading={village ? `${COPY.title(vonName)} (nur ansehen)` : "Dorf deines Kindes"}
-        label={COPY.title(vonName)}
-        waitingText="Dorf wird geladen ..."
-        back={{ href: FAMILY_PATH, ariaLabel: COPY.back, text: "Familie" }}
-        chip={{
-          id: "child-village",
-          icon: <Home size={16} aria-hidden />,
-          name,
-          panelLabel: `Info zum ${COPY.title(vonName)}`,
-          note: <>{village?.showCompanies ? COPY.infoCompanies(childRef(name, "sich ")) : COPY.infoNoCompanies} {COPY.infoPrivate}</>,
-        }}
-      />
+      <VillageMap watch={{
+        village,
+        loading,
+        title: village ? COPY.title(vonName) : "Dorf deines Kindes",
+        back: { href: FAMILY_PATH, ariaLabel: COPY.back, text: "Familie" },
+        info: <>{COPY.info(vonName)} {COPY.infoPrivate}</>,
+      }} />
     </div>
   );
 }

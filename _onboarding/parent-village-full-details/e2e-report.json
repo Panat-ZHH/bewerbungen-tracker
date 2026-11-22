@@ -1,0 +1,1672 @@
+{
+ "results": [
+  "INFO probe users: parent=c74e7360…, child=9abd2a03…",
+  "INFO live RPC (still 20261122100000) answers the probe parent: 8 houses, ids like h0001",
+  "PASS new-contract payload has no notes, contacts or salary",
+  "PASS child-mobile-light: no console errors",
+  "PASS child-mobile-light: light theme active — light",
+  "PASS child-mobile-light: animated (two screenshots 1 s apart differ) — frames=43 diff=38382px (3.13%)",
+  "PASS parent-mobile-light: no console errors",
+  "PASS parent-mobile-light: light theme active — light",
+  "PASS parent-mobile-light: animated (two screenshots 1 s apart differ) — frames=19 diff=38824px (3.17%)",
+  "PASS mobile-light: live family_child_village lets the active probe parent through (HTTP 200)",
+  "PASS mobile-light: parent house labels = child house labels (real company names + real statuses) — 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000=Probe Bäckerei Sonne AGGespräch | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001=Probe Velo Huber GmbHAbsage erhalten | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002=Probe Spital LindeZusage",
+  "PASS mobile-light: the same labels are on screen at the same positions — child: Probe Informatik AGGemerkt@121,554 | Probe Velo Huber GmbHAbsage erhalten@28,327 || parent: Probe Informatik AGGemerkt@121,554 | Probe Velo Huber GmbHAbsage erhalten@28,327",
+  "PASS mobile-light: every company name is on a parent house label",
+  "PASS mobile-light: real results visible (Zusage + Absage)",
+  "PASS mobile-light: no anonymous «Haus N» labels",
+  "PASS mobile-light: every house at the same map position (real ids, layouts) — {\"x\":16.5,\"z\":4.5}",
+  "PASS mobile-light: same start camera — child={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1} parent={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1}",
+  "INFO mobile-light: child vs parent map pixels differ by 5.04% (animation phase + top bar differ on purpose)",
+  "PASS mobile-light: parent DOM has no shop, buy, add, points, unlock, status select, edit/move/delete controls or forms — {\"shop\":[],\"add\":[],\"points\":0,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS mobile-light: (sanity) the child's own village does show shop, add and points — {\"shop\":[\"Laden\"],\"add\":[\"Bewerbung eintragen\"],\"points\":1,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS mobile-light: dragging a house in the parent view moves nothing — before={\"x\":-6.5,\"z\":-0.5} after={\"x\":-6.5,\"z\":-0.5}",
+  "PASS mobile-light: parent house sheet shows company, Stelle, location and the real status — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS mobile-light: parent house sheet shows the dates — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS mobile-light: same dates as in the child's sheet — 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026 vs 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026",
+  "PASS mobile-light: parent house sheet is read-only (no form, select, save, move or open link) — [\"Fachfrau Gesundheit EFZ einklappen\",\"Fachfrau Gesundheit EFZ schliessen\"]",
+  "PASS mobile-light: no notes or contacts in the parent sheet",
+  "PASS mobile-light: (sanity) the child's own sheet has the status select and its notes",
+  "PASS mobile-light: parent view called POST /rest/v1/rpc/family_child_village",
+  "PASS mobile-light: ZERO write requests in the parent view (no PATCH/PUT/DELETE, no POST except /rest/v1/rpc/family_child_village + the app-shell reads) — []",
+  "PASS mobile-light: no RPC besides family_child_village and the global app-shell reads (my_access, social_my_profile, social_list) — []",
+  "PASS mobile-light: no direct table request (applications, map_*, ...) in the parent view — []",
+  "PASS mobile-light: (context) the same app-shell RPCs run on the child's own /map too",
+  "INFO mobile-light: app-shell RPCs in the parent view: social_my_profile, my_access, social_list, social_list",
+  "INFO mobile-light: parent requests: GET /auth/v1/user, POST /rest/v1/rpc/social_my_profile, POST /rest/v1/rpc/my_access, POST /rest/v1/rpc/social_list, GET /rest/v1/profiles, POST /rest/v1/rpc/family_child_village",
+  "PASS child-mobile-dark: no console errors",
+  "PASS child-mobile-dark: dark theme active — dark",
+  "PASS child-mobile-dark: animated (two screenshots 1 s apart differ) — frames=23 diff=37425px (3.05%)",
+  "PASS parent-mobile-dark: no console errors",
+  "PASS parent-mobile-dark: dark theme active — dark",
+  "PASS parent-mobile-dark: animated (two screenshots 1 s apart differ) — frames=21 diff=38884px (3.17%)",
+  "PASS mobile-dark: live family_child_village lets the active probe parent through (HTTP 200)",
+  "PASS mobile-dark: parent house labels = child house labels (real company names + real statuses) — 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000=Probe Bäckerei Sonne AGGespräch | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001=Probe Velo Huber GmbHAbsage erhalten | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002=Probe Spital LindeZusage",
+  "PASS mobile-dark: the same labels are on screen at the same positions — child: Probe Informatik AGGemerkt@121,554 | Probe Velo Huber GmbHAbsage erhalten@28,327 || parent: Probe Informatik AGGemerkt@121,554 | Probe Velo Huber GmbHAbsage erhalten@28,327",
+  "PASS mobile-dark: every company name is on a parent house label",
+  "PASS mobile-dark: real results visible (Zusage + Absage)",
+  "PASS mobile-dark: no anonymous «Haus N» labels",
+  "PASS mobile-dark: every house at the same map position (real ids, layouts) — {\"x\":16.5,\"z\":4.5}",
+  "PASS mobile-dark: same start camera — child={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1} parent={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1}",
+  "INFO mobile-dark: child vs parent map pixels differ by 5.56% (animation phase + top bar differ on purpose)",
+  "PASS mobile-dark: parent DOM has no shop, buy, add, points, unlock, status select, edit/move/delete controls or forms — {\"shop\":[],\"add\":[],\"points\":0,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS mobile-dark: (sanity) the child's own village does show shop, add and points — {\"shop\":[\"Laden\"],\"add\":[\"Bewerbung eintragen\"],\"points\":1,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS mobile-dark: dragging a house in the parent view moves nothing — before={\"x\":-6.5,\"z\":-0.5} after={\"x\":-6.5,\"z\":-0.5}",
+  "PASS mobile-dark: parent house sheet shows company, Stelle, location and the real status — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS mobile-dark: parent house sheet shows the dates — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS mobile-dark: same dates as in the child's sheet — 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026 vs 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026",
+  "PASS mobile-dark: parent house sheet is read-only (no form, select, save, move or open link) — [\"Fachfrau Gesundheit EFZ einklappen\",\"Fachfrau Gesundheit EFZ schliessen\"]",
+  "PASS mobile-dark: no notes or contacts in the parent sheet",
+  "PASS mobile-dark: (sanity) the child's own sheet has the status select and its notes",
+  "PASS mobile-dark: parent view called POST /rest/v1/rpc/family_child_village",
+  "PASS mobile-dark: ZERO write requests in the parent view (no PATCH/PUT/DELETE, no POST except /rest/v1/rpc/family_child_village + the app-shell reads) — []",
+  "PASS mobile-dark: no RPC besides family_child_village and the global app-shell reads (my_access, social_my_profile, social_list) — []",
+  "PASS mobile-dark: no direct table request (applications, map_*, ...) in the parent view — []",
+  "PASS mobile-dark: (context) the same app-shell RPCs run on the child's own /map too",
+  "INFO mobile-dark: app-shell RPCs in the parent view: social_my_profile, my_access, social_list, social_list",
+  "INFO mobile-dark: parent requests: GET /auth/v1/user, POST /rest/v1/rpc/social_my_profile, POST /rest/v1/rpc/my_access, POST /rest/v1/rpc/social_list, GET /rest/v1/profiles, POST /rest/v1/rpc/family_child_village",
+  "PASS child-desktop-light: no console errors",
+  "PASS child-desktop-light: light theme active — light",
+  "PASS child-desktop-light: animated (two screenshots 1 s apart differ) — frames=54 diff=34104px (2.84%)",
+  "PASS parent-desktop-light: no console errors",
+  "PASS parent-desktop-light: light theme active — light",
+  "PASS parent-desktop-light: animated (two screenshots 1 s apart differ) — frames=31 diff=39136px (3.25%)",
+  "PASS desktop-light: live family_child_village lets the active probe parent through (HTTP 200)",
+  "PASS desktop-light: parent house labels = child house labels (real company names + real statuses) — 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000=Probe Bäckerei Sonne AGGespräch | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001=Probe Velo Huber GmbHAbsage erhalten | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002=Probe Spital LindeZusage",
+  "PASS desktop-light: the same labels are on screen at the same positions — child: Probe Bäckerei Sonne AGGespräch@335,306 | Probe Elektro KellerAbgeschickt@132,474 | Probe Gärtnerei BlumIn Vorbereitung@358,598 | Probe Hotel AlpenblickWeiteres Gespräch@-45,614 | Probe Informatik AGGemerkt@635,681 | Probe Malerei FreiZurückgezogen@145,731 | Probe Spital LindeZusage@1034,752 | Probe Velo Huber GmbHAbsage erhalten@525,416 || parent: Probe Bäckerei Sonne AGGespräch@335,306 | Probe Elektro KellerAbgeschickt@132,474 | Probe Gärtnerei BlumIn Vorbereitung@358,598 | Probe Hotel ",
+  "PASS desktop-light: every company name is on a parent house label",
+  "PASS desktop-light: real results visible (Zusage + Absage)",
+  "PASS desktop-light: no anonymous «Haus N» labels",
+  "PASS desktop-light: every house at the same map position (real ids, layouts) — {\"x\":16.5,\"z\":4.5}",
+  "PASS desktop-light: same start camera — child={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1} parent={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1}",
+  "INFO desktop-light: child vs parent map pixels differ by 3.12% (animation phase + top bar differ on purpose)",
+  "PASS desktop-light: parent DOM has no shop, buy, add, points, unlock, status select, edit/move/delete controls or forms — {\"shop\":[],\"add\":[],\"points\":0,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS desktop-light: (sanity) the child's own village does show shop, add and points — {\"shop\":[\"Laden\"],\"add\":[\"Bewerbung eintragen\"],\"points\":1,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS desktop-light: dragging a house in the parent view moves nothing — before={\"x\":-6.5,\"z\":-0.5} after={\"x\":-6.5,\"z\":-0.5}",
+  "PASS desktop-light: parent house sheet shows company, Stelle, location and the real status — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS desktop-light: parent house sheet shows the dates — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS desktop-light: same dates as in the child's sheet — 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026 vs 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026",
+  "PASS desktop-light: parent house sheet is read-only (no form, select, save, move or open link) — [\"Fachfrau Gesundheit EFZ einklappen\",\"Fachfrau Gesundheit EFZ schliessen\"]",
+  "PASS desktop-light: no notes or contacts in the parent sheet",
+  "PASS desktop-light: (sanity) the child's own sheet has the status select and its notes",
+  "PASS desktop-light: parent view called POST /rest/v1/rpc/family_child_village",
+  "PASS desktop-light: ZERO write requests in the parent view (no PATCH/PUT/DELETE, no POST except /rest/v1/rpc/family_child_village + the app-shell reads) — []",
+  "PASS desktop-light: no RPC besides family_child_village and the global app-shell reads (my_access, social_my_profile, social_list) — []",
+  "PASS desktop-light: no direct table request (applications, map_*, ...) in the parent view — []",
+  "PASS desktop-light: (context) the same app-shell RPCs run on the child's own /map too",
+  "INFO desktop-light: app-shell RPCs in the parent view: social_my_profile, my_access, social_list, social_list, social_list, social_list",
+  "INFO desktop-light: parent requests: GET /auth/v1/user, POST /rest/v1/rpc/social_my_profile, POST /rest/v1/rpc/my_access, POST /rest/v1/rpc/social_list, GET /rest/v1/profiles, POST /rest/v1/rpc/family_child_village",
+  "PASS child-desktop-dark: no console errors",
+  "PASS child-desktop-dark: dark theme active — dark",
+  "PASS child-desktop-dark: animated (two screenshots 1 s apart differ) — frames=54 diff=33036px (2.75%)",
+  "PASS parent-desktop-dark: no console errors",
+  "PASS parent-desktop-dark: dark theme active — dark",
+  "PASS parent-desktop-dark: animated (two screenshots 1 s apart differ) — frames=39 diff=36661px (3.05%)",
+  "PASS desktop-dark: live family_child_village lets the active probe parent through (HTTP 200)",
+  "PASS desktop-dark: parent house labels = child house labels (real company names + real statuses) — 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000=Probe Bäckerei Sonne AGGespräch | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001=Probe Velo Huber GmbHAbsage erhalten | 9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002=Probe Spital LindeZusage",
+  "PASS desktop-dark: the same labels are on screen at the same positions — child: Probe Bäckerei Sonne AGGespräch@335,306 | Probe Elektro KellerAbgeschickt@132,474 | Probe Gärtnerei BlumIn Vorbereitung@358,598 | Probe Hotel AlpenblickWeiteres Gespräch@-45,614 | Probe Informatik AGGemerkt@635,681 | Probe Malerei FreiZurückgezogen@145,731 | Probe Spital LindeZusage@1034,752 | Probe Velo Huber GmbHAbsage erhalten@525,416 || parent: Probe Bäckerei Sonne AGGespräch@335,306 | Probe Elektro KellerAbgeschickt@132,474 | Probe Gärtnerei BlumIn Vorbereitung@358,598 | Probe Hotel ",
+  "PASS desktop-dark: every company name is on a parent house label",
+  "PASS desktop-dark: real results visible (Zusage + Absage)",
+  "PASS desktop-dark: no anonymous «Haus N» labels",
+  "PASS desktop-dark: every house at the same map position (real ids, layouts) — {\"x\":16.5,\"z\":4.5}",
+  "PASS desktop-dark: same start camera — child={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1} parent={\"x\":3.1666666666666665,\"z\":2.5,\"zoom\":1}",
+  "INFO desktop-dark: child vs parent map pixels differ by 3.65% (animation phase + top bar differ on purpose)",
+  "PASS desktop-dark: parent DOM has no shop, buy, add, points, unlock, status select, edit/move/delete controls or forms — {\"shop\":[],\"add\":[],\"points\":0,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS desktop-dark: (sanity) the child's own village does show shop, add and points — {\"shop\":[\"Laden\"],\"add\":[\"Bewerbung eintragen\"],\"points\":1,\"unlock\":[],\"statusSelect\":0,\"edit\":[],\"forms\":0,\"palace\":0,\"placementTools\":0}",
+  "PASS desktop-dark: dragging a house in the parent view moves nothing — before={\"x\":-6.5,\"z\":-0.5} after={\"x\":-6.5,\"z\":-0.5}",
+  "PASS desktop-dark: parent house sheet shows company, Stelle, location and the real status — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS desktop-dark: parent house sheet shows the dates — Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+  "PASS desktop-dark: same dates as in the child's sheet — 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026 vs 9. Oktober 2026,7. Oktober 2026,8. Oktober 2026",
+  "PASS desktop-dark: parent house sheet is read-only (no form, select, save, move or open link) — [\"Fachfrau Gesundheit EFZ einklappen\",\"Fachfrau Gesundheit EFZ schliessen\"]",
+  "PASS desktop-dark: no notes or contacts in the parent sheet",
+  "PASS desktop-dark: (sanity) the child's own sheet has the status select and its notes",
+  "PASS desktop-dark: parent view called POST /rest/v1/rpc/family_child_village",
+  "PASS desktop-dark: ZERO write requests in the parent view (no PATCH/PUT/DELETE, no POST except /rest/v1/rpc/family_child_village + the app-shell reads) — []",
+  "PASS desktop-dark: no RPC besides family_child_village and the global app-shell reads (my_access, social_my_profile, social_list) — []",
+  "PASS desktop-dark: no direct table request (applications, map_*, ...) in the parent view — []",
+  "PASS desktop-dark: (context) the same app-shell RPCs run on the child's own /map too",
+  "INFO desktop-dark: app-shell RPCs in the parent view: social_my_profile, my_access, social_list, social_list, social_list, social_list",
+  "INFO desktop-dark: parent requests: GET /auth/v1/user, POST /rest/v1/rpc/social_my_profile, POST /rest/v1/rpc/my_access, POST /rest/v1/rpc/social_list, GET /rest/v1/profiles, POST /rest/v1/rpc/family_child_village",
+  "PASS cleanup: 1 probe family deleted",
+  "PASS cleanup: probe user parent c74e7360… deleted",
+  "PASS cleanup: probe user child 9abd2a03… deleted",
+  "PASS cleanup: 0 probe applications left — count=0",
+  "PASS cleanup verified: no probe-pvfd-* account left in auth.users — left=0"
+ ],
+ "report": {
+  "base": "http://localhost:3431",
+  "views": [
+   {
+    "name": "child-mobile-light",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "light",
+    "reduced": false,
+    "frames": 43,
+    "diff": {
+     "changed": 38382,
+     "pct": 3.13
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -296,
+      "y": 596
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -458,
+      "y": 502
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 121,
+      "y": 554
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -114,
+      "y": 484
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -307,
+      "y": 377
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": 461,
+      "y": 614
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 28,
+      "y": 327
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -134,
+      "y": 234
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_islands_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/map_shop_catalog",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_claim_application_rewards",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_notifications",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/applications",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/class_my_classes",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_shop_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": null
+   },
+   {
+    "name": "parent-mobile-light",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "light",
+    "reduced": false,
+    "frames": 19,
+    "diff": {
+     "changed": 38824,
+     "pct": 3.17
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 60,
+      "y": 251
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 112,
+      "y": 333
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 253,
+      "y": 584
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 3,
+      "y": 377
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 66,
+      "y": 469
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 143,
+      "y": 531
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": -46,
+      "y": 486
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 7,
+      "y": 568
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/family_child_village",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": 200,
+    "controls": {
+     "shop": [],
+     "add": [],
+     "points": 0,
+     "unlock": [],
+     "statusSelect": 0,
+     "edit": [],
+     "forms": 0,
+     "palace": 0,
+     "placementTools": 0
+    },
+    "writes": [],
+    "otherRpc": [],
+    "shellRpcs": [
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ]
+   },
+   {
+    "name": "child-mobile-dark",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "dark",
+    "reduced": false,
+    "frames": 23,
+    "diff": {
+     "changed": 37425,
+     "pct": 3.05
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -296,
+      "y": 596
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -458,
+      "y": 502
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 121,
+      "y": 554
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -114,
+      "y": 484
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -307,
+      "y": 377
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": 461,
+      "y": 614
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 28,
+      "y": 327
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": false,
+      "x": -134,
+      "y": 234
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_islands_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/map_shop_catalog",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_claim_application_rewards",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_notifications",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/applications",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/class_my_classes",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_shop_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": null
+   },
+   {
+    "name": "parent-mobile-dark",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "dark",
+    "reduced": false,
+    "frames": 21,
+    "diff": {
+     "changed": 38884,
+     "pct": 3.17
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 60,
+      "y": 251
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 112,
+      "y": 333
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 253,
+      "y": 584
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 3,
+      "y": 377
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 66,
+      "y": 469
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 143,
+      "y": 531
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": -46,
+      "y": 486
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 7,
+      "y": 568
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/family_child_village",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": 200,
+    "controls": {
+     "shop": [],
+     "add": [],
+     "points": 0,
+     "unlock": [],
+     "statusSelect": 0,
+     "edit": [],
+     "forms": 0,
+     "palace": 0,
+     "placementTools": 0
+    },
+    "writes": [],
+    "otherRpc": [],
+    "shellRpcs": [
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ]
+   },
+   {
+    "name": "child-desktop-light",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "light",
+    "reduced": false,
+    "frames": 54,
+    "diff": {
+     "changed": 34104,
+     "pct": 2.84
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 145,
+      "y": 731
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": -45,
+      "y": 614
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 635,
+      "y": 681
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 358,
+      "y": 598
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 132,
+      "y": 474
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 1034,
+      "y": 752
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 525,
+      "y": 416
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 335,
+      "y": 306
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_islands_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/map_shop_catalog",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_claim_application_rewards",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_notifications",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/applications",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/class_my_classes",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_shop_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": null
+   },
+   {
+    "name": "parent-desktop-light",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "light",
+    "reduced": false,
+    "frames": 31,
+    "diff": {
+     "changed": 39136,
+     "pct": 3.25
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 327,
+      "y": 339
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 522,
+      "y": 426
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 1043,
+      "y": 692
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 119,
+      "y": 472
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 351,
+      "y": 571
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 634,
+      "y": 636
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": -62,
+      "y": 582
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 132,
+      "y": 676
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/family_child_village",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": 200,
+    "controls": {
+     "shop": [],
+     "add": [],
+     "points": 0,
+     "unlock": [],
+     "statusSelect": 0,
+     "edit": [],
+     "forms": 0,
+     "palace": 0,
+     "placementTools": 0
+    },
+    "writes": [],
+    "otherRpc": [],
+    "shellRpcs": [
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ]
+   },
+   {
+    "name": "child-desktop-dark",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "dark",
+    "reduced": false,
+    "frames": 54,
+    "diff": {
+     "changed": 33036,
+     "pct": 2.75
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 145,
+      "y": 731
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": -45,
+      "y": 614
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 635,
+      "y": 681
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 358,
+      "y": 598
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 132,
+      "y": 474
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 1034,
+      "y": 752
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 525,
+      "y": 416
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 335,
+      "y": 306
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_islands_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/map_shop_catalog",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_claim_application_rewards",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_notifications",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/applications",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/class_my_classes",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/map_shop_state",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": null
+   },
+   {
+    "name": "parent-desktop-dark",
+    "camera": {
+     "x": 3.1666666666666665,
+     "z": 2.5,
+     "zoom": 1
+    },
+    "theme": "dark",
+    "reduced": false,
+    "frames": 39,
+    "diff": {
+     "changed": 36661,
+     "pct": 3.05
+    },
+    "labels": [
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+      "text": "Probe Bäckerei Sonne AGGespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 327,
+      "y": 339
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+      "text": "Probe Velo Huber GmbHAbsage erhalten",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 522,
+      "y": 426
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+      "text": "Probe Spital LindeZusage",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 1043,
+      "y": 692
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+      "text": "Probe Elektro KellerAbgeschickt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 119,
+      "y": 472
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+      "text": "Probe Gärtnerei BlumIn Vorbereitung",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 351,
+      "y": 571
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+      "text": "Probe Informatik AGGemerkt",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 634,
+      "y": 636
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+      "text": "Probe Hotel AlpenblickWeiteres Gespräch",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": -62,
+      "y": 582
+     },
+     {
+      "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+      "text": "Probe Malerei FreiZurückgezogen",
+      "tag": "BUTTON",
+      "onScreen": true,
+      "x": 132,
+      "y": 676
+     }
+    ],
+    "errors": [],
+    "requests": [
+     {
+      "method": "GET",
+      "path": "/auth/v1/user",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "GET",
+      "path": "/rest/v1/profiles",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/family_child_village",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ],
+    "rpcStatus": 200,
+    "controls": {
+     "shop": [],
+     "add": [],
+     "points": 0,
+     "unlock": [],
+     "statusSelect": 0,
+     "edit": [],
+     "forms": 0,
+     "palace": 0,
+     "placementTools": 0
+    },
+    "writes": [],
+    "otherRpc": [],
+    "shellRpcs": [
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_my_profile",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/my_access",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     },
+     {
+      "method": "POST",
+      "path": "/rest/v1/rpc/social_list",
+      "origin": "supabase"
+     }
+    ]
+   }
+  ],
+  "sheets": [
+   {
+    "tag": "mobile-light",
+    "child": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Deine Notizen PROBE-GEHEIME-NOTIZ Status ändern Gemerkt In Vorbereitung Abgeschickt Schnupperlehre geplant Schnupperlehre gemacht Eignungstest / Multicheck Gespräch Weiteres Gespräch Zusage Vertrag unterschrieben Absage erhalten Zurückgezogen Status speichern Haus verschieben Bewerbung öffnen",
+     "selects": 1,
+     "forms": 1,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen",
+      "Status speichern",
+      "Haus verschieben",
+      "Bewerbung öffnen"
+     ]
+    },
+    "parent": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+     "selects": 0,
+     "forms": 0,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen"
+     ]
+    }
+   },
+   {
+    "tag": "mobile-dark",
+    "child": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Deine Notizen PROBE-GEHEIME-NOTIZ Status ändern Gemerkt In Vorbereitung Abgeschickt Schnupperlehre geplant Schnupperlehre gemacht Eignungstest / Multicheck Gespräch Weiteres Gespräch Zusage Vertrag unterschrieben Absage erhalten Zurückgezogen Status speichern Haus verschieben Bewerbung öffnen",
+     "selects": 1,
+     "forms": 1,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen",
+      "Status speichern",
+      "Haus verschieben",
+      "Bewerbung öffnen"
+     ]
+    },
+    "parent": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+     "selects": 0,
+     "forms": 0,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen"
+     ]
+    }
+   },
+   {
+    "tag": "desktop-light",
+    "child": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Deine Notizen PROBE-GEHEIME-NOTIZ Status ändern Gemerkt In Vorbereitung Abgeschickt Schnupperlehre geplant Schnupperlehre gemacht Eignungstest / Multicheck Gespräch Weiteres Gespräch Zusage Vertrag unterschrieben Absage erhalten Zurückgezogen Status speichern Haus verschieben Bewerbung öffnen",
+     "selects": 1,
+     "forms": 1,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen",
+      "Status speichern",
+      "Haus verschieben",
+      "Bewerbung öffnen"
+     ]
+    },
+    "parent": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+     "selects": 0,
+     "forms": 0,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen"
+     ]
+    }
+   },
+   {
+    "tag": "desktop-dark",
+    "child": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Deine Notizen PROBE-GEHEIME-NOTIZ Status ändern Gemerkt In Vorbereitung Abgeschickt Schnupperlehre geplant Schnupperlehre gemacht Eignungstest / Multicheck Gespräch Weiteres Gespräch Zusage Vertrag unterschrieben Absage erhalten Zurückgezogen Status speichern Haus verschieben Bewerbung öffnen",
+     "selects": 1,
+     "forms": 1,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen",
+      "Status speichern",
+      "Haus verschieben",
+      "Bewerbung öffnen"
+     ]
+    },
+    "parent": {
+     "text": "Fachfrau Gesundheit EFZ Probe Spital Linde Zusage Basel Letzte Änderung 9. Oktober 2026 Erfasst am 7. Oktober 2026 Abgeschickt am 8. Oktober 2026 Nur ansehen: hier kann nichts verändert werden.",
+     "selects": 0,
+     "forms": 0,
+     "inputs": 0,
+     "buttons": [
+      "Fachfrau Gesundheit EFZ einklappen",
+      "Fachfrau Gesundheit EFZ schliessen"
+     ]
+    }
+   }
+  ],
+  "mock": {
+   "child_id": "9abd2a03-ea91-4a91-9842-049f73f060be",
+   "display_name": "PVFD Kind",
+   "island_count": 1,
+   "houses": [
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000000",
+     "company": "Probe Bäckerei Sonne AG",
+     "position": "Bäcker-Konditor EFZ",
+     "location": "Winterthur",
+     "status": "interview",
+     "createdAt": "2026-10-01",
+     "updatedAt": "2026-10-03",
+     "appliedAt": "2026-10-02",
+     "deadline": "2026-11-30"
+    },
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000001",
+     "company": "Probe Velo Huber GmbH",
+     "position": "Fahrradmechaniker EFZ",
+     "location": "Bern",
+     "status": "rejected",
+     "createdAt": "2026-10-04",
+     "updatedAt": "2026-10-06",
+     "appliedAt": "2026-10-05",
+     "deadline": null
+    },
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+     "company": "Probe Spital Linde",
+     "position": "Fachfrau Gesundheit EFZ",
+     "location": "Basel",
+     "status": "offer",
+     "createdAt": "2026-10-07",
+     "updatedAt": "2026-10-09",
+     "appliedAt": "2026-10-08",
+     "deadline": null
+    },
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000003",
+     "company": "Probe Elektro Keller",
+     "position": "Elektroinstallateur EFZ",
+     "location": null,
+     "status": "applied",
+     "createdAt": "2026-10-10",
+     "updatedAt": "2026-10-12",
+     "appliedAt": "2026-10-11",
+     "deadline": "2026-12-03"
+    },
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000004",
+     "company": "Probe Gärtnerei Blum",
+     "position": "Gärtner EFZ",
+     "location": "Zug",
+     "status": "preparing",
+     "createdAt": "2026-10-13",
+     "updatedAt": "2026-10-15",
+     "appliedAt": null,
+     "deadline": null
+    },
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000005",
+     "company": "Probe Informatik AG",
+     "position": "Informatiker EFZ",
+     "location": "Zürich",
+     "status": "saved",
+     "createdAt": "2026-10-16",
+     "updatedAt": "2026-10-18",
+     "appliedAt": null,
+     "deadline": null
+    },
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000006",
+     "company": "Probe Hotel Alpenblick",
+     "position": "Koch EFZ",
+     "location": "Luzern",
+     "status": "final_interview",
+     "createdAt": "2026-10-19",
+     "updatedAt": "2026-10-21",
+     "appliedAt": "2026-10-20",
+     "deadline": "2026-12-06"
+    },
+    {
+     "id": "9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000007",
+     "company": "Probe Malerei Frei",
+     "position": "Maler EFZ",
+     "location": "Aarau",
+     "status": "withdrawn",
+     "createdAt": "2026-10-22",
+     "updatedAt": "2026-10-24",
+     "appliedAt": "2026-10-23",
+     "deadline": null
+    }
+   ],
+   "layouts": [
+    {
+     "id": "house:9abd2a03-ea91-4a91-9842-049f73f060be-app-1700000000002",
+     "x": 14,
+     "z": 2,
+     "rotation": 1
+    }
+   ],
+   "items": [
+    {
+     "id": "3a26a05d-a82e-46c2-85c5-d05337d54214",
+     "itemType": "bench",
+     "x": null,
+     "z": null,
+     "rotation": 0,
+     "createdAt": "2026-11-22T18:31:25.878832+00:00"
+    },
+    {
+     "id": "6b855103-7f8b-4b27-bae4-2a0880ca9f8e",
+     "itemType": "tree",
+     "x": 2,
+     "z": 13,
+     "rotation": 0,
+     "createdAt": "2026-11-22T18:31:25.878832+00:00"
+    },
+    {
+     "id": "708a2b2c-3038-464b-a4db-86a51d0606e0",
+     "itemType": "fountain",
+     "x": 8,
+     "z": 14,
+     "rotation": 0,
+     "createdAt": "2026-11-22T18:31:25.878832+00:00"
+    }
+   ]
+  }
+ },
+ "failed": 0
+}

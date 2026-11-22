@@ -1,6 +1,6 @@
 # Datenschutz in einfacher Sprache (für Jugendliche)
 
-**Stand:** 21. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
+**Stand:** 22. November 2026 · **Version:** 0.9 (Entwurf) · **Kontakt:** info.wendico@gmail.com
 
 > Dies ist die Kurzfassung. Sie ersetzt die ausführliche [Datenschutzerklärung](/datenschutz) nicht. Der Text ist noch nicht juristisch geprüft.
 
@@ -22,7 +22,7 @@ WendApply hilft dir, deine Bewerbungen im Blick zu behalten. Dafür speichern wi
 - **Du** siehst alles von dir.
 - **Deine Lehrperson** sieht **nur das, was du für die Klasse freigibst**. Du kannst einzeln entscheiden, ob sie deine Bewerbungen, den Status oder die Firmennamen sehen darf. Das kannst du **jederzeit ändern**.
 - **Deine Freunde** sehen nur, was du für Freunde freigibst.
-- **Deine Eltern** (wenn ihr das Familienpaket nutzt) sehen nur, was du unter «Familie» teilst. Teilst du dein **Dorf**, sehen sie dein echtes Dorf mit Inseln, Häusern und Deko, **nur zum Anschauen**. Firmennamen an den Häusern sehen sie nur, wenn du auch deine **Bewerbungsliste** teilst. **Notizen, Lohn, Kontakte, Links und Dokumente sehen sie nie.** Du kannst das **jederzeit ausschalten**, dann sehen sie es sofort nicht mehr. Bist du unter 16, müssen deine Eltern zuerst zustimmen.
+- **Deine Eltern** (wenn ihr das Familienpaket nutzt) sehen nur, was du unter «Familie» teilst. Teilst du dein **Dorf**, sehen sie dein echtes Dorf genau so wie du, **nur zum Anschauen**: Inseln, Häuser und Deko, an jedem Haus **Firma, Stelle und Status** (auch Zusage oder Absage) und beim Antippen die Daten (Ort, erfasst, geändert, abgeschickt, Frist). Ändern können sie nichts. **Notizen, Lohn, Kontakte, Links und Dokumente sehen sie nie.** Du kannst das **jederzeit ausschalten**, dann sehen sie es sofort nicht mehr. Bist du unter 16, müssen deine Eltern zuerst zustimmen.
 - **Sonst niemand.** Wir verkaufen keine Daten und zeigen keine Werbung.
 
 ## Wo sind meine Daten?

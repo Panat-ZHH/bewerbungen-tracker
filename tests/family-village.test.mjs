@@ -5,46 +5,45 @@ import { familyVillageErrorKind, familyVillagePath, familyVillageReason, parseFa
 
 const read = (file) => readFile(new URL(file, import.meta.url), "utf8");
 const payload = (o = {}) => ({
-  child_id: "c1", display_name: "Lina Meier", island_count: 2, show_companies: true,
+  child_id: "c1", display_name: "Lina Meier", island_count: 2,
   houses: [
-    { id: "h1", status: "offer", company: "Swisscom", notes: "geheim", salary: 5000, contact: "chef@x.ch", jobUrl: "https://x.ch" },
-    { id: "h2", status: "bogus", company: "Weg AG" },
-    { id: "h3", status: "applied", company: null },
+    { id: "u1-app-1", company: "Swisscom", position: "Informatikerin EFZ", location: "Bern", status: "offer", createdAt: "2026-10-01", updatedAt: "2026-10-05", appliedAt: "2026-10-02", deadline: "2026-11-30",
+      notes: "geheim", salary: 5000, contact: "chef@x.ch", jobUrl: "https://x.ch", contactName: "Frau Chefin" },
+    { id: "u1-app-2", status: "bogus", company: "Weg AG" },
+    { id: "u1-app-3", company: "Roche", position: "Laborant", location: null, status: "rejected", createdAt: "2026-10-03", updatedAt: "2026-10-09", appliedAt: null, deadline: null },
   ],
-  layouts: [{ id: "house:h1", x: 4, z: 8, rotation: 1 }, { id: "broken" }],
+  layouts: [{ id: "house:u1-app-1", x: 4, z: 8, rotation: 1 }, { id: "house:gone", x: 1, z: 1, rotation: 0 }, { id: "broken" }],
   items: [{ id: "i1", itemType: "tree", x: 8, z: 12, rotation: 0, createdAt: "2026-10-01" }, { id: "i2", itemType: "evil", x: 1, z: 1 }, { id: "i3", itemType: "bench", x: null, z: null, rotation: 2, createdAt: "" }],
   ...o,
 });
 
-test("parseFamilyVillage maps the RPC JSON to ApplicationMapWorld props and drops everything else", () => {
+test("parseFamilyVillage gives the child's own houses (real id, company, Stelle, real status, dates) and drops everything else", () => {
   const v = parseFamilyVillage(payload());
   assert.equal(v.childId, "c1");
   assert.equal(v.displayName, "Lina Meier");
   assert.equal(v.islandCount, 2);
-  assert.equal(v.showCompanies, true);
-  assert.deepEqual(v.applications.map((a) => [a.id, a.company, a.status, a.position]), [["h0001", "Swisscom", "offer", ""], ["h0002", "Haus 2", "applied", ""]]);
-  assert.deepEqual(v.layouts, [{ id: "house:h0001", x: 4, z: 8, rotation: 1 }], "layouts follow the pseudo id of their house");
+  assert.equal("showCompanies" in v, false, "no with/without company names option any more");
+  assert.deepEqual(v.applications, [
+    { id: "u1-app-1", company: "Swisscom", position: "Informatikerin EFZ", location: "Bern", category: "other", status: "offer", createdAt: "2026-10-01", updatedAt: "2026-10-05", appliedAt: "2026-10-02", deadline: "2026-11-30" },
+    { id: "u1-app-3", company: "Roche", position: "Laborant", category: "other", status: "rejected", createdAt: "2026-10-03", updatedAt: "2026-10-09" },
+  ]);
+  assert.deepEqual(v.layouts, [{ id: "house:u1-app-1", x: 4, z: 8, rotation: 1 }], "only layouts of existing houses, with the real id");
   assert.deepEqual(v.items.map((i) => [i.id, i.itemType, i.x, i.z]), [["i1", "tree", 8, 12], ["i3", "bench", null, null]]);
-  assert.deepEqual(v.applications.map((a) => a.createdAt), ["000000", "000001"], "createdAt keeps the RPC order (oldest first)");
   const text = JSON.stringify(v);
-  for (const secret of ["geheim", "5000", "chef@x.ch", "https://x.ch", "Weg AG"]) assert.ok(!text.includes(secret), secret);
+  for (const secret of ["geheim", "5000", "chef@x.ch", "https://x.ch", "Frau Chefin", "Weg AG", "notes", "salary"]) assert.ok(!text.includes(secret), secret);
 });
 
-test("company names are never shown when the child does not share applications (neutral «Haus N» like the friend view)", () => {
-  const v = parseFamilyVillage(payload({ show_companies: false }));
-  assert.deepEqual(v.applications.map((a) => a.company), ["Haus 1", "Haus 2"]);
-  assert.ok(!JSON.stringify(v).includes("Swisscom"));
+test("real results are kept (no masking): Zusage = palace, Absage = ruin, exactly like the child's own village", () => {
+  const houses = ["saved", "preparing", "applied", "interview", "final_interview", "offer", "rejected", "withdrawn"].map((status, i) => ({ id: `real-${i}`, status, company: `Firma ${i}`, position: "X", createdAt: `2026-10-0${i + 1}`, updatedAt: "2026-10-09" }));
+  const v = parseFamilyVillage(payload({ houses, layouts: [{ id: "house:real-6", x: 1, z: 2, rotation: 0 }] }));
+  assert.deepEqual(v.applications.map((a) => a.status), houses.map((h) => h.status));
+  assert.deepEqual(v.applications.map((a) => a.id), houses.map((h) => h.id));
+  assert.deepEqual(v.layouts, [{ id: "house:real-6", x: 1, z: 2, rotation: 0 }]);
 });
 
-test("results are masked like for friends when the application list is not shared (no ruin / palace from an older RPC)", () => {
-  const houses = ["saved", "preparing", "applied", "interview", "final_interview", "offer", "rejected", "withdrawn"].map((status, i) => ({ id: `real-${i}`, status, company: null }));
-  const hidden = parseFamilyVillage(payload({ show_companies: false, houses, layouts: [{ id: "house:real-6", x: 1, z: 2, rotation: 0 }] }));
-  assert.deepEqual(hidden.applications.map((a) => a.status), ["saved", "preparing", "applied", "interview", "final_interview", "applied", "applied", "applied"]);
-  assert.deepEqual(hidden.applications.map((a) => a.id), houses.map((_, i) => `h000${i + 1}`), "real application ids are replaced by the friend view's pseudo ids");
-  assert.deepEqual(hidden.layouts, [{ id: "house:h0007", x: 1, z: 2, rotation: 0 }]);
-  assert.ok(!JSON.stringify(hidden).includes("real-"));
-  const shared = parseFamilyVillage(payload({ show_companies: true, houses }));
-  assert.deepEqual(shared.applications.map((a) => a.status), houses.map((h) => h.status));
+test("an older RPC payload (pseudo ids, no company, no dates) still renders: visible «Haus N» labels in RPC order", () => {
+  const v = parseFamilyVillage({ houses: [{ id: "h0001", status: "applied", company: null }, { id: "h0002", status: "interview", company: "UBS" }] });
+  assert.deepEqual(v.applications.map((a) => [a.id, a.company, a.position, a.createdAt]), [["h0001", "Haus 1", "", "000000"], ["h0002", "UBS", "", "000001"]]);
 });
 
 test("parseFamilyVillage clamps the island count and tolerates empty or array payloads", () => {
@@ -65,16 +64,42 @@ test("errors: REAUTH_REQUIRED -> reauth, NOT_SHARED -> not_shared (+ hint reason
   assert.equal(familyVillageErrorKind(null), "error");
 });
 
-test("the Dorf page is read-only and only calls family_child_village", async () => {
+test("the Dorf page renders the child's own VillageMap in watch mode and only calls family_child_village", async () => {
   assert.equal(familyVillagePath("a b"), "/familie/kind/a%20b/dorf");
   const page = await read("../app/familie/kind/[id]/dorf/page.tsx");
   const lib = await read("../lib/family-village.ts");
-  assert.match(page, /<ReadOnlyVillageView\b/);
-  const view = await read("../components/applications/read-only-village-view.tsx");
-  assert.match(view, /<ApplicationMapWorld \{\.\.\.readOnlyWorldProps\(village\)\}/);
-  for (const forbidden of ["useMapShop", "ShopPanel", "map_shop", "saveLayout", "placeItem", "coins", "balance"]) assert.ok(!page.includes(forbidden) && !view.includes(forbidden), forbidden);
+  const own = await read("../app/map/page.tsx");
+  assert.match(page, /<VillageMap watch=\{\{/);
+  assert.match(own, /<VillageMap \/>/, "the child's /map renders the same component");
+  assert.doesNotMatch(page, /ReadOnlyVillageView|ApplicationMapWorld|useMapShop|map_shop|getApplications|\.from\(/, "no parallel parent-only rendering path, no other data source");
   assert.match(lib, /supabase\.rpc\("family_child_village", \{ p_child_id: childId \}\)/);
   assert.equal((lib.match(/\.rpc\(/g) ?? []).length, 1);
   const card = await read("../components/family/child-overview.tsx");
   assert.match(card, /data\.village \?[\s\S]*familyVillagePath\(childId\)[\s\S]*Dorf ansehen[\s\S]*: <p/);
+});
+
+test("watch mode of VillageMap: every write path is gated (no shop, points, add, palace, drag, placement, status form, refresh loaders)", async () => {
+  const view = await read("../components/applications/village-map.tsx");
+  const shop = await read("../components/applications/map-shop.tsx");
+  const islands = await read("../components/applications/use-islands.ts");
+  const dialog = await read("../components/applications/map-application-dialog.tsx");
+  const world = await read("../components/applications/application-map-world.tsx");
+  // loaders are skipped and writes return early when watching
+  assert.match(view, /useEffect\(\(\) => \{\n\s+if \(watching\) return;[\s\S]*getApplications\(\)/);
+  assert.match(shop, /useEffect\(\(\) => \{\n\s+if \(watching\) return;[\s\S]*getMapShop\(\)/);
+  for (const fn of ["async function buy", "async function save", "async function commitMove", "function start"]) {
+    const body = shop.slice(shop.indexOf(fn), shop.indexOf(fn) + 200);
+    assert.match(body, /if \(watching \|\|/, `${fn} is gated`);
+  }
+  assert.match(islands, /useEffect\(\(\) => \{\n\s+if \(watching\) return;[\s\S]*getIslands\(\)/);
+  assert.match(islands, /if \(watching \|\| locked\.current/);
+  // in watch mode: read-only world (drag locked, only houses can be opened), read-only sheet, no shop / points / add / palace
+  assert.match(view, /<ApplicationMapWorld \{\.\.\.worldData\} readOnly openHouses selectedShopItemId=\{null\} placement=\{null\}[^\n]*drag=\{lockedDrag\}/);
+  assert.match(view, /<MapApplicationDialog key=\{selected\.id\} application=\{selected\} readOnly /);
+  assert.match(view, /right=\{watch \? \(\n\s+<MapChip id="watch-info"/);
+  for (const own of ["<PalaceCelebration", "<MapPlacementTools", "<MapSheet id=\"shop\""]) assert.match(view, new RegExp(`\\{!watch && \\(?\\s*${own}`), own);
+  assert.match(dialog, /\{readOnly \? <p[^\n]*Nur ansehen[\s\S]*<form[\s\S]*Haus verschieben[\s\S]*Bewerbung öffnen[\s\S]*<\/>\}/);
+  assert.match(dialog, /if \(readOnly \|\| saving\.current/);
+  assert.match(dialog, /\{!readOnly && application\.notes &&/);
+  assert.match(world, /onSelectShopItem: noopHandler, onPlacePosition: noopHandler, drag: lockedDrag, placement: null/);
 });

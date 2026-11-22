@@ -8,7 +8,7 @@ test("status 'offer' is labelled Zusage; stored value unchanged", () => {
 });
 
 test("no user-facing 'Angebot' label is left in app/components/lib", async () => {
-  for (const f of ["lib/utils.ts", "app/map/page.tsx", "app/dashboard/page.tsx", "app/analytics/page.tsx", "components/classes/class-detail.tsx"]) {
+  for (const f of ["lib/utils.ts", "app/map/page.tsx", "components/applications/village-map.tsx", "app/dashboard/page.tsx", "app/analytics/page.tsx", "components/classes/class-detail.tsx"]) {
     assert.doesNotMatch(await readFile(f, "utf8"), /Angebot/, f);
   }
 });

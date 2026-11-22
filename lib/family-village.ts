@@ -1,24 +1,19 @@
 import type { Application, ApplicationStatus } from "../types/index.ts";
 import { STATUS_ORDER } from "./status.ts";
 import { shopCatalog, type MapLayout, type OwnedMapItem, type ShopItemType } from "./map-shop.ts";
-import { cleanCompany } from "./friend-island.ts";
-import { houseLabel, maskedStatus, pseudoHouseId, type ReadOnlyVillage } from "./read-only-village.ts";
+import { houseLabel, type ReadOnlyVillage } from "./read-only-village.ts";
 
 /**
- * Parent view of a child's real village (/familie/kind/[id]/dorf), read-only. Only calls family_child_village
- * (contract: docs/family/parent-village-contract.md). The server decides what may be seen: share_settings.village,
- * consent (_family_sharing_allowed), same family, active parent; company names AND results (Zusage/Absage) only when the
- * child also shares the application list. The parser rebuilds Application objects with nothing but a pseudo id, the status
- * and (optionally) the company name, i.e. exactly the friend view's data (lib/friend-island.ts).
+ * Parent view of a child's real village (/familie/kind/[id]/dorf), WATCH ONLY. Only calls family_child_village
+ * (contract: docs/family/parent-village-contract.md). The server decides whether it may be seen (share_settings.village,
+ * consent via _family_sharing_allowed, same family, active parent). Since 20261122190000_family_child_village_full_details.sql
+ * the parent sees exactly what the child sees in its own village (/map): real ids, company, Stelle, real status (Zusage /
+ * Absage), location and dates. The page renders the child's own VillageMap component with `watch` (read-only).
  */
 export type FamilyVillage = ReadOnlyVillage & {
   childId: string;
   displayName: string | null;
-  showCompanies: boolean;
-  /**
-   * Same shape as a friend's island (parseFriendIsland): the house label is the company name only when the child shares
-   * applications, otherwise the neutral «Haus N» (never hidden: the village must look exactly like the friend view).
-   */
+  /** The child's houses with exactly the fields its own village shows (label + detail sheet). No notes, salary, contacts, links. */
   applications: Application[];
   layouts: MapLayout[];
   items: OwnedMapItem[];
@@ -29,23 +24,32 @@ export const familyVillagePath = (childId: string) => `/familie/kind/${encodeURI
 const statuses: readonly string[] = STATUS_ORDER;
 const num = (value: unknown, fallback = 0) => (typeof value === "number" && Number.isFinite(value) ? Math.round(value) : fallback);
 const rows = (value: unknown): Record<string, unknown>[] => (Array.isArray(value) ? value.filter((r): r is Record<string, unknown> => !!r && typeof r === "object") : []);
+const text = (value: unknown) => (typeof value === "string" ? value : "");
+const optional = (value: unknown) => (typeof value === "string" && value.trim() ? value : undefined);
 
 /** Validates the RPC JSON; unknown fields (notes, salary, contacts, links, ...) are never copied. */
 export function parseFamilyVillage(data: unknown): FamilyVillage {
   const raw = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
   if (!raw || typeof raw !== "object") throw new Error("INVALID_VILLAGE");
-  const showCompanies = raw.show_companies === true;
-  // Exactly what a friend gets from map_friend_island (the 3D world derives roof colour / ruin shape from the id and the look
-  // from the status): pseudo ids h0001... in age order, and results masked unless the child shares the application list.
-  // The RPC does the same since 20261122100000_family_child_village_like_friend.sql; doing it here too keeps the view
-  // identical with an older RPC and is a no-op on the new payload.
+  // The RPC sorts houses oldest first (created_at, id) = the order createApplicationMap() uses. Real ids and raw values, so the
+  // 3D world (roof colour / ruin shape come from the id, the look from the status) is exactly the child's own village.
   const houses = rows(raw.houses).filter((h) => typeof h.id === "string" && statuses.includes(String(h.status)));
-  const pseudo = new Map(houses.map((h, index) => [`house:${h.id as string}`, `house:${pseudoHouseId(index)}`]));
-  // The RPC already sorts houses oldest first (created_at, id) but sends no dates; a padded index keeps that order in
-  // createApplicationMap(), which sorts by createdAt (contract, change 3).
-  const applications: Application[] = houses.map((h, index) => ({ id: pseudoHouseId(index), company: (showCompanies && cleanCompany(h.company)) || houseLabel(index), position: "", category: "other",
-    status: maskedStatus(h.status as ApplicationStatus, showCompanies), createdAt: String(index).padStart(6, "0"), updatedAt: "" }));
-  const layouts = rows(raw.layouts).flatMap((l): MapLayout[] => (typeof l.id === "string" && pseudo.has(l.id) && typeof l.x === "number" && typeof l.z === "number" ? [{ id: pseudo.get(l.id)!, x: num(l.x), z: num(l.z), rotation: num(l.rotation) }] : []));
+  const applications: Application[] = houses.map((h, index) => ({
+    id: h.id as string,
+    // An older RPC (before 20261122190000) sent no company when it was not shared: keep a visible label instead of an empty one.
+    company: text(h.company) || houseLabel(index),
+    position: text(h.position),
+    ...(optional(h.location) ? { location: optional(h.location) } : {}),
+    category: "other",
+    status: h.status as ApplicationStatus,
+    // Without dates (older RPC) a padded index keeps the RPC order in createApplicationMap().
+    createdAt: optional(h.createdAt) ?? String(index).padStart(6, "0"),
+    updatedAt: text(h.updatedAt),
+    ...(optional(h.appliedAt) ? { appliedAt: optional(h.appliedAt) } : {}),
+    ...(optional(h.deadline) ? { deadline: optional(h.deadline) } : {}),
+  }));
+  const ids = new Set(applications.map(({ id }) => `house:${id}`));
+  const layouts = rows(raw.layouts).flatMap((l): MapLayout[] => (typeof l.id === "string" && ids.has(l.id) && typeof l.x === "number" && typeof l.z === "number" ? [{ id: l.id, x: num(l.x), z: num(l.z), rotation: num(l.rotation) }] : []));
   const items = rows(raw.items).flatMap((i): OwnedMapItem[] => (typeof i.id === "string" && String(i.itemType) in shopCatalog
     ? [{ id: i.id, itemType: i.itemType as ShopItemType, x: typeof i.x === "number" ? num(i.x) : null, z: typeof i.z === "number" ? num(i.z) : null, rotation: num(i.rotation), createdAt: typeof i.createdAt === "string" ? i.createdAt : "" }]
     : []));
@@ -54,7 +58,6 @@ export function parseFamilyVillage(data: unknown): FamilyVillage {
     childId: typeof raw.child_id === "string" ? raw.child_id : "",
     displayName: name || null,
     islandCount: Math.max(1, Math.min(99, num(raw.island_count, 1))),
-    showCompanies,
     applications, layouts, items,
   };
 }
@@ -84,9 +87,9 @@ export function familyVillageReason(error: unknown): FamilyVillageReason {
 export const FAMILY_VILLAGE_COPY = {
   title: (name: string) => `Dorf von ${name}`,
   readOnly: "Nur ansehen",
-  infoCompanies: (name: string) => `Du siehst das Dorf und die Firmennamen, bei denen sich ${name} beworben hat.`,
-  infoNoCompanies: "Du siehst nur das Dorf, ohne Firmennamen.",
-  infoPrivate: "Stellen, Notizen, Kontakte und Dokumente bleiben privat.",
+  /** `name`: childRef(name, "von ") = «Lina» / «deinem Kind». */
+  info: (name: string) => `Du siehst das Dorf von ${name} genau so wie im eigenen Konto: Firma, Stelle, Status und Daten jeder Bewerbung. Nur ansehen: du kannst nichts verändern, verschieben oder kaufen.`,
+  infoPrivate: "Notizen, Lohnangaben, Kontakte, Links und Dokumente bleiben privat.",
   notShared: (name: string) => `${name} teilt das Dorf im Moment nicht mit der Familie. Das ist in Ordnung: Teilen ist freiwillig.`,
   consentPending: "Das Dorf wird sichtbar, sobald du als Elternteil eingewilligt hast.",
   consentWithdrawn: "Die Einwilligung wurde zurückgezogen. Das Dorf ist gerade nicht sichtbar.",

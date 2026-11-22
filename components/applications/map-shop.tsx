@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { Armchair, Bike, Car, CarFront, Coins, FerrisWheel, Flower2, LocateFixed, MapPin, Move, Package, RotateCw, Route, ShoppingCart, Sparkles, TreePine, Undo2, Waves, X, Zap, type LucideIcon } from "lucide-react";
 import { buyMapItem, getMapShop, moveMapObject, placeMapItem } from "@/lib/storage";
 import { applyMove, dropMessages, nudgePosition, samePosition, type DropVerdict, type MoveRecord } from "@/lib/map-drag";
-import { canPlaceMapItem, findFreeMapPosition, isLockedMapObject, isMapShopSetupError, isUnknownShopItemError, placeableCatalog, SHOP_ITEM_SOON, shopBuyErrorMessage, shopCatalog, shopCategories, shopItemsByCategory, shopRarities, unavailableShopItems, villageDepth, villageObjects, type MapPosition, type MapShopState, type PlaceableItem, type Placement, type ShopCategory, type ShopItemType } from "@/lib/map-shop";
+import { canPlaceMapItem, findFreeMapPosition, isLockedMapObject, isMapShopSetupError, isUnknownShopItemError, placeableCatalog, SHOP_ITEM_SOON, shopBuyErrorMessage, shopCatalog, shopCategories, shopItemsByCategory, shopRarities, unavailableShopItems, villageDepth, villageObjects, type MapLayout, type MapPosition, type MapShopState, type OwnedMapItem, type PlaceableItem, type Placement, type ShopCategory, type ShopItemType } from "@/lib/map-shop";
 import type { Application } from "@/types";
 import { supabase } from "@/lib/supabase";
 import { useStoredFlag } from "./use-stored-flag";
@@ -20,8 +20,16 @@ function iconFor(type: ShopItemType): LucideIcon {
   return Package;
 }
 
-export function useMapShop(refresh: number, applications: Application[], islandCount = 1) {
-  const [state, setState] = useState<MapShopState | null>(null);
+/**
+ * `watch` (parent watching a child's village, read-only): items and layouts come from family_child_village. Nothing is loaded
+ * (no map_shop_state, no catalogue, no reward claim) and every write (buy, place, move, undo) is a no-op.
+ */
+export function useMapShop(refresh: number, applications: Application[], islandCount = 1, watch?: { items: OwnedMapItem[]; layouts: MapLayout[] }) {
+  const watching = watch !== undefined;
+  const [ownState, setState] = useState<MapShopState | null>(null);
+  const watchItems = watch?.items, watchLayouts = watch?.layouts;
+  const watchState = useMemo<MapShopState | null>(() => (watchItems && watchLayouts ? { balance: 0, earned: 0, rewardCount: 0, items: watchItems, layouts: watchLayouts } : null), [watchItems, watchLayouts]);
+  const state = watching ? watchState : ownState;
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -44,6 +52,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
   const maxZ = villageDepth(applications);
 
   useEffect(() => {
+    if (watching) return;
     let active = true;
     async function load(clear = false) {
       if (locked.current || (setupUnavailable.current && !clear)) return;
@@ -75,11 +84,11 @@ export function useMapShop(refresh: number, applications: Application[], islandC
       if (event === "SIGNED_OUT" || event === "SIGNED_IN") { operation.current++; locked.current = false; setBusy(false); void load(true); }
     });
     return () => { active = false; window.removeEventListener("focus", onFocus); listener.subscription.unsubscribe(); };
-  }, [refresh, retry]);
+  }, [refresh, retry, watching]);
 
   /** Start placing / moving an item. `turn` rotates the ghost by quarter turns right away («Drehen» on a placed item). */
   function start(item: PlaceableItem, turn = 0) {
-    if (locked.current || !state || isLockedMapObject(item)) return;
+    if (watching || locked.current || !state || isLockedMapObject(item)) return;
     const position = item.x !== null && item.z !== null ? { x: item.x, z: item.z, rotation: (item.rotation + turn) % 4 } : findFreeMapPosition(item as Parameters<typeof findFreeMapPosition>[0], allItems, maxZ, islandCount);
     setSelectedId(item.id);
     if (!position) { setError("Auf der Baufläche ist kein freier Platz mehr."); return; }
@@ -87,7 +96,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
   }
 
   async function buy(itemType: ShopItemType) {
-    if (locked.current || !state || state.balance < shopCatalog[itemType].price) return;
+    if (watching || locked.current || !state || state.balance < shopCatalog[itemType].price) return;
     setHint("");
     if (unavailable.has(itemType)) { setNotice(""); setHint(SHOP_ITEM_SOON); return; }
     locked.current = true; setBusy(true); setError(""); setNotice(""); setLoading(false);
@@ -117,7 +126,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
   }
 
   async function save(item: PlaceableItem, position: MapPosition | null) {
-    if (locked.current || !state || isLockedMapObject(item) || (position && !canPlaceMapItem(item, position, allItems, maxZ, islandCount))) return;
+    if (watching || locked.current || !state || isLockedMapObject(item) || (position && !canPlaceMapItem(item, position, allItems, maxZ, islandCount))) return;
     locked.current = true; setBusy(true); setError(""); setNotice(""); setLoading(false);
     const request = ++operation.current;
     try {
@@ -137,7 +146,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
 
   /** Drag & drop / undo: optimistic update, server confirms, any error rolls back to the previous state. */
   async function commitMove(item: PlaceableItem, from: MapPosition, to: MapPosition, undoing: boolean) {
-    if (locked.current || !state || isLockedMapObject(item) || !canPlaceMapItem(item, to, allItems, maxZ, islandCount)) return false;
+    if (watching || locked.current || !state || isLockedMapObject(item) || !canPlaceMapItem(item, to, allItems, maxZ, islandCount)) return false;
     const previous = state;
     locked.current = true; setBusy(true); setError(""); setNotice(""); say(""); setLoading(false);
     const request = ++operation.current;
@@ -180,7 +189,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
     },
     /** Keyboard alternative: arrow keys shift the pending placement (or start one for the selected, already placed item) by one cell. */
     nudge(key: string) {
-      if (locked.current) return false;
+      if (watching || locked.current) return false;
       const base = placement ? placement.position : (() => { const item = allItems.find(({ id }) => id === selectedId); return item && !isLockedMapObject(item) ? currentPosition(item) : null; })();
       const target = base && nudgePosition(base, key);
       if (!target) return false;
@@ -188,7 +197,7 @@ export function useMapShop(refresh: number, applications: Application[], islandC
       else { const item = allItems.find(({ id }) => id === selectedId)!; setNotice(""); say(""); setPlacement({ item, position: target }); }
       return true;
     },
-    select(id: string) { if (!locked.current && !id.startsWith("street:")) { setSelectedId(id); setPlacement(null); } },
+    select(id: string) { if (!watching && !locked.current && !id.startsWith("street:")) { setSelectedId(id); setPlacement(null); } },
     position(position: MapPosition) { if (!locked.current) setPlacement((current) => current ? { ...current, position } : null); },
     cancel() { if (!locked.current) { setPlacement(null); say(""); } },
     clearSelection() { if (!locked.current) { setSelectedId(null); setPlacement(null); } },

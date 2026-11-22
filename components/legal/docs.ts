@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 /** Single source of truth for the legal documents: the Markdown files in docs/legal/. */
-export const LEGAL_STAND = "21. November 2026";
+export const LEGAL_STAND = "22. November 2026";
 export const LEGAL_VERSION = "0.9 (Entwurf)";
 export const LEGAL_CONTACT = "info.wendico@gmail.com";
 
