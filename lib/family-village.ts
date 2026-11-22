@@ -2,6 +2,7 @@ import type { Application, ApplicationStatus } from "../types/index.ts";
 import { STATUS_ORDER } from "./status.ts";
 import { shopCatalog, type MapLayout, type OwnedMapItem, type ShopItemType } from "./map-shop.ts";
 import { cleanCompany } from "./friend-island.ts";
+import { houseLabel, type ReadOnlyVillage } from "./read-only-village.ts";
 
 /**
  * Parent view of a child's real village (/familie/kind/[id]/dorf), read-only. Only calls family_child_village
@@ -9,12 +10,14 @@ import { cleanCompany } from "./friend-island.ts";
  * consent (_family_sharing_allowed), same family, active parent; company names only when the child also shares applications.
  * The parser rebuilds Application objects with nothing but id, status and (optionally) the company name.
  */
-export type FamilyVillage = {
+export type FamilyVillage = ReadOnlyVillage & {
   childId: string;
   displayName: string | null;
-  islandCount: number;
   showCompanies: boolean;
-  /** Props for ApplicationMapWorld: company is "" when not shared (the page hides those labels). */
+  /**
+   * Same shape as a friend's island (parseFriendIsland): the house label is the company name only when the child shares
+   * applications, otherwise the neutral «Haus N» (never hidden: the village must look exactly like the friend view).
+   */
   applications: Application[];
   layouts: MapLayout[];
   items: OwnedMapItem[];
@@ -35,7 +38,7 @@ export function parseFamilyVillage(data: unknown): FamilyVillage {
     .filter((h) => typeof h.id === "string" && statuses.includes(String(h.status)))
     // The RPC already sorts houses oldest first (created_at, id) but sends no dates; a padded index keeps that order in
     // createApplicationMap(), which sorts by createdAt (contract, change 3).
-    .map((h, index) => ({ id: h.id as string, company: (showCompanies && cleanCompany(h.company)) || "", position: "", category: "other", status: h.status as ApplicationStatus, createdAt: String(index).padStart(6, "0"), updatedAt: "" }));
+    .map((h, index) => ({ id: h.id as string, company: (showCompanies && cleanCompany(h.company)) || houseLabel(index), position: "", category: "other", status: h.status as ApplicationStatus, createdAt: String(index).padStart(6, "0"), updatedAt: "" }));
   const layouts = rows(raw.layouts).flatMap((l): MapLayout[] => (typeof l.id === "string" && typeof l.x === "number" && typeof l.z === "number" ? [{ id: l.id, x: num(l.x), z: num(l.z), rotation: num(l.rotation) }] : []));
   const items = rows(raw.items).flatMap((i): OwnedMapItem[] => (typeof i.id === "string" && String(i.itemType) in shopCatalog
     ? [{ id: i.id, itemType: i.itemType as ShopItemType, x: typeof i.x === "number" ? num(i.x) : null, z: typeof i.z === "number" ? num(i.z) : null, rotation: num(i.rotation), createdAt: typeof i.createdAt === "string" ? i.createdAt : "" }]

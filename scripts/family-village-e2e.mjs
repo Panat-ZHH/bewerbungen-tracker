@@ -90,7 +90,7 @@ const scenarios = {
       await page.waitForTimeout(1500);
       check(await page.locator("[data-building=h1]").count() === 1 && await page.locator("[data-building=h1] strong").innerText() === "Swisscom", "house label with company (Swisscom)");
       check(await page.locator("[data-building=h1] button, button[data-building]").count() === 0, "labels are not buttons (no house details)");
-      check(!(await page.locator("[data-building=h3]").isVisible().catch(() => false)), "house without company has no visible label");
+      check(await page.locator("[data-building=h3] strong").innerText().catch(() => "") === "Haus 3", "house without company keeps a neutral «Haus 3» label (like the friend view)");
       const text = await page.evaluate(() => document.body.innerText);
       check(!/\bShop\b|Münzen|Coins|Kaufen|Platzieren|Bearbeiten/i.test(text), "no shop / coins / edit wording", (text.match(/\bShop\b|Münzen|Coins|Kaufen|Platzieren|Bearbeiten/i) ?? [])[0]);
       check(await page.getByRole("button", { name: /shop|kaufen|bearbeiten|platzieren/i }).count() === 0, "no shop / edit buttons");

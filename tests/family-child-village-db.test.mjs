@@ -153,6 +153,17 @@ test("other family's parent, the child itself, pending parent, outsiders and ano
   await reset();
 });
 
+test("privacy gate: only an ACTIVE parent of the family sees the village; a parent who leaves loses it at once", async () => {
+  const { parent, child, familyId } = await family();
+  await seedVillage(child);
+  assert.ok((await village(parent, child)).houses.length > 0, "active parent sees the village");
+  await admin("update public.family_members set status = 'removed' where family_id = $1 and user_id = $2", [familyId, parent]);
+  assert.match(await fails(parent, child), /FORBIDDEN|NOT_IN_FAMILY/, "removed (inactive) parent");
+  await admin("update public.family_members set status = 'active' where family_id = $1 and user_id = $2", [familyId, parent]);
+  await admin("update public.family_members set share_settings = share_settings || '{\"village\": false}'::jsonb where family_id = $1 and user_id = $2", [familyId, child]);
+  assert.match(await fails(parent, child), /NOT_SHARED/, "child does not share the village");
+});
+
 test("grants: authenticated only; implementation not callable by clients; paywall guard like family_child_overview", async () => {
   const fns = await admin(`select p.proname, has_function_privilege('anon', p.oid, 'execute') as anon, has_function_privilege('authenticated', p.oid, 'execute') as auth,
       has_function_privilege('service_role', p.oid, 'execute') as svc, p.prosecdef, p.proconfig from pg_proc p

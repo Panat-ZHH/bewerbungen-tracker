@@ -1,6 +1,7 @@
 import type { Application, ApplicationStatus } from "../types/index.ts";
 import { STATUS_ORDER } from "./status.ts";
 import { shopCatalog, type MapLayout, type OwnedMapItem, type ShopItemType } from "./map-shop.ts";
+import { houseLabel } from "./read-only-village.ts";
 
 /** Everything the read-only island view needs. Houses carry at most the company name (if the owner shares it) and the building status; no position, notes or any other application data. */
 export type FriendIsland = { userId: string; displayName: string; islands: number; companiesShared: boolean; outcomesShared: boolean; applications: Application[]; items: OwnedMapItem[]; layouts: MapLayout[] };
@@ -8,8 +9,8 @@ export type FriendIsland = { userId: string; displayName: string; islands: numbe
 const statuses: readonly string[] = STATUS_ORDER;
 const number = (value: unknown, fallback = 0) => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
 
-/** Neutral label for a house without a (shared) company name. */
-export const houseLabel = (index: number) => `Haus ${index + 1}`;
+/** Neutral label for a house without a (shared) company name (shared with the parent view). */
+export { houseLabel };
 
 /** Company names from the server: trimmed, control characters removed, max. 80 chars; anything else becomes undefined. */
 export function cleanCompany(value: unknown): string | undefined {

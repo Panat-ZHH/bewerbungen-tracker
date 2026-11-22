@@ -1,7 +1,5 @@
 /* Parent view of the child's village (/familie/kind/[id]/dorf). Map styles come from app/map; only the extras live here. */
 .village { display: contents; }
-/* Houses whose company is not shared carry no label at all (the parser leaves company empty). */
-.village [data-building]:has(> strong:empty) { display: none; }
 
 .messageWrap { display: flex; flex: 1 1 auto; align-items: center; justify-content: center; min-height: 0; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); overflow-y: auto; }
 .message { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(480px, 100%); padding: 28px 24px; text-align: center; border: var(--border-w) solid var(--line); border-radius: var(--radius-xl); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-md); }

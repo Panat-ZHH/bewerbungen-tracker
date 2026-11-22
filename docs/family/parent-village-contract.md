@@ -45,7 +45,8 @@ deadlines, contacts, files/CVs, wallet balance, classes, classmates, schools or 
    houses that still exist are returned (stray rows of deleted applications are dropped).
 3. **`houses` have no `createdAt`** (contract: no extra fields). They are already sorted the way `createApplicationMap()` sorts
    (`created_at`, then `id`). To reuse `createApplicationMap()` / `villageObjects()`, map them to `Application`-like objects with a
-   `createdAt` that keeps this order, e.g. `createdAt: String(index).padStart(6, "0")`, plus `company: company ?? ""`.
+   `createdAt` that keeps this order, e.g. `createdAt: String(index).padStart(6, "0")`, plus `company: company ?? houseLabel(index)`
+   («Haus N», exactly like the friend view; 2026-11-22: an empty label used to be hidden, which made the village look dead).
 4. **No REAUTH_REQUIRED.** `_acc_wrap(..., 'all')` is the paywall guard (`_assert_app_access()` → `PAYWALL`), the same as
    `family_child_overview`. REAUTH_REQUIRED (MFA + fresh login) exists only for the admin family RPCs
    (`20261120100000_admin_family_grant.sql`); parents are not required to have MFA, so it is not added here.

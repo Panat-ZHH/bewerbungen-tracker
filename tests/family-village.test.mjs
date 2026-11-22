@@ -22,7 +22,7 @@ test("parseFamilyVillage maps the RPC JSON to ApplicationMapWorld props and drop
   assert.equal(v.displayName, "Lina Meier");
   assert.equal(v.islandCount, 2);
   assert.equal(v.showCompanies, true);
-  assert.deepEqual(v.applications.map((a) => [a.id, a.company, a.status, a.position]), [["h1", "Swisscom", "offer", ""], ["h3", "", "applied", ""]]);
+  assert.deepEqual(v.applications.map((a) => [a.id, a.company, a.status, a.position]), [["h1", "Swisscom", "offer", ""], ["h3", "Haus 2", "applied", ""]]);
   assert.deepEqual(v.layouts, [{ id: "house:h1", x: 4, z: 8, rotation: 1 }]);
   assert.deepEqual(v.items.map((i) => [i.id, i.itemType, i.x, i.z]), [["i1", "tree", 8, 12], ["i3", "bench", null, null]]);
   assert.deepEqual(v.applications.map((a) => a.createdAt), ["000000", "000001"], "createdAt keeps the RPC order (oldest first)");
@@ -30,9 +30,10 @@ test("parseFamilyVillage maps the RPC JSON to ApplicationMapWorld props and drop
   for (const secret of ["geheim", "5000", "chef@x.ch", "https://x.ch", "Weg AG"]) assert.ok(!text.includes(secret), secret);
 });
 
-test("company names are never shown when the child does not share applications", () => {
+test("company names are never shown when the child does not share applications (neutral «Haus N» like the friend view)", () => {
   const v = parseFamilyVillage(payload({ show_companies: false }));
-  assert.deepEqual(v.applications.map((a) => a.company), ["", ""]);
+  assert.deepEqual(v.applications.map((a) => a.company), ["Haus 1", "Haus 2"]);
+  assert.ok(!JSON.stringify(v).includes("Swisscom"));
 });
 
 test("parseFamilyVillage clamps the island count and tolerates empty or array payloads", () => {
@@ -57,9 +58,10 @@ test("the Dorf page is read-only and only calls family_child_village", async () 
   assert.equal(familyVillagePath("a b"), "/familie/kind/a%20b/dorf");
   const page = await read("../app/familie/kind/[id]/dorf/page.tsx");
   const lib = await read("../lib/family-village.ts");
-  assert.match(page, /<ApplicationMapWorld readOnly /);
-  assert.match(page, /drag=\{lockedDrag\}/);
-  for (const forbidden of ["useMapShop", "ShopPanel", "map_shop", "saveLayout", "placeItem", "coins", "balance"]) assert.ok(!page.includes(forbidden), forbidden);
+  assert.match(page, /<ReadOnlyVillageView\b/);
+  const view = await read("../components/applications/read-only-village-view.tsx");
+  assert.match(view, /<ApplicationMapWorld \{\.\.\.readOnlyWorldProps\(village\)\}/);
+  for (const forbidden of ["useMapShop", "ShopPanel", "map_shop", "saveLayout", "placeItem", "coins", "balance"]) assert.ok(!page.includes(forbidden) && !view.includes(forbidden), forbidden);
   assert.match(lib, /supabase\.rpc\("family_child_village", \{ p_child_id: childId \}\)/);
   assert.equal((lib.match(/\.rpc\(/g) ?? []).length, 1);
   const card = await read("../components/family/child-overview.tsx");
