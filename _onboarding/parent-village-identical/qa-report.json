@@ -1,0 +1,1321 @@
+{
+ "results": [
+  "INFO probes: parent=631034ba…, child=c420c713…, friend=2ce4506c…, stranger=4afed7f5…",
+  "INFO live RPC parent statuses: rejected,interview,offer,applied,rejected,preparing,withdrawn,applied,rejected,saved,final_interview,rejected,applied,interview (live DB = old RPC unless the migration was applied)",
+  "INFO live RPC friend statuses: applied,interview,applied,applied,applied,preparing,applied,applied,applied,saved,final_interview,applied,applied,interview",
+  "PASS privacy: parent payload has no company/position/notes (list not shared)",
+  "PASS parsed houses (id, status, label) parent == friend",
+  "PASS parsed layouts parent == friend — [{\"id\":\"house:h0002\",\"x\":6,\"z\":2,\"rotation\":1}]",
+  "PASS parsed items parent == friend",
+  "PASS privacy: anonymous RPC refused — permission denied for function family_child_village",
+  "PASS privacy: unlinked parent (other family) refused — NOT_FOUND",
+  "PASS privacy: friend (not a parent) cannot call the parent RPC — NOT_IN_FAMILY",
+  "PASS privacy: child itself cannot call the parent RPC — FORBIDDEN",
+  "PASS qa-friend-390: no console errors",
+  "PASS qa-friend-390: no write requests (also after a drag)",
+  "PASS qa-friend-390: animated — frames=47 fps=3.6 diff12=43491px (1.58%) diff23=35520px (1.29%)",
+  "PASS qa-parent-390: no console errors",
+  "PASS qa-parent-390: no write requests (also after a drag)",
+  "PASS qa-parent-390: animated — frames=79 fps=4.1 diff12=40442px (1.47%) diff23=46126px (1.67%)",
+  "PASS 390: initial camera equal — friend={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1} parent={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1}",
+  "PASS 390: map box equal — {\"w\":390,\"h\":786,\"top\":0} vs {\"w\":390,\"h\":786,\"top\":0}",
+  "PASS 390: label texts equal — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS 390: label positions equal (initial framing)",
+  "PASS 390: parent shows no result labels (not shared) — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS 390: parent has no shop/coins/edit controls",
+  "INFO 390: animated first frame friend vs parent: 20135px (0.81%) (animation phase)",
+  "PASS qa-friend-pixel7: no console errors",
+  "PASS qa-friend-pixel7: no write requests (also after a drag)",
+  "PASS qa-friend-pixel7: animated — frames=71 fps=4 diff12=24356px (1.1%) diff23=44474px (2.01%)",
+  "PASS qa-parent-pixel7: no console errors",
+  "PASS qa-parent-pixel7: no write requests (also after a drag)",
+  "PASS qa-parent-pixel7: animated — frames=69 fps=4.2 diff12=27018px (1.22%) diff23=36771px (1.66%)",
+  "PASS pixel7: initial camera equal — friend={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1} parent={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1}",
+  "PASS pixel7: map box equal — {\"w\":412,\"h\":781,\"top\":0} vs {\"w\":412,\"h\":781,\"top\":0}",
+  "PASS pixel7: label texts equal — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS pixel7: label positions equal (initial framing)",
+  "PASS pixel7: parent shows no result labels (not shared) — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS pixel7: parent has no shop/coins/edit controls",
+  "INFO pixel7: animated first frame friend vs parent: 16583px (0.83%) (animation phase)",
+  "PASS qa-friend-pixel7-cpu4: no console errors",
+  "PASS qa-friend-pixel7-cpu4: no write requests (also after a drag)",
+  "PASS qa-friend-pixel7-cpu4: animated — frames=78 fps=3.6 diff12=30689px (1.38%) diff23=50657px (2.28%)",
+  "PASS qa-parent-pixel7-cpu4: no console errors",
+  "PASS qa-parent-pixel7-cpu4: no write requests (also after a drag)",
+  "PASS qa-parent-pixel7-cpu4: animated — frames=76 fps=3.7 diff12=31579px (1.42%) diff23=46721px (2.11%)",
+  "PASS pixel7-cpu4: initial camera equal — friend={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1} parent={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1}",
+  "PASS pixel7-cpu4: map box equal — {\"w\":412,\"h\":781,\"top\":0} vs {\"w\":412,\"h\":781,\"top\":0}",
+  "PASS pixel7-cpu4: label texts equal — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS pixel7-cpu4: label positions equal (initial framing)",
+  "PASS pixel7-cpu4: parent shows no result labels (not shared) — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS pixel7-cpu4: parent has no shop/coins/edit controls",
+  "INFO pixel7-cpu4: animated first frame friend vs parent: 23514px (1.18%) (animation phase)",
+  "PASS qa-friend-pixel7-still: no console errors",
+  "PASS qa-friend-pixel7-still: no write requests (also after a drag)",
+  "PASS qa-friend-pixel7-still: reduced motion → still (by design) — diff12=0",
+  "PASS qa-parent-pixel7-still: no console errors",
+  "PASS qa-parent-pixel7-still: no write requests (also after a drag)",
+  "PASS qa-parent-pixel7-still: reduced motion → still (by design) — diff12=0",
+  "PASS pixel7-still: initial camera equal — friend={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1} parent={\"x\":2.8333333333333335,\"z\":2.166666666666667,\"zoom\":1}",
+  "PASS pixel7-still: map box equal — {\"w\":412,\"h\":781,\"top\":0} vs {\"w\":412,\"h\":781,\"top\":0}",
+  "PASS pixel7-still: label texts equal — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS pixel7-still: label positions equal (initial framing)",
+  "PASS pixel7-still: parent shows no result labels (not shared) — |Haus 2 Gespräch|Haus 3 Abgeschickt|||Haus 6 In Vorbereitung|||Haus 9 Abgeschickt|||||",
+  "PASS pixel7-still: parent has no shop/coins/edit controls",
+  "PASS pixel7-still: still frame friend vs parent pixel-identical below the top bar — 0px (0%)",
+  "PASS privacy page: anonymous sees no village — {\"url\":\"/login\",\"state\":null,\"houses\":0,\"text\":\"WendApply Schön, dass du da bist. Finde deine Lehrstelle und behalte den Überblick über jede Bewerbung. Alle deine Bewerbungen an einem Ort Lehrstellen in deiner Nähe finden Mit Freunden und Klasse \"}",
+  "PASS privacy page: unlinked parent sees no village — {\"url\":\"/familie/kind/c420c713-a0fc-49c4-a925-7fb10f552788/dorf\",\"state\":\"not_allowed\",\"houses\":0,\"text\":\"Zum Inhalt springen Dorf nicht verfügbar Dieses Dorf können wir dir nicht zeigen. Zurück zur Familie Familie Mein Profil Einstellungen Mehr\"}",
+  "PASS privacy: village switched off → refused — NOT_SHARED",
+  "PASS privacy page: village off → parent sees no village — {\"url\":\"/familie/kind/c420c713-a0fc-49c4-a925-7fb10f552788/dorf\",\"state\":\"not_shared\",\"houses\":0,\"text\":\"Zum Inhalt springen Dorf nicht geteilt Dein Kind teilt sein Dorf gerade nicht. Das ist okay: es entscheidet selbst, was es zeigt. Zurück zur Familie Familie Mein Profil Einstellungen Mehr\"}",
+  "PASS list shared → parent sees company names and results (intended)",
+  "PASS list shared → still no notes in payload",
+  "PASS privacy: removed (inactive) child link → refused — NOT_FOUND",
+  "PASS privacy page: removed link → no village — {\"url\":\"/familie/kind/c420c713-a0fc-49c4-a925-7fb10f552788/dorf\",\"state\":\"not_allowed\",\"houses\":0,\"text\":\"Zum Inhalt springen Dorf nicht verfügbar Dieses Dorf können wir dir nicht zeigen. Zurück zur Familie Familie Mein Profil Einstellungen Mehr\"}",
+  "PASS cleanup: 2 probe families deleted",
+  "PASS cleanup: probe parent 631034ba… deleted",
+  "PASS cleanup: probe child c420c713… deleted",
+  "PASS cleanup: probe friend 2ce4506c… deleted",
+  "PASS cleanup: probe stranger 4afed7f5… deleted",
+  "PASS cleanup verified: no probe-pvqa-* account left — left=0"
+ ],
+ "report": {
+  "base": "http://localhost:3437",
+  "views": [
+   {
+    "name": "qa-friend-390",
+    "who": "friend",
+    "profile": "390",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 390,
+     "h": 786,
+     "top": 0
+    },
+    "dpr": 3,
+    "reduced": false,
+    "framesRendered": 47,
+    "fps": 3.6,
+    "d12": {
+     "changed": 43491,
+     "pct": 1.58
+    },
+    "d23": {
+     "changed": 35520,
+     "pct": 1.29
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -131,
+      "y": 244,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 220,
+      "y": 523,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 267,
+      "y": 408,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -304,
+      "y": 387,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -111,
+      "y": 494,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 124,
+      "y": 564,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -455,
+      "y": 513,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -293,
+      "y": 606,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -57,
+      "y": 677,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -627,
+      "y": 656,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -435,
+      "y": 762,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -199,
+      "y": 832,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -778,
+      "y": 781,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -617,
+      "y": 874,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Dokumente",
+     "Freunde",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zu Freunden",
+     "QKQA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Freunde",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-parent-390",
+    "who": "parent",
+    "profile": "390",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 390,
+     "h": 786,
+     "top": 0
+    },
+    "dpr": 3,
+    "reduced": false,
+    "framesRendered": 79,
+    "fps": 4.1,
+    "d12": {
+     "changed": 40442,
+     "pct": 1.47
+    },
+    "d23": {
+     "changed": 46126,
+     "pct": 1.67
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -131,
+      "y": 244,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 220,
+      "y": 523,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 267,
+      "y": 408,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -304,
+      "y": 387,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -111,
+      "y": 494,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 124,
+      "y": 564,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -455,
+      "y": 513,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -293,
+      "y": 606,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -57,
+      "y": 677,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -627,
+      "y": 656,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -435,
+      "y": 762,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -199,
+      "y": 832,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -778,
+      "y": 781,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -617,
+      "y": 874,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Familie",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zur Familie",
+     "QA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Familie",
+     "Mein Profil",
+     "Einstellungen",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-friend-pixel7",
+    "who": "friend",
+    "profile": "pixel7",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "framesRendered": 71,
+    "fps": 4,
+    "d12": {
+     "changed": 24356,
+     "pct": 1.1
+    },
+    "d23": {
+     "changed": 44474,
+     "pct": 2.01
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -118,
+      "y": 243,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 230,
+      "y": 520,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 277,
+      "y": 406,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -290,
+      "y": 385,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -98,
+      "y": 490,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 136,
+      "y": 560,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -440,
+      "y": 509,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -279,
+      "y": 602,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -45,
+      "y": 672,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -611,
+      "y": 651,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -420,
+      "y": 757,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -186,
+      "y": 827,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -762,
+      "y": 776,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -601,
+      "y": 869,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Dokumente",
+     "Freunde",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zu Freunden",
+     "QKQA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Freunde",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-parent-pixel7",
+    "who": "parent",
+    "profile": "pixel7",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "framesRendered": 69,
+    "fps": 4.2,
+    "d12": {
+     "changed": 27018,
+     "pct": 1.22
+    },
+    "d23": {
+     "changed": 36771,
+     "pct": 1.66
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -118,
+      "y": 243,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 230,
+      "y": 520,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 277,
+      "y": 406,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -290,
+      "y": 385,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -98,
+      "y": 490,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 136,
+      "y": 560,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -440,
+      "y": 509,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -279,
+      "y": 602,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -45,
+      "y": 672,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -611,
+      "y": 651,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -420,
+      "y": 757,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -186,
+      "y": 827,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -762,
+      "y": 776,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -601,
+      "y": 869,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Familie",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zur Familie",
+     "QA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Familie",
+     "Mein Profil",
+     "Einstellungen",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-friend-pixel7-cpu4",
+    "who": "friend",
+    "profile": "pixel7-cpu4",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "framesRendered": 78,
+    "fps": 3.6,
+    "d12": {
+     "changed": 30689,
+     "pct": 1.38
+    },
+    "d23": {
+     "changed": 50657,
+     "pct": 2.28
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -118,
+      "y": 243,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 230,
+      "y": 520,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 277,
+      "y": 406,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -290,
+      "y": 385,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -98,
+      "y": 490,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 136,
+      "y": 560,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -440,
+      "y": 509,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -279,
+      "y": 602,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -45,
+      "y": 672,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -611,
+      "y": 651,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -420,
+      "y": 757,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -186,
+      "y": 827,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -762,
+      "y": 776,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -601,
+      "y": 869,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Dokumente",
+     "Freunde",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zu Freunden",
+     "QKQA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Freunde",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-parent-pixel7-cpu4",
+    "who": "parent",
+    "profile": "pixel7-cpu4",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "framesRendered": 76,
+    "fps": 3.7,
+    "d12": {
+     "changed": 31579,
+     "pct": 1.42
+    },
+    "d23": {
+     "changed": 46721,
+     "pct": 2.11
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -118,
+      "y": 243,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 230,
+      "y": 520,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 277,
+      "y": 406,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -290,
+      "y": 385,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -98,
+      "y": 490,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 136,
+      "y": 560,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -440,
+      "y": 509,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -279,
+      "y": 602,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -45,
+      "y": 672,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -611,
+      "y": 651,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -420,
+      "y": 757,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -186,
+      "y": 827,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -762,
+      "y": 776,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -601,
+      "y": 869,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Familie",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zur Familie",
+     "QA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Familie",
+     "Mein Profil",
+     "Einstellungen",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-friend-pixel7-still",
+    "who": "friend",
+    "profile": "pixel7-still",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": true,
+    "framesRendered": 67,
+    "fps": 3.9,
+    "d12": {
+     "changed": 0,
+     "pct": 0
+    },
+    "d23": {
+     "changed": 0,
+     "pct": 0
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -118,
+      "y": 243,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 230,
+      "y": 520,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 277,
+      "y": 406,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -290,
+      "y": 385,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -98,
+      "y": 490,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 136,
+      "y": 560,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -440,
+      "y": 509,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -279,
+      "y": 602,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -45,
+      "y": 672,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -611,
+      "y": 651,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -420,
+      "y": 757,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -186,
+      "y": 827,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -762,
+      "y": 776,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -601,
+      "y": 869,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Dokumente",
+     "Freunde",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zu Freunden",
+     "QKQA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Start",
+     "Suchen",
+     "Bewerbungen",
+     "Dorf",
+     "Freunde",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-parent-pixel7-still",
+    "who": "parent",
+    "profile": "pixel7-still",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": true,
+    "framesRendered": 49,
+    "fps": 3.7,
+    "d12": {
+     "changed": 0,
+     "pct": 0
+    },
+    "d23": {
+     "changed": 0,
+     "pct": 0
+    },
+    "labels": [
+     {
+      "text": "",
+      "x": -118,
+      "y": 243,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 2 Gespräch",
+      "x": 230,
+      "y": 520,
+      "vis": "visible"
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "x": 277,
+      "y": 406,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -290,
+      "y": 385,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -98,
+      "y": 490,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "x": 136,
+      "y": 560,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -440,
+      "y": 509,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -279,
+      "y": 602,
+      "vis": "hidden"
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "x": -45,
+      "y": 672,
+      "vis": "visible"
+     },
+     {
+      "text": "",
+      "x": -611,
+      "y": 651,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -420,
+      "y": 757,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -186,
+      "y": 827,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -762,
+      "y": 776,
+      "vis": "hidden"
+     },
+     {
+      "text": "",
+      "x": -601,
+      "y": 869,
+      "vis": "hidden"
+     }
+    ],
+    "buttons": [
+     "Zum Inhalt springen",
+     "WendApply Start",
+     "Familie",
+     "Konto und mehr",
+     "Mein Profil",
+     "Zurück zur Familie",
+     "QA Kind",
+     "Ansicht anpassen: Zoom, Zentrieren, Nacht",
+     "Vergrössern",
+     "Zoom zurücksetzen, aktuell 100 Prozent",
+     "Verkleinern",
+     "Kamera zentrieren",
+     "Bei Nacht ansehen",
+     "Familie",
+     "Mein Profil",
+     "Einstellungen",
+     "Mehr"
+    ],
+    "errors": [],
+    "writes": []
+   }
+  ],
+  "pairs": [
+   {
+    "profile": "390",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "sceneDiff": {
+     "changed": 20135,
+     "pct": 0.81
+    },
+    "labelsEqual": true
+   },
+   {
+    "profile": "pixel7",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "sceneDiff": {
+     "changed": 16583,
+     "pct": 0.83
+    },
+    "labelsEqual": true
+   },
+   {
+    "profile": "pixel7-cpu4",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "sceneDiff": {
+     "changed": 23514,
+     "pct": 1.18
+    },
+    "labelsEqual": true
+   },
+   {
+    "profile": "pixel7-still",
+    "camera": {
+     "x": 2.8333333333333335,
+     "z": 2.166666666666667,
+     "zoom": 1
+    },
+    "sceneDiff": {
+     "changed": 0,
+     "pct": 0
+    },
+    "labelsEqual": true
+   }
+  ],
+  "privacy": {
+   "api": {
+    "anon": "permission denied for function family_child_village",
+    "stranger": "NOT_FOUND",
+    "friend": "NOT_IN_FAMILY",
+    "child": "FORBIDDEN"
+   },
+   "pages": {
+    "anonymous": {
+     "url": "/login",
+     "state": null,
+     "houses": 0,
+     "text": "WendApply Schön, dass du da bist. Finde deine Lehrstelle und behalte den Überblick über jede Bewerbung. Alle deine Bewerbungen an einem Ort Lehrstellen in deiner Nähe finden Mit Freunden und Klasse "
+    },
+    "unlinked": {
+     "url": "/familie/kind/c420c713-a0fc-49c4-a925-7fb10f552788/dorf",
+     "state": "not_allowed",
+     "houses": 0,
+     "text": "Zum Inhalt springen Dorf nicht verfügbar Dieses Dorf können wir dir nicht zeigen. Zurück zur Familie Familie Mein Profil Einstellungen Mehr"
+    },
+    "villageOff": {
+     "url": "/familie/kind/c420c713-a0fc-49c4-a925-7fb10f552788/dorf",
+     "state": "not_shared",
+     "houses": 0,
+     "text": "Zum Inhalt springen Dorf nicht geteilt Dein Kind teilt sein Dorf gerade nicht. Das ist okay: es entscheidet selbst, was es zeigt. Zurück zur Familie Familie Mein Profil Einstellungen Mehr"
+    },
+    "removed": {
+     "url": "/familie/kind/c420c713-a0fc-49c4-a925-7fb10f552788/dorf",
+     "state": "not_allowed",
+     "houses": 0,
+     "text": "Zum Inhalt springen Dorf nicht verfügbar Dieses Dorf können wir dir nicht zeigen. Zurück zur Familie Familie Mein Profil Einstellungen Mehr"
+    },
+    "villageOffError": "NOT_SHARED",
+    "removedError": "NOT_FOUND"
+   }
+  },
+  "api": {
+   "parentStatusesRaw": [
+    "rejected",
+    "interview",
+    "offer",
+    "applied",
+    "rejected",
+    "preparing",
+    "withdrawn",
+    "applied",
+    "rejected",
+    "saved",
+    "final_interview",
+    "rejected",
+    "applied",
+    "interview"
+   ],
+   "friendStatuses": [
+    "applied",
+    "interview",
+    "applied",
+    "applied",
+    "applied",
+    "preparing",
+    "applied",
+    "applied",
+    "applied",
+    "saved",
+    "final_interview",
+    "applied",
+    "applied",
+    "interview"
+   ],
+   "parentIdsAreUuids": true,
+   "layouts": [
+    {
+     "x": 6,
+     "z": 2,
+     "id": "house:f3afea8b-5a87-485b-9141-e961ad90cba0",
+     "rotation": 1
+    }
+   ],
+   "items": 3
+  }
+ },
+ "failed": 0
+}

@@ -1,0 +1,1154 @@
+{
+ "results": [
+  "INFO probe users: parent=ee6f567b…, child=af206552…, friend=54dee4db…",
+  "INFO RPC statuses parent=interview,rejected,rejected,applied,rejected,preparing,rejected,applied,rejected,saved,rejected,interview",
+  "INFO RPC statuses friend=interview,applied,applied,applied,applied,preparing,applied,applied,applied,saved,applied,interview",
+  "PASS privacy: no company names in the parent payload (application list not shared)",
+  "PASS privacy: no company names in the friend payload (companies not shared with friends)",
+  "PASS qa-rerun-friend-m390: no console errors",
+  "PASS qa-rerun-friend-m390: no write requests",
+  "PASS qa-rerun-friend-m390: animated (3 frames 1 s apart differ) — frames=60 fps=3.1 diff12=81180px (2.94%) diff23=87452px (3.17%)",
+  "PASS qa-rerun-parent-m390: no console errors",
+  "PASS qa-rerun-parent-m390: no write requests",
+  "PASS qa-rerun-parent-m390: animated (3 frames 1 s apart differ) — frames=68 fps=3.8 diff12=96784px (3.51%) diff23=72235px (2.62%)",
+  "PASS m390: parent camera = friend camera (start position / zoom) — friend={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1} parent={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1}",
+  "PASS m390: same map size — friend={\"w\":390,\"h\":786,\"top\":0} parent={\"w\":390,\"h\":786,\"top\":0}",
+  "PASS m390: same house labels",
+  "PASS m390: labels at the same screen positions",
+  "INFO m390: first frame friend vs parent: scene 84718px (3.42%), whole frame 100916px (3.66%) — includes animation phase",
+  "PASS qa-rerun-friend-pixel7: no console errors",
+  "PASS qa-rerun-friend-pixel7: no write requests",
+  "PASS qa-rerun-friend-pixel7: animated (3 frames 1 s apart differ) — frames=52 fps=4.1 diff12=71170px (3.21%) diff23=69384px (3.13%)",
+  "PASS qa-rerun-parent-pixel7: no console errors",
+  "PASS qa-rerun-parent-pixel7: no write requests",
+  "PASS qa-rerun-parent-pixel7: animated (3 frames 1 s apart differ) — frames=50 fps=3.6 diff12=55361px (2.5%) diff23=57615px (2.6%)",
+  "PASS pixel7: parent camera = friend camera (start position / zoom) — friend={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1} parent={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1}",
+  "PASS pixel7: same map size — friend={\"w\":412,\"h\":781,\"top\":0} parent={\"w\":412,\"h\":781,\"top\":0}",
+  "PASS pixel7: same house labels",
+  "PASS pixel7: labels at the same screen positions",
+  "INFO pixel7: first frame friend vs parent: scene 42297px (2.12%), whole frame 54445px (2.45%) — includes animation phase",
+  "PASS qa-rerun-friend-pixel7-cpu4: no console errors",
+  "PASS qa-rerun-friend-pixel7-cpu4: no write requests",
+  "PASS qa-rerun-friend-pixel7-cpu4: animated (3 frames 1 s apart differ) — frames=82 fps=3.1 diff12=58947px (2.66%) diff23=55781px (2.51%)",
+  "PASS qa-rerun-parent-pixel7-cpu4: no console errors",
+  "PASS qa-rerun-parent-pixel7-cpu4: no write requests",
+  "PASS qa-rerun-parent-pixel7-cpu4: animated (3 frames 1 s apart differ) — frames=78 fps=3.4 diff12=70649px (3.19%) diff23=78470px (3.54%)",
+  "PASS pixel7-cpu4: parent camera = friend camera (start position / zoom) — friend={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1} parent={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1}",
+  "PASS pixel7-cpu4: same map size — friend={\"w\":412,\"h\":781,\"top\":0} parent={\"w\":412,\"h\":781,\"top\":0}",
+  "PASS pixel7-cpu4: same house labels",
+  "PASS pixel7-cpu4: labels at the same screen positions",
+  "INFO pixel7-cpu4: first frame friend vs parent: scene 40331px (2.03%), whole frame 52492px (2.37%) — includes animation phase",
+  "PASS qa-rerun-friend-pixel7-reduced: no console errors",
+  "PASS qa-rerun-friend-pixel7-reduced: no write requests",
+  "PASS qa-rerun-friend-pixel7-reduced: prefers-reduced-motion is on (animations intentionally still) — diff12=0px",
+  "PASS qa-rerun-parent-pixel7-reduced: no console errors",
+  "PASS qa-rerun-parent-pixel7-reduced: no write requests",
+  "PASS qa-rerun-parent-pixel7-reduced: prefers-reduced-motion is on (animations intentionally still) — diff12=0px",
+  "PASS pixel7-reduced: parent camera = friend camera (start position / zoom) — friend={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1} parent={\"x\":-0.16666666666666666,\"z\":0.8333333333333334,\"zoom\":1}",
+  "PASS pixel7-reduced: same map size — friend={\"w\":412,\"h\":781,\"top\":0} parent={\"w\":412,\"h\":781,\"top\":0}",
+  "PASS pixel7-reduced: same house labels",
+  "PASS pixel7-reduced: labels at the same screen positions",
+  "PASS pixel7-reduced: still frame friend vs parent pixel-identical below the top bar — scene 0px (0%), whole frame incl. owner chip 12143px (0.55%)",
+  "PASS cleanup: 1 probe family deleted",
+  "PASS cleanup: probe user parent ee6f567b… deleted",
+  "PASS cleanup: probe user child af206552… deleted",
+  "PASS cleanup: probe user friend 54dee4db… deleted",
+  "PASS cleanup: 0 probe applications left — count=0",
+  "PASS cleanup verified: no probe-pv-* account left in auth.users — left=0"
+ ],
+ "report": {
+  "phase": "qa-rerun",
+  "base": "http://localhost:3437",
+  "views": [
+   {
+    "name": "qa-rerun-friend-m390",
+    "who": "friend",
+    "profile": "m390",
+    "path": "/friends/af206552-04b1-4b44-8ee1-288b424f5879",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 390,
+     "h": 786,
+     "top": 0
+    },
+    "dpr": 3,
+    "reduced": false,
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+    "framesRendered": 60,
+    "fps": 3.1,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 81180,
+     "pct": 2.94
+    },
+    "diff23": {
+     "changed": 87452,
+     "pct": 3.17
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -68,
+      "y": 306
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 94,
+      "y": 400
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 330,
+      "y": 470
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -241,
+      "y": 449
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -48,
+      "y": 555
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 187,
+      "y": 626
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -392,
+      "y": 574
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -230,
+      "y": 668
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 6,
+      "y": 738
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -564,
+      "y": 717
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -372,
+      "y": 824
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -136,
+      "y": 894
+     }
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-rerun-parent-m390",
+    "who": "parent",
+    "profile": "m390",
+    "path": "/familie/kind/af206552-04b1-4b44-8ee1-288b424f5879/dorf",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 390,
+     "h": 786,
+     "top": 0
+    },
+    "dpr": 3,
+    "reduced": false,
+    "ua": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/",
+    "framesRendered": 68,
+    "fps": 3.8,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 96784,
+     "pct": 3.51
+    },
+    "diff23": {
+     "changed": 72235,
+     "pct": 2.62
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -68,
+      "y": 306
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 94,
+      "y": 400
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 330,
+      "y": 470
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -241,
+      "y": 449
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -48,
+      "y": 555
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 187,
+      "y": 626
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -392,
+      "y": 574
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -230,
+      "y": 668
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 6,
+      "y": 738
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -564,
+      "y": 717
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -372,
+      "y": 824
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -136,
+      "y": 894
+     }
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-rerun-friend-pixel7",
+    "who": "friend",
+    "profile": "pixel7",
+    "path": "/friends/af206552-04b1-4b44-8ee1-288b424f5879",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 ",
+    "framesRendered": 52,
+    "fps": 4.1,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 71170,
+     "pct": 3.21
+    },
+    "diff23": {
+     "changed": 69384,
+     "pct": 3.13
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -56,
+      "y": 304
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 105,
+      "y": 397
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 339,
+      "y": 467
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -227,
+      "y": 446
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -36,
+      "y": 552
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 198,
+      "y": 622
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -377,
+      "y": 571
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -216,
+      "y": 664
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 18,
+      "y": 734
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -549,
+      "y": 713
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -358,
+      "y": 818
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -124,
+      "y": 888
+     }
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-rerun-parent-pixel7",
+    "who": "parent",
+    "profile": "pixel7",
+    "path": "/familie/kind/af206552-04b1-4b44-8ee1-288b424f5879/dorf",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 ",
+    "framesRendered": 50,
+    "fps": 3.6,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 55361,
+     "pct": 2.5
+    },
+    "diff23": {
+     "changed": 57615,
+     "pct": 2.6
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -56,
+      "y": 304
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 105,
+      "y": 397
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 339,
+      "y": 467
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -227,
+      "y": 446
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -36,
+      "y": 552
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 198,
+      "y": 622
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -377,
+      "y": 571
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -216,
+      "y": 664
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 18,
+      "y": 734
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -549,
+      "y": 713
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -358,
+      "y": 818
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -124,
+      "y": 888
+     }
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-rerun-friend-pixel7-cpu4",
+    "who": "friend",
+    "profile": "pixel7-cpu4",
+    "path": "/friends/af206552-04b1-4b44-8ee1-288b424f5879",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 ",
+    "framesRendered": 82,
+    "fps": 3.1,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 58947,
+     "pct": 2.66
+    },
+    "diff23": {
+     "changed": 55781,
+     "pct": 2.51
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -56,
+      "y": 304
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 105,
+      "y": 397
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 339,
+      "y": 467
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -227,
+      "y": 446
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -36,
+      "y": 552
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 198,
+      "y": 622
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -377,
+      "y": 571
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -216,
+      "y": 664
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 18,
+      "y": 734
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -549,
+      "y": 713
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -358,
+      "y": 818
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -124,
+      "y": 888
+     }
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-rerun-parent-pixel7-cpu4",
+    "who": "parent",
+    "profile": "pixel7-cpu4",
+    "path": "/familie/kind/af206552-04b1-4b44-8ee1-288b424f5879/dorf",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": false,
+    "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 ",
+    "framesRendered": 78,
+    "fps": 3.4,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 70649,
+     "pct": 3.19
+    },
+    "diff23": {
+     "changed": 78470,
+     "pct": 3.54
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -56,
+      "y": 304
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 105,
+      "y": 397
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 339,
+      "y": 467
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -227,
+      "y": 446
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -36,
+      "y": 552
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 198,
+      "y": 622
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -377,
+      "y": 571
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -216,
+      "y": 664
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 18,
+      "y": 734
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -549,
+      "y": 713
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -358,
+      "y": 818
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -124,
+      "y": 888
+     }
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-rerun-friend-pixel7-reduced",
+    "who": "friend",
+    "profile": "pixel7-reduced",
+    "path": "/friends/af206552-04b1-4b44-8ee1-288b424f5879",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": true,
+    "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 ",
+    "framesRendered": 82,
+    "fps": 3.6,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 0,
+     "pct": 0
+    },
+    "diff23": {
+     "changed": 0,
+     "pct": 0
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -56,
+      "y": 304
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 105,
+      "y": 397
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 339,
+      "y": 467
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -227,
+      "y": 446
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -36,
+      "y": 552
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 198,
+      "y": 622
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -377,
+      "y": 571
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -216,
+      "y": 664
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 18,
+      "y": 734
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -549,
+      "y": 713
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -358,
+      "y": 818
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -124,
+      "y": 888
+     }
+    ],
+    "errors": [],
+    "writes": []
+   },
+   {
+    "name": "qa-rerun-parent-pixel7-reduced",
+    "who": "parent",
+    "profile": "pixel7-reduced",
+    "path": "/familie/kind/af206552-04b1-4b44-8ee1-288b424f5879/dorf",
+    "camera": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraAfter": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "host": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "dpr": 2.625,
+    "reduced": true,
+    "ua": "Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 ",
+    "framesRendered": 68,
+    "fps": 3.6,
+    "populateCalls": 1,
+    "diff12": {
+     "changed": 0,
+     "pct": 0
+    },
+    "diff23": {
+     "changed": 0,
+     "pct": 0
+    },
+    "labels": [
+     {
+      "text": "Haus 1 Gespräch",
+      "visible": true,
+      "x": -56,
+      "y": 304
+     },
+     {
+      "text": "Haus 2 Abgeschickt",
+      "visible": true,
+      "x": 105,
+      "y": 397
+     },
+     {
+      "text": "Haus 3 Abgeschickt",
+      "visible": true,
+      "x": 339,
+      "y": 467
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -227,
+      "y": 446
+     },
+     {
+      "text": "Haus 5 Abgeschickt",
+      "visible": true,
+      "x": -36,
+      "y": 552
+     },
+     {
+      "text": "Haus 6 In Vorbereitung",
+      "visible": true,
+      "x": 198,
+      "y": 622
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -377,
+      "y": 571
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -216,
+      "y": 664
+     },
+     {
+      "text": "Haus 9 Abgeschickt",
+      "visible": true,
+      "x": 18,
+      "y": 734
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -549,
+      "y": 713
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -358,
+      "y": 818
+     },
+     {
+      "text": "",
+      "visible": false,
+      "x": -124,
+      "y": 888
+     }
+    ],
+    "errors": [],
+    "writes": []
+   }
+  ],
+  "pairs": [
+   {
+    "sceneDiff": {
+     "changed": 84718,
+     "pct": 3.42
+    },
+    "profile": "m390",
+    "cameraFriend": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraParent": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "hostFriend": {
+     "w": 390,
+     "h": 786,
+     "top": 0
+    },
+    "hostParent": {
+     "w": 390,
+     "h": 786,
+     "top": 0
+    },
+    "labelsEqual": true,
+    "labelPositionsEqual": true,
+    "labelsFriend": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "labelsParent": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "firstFrameDiff": {
+     "changed": 100916,
+     "pct": 3.66
+    }
+   },
+   {
+    "sceneDiff": {
+     "changed": 42297,
+     "pct": 2.12
+    },
+    "profile": "pixel7",
+    "cameraFriend": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraParent": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "hostFriend": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "hostParent": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "labelsEqual": true,
+    "labelPositionsEqual": true,
+    "labelsFriend": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "labelsParent": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "firstFrameDiff": {
+     "changed": 54445,
+     "pct": 2.45
+    }
+   },
+   {
+    "sceneDiff": {
+     "changed": 40331,
+     "pct": 2.03
+    },
+    "profile": "pixel7-cpu4",
+    "cameraFriend": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraParent": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "hostFriend": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "hostParent": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "labelsEqual": true,
+    "labelPositionsEqual": true,
+    "labelsFriend": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "labelsParent": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "firstFrameDiff": {
+     "changed": 52492,
+     "pct": 2.37
+    }
+   },
+   {
+    "sceneDiff": {
+     "changed": 0,
+     "pct": 0
+    },
+    "profile": "pixel7-reduced",
+    "cameraFriend": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "cameraParent": {
+     "x": -0.16666666666666666,
+     "z": 0.8333333333333334,
+     "zoom": 1
+    },
+    "hostFriend": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "hostParent": {
+     "w": 412,
+     "h": 781,
+     "top": 0
+    },
+    "labelsEqual": true,
+    "labelPositionsEqual": true,
+    "labelsFriend": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "labelsParent": "Haus 1 Gespräch | Haus 2 Abgeschickt | Haus 3 Abgeschickt |  | Haus 5 Abgeschickt | Haus 6 In Vorbereitung |  |  | Haus 9 Abgeschickt |  |  | ",
+    "firstFrameDiff": {
+     "changed": 12143,
+     "pct": 0.55
+    }
+   }
+  ],
+  "api": {
+   "parentStatuses": [
+    "interview",
+    "rejected",
+    "rejected",
+    "applied",
+    "rejected",
+    "preparing",
+    "rejected",
+    "applied",
+    "rejected",
+    "saved",
+    "rejected",
+    "interview"
+   ],
+   "friendStatuses": [
+    "interview",
+    "applied",
+    "applied",
+    "applied",
+    "applied",
+    "preparing",
+    "applied",
+    "applied",
+    "applied",
+    "saved",
+    "applied",
+    "interview"
+   ],
+   "parentIds": [
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid",
+    "uuid"
+   ],
+   "friendIds": [
+    "h0001",
+    "h0002",
+    "h0003",
+    "h0004",
+    "h0005",
+    "h0006",
+    "h0007",
+    "h0008",
+    "h0009",
+    "h0010",
+    "h0011",
+    "h0012"
+   ]
+  }
+ },
+ "failed": 0
+}
