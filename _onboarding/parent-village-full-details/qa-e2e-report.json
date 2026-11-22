@@ -1,0 +1,738 @@
+{
+  "checks": [
+    "PASS mobile-light: parent shows all 7 house labels — 7",
+    "PASS mobile-light: house labels (id + company + status) identical child vs parent — {\"cl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten MusterAbgeschickt\"},{\"id\":\"qa-5\",\"text\":\"Probehotel AlpenblickIn Vorbereitung\"},{\"id\":\"qa-6\",\"text\":\"Muster Mediamatik AGGemerkt\"},{\"id\":\"qa-7\",\"text\":\"Fantasie Velo GmbHWeiteres Gespräch\"}],\"pl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten Must",
+    "PASS mobile-light: search list (company, Stelle, status) identical — {\"cs\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamatikerin EFZ · Gemerkt\",\"Probehotel AlpenblickKöchin EFZ · In Vorbereitung\",\"Testgarten MusterGärtnerin EFZ · Abgeschickt\",\"Zuckerbäckerei Probe AGDetailhandelsfachfrau EFZ · Zusage\"],\"ps\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamati",
+    "PASS mobile-light: parent search shows Zuckerbäckerei Probe AG / Detailhandelsfachfrau EFZ",
+    "PASS mobile-light: parent search shows Demo Informatik GmbH / Informatikerin EFZ",
+    "PASS mobile-light: parent search shows Beispiel Logistik AG / Logistikerin EFZ",
+    "PASS mobile-light: parent search shows Testgarten Muster / Gärtnerin EFZ",
+    "PASS mobile-light: parent search shows Probehotel Alpenblick / Köchin EFZ",
+    "PASS mobile-light: parent search shows Muster Mediamatik AG / Mediamatikerin EFZ",
+    "PASS mobile-light: parent search shows Fantasie Velo GmbH / Fahrradmechanikerin EFZ",
+    "PASS mobile-light: parent has a WebGL canvas",
+    "PASS mobile-light: parent village animates (canvas changes within 1 s)",
+    "INFO mobile-light: canvas child {\"x\":0,\"y\":0,\"width\":390,\"height\":786} parent {\"x\":0,\"y\":0,\"width\":390,\"height\":786}",
+    "PASS mobile-light: start framing equal (house label centres within 40 px) — max delta 0px",
+    "PASS mobile-light: no edit controls in parent DOM (closed sheet) — {\"controls\":[],\"statusSelect\":false,\"addLink\":false,\"appLink\":false,\"points\":false}",
+    "PASS mobile-light: parent house sheet shows Stelle, company, location — Informatikerin EFZ\n\nDemo Informatik GmbH\n\nGespräch\n\nZürich\n\nLetzte Änderung\n10. November 2026\nErfasst am\n5. September 2026\nAbgeschickt am\n6. September 2026\nBewerbungsfrist\n15. Dezember 2026\n\nNur ansehen: hier kann nichts verändert werden.",
+    "PASS mobile-light: parent house sheet shows the dates",
+    "PASS mobile-light: parent house sheet says read-only",
+    "PASS mobile-light: open house sheet has no status select / move / save / app link / notes — {\"select\":false,\"move\":false,\"save\":false,\"open\":false,\"notes\":false}",
+    "INFO mobile-light: child sheet Informatikerin EFZ |  | Demo Informatik GmbH |  | Gespräch |  | Zürich |  | Letzte Änderung | 10. November 2026 | Erfasst am | 5. September 2026 | Abgeschickt am | 6. September 2026 | Bewerbungsfrist | 15. Dezember 2026 | Deine Noti",
+    "PASS mobile-light: parent island switcher shows the child's 2 islands — [\"Heimatinsel\",\"Ostinsel\"]",
+    "PASS mobile-light: no island unlock / points in parent island panel",
+    "PASS mobile-light: parent view made ZERO write requests (only rpc/family_child_village, auth refresh and the shell's read-only social_my_profile / my_access / social_list) — []",
+    "PASS mobile-light: parent called family_child_village",
+    "PASS mobile-light: parent never touched applications / shop / islands endpoints",
+    "INFO mobile-light: parent requests [\"auth-read\",\"rpc:social_my_profile\",\"rpc:my_access\",\"rpc:social_list\",\"read:profiles\",\"rpc:family_child_village\"]",
+    "PASS mobile-light: no page errors in parent view",
+    "PASS mobile-dark: parent shows all 7 house labels — 7",
+    "PASS mobile-dark: house labels (id + company + status) identical child vs parent — {\"cl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten MusterAbgeschickt\"},{\"id\":\"qa-5\",\"text\":\"Probehotel AlpenblickIn Vorbereitung\"},{\"id\":\"qa-6\",\"text\":\"Muster Mediamatik AGGemerkt\"},{\"id\":\"qa-7\",\"text\":\"Fantasie Velo GmbHWeiteres Gespräch\"}],\"pl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten Must",
+    "PASS mobile-dark: search list (company, Stelle, status) identical — {\"cs\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamatikerin EFZ · Gemerkt\",\"Probehotel AlpenblickKöchin EFZ · In Vorbereitung\",\"Testgarten MusterGärtnerin EFZ · Abgeschickt\",\"Zuckerbäckerei Probe AGDetailhandelsfachfrau EFZ · Zusage\"],\"ps\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamati",
+    "PASS mobile-dark: parent search shows Zuckerbäckerei Probe AG / Detailhandelsfachfrau EFZ",
+    "PASS mobile-dark: parent search shows Demo Informatik GmbH / Informatikerin EFZ",
+    "PASS mobile-dark: parent search shows Beispiel Logistik AG / Logistikerin EFZ",
+    "PASS mobile-dark: parent search shows Testgarten Muster / Gärtnerin EFZ",
+    "PASS mobile-dark: parent search shows Probehotel Alpenblick / Köchin EFZ",
+    "PASS mobile-dark: parent search shows Muster Mediamatik AG / Mediamatikerin EFZ",
+    "PASS mobile-dark: parent search shows Fantasie Velo GmbH / Fahrradmechanikerin EFZ",
+    "PASS mobile-dark: parent has a WebGL canvas",
+    "PASS mobile-dark: parent village animates (canvas changes within 1 s)",
+    "INFO mobile-dark: canvas child {\"x\":0,\"y\":0,\"width\":390,\"height\":786} parent {\"x\":0,\"y\":0,\"width\":390,\"height\":786}",
+    "PASS mobile-dark: start framing equal (house label centres within 40 px) — max delta 0px",
+    "PASS mobile-dark: no edit controls in parent DOM (closed sheet) — {\"controls\":[],\"statusSelect\":false,\"addLink\":false,\"appLink\":false,\"points\":false}",
+    "PASS mobile-dark: parent house sheet shows Stelle, company, location — Informatikerin EFZ\n\nDemo Informatik GmbH\n\nGespräch\n\nZürich\n\nLetzte Änderung\n10. November 2026\nErfasst am\n5. September 2026\nAbgeschickt am\n6. September 2026\nBewerbungsfrist\n15. Dezember 2026\n\nNur ansehen: hier kann nichts verändert werden.",
+    "PASS mobile-dark: parent house sheet shows the dates",
+    "PASS mobile-dark: parent house sheet says read-only",
+    "PASS mobile-dark: open house sheet has no status select / move / save / app link / notes — {\"select\":false,\"move\":false,\"save\":false,\"open\":false,\"notes\":false}",
+    "INFO mobile-dark: child sheet Informatikerin EFZ |  | Demo Informatik GmbH |  | Gespräch |  | Zürich |  | Letzte Änderung | 10. November 2026 | Erfasst am | 5. September 2026 | Abgeschickt am | 6. September 2026 | Bewerbungsfrist | 15. Dezember 2026 | Deine Noti",
+    "PASS mobile-dark: parent island switcher shows the child's 2 islands — [\"Heimatinsel\",\"Ostinsel\"]",
+    "PASS mobile-dark: no island unlock / points in parent island panel",
+    "PASS mobile-dark: parent view made ZERO write requests (only rpc/family_child_village, auth refresh and the shell's read-only social_my_profile / my_access / social_list) — []",
+    "PASS mobile-dark: parent called family_child_village",
+    "PASS mobile-dark: parent never touched applications / shop / islands endpoints",
+    "INFO mobile-dark: parent requests [\"auth-read\",\"rpc:social_my_profile\",\"rpc:my_access\",\"rpc:social_list\",\"read:profiles\",\"rpc:family_child_village\"]",
+    "PASS mobile-dark: no page errors in parent view",
+    "PASS desktop-light: parent shows all 7 house labels — 7",
+    "PASS desktop-light: house labels (id + company + status) identical child vs parent — {\"cl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten MusterAbgeschickt\"},{\"id\":\"qa-5\",\"text\":\"Probehotel AlpenblickIn Vorbereitung\"},{\"id\":\"qa-6\",\"text\":\"Muster Mediamatik AGGemerkt\"},{\"id\":\"qa-7\",\"text\":\"Fantasie Velo GmbHWeiteres Gespräch\"}],\"pl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten Must",
+    "PASS desktop-light: search list (company, Stelle, status) identical — {\"cs\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamatikerin EFZ · Gemerkt\",\"Probehotel AlpenblickKöchin EFZ · In Vorbereitung\",\"Testgarten MusterGärtnerin EFZ · Abgeschickt\",\"Zuckerbäckerei Probe AGDetailhandelsfachfrau EFZ · Zusage\"],\"ps\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamati",
+    "PASS desktop-light: parent search shows Zuckerbäckerei Probe AG / Detailhandelsfachfrau EFZ",
+    "PASS desktop-light: parent search shows Demo Informatik GmbH / Informatikerin EFZ",
+    "PASS desktop-light: parent search shows Beispiel Logistik AG / Logistikerin EFZ",
+    "PASS desktop-light: parent search shows Testgarten Muster / Gärtnerin EFZ",
+    "PASS desktop-light: parent search shows Probehotel Alpenblick / Köchin EFZ",
+    "PASS desktop-light: parent search shows Muster Mediamatik AG / Mediamatikerin EFZ",
+    "PASS desktop-light: parent search shows Fantasie Velo GmbH / Fahrradmechanikerin EFZ",
+    "PASS desktop-light: parent has a WebGL canvas",
+    "PASS desktop-light: parent village animates (canvas changes within 1 s)",
+    "INFO desktop-light: canvas child {\"x\":0,\"y\":65,\"width\":1440,\"height\":835} parent {\"x\":0,\"y\":65,\"width\":1440,\"height\":835}",
+    "PASS desktop-light: start framing equal (house label centres within 40 px) — max delta 0px",
+    "PASS desktop-light: no edit controls in parent DOM (closed sheet) — {\"controls\":[],\"statusSelect\":false,\"addLink\":false,\"appLink\":false,\"points\":false}",
+    "PASS desktop-light: parent house sheet shows Stelle, company, location — Informatikerin EFZ\n\nDemo Informatik GmbH\n\nGespräch\n\nZürich\n\nLetzte Änderung\n10. November 2026\nErfasst am\n5. September 2026\nAbgeschickt am\n6. September 2026\nBewerbungsfrist\n15. Dezember 2026\n\nNur ansehen: hier kann nichts verändert werden.",
+    "PASS desktop-light: parent house sheet shows the dates",
+    "PASS desktop-light: parent house sheet says read-only",
+    "PASS desktop-light: open house sheet has no status select / move / save / app link / notes — {\"select\":false,\"move\":false,\"save\":false,\"open\":false,\"notes\":false}",
+    "INFO desktop-light: child sheet Informatikerin EFZ |  | Demo Informatik GmbH |  | Gespräch |  | Zürich |  | Letzte Änderung | 10. November 2026 | Erfasst am | 5. September 2026 | Abgeschickt am | 6. September 2026 | Bewerbungsfrist | 15. Dezember 2026 | Deine Noti",
+    "PASS desktop-light: parent island switcher shows the child's 2 islands — [\"Heimatinsel\",\"Ostinsel\"]",
+    "PASS desktop-light: no island unlock / points in parent island panel",
+    "PASS desktop-light: parent view made ZERO write requests (only rpc/family_child_village, auth refresh and the shell's read-only social_my_profile / my_access / social_list) — []",
+    "PASS desktop-light: parent called family_child_village",
+    "PASS desktop-light: parent never touched applications / shop / islands endpoints",
+    "INFO desktop-light: parent requests [\"auth-read\",\"rpc:social_my_profile\",\"rpc:my_access\",\"rpc:social_list\",\"read:profiles\",\"rpc:family_child_village\"]",
+    "PASS desktop-light: no page errors in parent view",
+    "PASS desktop-dark: parent shows all 7 house labels — 7",
+    "PASS desktop-dark: house labels (id + company + status) identical child vs parent — {\"cl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten MusterAbgeschickt\"},{\"id\":\"qa-5\",\"text\":\"Probehotel AlpenblickIn Vorbereitung\"},{\"id\":\"qa-6\",\"text\":\"Muster Mediamatik AGGemerkt\"},{\"id\":\"qa-7\",\"text\":\"Fantasie Velo GmbHWeiteres Gespräch\"}],\"pl\":[{\"id\":\"qa-1\",\"text\":\"Zuckerbäckerei Probe AGZusage\"},{\"id\":\"qa-2\",\"text\":\"Demo Informatik GmbHGespräch\"},{\"id\":\"qa-3\",\"text\":\"Beispiel Logistik AGAbsage erhalten\"},{\"id\":\"qa-4\",\"text\":\"Testgarten Must",
+    "PASS desktop-dark: search list (company, Stelle, status) identical — {\"cs\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamatikerin EFZ · Gemerkt\",\"Probehotel AlpenblickKöchin EFZ · In Vorbereitung\",\"Testgarten MusterGärtnerin EFZ · Abgeschickt\",\"Zuckerbäckerei Probe AGDetailhandelsfachfrau EFZ · Zusage\"],\"ps\":[\"Beispiel Logistik AGLogistikerin EFZ · Absage erhalten\",\"Demo Informatik GmbHInformatikerin EFZ · Gespräch\",\"Fantasie Velo GmbHFahrradmechanikerin EFZ · Weiteres Gespräch\",\"Muster Mediamatik AGMediamati",
+    "PASS desktop-dark: parent search shows Zuckerbäckerei Probe AG / Detailhandelsfachfrau EFZ",
+    "PASS desktop-dark: parent search shows Demo Informatik GmbH / Informatikerin EFZ",
+    "PASS desktop-dark: parent search shows Beispiel Logistik AG / Logistikerin EFZ",
+    "PASS desktop-dark: parent search shows Testgarten Muster / Gärtnerin EFZ",
+    "PASS desktop-dark: parent search shows Probehotel Alpenblick / Köchin EFZ",
+    "PASS desktop-dark: parent search shows Muster Mediamatik AG / Mediamatikerin EFZ",
+    "PASS desktop-dark: parent search shows Fantasie Velo GmbH / Fahrradmechanikerin EFZ",
+    "PASS desktop-dark: parent has a WebGL canvas",
+    "PASS desktop-dark: parent village animates (canvas changes within 1 s)",
+    "INFO desktop-dark: canvas child {\"x\":0,\"y\":65,\"width\":1440,\"height\":835} parent {\"x\":0,\"y\":65,\"width\":1440,\"height\":835}",
+    "PASS desktop-dark: start framing equal (house label centres within 40 px) — max delta 0px",
+    "PASS desktop-dark: no edit controls in parent DOM (closed sheet) — {\"controls\":[],\"statusSelect\":false,\"addLink\":false,\"appLink\":false,\"points\":false}",
+    "PASS desktop-dark: parent house sheet shows Stelle, company, location — Informatikerin EFZ\n\nDemo Informatik GmbH\n\nGespräch\n\nZürich\n\nLetzte Änderung\n10. November 2026\nErfasst am\n5. September 2026\nAbgeschickt am\n6. September 2026\nBewerbungsfrist\n15. Dezember 2026\n\nNur ansehen: hier kann nichts verändert werden.",
+    "PASS desktop-dark: parent house sheet shows the dates",
+    "PASS desktop-dark: parent house sheet says read-only",
+    "PASS desktop-dark: open house sheet has no status select / move / save / app link / notes — {\"select\":false,\"move\":false,\"save\":false,\"open\":false,\"notes\":false}",
+    "INFO desktop-dark: child sheet Informatikerin EFZ |  | Demo Informatik GmbH |  | Gespräch |  | Zürich |  | Letzte Änderung | 10. November 2026 | Erfasst am | 5. September 2026 | Abgeschickt am | 6. September 2026 | Bewerbungsfrist | 15. Dezember 2026 | Deine Noti",
+    "PASS desktop-dark: parent island switcher shows the child's 2 islands — [\"Heimatinsel\",\"Ostinsel\"]",
+    "PASS desktop-dark: no island unlock / points in parent island panel",
+    "PASS desktop-dark: parent view made ZERO write requests (only rpc/family_child_village, auth refresh and the shell's read-only social_my_profile / my_access / social_list) — []",
+    "PASS desktop-dark: parent called family_child_village",
+    "PASS desktop-dark: parent never touched applications / shop / islands endpoints",
+    "INFO desktop-dark: parent requests [\"auth-read\",\"rpc:social_my_profile\",\"rpc:my_access\",\"rpc:social_list\",\"read:profiles\",\"rpc:family_child_village\"]",
+    "PASS desktop-dark: no page errors in parent view"
+  ],
+  "runs": [
+    {
+      "tag": "mobile-light",
+      "childLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentRequests": [
+        {
+          "method": "GET",
+          "path": "/auth/v1/user",
+          "kind": "auth-read",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_my_profile",
+          "kind": "rpc:social_my_profile",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/my_access",
+          "kind": "rpc:my_access",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "GET",
+          "path": "/rest/v1/profiles",
+          "kind": "read:profiles",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/family_child_village",
+          "kind": "rpc:family_child_village",
+          "body": "{\"p_child_id\":\"00000000-0000-4000-8000-00000000c001\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        }
+      ],
+      "childRequests": [
+        "auth-read",
+        "rpc:social_my_profile",
+        "rpc:my_access",
+        "rpc:social_list",
+        "read:profiles",
+        "rpc:map_islands_state",
+        "read:map_shop_catalog",
+        "rpc:map_claim_application_rewards",
+        "rpc:my_notifications",
+        "read:applications",
+        "rpc:class_my_classes",
+        "rpc:map_shop_state"
+      ],
+      "forbidden": {
+        "controls": [],
+        "statusSelect": false,
+        "addLink": false,
+        "appLink": false,
+        "points": false
+      },
+      "sheetForbidden": {
+        "select": false,
+        "move": false,
+        "save": false,
+        "open": false,
+        "notes": false
+      },
+      "islandButtons": [
+        "Heimatinsel",
+        "Ostinsel"
+      ],
+      "maxDelta": 0,
+      "pageErrors": {
+        "child": [],
+        "parent": []
+      }
+    },
+    {
+      "tag": "mobile-dark",
+      "childLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentRequests": [
+        {
+          "method": "GET",
+          "path": "/auth/v1/user",
+          "kind": "auth-read",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_my_profile",
+          "kind": "rpc:social_my_profile",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/my_access",
+          "kind": "rpc:my_access",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "GET",
+          "path": "/rest/v1/profiles",
+          "kind": "read:profiles",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/family_child_village",
+          "kind": "rpc:family_child_village",
+          "body": "{\"p_child_id\":\"00000000-0000-4000-8000-00000000c001\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        }
+      ],
+      "childRequests": [
+        "auth-read",
+        "rpc:social_my_profile",
+        "rpc:my_access",
+        "rpc:social_list",
+        "read:profiles",
+        "rpc:map_islands_state",
+        "read:map_shop_catalog",
+        "rpc:map_claim_application_rewards",
+        "rpc:my_notifications",
+        "read:applications",
+        "rpc:class_my_classes",
+        "rpc:map_shop_state"
+      ],
+      "forbidden": {
+        "controls": [],
+        "statusSelect": false,
+        "addLink": false,
+        "appLink": false,
+        "points": false
+      },
+      "sheetForbidden": {
+        "select": false,
+        "move": false,
+        "save": false,
+        "open": false,
+        "notes": false
+      },
+      "islandButtons": [
+        "Heimatinsel",
+        "Ostinsel"
+      ],
+      "maxDelta": 0,
+      "pageErrors": {
+        "child": [],
+        "parent": []
+      }
+    },
+    {
+      "tag": "desktop-light",
+      "childLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentRequests": [
+        {
+          "method": "GET",
+          "path": "/auth/v1/user",
+          "kind": "auth-read",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_my_profile",
+          "kind": "rpc:social_my_profile",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/my_access",
+          "kind": "rpc:my_access",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "GET",
+          "path": "/rest/v1/profiles",
+          "kind": "read:profiles",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/family_child_village",
+          "kind": "rpc:family_child_village",
+          "body": "{\"p_child_id\":\"00000000-0000-4000-8000-00000000c001\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        }
+      ],
+      "childRequests": [
+        "auth-read",
+        "rpc:social_my_profile",
+        "rpc:my_access",
+        "rpc:social_list",
+        "read:profiles",
+        "rpc:map_islands_state",
+        "read:map_shop_catalog",
+        "rpc:map_claim_application_rewards",
+        "rpc:my_notifications",
+        "read:applications",
+        "rpc:class_my_classes",
+        "rpc:map_shop_state"
+      ],
+      "forbidden": {
+        "controls": [],
+        "statusSelect": false,
+        "addLink": false,
+        "appLink": false,
+        "points": false
+      },
+      "sheetForbidden": {
+        "select": false,
+        "move": false,
+        "save": false,
+        "open": false,
+        "notes": false
+      },
+      "islandButtons": [
+        "Heimatinsel",
+        "Ostinsel"
+      ],
+      "maxDelta": 0,
+      "pageErrors": {
+        "child": [],
+        "parent": []
+      }
+    },
+    {
+      "tag": "desktop-dark",
+      "childLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentLabels": [
+        {
+          "id": "qa-1",
+          "text": "Zuckerbäckerei Probe AGZusage"
+        },
+        {
+          "id": "qa-2",
+          "text": "Demo Informatik GmbHGespräch"
+        },
+        {
+          "id": "qa-3",
+          "text": "Beispiel Logistik AGAbsage erhalten"
+        },
+        {
+          "id": "qa-4",
+          "text": "Testgarten MusterAbgeschickt"
+        },
+        {
+          "id": "qa-5",
+          "text": "Probehotel AlpenblickIn Vorbereitung"
+        },
+        {
+          "id": "qa-6",
+          "text": "Muster Mediamatik AGGemerkt"
+        },
+        {
+          "id": "qa-7",
+          "text": "Fantasie Velo GmbHWeiteres Gespräch"
+        }
+      ],
+      "parentRequests": [
+        {
+          "method": "GET",
+          "path": "/auth/v1/user",
+          "kind": "auth-read",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_my_profile",
+          "kind": "rpc:social_my_profile",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/my_access",
+          "kind": "rpc:my_access",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "GET",
+          "path": "/rest/v1/profiles",
+          "kind": "read:profiles",
+          "body": null
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/family_child_village",
+          "kind": "rpc:family_child_village",
+          "body": "{\"p_child_id\":\"00000000-0000-4000-8000-00000000c001\"}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        },
+        {
+          "method": "POST",
+          "path": "/rest/v1/rpc/social_list",
+          "kind": "rpc:social_list",
+          "body": "{}"
+        }
+      ],
+      "childRequests": [
+        "auth-read",
+        "rpc:social_my_profile",
+        "rpc:my_access",
+        "rpc:social_list",
+        "read:profiles",
+        "rpc:map_islands_state",
+        "rpc:map_claim_application_rewards",
+        "rpc:my_notifications",
+        "rpc:class_my_classes",
+        "read:map_shop_catalog",
+        "read:applications",
+        "rpc:map_shop_state"
+      ],
+      "forbidden": {
+        "controls": [],
+        "statusSelect": false,
+        "addLink": false,
+        "appLink": false,
+        "points": false
+      },
+      "sheetForbidden": {
+        "select": false,
+        "move": false,
+        "save": false,
+        "open": false,
+        "notes": false
+      },
+      "islandButtons": [
+        "Heimatinsel",
+        "Ostinsel"
+      ],
+      "maxDelta": 0,
+      "pageErrors": {
+        "child": [],
+        "parent": []
+      }
+    }
+  ]
+}
