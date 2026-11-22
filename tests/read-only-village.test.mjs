@@ -14,25 +14,30 @@ const read = (file) => readFile(new URL(file, import.meta.url), "utf8");
 const statuses = ["saved", "rejected", "applied", "interview", "preparing", "offer"];
 const companies = ["Swisscom", "UBS", "SBB", "Migros", "Roche", "Zühlke"];
 const items = [{ id: "i1", itemType: "tree", x: 8, z: 12, rotation: 0, createdAt: "2026-10-01" }, { id: "i2", itemType: "bench", x: null, z: null, rotation: 1, createdAt: "2026-10-02" }];
-const layouts = [{ id: "house:h2", x: 4, z: 8, rotation: 1 }];
+const friendStatus = (status, shared) => (shared || ["saved", "preparing", "applied", "interview", "final_interview"].includes(status) ? status : "applied");
 
-/** The same village once as map_friend_island and once as family_child_village returns it. */
-function both(shared) {
+/**
+ * The same village once as map_friend_island and once as family_child_village returns it. Default case (2026-11-22, Panat's
+ * phone): the child shares neither company names nor results with friends and not the application list with the family.
+ * `legacyRpc`: the family RPC before 20261122100000 (real ids + real results); the parser must still give the friend's props.
+ */
+function both(shared, legacyRpc = false) {
   const friend = parseFriendIsland({
-    userId: "c1", displayName: "Lina", islands: 3, companiesShared: shared, outcomesShared: true, items, layouts,
-    applications: statuses.map((status, i) => ({ id: `h${i + 1}`, status, createdAt: `2026-10-0${i + 1}`, ...(shared ? { company: companies[i] } : {}) })),
+    userId: "c1", displayName: "Lina", islands: 3, companiesShared: shared, outcomesShared: shared, items, layouts: [{ id: "house:h0002", x: 4, z: 8, rotation: 1 }],
+    applications: statuses.map((status, i) => ({ id: `h000${i + 1}`, status: friendStatus(status, shared), createdAt: `2026-10-0${i + 1}`, ...(shared ? { company: companies[i] } : {}) })),
   });
+  const id = (i) => (legacyRpc ? `0f6c-real-${i}` : `h000${i + 1}`);
   const parent = parseFamilyVillage({
-    child_id: "c1", display_name: "Lina", island_count: 3, show_companies: shared, items, layouts,
-    houses: statuses.map((status, i) => ({ id: `h${i + 1}`, status, company: shared ? companies[i] : null })),
+    child_id: "c1", display_name: "Lina", island_count: 3, show_companies: shared, items, layouts: [{ id: `house:${id(1)}`, x: 4, z: 8, rotation: 1 }],
+    houses: statuses.map((status, i) => ({ id: id(i), status: legacyRpc ? status : friendStatus(status, shared), company: shared ? companies[i] : null })),
   });
   return { friend: { applications: friend.applications, items: friend.items, layouts: friend.layouts, islandCount: friend.islands }, parent };
 }
 const visible = (props) => ({ ...props, applications: props.applications.map(({ id, company, status, position, category }) => ({ id, company, status, position, category })) });
 
-for (const shared of [false, true]) {
-  test(`parity (${shared ? "company names shared" : "company names NOT shared"}): parent gets exactly the friend's map props`, () => {
-    const { friend, parent } = both(shared);
+for (const [shared, legacyRpc] of [[false, false], [true, false], [false, true], [true, true]]) {
+  test(`parity (${shared ? "applications shared" : "applications NOT shared"}${legacyRpc ? ", old RPC payload" : ""}): parent gets exactly the friend's map props`, () => {
+    const { friend, parent } = both(shared, legacyRpc);
     const a = readOnlyWorldProps(friend);
     const b = readOnlyWorldProps(parent);
     assert.deepEqual(visible(b), visible(a));
@@ -58,7 +63,7 @@ test("read-only props: nothing selectable, placeable or draggable", () => {
   assert.equal(props.selectedId, null);
   assert.equal(props.selectedShopItemId, null);
   assert.equal(props.placement, null);
-  assert.deepEqual(props.visibleIds, ["h1", "h2", "h3", "h4", "h5", "h6"]);
+  assert.deepEqual(props.visibleIds, ["h0001", "h0002", "h0003", "h0004", "h0005", "h0006"]);
   assert.equal(props.islandCount, 3);
   for (const handler of [props.onSelect, props.onSelectShopItem, props.onPlacePosition]) assert.equal(handler("x"), undefined);
 });

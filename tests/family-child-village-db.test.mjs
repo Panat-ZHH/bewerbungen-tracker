@@ -56,8 +56,9 @@ test("shared village: exactly the contract fields, houses oldest first, company 
   assert.equal(v.display_name, "Kim");
   assert.equal(v.island_count, 1);
   assert.equal(v.show_companies, false);
-  assert.deepEqual(v.houses, [{ id: a, status: "applied", company: null }, { id: b, status: "interview", company: null }]);
-  assert.deepEqual(v.layouts, [{ id: `house:${a}`, x: 3, z: 4, rotation: 1 }], "stray layout of a deleted application is not returned");
+  // Pseudo ids by age, exactly like map_friend_island (20261122100000_family_child_village_like_friend.sql): a = h0001, b = h0002.
+  assert.deepEqual(v.houses, [{ id: "h0001", status: "applied", company: null }, { id: "h0002", status: "interview", company: null }]);
+  assert.deepEqual(v.layouts, [{ id: "house:h0001", x: 3, z: 4, rotation: 1 }], "stray layout of a deleted application is not returned");
   assert.equal(v.items.length, 2);
   for (const it of v.items) assert.deepEqual(Object.keys(it).sort(), ["createdAt", "id", "itemType", "rotation", "x", "z"]);
   const tree = v.items.find((i) => i.id === itemId);
@@ -66,18 +67,35 @@ test("shared village: exactly the contract fields, houses oldest first, company 
   const bench = v.items.find((i) => i.itemType === "bench");
   assert.deepEqual([bench.x, bench.z, bench.rotation], [null, null, 0], "unplaced items come back like map_shop_state");
   const text = JSON.stringify(v);
-  for (const s of [...SECRETS, "Kinder AG", "Zweite"]) assert.ok(!text.includes(s), `leaked ${s}`);
+  for (const s of [...SECRETS, "Kinder AG", "Zweite", a, b]) assert.ok(!text.includes(s), `leaked ${s}`);
+});
+
+test("results (Zusage / Absage / Rückzug) only when the child shares the application list; masked exactly like for friends", async () => {
+  const { parent, child } = await family();
+  await seedVillage(child);
+  const tail = child.slice(-4);
+  await admin(`insert into public.applications (id, user_id, company, position, category, status, created_at, updated_at) values
+    ('app-r-' || $2, $1, 'Absage AG', 'X', 'software', 'rejected', '2026-11-20', '2026-11-20'),
+    ('app-o-' || $2, $1, 'Zusage AG', 'X', 'software', 'offer', '2026-11-21', '2026-11-21'),
+    ('app-w-' || $2, $1, 'Rückzug AG', 'X', 'software', 'withdrawn', '2026-11-22', '2026-11-22')`, [child, tail]);
+  const hidden = await village(parent, child);
+  assert.deepEqual(hidden.houses.map((h) => [h.id, h.status]), [["h0001", "applied"], ["h0002", "interview"], ["h0003", "applied"], ["h0004", "applied"], ["h0005", "applied"]]);
+  const masked = (await admin("select public._soc_friend_status(s, false) as m from unnest(array['applied','interview','rejected','offer','withdrawn']) s")).map((r) => r.m);
+  assert.deepEqual(hidden.houses.map((h) => h.status), masked, "same rule as public._soc_friend_status for friends");
+  await rpc(child, "select public.family_set_share($1::jsonb)", ['{"applications":true}']);
+  const shared = await village(parent, child);
+  assert.deepEqual(shared.houses.map((h) => [h.id, h.status]), [["h0001", "applied"], ["h0002", "interview"], ["h0003", "rejected"], ["h0004", "offer"], ["h0005", "withdrawn"]]);
 });
 
 test("companies only when the child also shares applications (trimmed, empty -> null)", async () => {
   const { parent, child } = await family();
-  const { a, b } = await seedVillage(child);
+  await seedVillage(child);
   await admin("insert into public.applications (id, user_id, company, position, category, status, created_at, updated_at) values ($2, $1, '   ', 'X', 'software', 'saved', '2026-11-20', '2026-11-20')", [child, `app-c-${child.slice(-4)}`]);
   await rpc(child, "select public.family_set_share($1::jsonb)", ['{"applications":true}']);
   const v = await village(parent, child);
   assert.equal(v.show_companies, true);
-  assert.deepEqual(v.houses, [{ id: a, status: "applied", company: "Kinder AG" }, { id: b, status: "interview", company: "Zweite GmbH" },
-    { id: `app-c-${child.slice(-4)}`, status: "saved", company: null }]);
+  assert.deepEqual(v.houses, [{ id: "h0001", status: "applied", company: "Kinder AG" }, { id: "h0002", status: "interview", company: "Zweite GmbH" },
+    { id: "h0003", status: "saved", company: null }]);
   const text = JSON.stringify(v);
   for (const s of SECRETS) assert.ok(!text.includes(s), `leaked ${s}`);
   await rpc(child, "select public.family_set_share($1::jsonb)", ['{"applications":false}']);

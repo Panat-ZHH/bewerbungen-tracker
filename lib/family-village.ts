@@ -2,13 +2,14 @@ import type { Application, ApplicationStatus } from "../types/index.ts";
 import { STATUS_ORDER } from "./status.ts";
 import { shopCatalog, type MapLayout, type OwnedMapItem, type ShopItemType } from "./map-shop.ts";
 import { cleanCompany } from "./friend-island.ts";
-import { houseLabel, type ReadOnlyVillage } from "./read-only-village.ts";
+import { houseLabel, maskedStatus, pseudoHouseId, type ReadOnlyVillage } from "./read-only-village.ts";
 
 /**
  * Parent view of a child's real village (/familie/kind/[id]/dorf), read-only. Only calls family_child_village
  * (contract: docs/family/parent-village-contract.md). The server decides what may be seen: share_settings.village,
- * consent (_family_sharing_allowed), same family, active parent; company names only when the child also shares applications.
- * The parser rebuilds Application objects with nothing but id, status and (optionally) the company name.
+ * consent (_family_sharing_allowed), same family, active parent; company names AND results (Zusage/Absage) only when the
+ * child also shares the application list. The parser rebuilds Application objects with nothing but a pseudo id, the status
+ * and (optionally) the company name, i.e. exactly the friend view's data (lib/friend-island.ts).
  */
 export type FamilyVillage = ReadOnlyVillage & {
   childId: string;
@@ -34,12 +35,17 @@ export function parseFamilyVillage(data: unknown): FamilyVillage {
   const raw = (Array.isArray(data) ? data[0] : data) as Record<string, unknown> | null;
   if (!raw || typeof raw !== "object") throw new Error("INVALID_VILLAGE");
   const showCompanies = raw.show_companies === true;
-  const applications: Application[] = rows(raw.houses)
-    .filter((h) => typeof h.id === "string" && statuses.includes(String(h.status)))
-    // The RPC already sorts houses oldest first (created_at, id) but sends no dates; a padded index keeps that order in
-    // createApplicationMap(), which sorts by createdAt (contract, change 3).
-    .map((h, index) => ({ id: h.id as string, company: (showCompanies && cleanCompany(h.company)) || houseLabel(index), position: "", category: "other", status: h.status as ApplicationStatus, createdAt: String(index).padStart(6, "0"), updatedAt: "" }));
-  const layouts = rows(raw.layouts).flatMap((l): MapLayout[] => (typeof l.id === "string" && typeof l.x === "number" && typeof l.z === "number" ? [{ id: l.id, x: num(l.x), z: num(l.z), rotation: num(l.rotation) }] : []));
+  // Exactly what a friend gets from map_friend_island (the 3D world derives roof colour / ruin shape from the id and the look
+  // from the status): pseudo ids h0001... in age order, and results masked unless the child shares the application list.
+  // The RPC does the same since 20261122100000_family_child_village_like_friend.sql; doing it here too keeps the view
+  // identical with an older RPC and is a no-op on the new payload.
+  const houses = rows(raw.houses).filter((h) => typeof h.id === "string" && statuses.includes(String(h.status)));
+  const pseudo = new Map(houses.map((h, index) => [`house:${h.id as string}`, `house:${pseudoHouseId(index)}`]));
+  // The RPC already sorts houses oldest first (created_at, id) but sends no dates; a padded index keeps that order in
+  // createApplicationMap(), which sorts by createdAt (contract, change 3).
+  const applications: Application[] = houses.map((h, index) => ({ id: pseudoHouseId(index), company: (showCompanies && cleanCompany(h.company)) || houseLabel(index), position: "", category: "other",
+    status: maskedStatus(h.status as ApplicationStatus, showCompanies), createdAt: String(index).padStart(6, "0"), updatedAt: "" }));
+  const layouts = rows(raw.layouts).flatMap((l): MapLayout[] => (typeof l.id === "string" && pseudo.has(l.id) && typeof l.x === "number" && typeof l.z === "number" ? [{ id: pseudo.get(l.id)!, x: num(l.x), z: num(l.z), rotation: num(l.rotation) }] : []));
   const items = rows(raw.items).flatMap((i): OwnedMapItem[] => (typeof i.id === "string" && String(i.itemType) in shopCatalog
     ? [{ id: i.id, itemType: i.itemType as ShopItemType, x: typeof i.x === "number" ? num(i.x) : null, z: typeof i.z === "number" ? num(i.z) : null, rotation: num(i.rotation), createdAt: typeof i.createdAt === "string" ? i.createdAt : "" }]
     : []));

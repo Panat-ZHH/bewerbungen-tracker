@@ -22,8 +22,8 @@ test("parseFamilyVillage maps the RPC JSON to ApplicationMapWorld props and drop
   assert.equal(v.displayName, "Lina Meier");
   assert.equal(v.islandCount, 2);
   assert.equal(v.showCompanies, true);
-  assert.deepEqual(v.applications.map((a) => [a.id, a.company, a.status, a.position]), [["h1", "Swisscom", "offer", ""], ["h3", "Haus 2", "applied", ""]]);
-  assert.deepEqual(v.layouts, [{ id: "house:h1", x: 4, z: 8, rotation: 1 }]);
+  assert.deepEqual(v.applications.map((a) => [a.id, a.company, a.status, a.position]), [["h0001", "Swisscom", "offer", ""], ["h0002", "Haus 2", "applied", ""]]);
+  assert.deepEqual(v.layouts, [{ id: "house:h0001", x: 4, z: 8, rotation: 1 }], "layouts follow the pseudo id of their house");
   assert.deepEqual(v.items.map((i) => [i.id, i.itemType, i.x, i.z]), [["i1", "tree", 8, 12], ["i3", "bench", null, null]]);
   assert.deepEqual(v.applications.map((a) => a.createdAt), ["000000", "000001"], "createdAt keeps the RPC order (oldest first)");
   const text = JSON.stringify(v);
@@ -34,6 +34,17 @@ test("company names are never shown when the child does not share applications (
   const v = parseFamilyVillage(payload({ show_companies: false }));
   assert.deepEqual(v.applications.map((a) => a.company), ["Haus 1", "Haus 2"]);
   assert.ok(!JSON.stringify(v).includes("Swisscom"));
+});
+
+test("results are masked like for friends when the application list is not shared (no ruin / palace from an older RPC)", () => {
+  const houses = ["saved", "preparing", "applied", "interview", "final_interview", "offer", "rejected", "withdrawn"].map((status, i) => ({ id: `real-${i}`, status, company: null }));
+  const hidden = parseFamilyVillage(payload({ show_companies: false, houses, layouts: [{ id: "house:real-6", x: 1, z: 2, rotation: 0 }] }));
+  assert.deepEqual(hidden.applications.map((a) => a.status), ["saved", "preparing", "applied", "interview", "final_interview", "applied", "applied", "applied"]);
+  assert.deepEqual(hidden.applications.map((a) => a.id), houses.map((_, i) => `h000${i + 1}`), "real application ids are replaced by the friend view's pseudo ids");
+  assert.deepEqual(hidden.layouts, [{ id: "house:h0007", x: 1, z: 2, rotation: 0 }]);
+  assert.ok(!JSON.stringify(hidden).includes("real-"));
+  const shared = parseFamilyVillage(payload({ show_companies: true, houses }));
+  assert.deepEqual(shared.applications.map((a) => a.status), houses.map((h) => h.status));
 });
 
 test("parseFamilyVillage clamps the island count and tolerates empty or array payloads", () => {

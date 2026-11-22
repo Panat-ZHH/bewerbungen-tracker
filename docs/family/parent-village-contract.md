@@ -14,6 +14,11 @@ const { data, error } = await supabase.rpc("family_child_village", { p_child_id:
 The function is wrapped by `public._acc_wrap('family_child_village', 'uuid', 'all')`, exactly like `family_child_overview`.
 The real logic is in `public._acc_impl_family_child_village` (no client grants). Calling it writes nothing.
 
+> **2026-11-22 (`20261122100000_family_child_village_like_friend.sql`): same data as a friend gets.** `houses[].id` is a pseudo id
+> `h0001`, `h0002`, ... by age (like `map_friend_island`), `layouts[].id` is `house:<pseudo id>`, and results (`offer`, `rejected`,
+> `withdrawn`, ...) are sent as `applied` unless `show_companies` (= the child shares the application list), using
+> `public._soc_friend_status`. The keys below are unchanged. `lib/family-village.ts` applies the same normalisation client-side.
+
 ## Response (final shape)
 
 ```jsonc

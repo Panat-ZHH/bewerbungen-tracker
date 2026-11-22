@@ -1,4 +1,4 @@
-import type { Application } from "../types/index.ts";
+import type { Application, ApplicationStatus } from "../types/index.ts";
 import type { MapLayout, OwnedMapItem } from "./map-shop.ts";
 import { lockedDrag, noopHandler } from "./map-readonly.ts";
 
@@ -17,6 +17,19 @@ export type ReadOnlyVillage = {
 
 /** Neutral label for a house without a (shared) company name: «Haus 1», «Haus 2», ... */
 export const houseLabel = (index: number) => `Haus ${index + 1}`;
+
+/** Pseudo house id by age (oldest = h0001), exactly what map_friend_island sends instead of the real application id. */
+export const pseudoHouseId = (index: number) => `h${String(index + 1).padStart(4, "0")}`;
+
+/** Statuses anybody who may see the village may see; results (Zusage, Absage, Rückzug, ...) only when shared. */
+const OPEN_STATUSES: readonly ApplicationStatus[] = ["saved", "preparing", "applied", "interview", "final_interview"];
+/**
+ * Same rule as public._soc_friend_status (supabase/migrations/20261109050000_friends_privacy_defaults.sql): a result that is not
+ * shared is shown as «Abgeschickt» (applied), so the house looks like a friend sees it (no ruin, no palace).
+ */
+export function maskedStatus(status: ApplicationStatus, outcomesShared: boolean): ApplicationStatus {
+  return outcomesShared || OPEN_STATUSES.includes(status) ? status : "applied";
+}
 
 /**
  * Data props for ApplicationMapWorld in read-only mode (camera props come from the page). Every mutating handler is a
