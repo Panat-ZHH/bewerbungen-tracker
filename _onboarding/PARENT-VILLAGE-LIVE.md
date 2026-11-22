@@ -1,131 +1,47 @@
-# Eltern-Dorf «stillgelegt» – Analyse und Fix (2026-11-22)
+# Parent village = friend village: LIVE (2026-11-22)
 
-Branch `fix/parent-village-live` (Basis `origin/main` = af82f8a = aktueller Produktions-Deploy vom 21.11. 21:59 UTC).
-**Live seit 2026-11-22 (main `ab9777e`, Netlify-Deploy `6b02f737313dd8d4e4d90b4e`).** Rollback-Ziel: `6b021448f16c14c121d61c4b`.
+**Status: LIVE on https://wendapply.ch.** Gate: `PARENT-VILLAGE-IDENTICAL-BUILD.md` → BUILD: PASS, `PARENT-VILLAGE-IDENTICAL-QA.md` → QA: PASS.
+(This replaces the earlier release report for d8d2b03; that fix was live but did not solve Panat's Android photo.)
 
-## Ursache
+| | |
+|---|---|
+| New production deploy | `6b030b4a7b4d419927ca363d` (commit `e0b6c14`, published 2026-11-22 15:34 UTC) |
+| Rollback deploy | `6b02f7b7c586c564ca000ce9` (commit `d248777`): `netlify api restoreSiteDeploy --data '{"site_id":"b96bc70c-8324-4bb9-a4ef-70877581f8bd","deploy_id":"6b02f7b7c586c564ca000ce9"}'` |
+| DB migration | `20261122100000_family_child_village_like_friend.sql` applied to bhwreehwirrloxagyypi (PRIVAT) and recorded in `supabase_migrations.schema_migrations` |
+| DB rollback | `supabase/rollback/20261122100000_family_child_village_like_friend.down.sql`, or the exact pre-migration live definition: `_onboarding/parent-village-identical/db-backup/_acc_impl_family_child_village.before-20261122.sql` |
 
-**Kurz:** Die 3D-Welt lief in der Eltern-Ansicht schon vorher (Bewohner, Bauarbeiter, Wasser, Feuer/Rauch und Tag/Nacht
-funktionierten). Wenn das Kind seine Bewerbungsliste **nicht** teilt, versteckte die Eltern-Ansicht aber **alle Hausschilder**.
-Ohne die Schilder «Haus N · Status» wirkte das Dorf leer und «stillgelegt». Die Freunde-Ansicht zeigt im gleichen Fall
-neutrale Schilder «Haus 1 · Abgeschickt», «Haus 4 · Absage erhalten» usw.
+## Root cause
 
-Genau das ist der reale Fall: Das einzige aktive Kind in Produktion teilt das Dorf (`village = true`), aber nicht die
-Bewerbungen (`applications = false`). Geprüft wurde das read-only und nur mit aggregierten Daten, ohne Namen oder IDs.
-Das Kind hat 25 Häuser, 4 Inseln und 16 Shop-Objekte.
+The 3D component, camera, map size and render loop were already identical for parent and friend. The **data** differed:
 
-Zwei Stellen haben das zusammen verursacht (Stand af82f8a):
+1. The parent RPC `family_child_village` sent raw application results. The friend RPC masks `rejected`/`offer`/`withdrawn` as `applied`
+   unless results are shared (the default). So the parent saw burnt ruins with «Absage erhalten» and labels anchored elsewhere, while the friend sees normal houses with «Abgeschickt».
+2. The parent RPC sent real application ids, the friend RPC pseudo ids `h0001…`. Roof colour and ruin shape are derived from the id, so the colours differed too.
+3. The "frozen" look: in emulation (390×844, Pixel 7, Pixel 7 with 4× CPU throttling) the parent view animated before and after the fix.
+   The dead look came from the burnt village. If Android *Settings → Accessibility → Remove animations* is on, **both** views are still by design (`prefers-reduced-motion`).
+4. The close zoom on a few houses is the default start camera, the same in the friend view.
 
-- `lib/family-village.ts:39` (alt): `company: (showCompanies && cleanCompany(h.company)) || ""`. Ohne geteilte Firmen bekam
-  jedes Haus ein **leeres** Label. Die Freunde-Ansicht (`lib/friend-island.ts:29`) setzt dagegen `houseLabel(index)` = «Haus N».
-- `app/familie/kind/[id]/dorf/dorf.module.css:4` (alt): `.village [data-building]:has(> strong:empty) { display: none; }`.
-  Diese Regel versteckte jedes Hausschild mit leerem Namen, also im realen Fall **alle**, samt Statuszeile.
+## What changed
 
-Zusätzlich hatten Eltern- und Freunde-Seite je eine **eigene Kopie** des Kartenscreens (`app/familie/kind/[id]/dorf/page.tsx`
-und `components/friends/friend-island-view.tsx`, ca. 60 Zeilen fast identisches JSX). Solche Abweichungen konnten deshalb
-unbemerkt entstehen.
+- DB: `_acc_impl_family_child_village` now sends pseudo ids, layouts as `house:<pseudo id>`, and masks results with the same `_soc_friend_status`, gated by
+  `share_settings.applications`. The wrapper, paywall guard and grants are unchanged. Checked after applying: the new definition is active, `authenticated` cannot execute the impl, and `anon` cannot execute the wrapper.
+- Client: `lib/family-village.ts` and `lib/read-only-village.ts` (`pseudoHouseId`, `maskedStatus`) apply the same normalisation, plus tests and the contract doc.
+- Intended behaviour change: parents see «Absage»/«Zusage» only if the child shares the application list with the family, exactly like friends.
 
-Was ich ausgeschlossen habe (Messung mit `scripts/parent-village-live-e2e.mjs`: Render-Loop-Frames pro Sekunde und zwei
-Canvas-Frames im Abstand von 1,5 s):
+## Test evidence
 
-- Ein Pausen-, readOnly- oder reduced-motion-Flag gibt es nicht. Beide Seiten rendern `ApplicationMapWorld` mit identischen Props.
-  Die Animation hängt nur an `prefers-reduced-motion` des Geräts, und das gilt für beide Ansichten gleich.
-- Datenform: Die produktive RPC `family_child_village` liefert alle Vertragsschlüssel (`houses`, `layouts`, `items` mit
-  `itemType` usw.). Das habe ich in der Produktions-DB per Funktionsdefinition geprüft.
-- Produktions-Bundle: Ich habe wendapply.ch mit Playwright aufgerufen und alle Supabase-Aufrufe im Browser auf Demo-Daten
-  umgeleitet. Die Form entsprach dem realen Dorf (25 Häuser, 4 Inseln, Autos und Scooter). Beide Ansichten liefen mit 16–39 fps,
-  die Frames unterschieden sich, sowohl auf Desktop als auch auf Mobile und sowohl direkt als auch über «Dorf ansehen».
-- Der Service Worker cached Seiten network-first und `/_next/static` cache-first mit Hash, also nichts Veraltetes.
+Release worktree (main e0b6c14): `npm ci`, lint, `npx tsc --noEmit` all PASS. `npm test`: 1267 tests, 1255 pass, 0 fail, 12 skipped. `npm run build`: PASS.
 
-## Fix
+Images in `_onboarding/parent-village-identical/`:
+- Before: `before-side-by-side-friend-left-parent-right.png`, `before-friend.png`, `before-parent.png`
+- After: `after-side-by-side-friend-left-parent-right.png`, `after-friend.png`, `after-parent.png`, animation diffs `after-*-diff12.png`
+- QA: `qa-side-by-side-friend-left-parent-right.png`, `qa-friend-pixel7.png`, `qa-parent-pixel7.png`, `qa-*-anim-diff12.png`, privacy `qa-privacy-*.png`
 
-1. **Ein gemeinsamer Screen für beide Ansichten:** `components/applications/read-only-village-view.tsx` (`ReadOnlyVillageView`).
-   Er enthält die 3D-Welt, Kamera, Tag/Nacht, den Insel-Umschalter, das Info-Chip und das Badge «Nur ansehen».
-   `components/friends/friend-island-view.tsx` und `app/familie/kind/[id]/dorf/page.tsx` laden nur noch ihre Daten (jeweils
-   über die eigene read-only RPC mit eigener Datenschutzprüfung) und übergeben die Texte.
-2. **Gleiche Map-Props:** `lib/read-only-village.ts` mit `readOnlyWorldProps()` (readOnly, `lockedDrag`, alle Handler no-op,
-   nichts auswählbar oder platzierbar) und `houseLabel()`. `lib/friend-island.ts` nutzt dasselbe `houseLabel`.
-3. **Gleiche Labels:** `parseFamilyVillage` setzt ohne geteilte Firmen «Haus N» statt `""`
-   (`lib/family-village.ts`). Die CSS-Regel, die Schilder versteckte, ist entfernt (`dorf.module.css`).
-4. Vertrags-Doku angepasst (`docs/family/parent-village-contract.md`, Änderung 3).
+Live checks after deploy:
+- `/` 200, `/login` 200, `/familie/kind/<random uuid>/dorf` 200 app shell with a client-side redirect to login (as before), no 500.
+- The deployed chunk `/_next/static/chunks/32hx5p66rl5fy.js` contains the new `maskedStatus` (`["saved","preparing","applied","interview","final_interview"]`) and `pseudoHouseId` (`h${…padStart(4,"0")}`).
 
-Datenschutz bleibt unverändert: Die Firmennamen erscheinen nur, wenn das Kind die Bewerbungen teilt. Der Status pro Haus kam
-schon vorher von der RPC und ist ohnehin an der Gebäudeform sichtbar (Baustelle, Ruine, Palast). Es gibt keine Migration und
-keine neue RPC. Die Eltern-Seite ruft weiterhin nur `family_child_village` auf. Es gibt keinen Shop, keine Münzen, kein
-Bearbeiten und kein Ziehen.
+## For Panat (Android)
 
-## Tests
-
-- **Neu, `tests/read-only-village.test.mjs`:**
-  - Parität: Dasselbe Dorf einmal als `map_friend_island` und einmal als `family_child_village` ergibt dieselben Map-Props und
-    dieselben Haus-, Strassen- und Bewohner-Routen-Positionen. Geprüft für beide Fälle, mit und ohne geteilte Firmen.
-  - Kein Haus hat ein leeres Label.
-  - Die read-only Props sind gesperrt.
-  - Beide Seiten nutzen `ReadOnlyVillageView`.
-  - Keine CSS-Regel versteckt Schilder, und es gibt keinen zusätzlichen Motion- oder Pause-Schalter.
-- **Neu in `tests/family-child-village-db.test.mjs`** (PGlite, ganze Migrationskette): Datenschutz-Gate. Ein aktiver Elternteil
-  sieht das Dorf. Ein entfernter (inaktiver) Elternteil bekommt FORBIDDEN oder NOT_IN_FAMILY. Wenn das Kind nicht teilt, kommt
-  NOT_SHARED. Schon vorher abgedeckt waren: Nicht-Eltern (das Kind selbst, fremde Kinder, Aussenstehende, anon), ein
-  pending-Elternteil, eine andere Familie, Einwilligung ausstehend oder widerrufen und ein entferntes Kind.
-- **Angepasst:** `tests/family-village.test.mjs` erwartet jetzt «Haus N» und `ReadOnlyVillageView`. In
-  `scripts/family-village-e2e.mjs` hat ein Haus ohne Firma jetzt das Schild «Haus 3» (54/54 Checks bestanden).
-- **Neu, `scripts/parent-village-live-e2e.mjs`:** Live-Check mit Demo-Daten. Er vergleicht Freunde- und Eltern-Dorf (direkt
-  und über «Dorf ansehen», Desktop und Mobile) anhand von fps und unterschiedlichen Frames. Optional bildet `SHAPE=<json>`
-  die anonyme Form eines realen Dorfs nach, und `NOCO=1` simuliert «Firmen nicht geteilt». Ergebnis lokal: alle 6 Messungen
-  live, und die Screenshots von Eltern- und Freunde-Dorf sind identisch, mit «Haus N»-Schildern.
-- **Checks:**
-  - `npm run lint`: 0 Fehler. Die 16 Warnungen sind alt und stehen in Dateien, die ich nicht angefasst habe.
-  - `npx tsc --noEmit`: grün.
-  - `npm test`: 1251 bestanden, 0 fehlgeschlagen, 12 übersprungen.
-  - `npm run build`: grün.
-
-Hinweis: Falls jemand das Dorf weiterhin «eingefroren» sieht, obwohl die Schilder da sind, liegt es am Gerät. Bei aktivierter
-Einstellung «Bewegung reduzieren» (macOS/iOS) bewegt sich die Karte bewusst nicht, in beiden Ansichten.
-
-## QA
-
-Unabhängiges Review in `_onboarding/PARENT-VILLAGE-QA.md`: **VERDICT: OK**, keine Blocker oder Major-Befunde. Vor dem Release habe
-ich deshalb keinen Code geändert. Offene Minor-Punkte, die bewusst nicht im Release sind:
-- **Produktentscheid für Panat:** Eltern sehen den Status pro Haus (z. B. «Haus 4 · Absage erhalten»), auch wenn das Kind die
-  Bewerbungsliste nicht teilt. Das war über die Gebäudeform schon sichtbar. Optionen: Statuszeile bei `!showCompanies`
-  ausblenden, oder den Freigabetext in `lib/family-core.ts:246` ergänzen.
-- Der Ladetext der Freunde-Ansicht heisst jetzt «Dorf wird aufgebaut …» statt «Insel wird aufgebaut …».
-- Der DB-Test ruft am Ende kein `reset()` auf. Die IDs der Bewerbungen sind in der Eltern-RPC nicht pseudonymisiert (das war schon vorher so).
-
-## E2E
-
-`_onboarding/PARENT-VILLAGE-E2E.md`: **E2E: PASS**. Getestet wurde gegen das echte Supabase mit 4 temporären Probe-Usern,
-die alle wieder gelöscht und verifiziert sind. Eltern- und Freunde-Dorf laufen identisch live: Render-Frames steigen, rund 3 %
-der Pixel ändern sich zwischen zwei Frames, Insel-Wechsel funktioniert, Ziehen bewegt nichts, keine Schreib-Requests und keine
-Console-Fehler. Das gilt für Desktop und Mobile, hell und dunkel. Das Datenschutz-Gate hält für Freundin, Aussenstehende:n, das
-Kind selbst, anonym und ausgeschaltetes Dorf-Teilen.
-
-Release-Checks vor dem Push (Branch = Fast-Forward auf `origin/main`, kein Rebase nötig): `npm run lint` 0 Fehler
-(16 alte Warnungen), `npx tsc --noEmit` grün, `npm test` 1251 bestanden / 0 fehlgeschlagen / 12 übersprungen, `npm run build` grün.
-
-## Screenshots
-
-- `_onboarding/screens/parent-village-live/` (40 Dateien): `{friend,parent}-{desktop,mobile}-{light,dark}.png`, `…-frameA.png`
-  und `…-frameB.png` (Frame-Diff), `…-island2.png`, `parent-desktop-light-via-link*.png` und
-  `gate-{friend-not-parent,outsider,child-self,anonymous,parent-village-off}.png`.
-
-## Deploy
-
-- Commit `ab9777e` (main, Fast-Forward von `af82f8a`, kein Force-Push). Darin: Fix `d8d2b03`, E2E-Bericht `a48c642`, QA-Bericht `ab9777e`.
-- Netlify-Produktions-Deploy **`6b02f737313dd8d4e4d90b4e`**, Status `ready` und published (2026-11-22 14:08 UTC).
-- Keine DB-Migration und keine neue RPC.
-
-## Rollback-Ziel
-
-- Vorheriger Produktions-Deploy **`6b021448f16c14c121d61c4b`** (Commit `af82f8a`, 2026-11-21 22:00 UTC).
-- Bei Bedarf: `netlify api restoreSiteDeploy --data '{"site_id":"<site>","deploy_id":"6b021448f16c14c121d61c4b"}'`.
-  Die DB muss nicht zurückgesetzt werden.
-
-## Live-Checks (2026-11-22, ohne echte Logins)
-
-Mit Playwright (Chrome, ohne Login) gegen https://wendapply.ch. Ein Rollback war nicht nötig.
-- `/`, `/login`, `/preise`: 200, keine Console-Fehler.
-- `/friends` und `/familie`: 200 und dann Weiterleitung auf `/login?next=…`, keine Console-Fehler.
-- `/familie/kind/<zufällige UUID>/dorf`: Weiterleitung auf `/login?next=%2Ffamilie%2Fkind%2F…%2Fdorf`. Kein RPC-Aufruf,
-  kein Canvas, keine Daten, keine Console-Fehler.
-- `/pricing`: 404. Das ist erwartet, denn die Route heisst `/preise`.
+Open a child's village as parent and the same child's village as friend on the same phone. They should look the same: no ruins unless results are shared, same roof colours, same labels.
+If both are still, check *Settings → Accessibility → Remove animations*.
