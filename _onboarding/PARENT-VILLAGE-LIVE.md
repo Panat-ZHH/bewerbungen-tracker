@@ -1,7 +1,7 @@
 # Eltern-Dorf «stillgelegt» – Analyse und Fix (2026-11-22)
 
 Branch `fix/parent-village-live` (Basis `origin/main` = af82f8a = aktueller Produktions-Deploy vom 21.11. 21:59 UTC).
-Nicht gepusht, nicht deployed.
+**Live seit 2026-11-22 (main `ab9777e`, Netlify-Deploy `6b02f737313dd8d4e4d90b4e`).** Rollback-Ziel: `6b021448f16c14c121d61c4b`.
 
 ## Ursache
 
@@ -81,3 +81,51 @@ Bearbeiten und kein Ziehen.
 
 Hinweis: Falls jemand das Dorf weiterhin «eingefroren» sieht, obwohl die Schilder da sind, liegt es am Gerät. Bei aktivierter
 Einstellung «Bewegung reduzieren» (macOS/iOS) bewegt sich die Karte bewusst nicht, in beiden Ansichten.
+
+## QA
+
+Unabhängiges Review in `_onboarding/PARENT-VILLAGE-QA.md`: **VERDICT: OK**, keine Blocker oder Major-Befunde. Vor dem Release habe
+ich deshalb keinen Code geändert. Offene Minor-Punkte, die bewusst nicht im Release sind:
+- **Produktentscheid für Panat:** Eltern sehen den Status pro Haus (z. B. «Haus 4 · Absage erhalten»), auch wenn das Kind die
+  Bewerbungsliste nicht teilt. Das war über die Gebäudeform schon sichtbar. Optionen: Statuszeile bei `!showCompanies`
+  ausblenden, oder den Freigabetext in `lib/family-core.ts:246` ergänzen.
+- Der Ladetext der Freunde-Ansicht heisst jetzt «Dorf wird aufgebaut …» statt «Insel wird aufgebaut …».
+- Der DB-Test ruft am Ende kein `reset()` auf. Die IDs der Bewerbungen sind in der Eltern-RPC nicht pseudonymisiert (das war schon vorher so).
+
+## E2E
+
+`_onboarding/PARENT-VILLAGE-E2E.md`: **E2E: PASS**. Getestet wurde gegen das echte Supabase mit 4 temporären Probe-Usern,
+die alle wieder gelöscht und verifiziert sind. Eltern- und Freunde-Dorf laufen identisch live: Render-Frames steigen, rund 3 %
+der Pixel ändern sich zwischen zwei Frames, Insel-Wechsel funktioniert, Ziehen bewegt nichts, keine Schreib-Requests und keine
+Console-Fehler. Das gilt für Desktop und Mobile, hell und dunkel. Das Datenschutz-Gate hält für Freundin, Aussenstehende:n, das
+Kind selbst, anonym und ausgeschaltetes Dorf-Teilen.
+
+Release-Checks vor dem Push (Branch = Fast-Forward auf `origin/main`, kein Rebase nötig): `npm run lint` 0 Fehler
+(16 alte Warnungen), `npx tsc --noEmit` grün, `npm test` 1251 bestanden / 0 fehlgeschlagen / 12 übersprungen, `npm run build` grün.
+
+## Screenshots
+
+- `_onboarding/screens/parent-village-live/` (40 Dateien): `{friend,parent}-{desktop,mobile}-{light,dark}.png`, `…-frameA.png`
+  und `…-frameB.png` (Frame-Diff), `…-island2.png`, `parent-desktop-light-via-link*.png` und
+  `gate-{friend-not-parent,outsider,child-self,anonymous,parent-village-off}.png`.
+
+## Deploy
+
+- Commit `ab9777e` (main, Fast-Forward von `af82f8a`, kein Force-Push). Darin: Fix `d8d2b03`, E2E-Bericht `a48c642`, QA-Bericht `ab9777e`.
+- Netlify-Produktions-Deploy **`6b02f737313dd8d4e4d90b4e`**, Status `ready` und published (2026-11-22 14:08 UTC).
+- Keine DB-Migration und keine neue RPC.
+
+## Rollback-Ziel
+
+- Vorheriger Produktions-Deploy **`6b021448f16c14c121d61c4b`** (Commit `af82f8a`, 2026-11-21 22:00 UTC).
+- Bei Bedarf: `netlify api restoreSiteDeploy --data '{"site_id":"<site>","deploy_id":"6b021448f16c14c121d61c4b"}'`.
+  Die DB muss nicht zurückgesetzt werden.
+
+## Live-Checks (2026-11-22, ohne echte Logins)
+
+Mit Playwright (Chrome, ohne Login) gegen https://wendapply.ch. Ein Rollback war nicht nötig.
+- `/`, `/login`, `/preise`: 200, keine Console-Fehler.
+- `/friends` und `/familie`: 200 und dann Weiterleitung auf `/login?next=…`, keine Console-Fehler.
+- `/familie/kind/<zufällige UUID>/dorf`: Weiterleitung auf `/login?next=%2Ffamilie%2Fkind%2F…%2Fdorf`. Kein RPC-Aufruf,
+  kein Canvas, keine Daten, keine Console-Fehler.
+- `/pricing`: 404. Das ist erwartet, denn die Route heisst `/preise`.
